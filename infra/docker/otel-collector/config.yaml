@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OTEL Collector configuration for SiteFlow
+# Receives OTLP from the app, forwards to SigNoz (ClickHouse).
+# ─────────────────────────────────────────────────────────────────────────────
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+        cors:
+          allowed_origins:
+            - "http://localhost:3000"
+            - "http://localhost:3001"
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 400
+    spike_limit_mib: 100
+
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 5s
+
+exporters:
+  # Forward to SigNoz via its native ClickHouse exporter (built into the image)
+  clickhousetraces:
+    datasource: tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
+
+  # Debug exporter — prints spans to collector stdout in dev
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  health_check:
+    endpoint: "0.0.0.0:13133"
+  pprof:
+    endpoint: "0.0.0.0:1777"
+  zpages:
+    endpoint: "0.0.0.0:55679"
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [clickhousetraces, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [debug]

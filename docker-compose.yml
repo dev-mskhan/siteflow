@@ -1,0 +1,283 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SiteFlow — local development services
+#
+# Split into logical groups:
+#   1. app-infra  — Postgres, Redis, MinIO  (always on)
+#   2. app        — server (API) + worker (pg-boss)  (activate: --profile app)
+#   3. observability — SigNoz + OTEL Collector + ClickHouse + Zookeeper
+#
+# Usage:
+#   docker compose up -d                                    # app-infra only
+#   docker compose --profile app up -d                      # + server + worker
+#   docker compose --profile observability up -d            # + full SigNoz stack
+#   docker compose --profile pooling up -d                  # + PgBouncer
+#   docker compose --profile app --profile observability up -d   # everything
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  siteflow-net:
+    driver: bridge
+  signoz-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  signoz_data:
+  clickhouse_data:
+  zookeeper_data:
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. APP INFRASTRUCTURE  (always started)
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: siteflow-postgres
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    environment:
+      POSTGRES_DB: siteflow
+      POSTGRES_USER: siteflow
+      POSTGRES_PASSWORD: siteflow
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./infra/docker/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    networks:
+      - siteflow-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U siteflow -d siteflow']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  pgbouncer:
+    # Optional connection pooler — activate with: --profile pooling
+    profiles: ['pooling']
+    image: pgbouncer/pgbouncer:latest
+    container_name: siteflow-pgbouncer
+    environment:
+      DATABASES_HOST: postgres
+      DATABASES_PORT: 5432
+      DATABASES_USER: siteflow
+      DATABASES_PASSWORD: siteflow
+      DATABASES_DBNAME: siteflow
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 200
+      PGBOUNCER_DEFAULT_POOL_SIZE: 20
+    ports:
+      - '6432:6432'
+    networks:
+      - siteflow-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: siteflow-redis
+    command: redis-server /etc/redis/redis.conf
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+      - ./infra/docker/redis/redis.conf:/etc/redis/redis.conf:ro
+    networks:
+      - siteflow-net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: siteflow-minio
+    ports:
+      - '9000:9000'
+      - '9001:9001' # MinIO console UI
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - siteflow-net
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio-create-buckets:
+    image: minio/mc:latest
+    container_name: siteflow-minio-mc
+    networks:
+      - siteflow-net
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/siteflow-documents --ignore-existing;
+      mc anonymous set download myminio/siteflow-documents;
+      exit 0;
+      "
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 2. APPLICATION — server (API) + worker (pg-boss)  (activate: --profile app)
+  #
+  #    Both use the SAME image and codebase. The worker just runs a different
+  #    entrypoint so pg-boss jobs don't compete with HTTP requests for the
+  #    Node.js event loop. In dev you can drop the worker and run pg-boss
+  #    in-process with the server.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  server:
+    profiles: ['app']
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: siteflow-server
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://siteflow:siteflow@postgres:5432/siteflow
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: siteflow-server
+    ports:
+      - '3000:3000'
+    networks:
+      - siteflow-net
+      - signoz-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    profiles: ['app']
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: siteflow-worker
+    # Same image, different entrypoint — runs only the pg-boss consumer.
+    command: ['node', 'dist/worker.js']
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://siteflow:siteflow@postgres:5432/siteflow
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: siteflow-worker
+    networks:
+      - siteflow-net
+      - signoz-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 3. OBSERVABILITY — SigNoz stack  (activate with: --profile observability)
+  #    ClickHouse (columnar DB for traces) + ZooKeeper (ClickHouse coordination)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  zookeeper:
+    profiles: ['observability']
+    image: zookeeper:3.9
+    container_name: siteflow-signoz-zookeeper
+    environment:
+      - ZOO_AUTOPURGE_PURGE_INTERVAL=1
+    volumes:
+      - zookeeper_data:/data
+    networks:
+      - signoz-net
+    restart: unless-stopped
+
+  clickhouse:
+    profiles: ['observability']
+    image: clickhouse/clickhouse-server:24.1.2-alpine
+    container_name: siteflow-signoz-clickhouse
+    environment:
+      - CLICKHOUSE_DB=signoz_traces
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./infra/docker/clickhouse/listen.xml:/etc/clickhouse-server/config.d/listen.xml:ro
+    networks:
+      - signoz-net
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:8123/ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  otel-collector:
+    profiles: ['observability']
+    image: signoz/signoz-otel-collector:v0.129.6
+    container_name: siteflow-otel-collector
+    command: ['--config=/etc/otel-collector-config.yaml']
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP  ← your app sends here
+    volumes:
+      - ./infra/docker/otel-collector/config.yaml:/etc/otel-collector-config.yaml:ro
+    networks:
+      - siteflow-net # receives from app
+      - signoz-net # forwards to clickhouse / signoz
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
+  signoz:
+    profiles: ['observability']
+    image: signoz/signoz:v0.96.1
+    container_name: siteflow-signoz
+    ports:
+      - '3301:8080' # SigNoz UI — http://localhost:3301
+    volumes:
+      - signoz_data:/var/lib/signoz
+    environment:
+      - SIGNOZ_SQLITEDB_PATH=/var/lib/signoz/signoz.db
+      - SIGNOZ_JWT_SECRET=signoz-jwt-secret-key-32chars
+      - SIGNOZ_TELEMETRYSTORE_PROVIDER=clickhouse
+      - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN=tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
+      - CLICKHOUSE_DSN=tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
+      - ALERTMANAGER_API_PREFIX=http://alertmanager:9093/api/
+    networks:
+      - signoz-net
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
