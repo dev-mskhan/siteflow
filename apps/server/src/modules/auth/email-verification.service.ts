@@ -1,11 +1,7 @@
-// apps/server/src/modules/auth/email-verification.service.ts
 import { AuthRepository } from './auth.repository.js';
 import { generateOneTimeToken, hashOneTimeToken } from './token.service.js';
 import { ValidationError } from './auth.errors.js';
-import { outboxService } from '../../lib/outbox/outbox.service.js';
-import { createLogger } from '@siteflow/observability/server';
 
-const logger = createLogger({ name: 'email-verification-service' });
 const VERIFICATION_TOKEN_TTL_HOURS = 24;
 
 export class EmailVerificationService {
@@ -30,11 +26,7 @@ export class EmailVerificationService {
       raw,
     );
 
-    try {
-      await outboxService.publishPendingEvents();
-    } catch (err) {
-      logger.error({ err, userId, email }, 'Failed immediate outbox sweep for verification token');
-    }
+
 
     return raw;
   }

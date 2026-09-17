@@ -1,12 +1,8 @@
-// apps/server/src/modules/auth/password-reset.service.ts
 import { AuthRepository } from './auth.repository.js';
 import { generateOneTimeToken, hashOneTimeToken } from './token.service.js';
 import { hashPassword } from './password.service.js';
 import { ValidationError } from './auth.errors.js';
-import { outboxService } from '../../lib/outbox/outbox.service.js';
-import { createLogger } from '@siteflow/observability/server';
 
-const logger = createLogger({ name: 'password-reset-service' });
 const RESET_TOKEN_TTL_MINUTES = 60;
 
 export class PasswordResetService {
@@ -37,11 +33,7 @@ export class PasswordResetService {
       raw,
     );
 
-    try {
-      await outboxService.publishPendingEvents();
-    } catch (err) {
-      logger.error({ err, userId: user.id, email }, 'Failed immediate outbox sweep for password reset');
-    }
+
   }
 
   /**
@@ -67,10 +59,6 @@ export class PasswordResetService {
     // Atomically update password hash, mark token used, revoke sessions, and insert outbox event
     await this.repo.resetPasswordTransaction(tokenRecord.id, user.id, user.email, newPasswordHash);
 
-    try {
-      await outboxService.publishPendingEvents();
-    } catch (err) {
-      logger.error({ err, userId: user.id }, 'Failed immediate outbox sweep after password reset');
-    }
+
   }
 }

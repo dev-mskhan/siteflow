@@ -59,7 +59,7 @@ export function getQueueInstance(): PgBoss {
   if (!_bossInstance) {
     _bossInstance = new PgBoss({
       connectionString: serverEnv.DATABASE_URL,
-      schema: 'app',
+      schema: 'pgboss',
       deleteAfterDays: 7,
       archiveCompletedAfterSeconds: 3600 * 24,
     });
@@ -73,19 +73,30 @@ export function getQueueInstance(): PgBoss {
 
 /**
  * Initializes and starts the PgBoss background job queue.
- * Ensures start() is idempotent and called only once.
+ * Ensures start() is idempotent and called only once. Pre-creates all registered queues.
  */
 export async function startQueue(): Promise<PgBoss> {
   const boss = getQueueInstance();
   if (!_startPromise) {
-    _startPromise = boss.start().then(() => {
-      logger.info('PgBoss queue started successfully in schema "app"');
-      return boss;
-    }).catch((err) => {
-      logger.error({ err }, 'Failed to start PgBoss queue');
-      _startPromise = undefined; // Allow retry on failure
-      throw err;
-    });
+    _startPromise = boss
+      .start()
+      .then(async () => {
+        logger.info('PgBoss queue started successfully in schema "pgboss"');
+        // Pre-create all registered queues so workers can bind cleanly
+        for (const queueName of Object.values(QUEUES)) {
+          try {
+            await boss.createQueue(queueName);
+          } catch (err) {
+            logger.debug({ queueName, err }, 'Queue creation notice');
+          }
+        }
+        return boss;
+      })
+      .catch((err) => {
+        logger.error({ err }, 'Failed to start PgBoss queue');
+        _startPromise = undefined; // Allow retry on failure
+        throw err;
+      });
   }
   return _startPromise;
 }

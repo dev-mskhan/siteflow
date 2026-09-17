@@ -10,7 +10,6 @@ import { PasswordResetService } from './password-reset.service.js';
 import { googleOAuthService } from './google-oauth.service.js';
 import { AuthCacheService } from './auth.cache.service.js';
 import { AuthJobs } from './auth.jobs.js';
-import { outboxService } from '../../lib/outbox/outbox.service.js';
 import {
   ConflictError,
   UnauthorizedError,
@@ -87,12 +86,8 @@ export class AuthService {
         },
       );
 
-      // Fast-path outbox dispatch (safety-net poller runs periodically)
-      try {
-        await outboxService.publishPendingEvents();
-      } catch (err) {
-        logger.error({ err, userId: newUser.id }, 'Failed immediate outbox sweep after user registration');
-      }
+      // Outbox event (auth:send-email-verification) was recorded atomically in DB transaction.
+      // The Worker process poller will sweep and publish it to PgBoss.
 
       // Create session
       const { refreshToken } = await this.sessionService.createSession(newUser.id);
@@ -329,12 +324,6 @@ export class AuthService {
 
       const newPasswordHash = await hashPassword(input.newPassword);
       await this.repo.changePasswordTransaction(userId, user.email, newPasswordHash);
-
-      try {
-        await outboxService.publishPendingEvents();
-      } catch (err) {
-        logger.error({ err, userId: user.id }, 'Failed immediate outbox sweep after password change');
-      }
     });
   }
 

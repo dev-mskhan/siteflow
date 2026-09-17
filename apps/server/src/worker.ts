@@ -24,8 +24,8 @@ async function runWorker() {
   // ─── Register Auth workers ───────────────────────────────────────────────────
   await registerAuthWorkers(boss);
 
-  // ─── Start Outbox Poller (sweps pending/retryable outbox events periodically) ─
-  outboxService.startPoller(10000);
+  // ─── Start Outbox Poller (Worker exclusively owns outbox polling) ───────────
+  outboxService.startPoller(3000);
 
   // ─── Register worker for Send Email ─────────────────────────────────────────
   await boss.work(QUEUES.EMAIL_SEND, async (job: Job<SendEmailPayload> | Job<SendEmailPayload>[]) => {
