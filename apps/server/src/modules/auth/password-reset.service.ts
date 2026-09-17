@@ -2,19 +2,20 @@
 import { AuthRepository } from './auth.repository.js';
 import { generateOneTimeToken, hashOneTimeToken } from './token.service.js';
 import { hashPassword } from './password.service.js';
-import { AuthJobs } from './auth.jobs.js';
 import { ValidationError } from './auth.errors.js';
+import { outboxService } from '../../lib/outbox/outbox.service.js';
+import { createLogger } from '@siteflow/observability/server';
 
+const logger = createLogger({ name: 'password-reset-service' });
 const RESET_TOKEN_TTL_MINUTES = 60;
 
 export class PasswordResetService {
   constructor(
     private repo: AuthRepository = new AuthRepository(),
-    private jobs: AuthJobs = new AuthJobs(),
   ) {}
 
   /**
-   * Initiates password reset flow by creating a token and sending email.
+   * Initiates password reset flow by creating a token and writing outbox event in DB transaction.
    * Fails silently if user does not exist for security (anti-enumeration).
    */
   async requestPasswordReset(email: string): Promise<void> {
@@ -26,18 +27,26 @@ export class PasswordResetService {
     const { raw, hash } = generateOneTimeToken();
     const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
 
-    await this.repo.createPasswordResetToken({
-      userId: user.id,
-      tokenHash: hash,
-      expiresAt,
-    });
+    await this.repo.createPasswordResetTokenWithOutbox(
+      {
+        userId: user.id,
+        tokenHash: hash,
+        expiresAt,
+      },
+      user.email,
+      raw,
+    );
 
-    await this.jobs.enqueuePasswordReset({ userId: user.id, email: user.email, token: raw });
+    try {
+      await outboxService.publishPendingEvents();
+    } catch (err) {
+      logger.error({ err, userId: user.id, email }, 'Failed immediate outbox sweep for password reset');
+    }
   }
 
   /**
    * Resets user password using valid token.
-   * Also revokes all existing active user sessions and sends notification.
+   * Uses atomic DB transaction to mark token used, update password, revoke active user sessions, and write outbox event.
    */
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {
     const hash = hashOneTimeToken(rawToken);
@@ -55,16 +64,13 @@ export class PasswordResetService {
     // Hash new password
     const newPasswordHash = await hashPassword(newPassword);
 
-    // Update password
-    await this.repo.updatePasswordHash(user.id, newPasswordHash);
+    // Atomically update password hash, mark token used, revoke sessions, and insert outbox event
+    await this.repo.resetPasswordTransaction(tokenRecord.id, user.id, user.email, newPasswordHash);
 
-    // Mark token used
-    await this.repo.markPasswordResetTokenUsed(tokenRecord.id);
-
-    // Revoke all active sessions for security
-    await this.repo.revokeAllUserSessions(user.id);
-
-    // Enqueue password changed notification
-    await this.jobs.enqueuePasswordChangedNotification({ userId: user.id, email: user.email });
+    try {
+      await outboxService.publishPendingEvents();
+    } catch (err) {
+      logger.error({ err, userId: user.id }, 'Failed immediate outbox sweep after password reset');
+    }
   }
 }

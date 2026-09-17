@@ -11,6 +11,9 @@ initTelemetry({
 import { createLogger } from '@siteflow/observability/server';
 import { startQueue, stopQueue, QUEUES, type SendEmailPayload, type ExportPayload } from './lib/queue/index.js';
 import { registerAuthWorkers } from './modules/auth/auth.worker.js';
+
+
+import { outboxService } from './lib/outbox/outbox.service.js';
 import type { Job } from 'pg-boss';
 
 const logger = createLogger({ name: 'worker' });
@@ -20,6 +23,9 @@ async function runWorker() {
 
   // ─── Register Auth workers ───────────────────────────────────────────────────
   await registerAuthWorkers(boss);
+
+  // ─── Start Outbox Poller (sweps pending/retryable outbox events periodically) ─
+  outboxService.startPoller(10000);
 
   // ─── Register worker for Send Email ─────────────────────────────────────────
   await boss.work(QUEUES.EMAIL_SEND, async (job: Job<SendEmailPayload> | Job<SendEmailPayload>[]) => {

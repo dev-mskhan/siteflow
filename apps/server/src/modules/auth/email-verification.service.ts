@@ -1,36 +1,46 @@
 // apps/server/src/modules/auth/email-verification.service.ts
 import { AuthRepository } from './auth.repository.js';
 import { generateOneTimeToken, hashOneTimeToken } from './token.service.js';
-import { AuthJobs } from './auth.jobs.js';
 import { ValidationError } from './auth.errors.js';
+import { outboxService } from '../../lib/outbox/outbox.service.js';
+import { createLogger } from '@siteflow/observability/server';
 
+const logger = createLogger({ name: 'email-verification-service' });
 const VERIFICATION_TOKEN_TTL_HOURS = 24;
 
 export class EmailVerificationService {
   constructor(
     private repo: AuthRepository = new AuthRepository(),
-    private jobs: AuthJobs = new AuthJobs(),
   ) {}
 
   /**
-   * Generates a new email verification token and enqueues the email job.
+   * Generates a new email verification token and writes outbox event in DB transaction.
    */
   async createAndSendVerificationToken(userId: string, email: string): Promise<string> {
     const { raw, hash } = generateOneTimeToken();
     const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000);
 
-    await this.repo.createEmailVerificationToken({
-      userId,
-      tokenHash: hash,
-      expiresAt,
-    });
+    await this.repo.createEmailVerificationTokenWithOutbox(
+      {
+        userId,
+        tokenHash: hash,
+        expiresAt,
+      },
+      email,
+      raw,
+    );
 
-    await this.jobs.enqueueEmailVerification({ userId, email, token: raw });
+    try {
+      await outboxService.publishPendingEvents();
+    } catch (err) {
+      logger.error({ err, userId, email }, 'Failed immediate outbox sweep for verification token');
+    }
+
     return raw;
   }
 
   /**
-   * Verifies an email token. Marks token used and sets emailVerifiedAt on the user.
+   * Verifies an email token. Marks token used and sets emailVerifiedAt on the user atomically.
    */
   async verifyEmail(rawToken: string): Promise<void> {
     const hash = hashOneTimeToken(rawToken);
@@ -40,8 +50,7 @@ export class EmailVerificationService {
       throw new ValidationError('Invalid or expired email verification token');
     }
 
-    await this.repo.markEmailVerificationTokenUsed(tokenRecord.id);
-    await this.repo.markEmailAsVerified(tokenRecord.userId);
+    await this.repo.verifyEmailTransaction(tokenRecord.id, tokenRecord.userId);
   }
 
   /**

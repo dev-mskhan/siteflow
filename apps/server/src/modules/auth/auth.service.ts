@@ -3,13 +3,14 @@ import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { AuthRepository } from './auth.repository.js';
 import { hashPassword, verifyPassword } from './password.service.js';
-import { createAccessToken } from './token.service.js';
+import { createAccessToken, generateOneTimeToken } from './token.service.js';
 import { SessionService } from './session.service.js';
 import { EmailVerificationService } from './email-verification.service.js';
 import { PasswordResetService } from './password-reset.service.js';
 import { googleOAuthService } from './google-oauth.service.js';
 import { AuthCacheService } from './auth.cache.service.js';
 import { AuthJobs } from './auth.jobs.js';
+import { outboxService } from '../../lib/outbox/outbox.service.js';
 import {
   ConflictError,
   UnauthorizedError,
@@ -68,16 +69,30 @@ export class AuthService {
       }
 
       const passwordHash = await hashPassword(input.password);
-      const newUser = await this.repo.createUser({
-        email: input.email,
-        passwordHash,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        status: 'ACTIVE',
-      });
+      const { raw: rawVerificationToken, hash: tokenHash } = generateOneTimeToken();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-      // Send verification token via background job
-      await this.emailVerificationService.createAndSendVerificationToken(newUser.id, newUser.email);
+      const { user: newUser } = await this.repo.registerUserWithVerificationToken(
+        {
+          email: input.email,
+          passwordHash,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          status: 'ACTIVE',
+        },
+        {
+          tokenHash,
+          expiresAt,
+          rawToken: rawVerificationToken,
+        },
+      );
+
+      // Fast-path outbox dispatch (safety-net poller runs periodically)
+      try {
+        await outboxService.publishPendingEvents();
+      } catch (err) {
+        logger.error({ err, userId: newUser.id }, 'Failed immediate outbox sweep after user registration');
+      }
 
       // Create session
       const { refreshToken } = await this.sessionService.createSession(newUser.id);
@@ -313,12 +328,13 @@ export class AuthService {
       }
 
       const newPasswordHash = await hashPassword(input.newPassword);
-      await this.repo.updatePasswordHash(userId, newPasswordHash);
+      await this.repo.changePasswordTransaction(userId, user.email, newPasswordHash);
 
-      // Revoke all other sessions for security
-      await this.repo.revokeAllUserSessions(userId);
-
-      await this.jobs.enqueuePasswordChangedNotification({ userId: user.id, email: user.email });
+      try {
+        await outboxService.publishPendingEvents();
+      } catch (err) {
+        logger.error({ err, userId: user.id }, 'Failed immediate outbox sweep after password change');
+      }
     });
   }
 

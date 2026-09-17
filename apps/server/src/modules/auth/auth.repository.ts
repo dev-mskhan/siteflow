@@ -1,5 +1,7 @@
 import { eq, and, gt, lt, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
+import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
+import { AUTH_QUEUES } from './auth.jobs.js';
 import {
   users,
   sessions,
@@ -45,6 +47,57 @@ export class AuthRepository {
     return result[0]!;
   }
 
+  async registerUserWithVerificationToken(
+    userData: NewUser,
+    tokenData: { tokenHash: string; expiresAt: Date; rawToken?: string },
+  ): Promise<{ user: User; verificationToken: EmailVerificationToken }> {
+    logger.info({ email: userData.email }, 'Registering user with verification token and outbox event in DB transaction');
+    return this.db.transaction(async (tx) => {
+      const newUser = await tx
+        .insert(users)
+        .values({
+          ...userData,
+          email: userData.email.toLowerCase(),
+        })
+        .returning();
+
+      const user = newUser[0]!;
+
+      // Invalidate any existing unused tokens for this user
+      await tx
+        .update(emailVerificationTokens)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(emailVerificationTokens.userId, user.id),
+            isNull(emailVerificationTokens.usedAt),
+          ),
+        );
+
+      const newToken = await tx
+        .insert(emailVerificationTokens)
+        .values({
+          userId: user.id,
+          tokenHash: tokenData.tokenHash,
+          expiresAt: tokenData.expiresAt,
+        })
+        .returning();
+
+      if (tokenData.rawToken) {
+        await writeOutboxEvent(tx, AUTH_QUEUES.SEND_EMAIL_VERIFICATION, {
+          userId: user.id,
+          email: user.email,
+          token: tokenData.rawToken,
+        });
+      }
+
+      return {
+        user,
+        verificationToken: newToken[0]!,
+      };
+    });
+  }
+
   async updateUser(id: string, data: Partial<NewUser>): Promise<User | undefined> {
     const result = await this.db
       .update(users)
@@ -68,11 +121,75 @@ export class AuthRepository {
       .where(eq(users.id, userId));
   }
 
+  async verifyEmailTransaction(tokenId: string, userId: string): Promise<void> {
+    logger.info({ tokenId, userId }, 'Executing email verification transaction');
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(emailVerificationTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(emailVerificationTokens.id, tokenId));
+
+      await tx
+        .update(users)
+        .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
+        .where(eq(users.id, userId));
+    });
+  }
+
   async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
     await this.db
       .update(users)
       .set({ passwordHash, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  async resetPasswordTransaction(tokenId: string, userId: string, email: string, passwordHash: string): Promise<void> {
+    logger.info({ tokenId, userId }, 'Executing password reset transaction with outbox event');
+    await this.db.transaction(async (tx) => {
+      const now = new Date();
+
+      await tx
+        .update(passwordResetTokens)
+        .set({ usedAt: now })
+        .where(eq(passwordResetTokens.id, tokenId));
+
+      await tx
+        .update(users)
+        .set({ passwordHash, updatedAt: now })
+        .where(eq(users.id, userId));
+
+      await tx
+        .update(sessions)
+        .set({ revokedAt: now, updatedAt: now })
+        .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
+
+      await writeOutboxEvent(tx, AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION, {
+        userId,
+        email,
+      });
+    });
+  }
+
+  async changePasswordTransaction(userId: string, email: string, passwordHash: string): Promise<void> {
+    logger.info({ userId }, 'Executing change password transaction with outbox event');
+    await this.db.transaction(async (tx) => {
+      const now = new Date();
+
+      await tx
+        .update(users)
+        .set({ passwordHash, updatedAt: now })
+        .where(eq(users.id, userId));
+
+      await tx
+        .update(sessions)
+        .set({ revokedAt: now, updatedAt: now })
+        .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
+
+      await writeOutboxEvent(tx, AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION, {
+        userId,
+        email,
+      });
+    });
   }
 
   // ─── OAuth Account Operations ───────────────────────────────────────────────
@@ -269,6 +386,35 @@ export class AuthRepository {
     return result[0]!;
   }
 
+  async createEmailVerificationTokenWithOutbox(
+    data: NewEmailVerificationToken,
+    email: string,
+    rawToken: string,
+  ): Promise<EmailVerificationToken> {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .update(emailVerificationTokens)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(emailVerificationTokens.userId, data.userId),
+            isNull(emailVerificationTokens.usedAt),
+          ),
+        );
+
+      const result = await tx.insert(emailVerificationTokens).values(data).returning();
+      const token = result[0]!;
+
+      await writeOutboxEvent(tx, AUTH_QUEUES.SEND_EMAIL_VERIFICATION, {
+        userId: data.userId,
+        email,
+        token: rawToken,
+      });
+
+      return token;
+    });
+  }
+
   async findValidEmailVerificationToken(tokenHash: string): Promise<EmailVerificationToken | undefined> {
     const now = new Date();
     const result = await this.db
@@ -316,6 +462,35 @@ export class AuthRepository {
 
     const result = await this.db.insert(passwordResetTokens).values(data).returning();
     return result[0]!;
+  }
+
+  async createPasswordResetTokenWithOutbox(
+    data: NewPasswordResetToken,
+    email: string,
+    rawToken: string,
+  ): Promise<PasswordResetToken> {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .update(passwordResetTokens)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(passwordResetTokens.userId, data.userId),
+            isNull(passwordResetTokens.usedAt),
+          ),
+        );
+
+      const result = await tx.insert(passwordResetTokens).values(data).returning();
+      const token = result[0]!;
+
+      await writeOutboxEvent(tx, AUTH_QUEUES.SEND_PASSWORD_RESET, {
+        userId: data.userId,
+        email,
+        token: rawToken,
+      });
+
+      return token;
+    });
   }
 
   async findValidPasswordResetToken(tokenHash: string): Promise<PasswordResetToken | undefined> {

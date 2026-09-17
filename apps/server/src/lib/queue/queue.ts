@@ -33,6 +33,7 @@ export type JobPayloads = {
 };
 
 let _bossInstance: PgBoss | undefined;
+let _startPromise: Promise<PgBoss> | undefined;
 
 /**
  * Gets or creates the singleton PgBoss queue instance.
@@ -56,12 +57,21 @@ export function getQueueInstance(): PgBoss {
 
 /**
  * Initializes and starts the PgBoss background job queue.
+ * Ensures start() is idempotent and called only once.
  */
 export async function startQueue(): Promise<PgBoss> {
   const boss = getQueueInstance();
-  await boss.start();
-  logger.info('PgBoss queue started successfully in schema "app"');
-  return boss;
+  if (!_startPromise) {
+    _startPromise = boss.start().then(() => {
+      logger.info('PgBoss queue started successfully in schema "app"');
+      return boss;
+    }).catch((err) => {
+      logger.error({ err }, 'Failed to start PgBoss queue');
+      _startPromise = undefined; // Allow retry on failure
+      throw err;
+    });
+  }
+  return _startPromise;
 }
 
 /**
@@ -72,18 +82,20 @@ export async function stopQueue(): Promise<void> {
     await _bossInstance.stop();
     logger.info('PgBoss queue stopped cleanly');
     _bossInstance = undefined;
+    _startPromise = undefined;
   }
 }
 
 /**
  * Enqueues a job with typed payload.
+ * Automatically ensures PgBoss is started before sending jobs.
  */
 export async function sendJob<N extends keyof JobPayloads>(
   name: N,
   data: JobPayloads[N],
   options?: PgBoss.SendOptions,
 ): Promise<string | null> {
-  const boss = getQueueInstance();
+  const boss = await startQueue();
   return options
     ? boss.send(name, data as object, options)
     : boss.send(name, data as object);

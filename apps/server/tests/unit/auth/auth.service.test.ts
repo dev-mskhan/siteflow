@@ -59,6 +59,7 @@ describe('AuthService (Unit)', () => {
       findUserByEmail: vi.fn(),
       findUserById: vi.fn(),
       createUser: vi.fn(),
+      registerUserWithVerificationToken: vi.fn(),
       updateLastLogin: vi.fn(),
       updatePasswordHash: vi.fn(),
       revokeSession: vi.fn(),
@@ -94,6 +95,7 @@ describe('AuthService (Unit)', () => {
     };
 
     mockJobs = {
+      enqueueEmailVerification: vi.fn(),
       enqueueNewLoginNotification: vi.fn(),
       enqueuePasswordChangedNotification: vi.fn(),
     };
@@ -124,7 +126,10 @@ describe('AuthService (Unit)', () => {
 
     it('should register a new user successfully and return tokens', async () => {
       mockRepo.findUserByEmail.mockResolvedValue(undefined);
-      mockRepo.createUser.mockResolvedValue(mockUser);
+      mockRepo.registerUserWithVerificationToken.mockResolvedValue({
+        user: mockUser,
+        verificationToken: { id: 'evt_123', userId: mockUser.id },
+      });
 
       const result = await authService.register({
         email: 'test@example.com',
@@ -136,10 +141,21 @@ describe('AuthService (Unit)', () => {
       expect(result.user.email).toBe(mockUser.email);
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBe('raw_refresh_token');
-      expect(mockEmailVerificationService.createAndSendVerificationToken).toHaveBeenCalledWith(
-        mockUser.id,
-        mockUser.email,
+      // Outbox pattern: outbox event is written atomically inside registerUserWithVerificationToken
+      // rawToken is passed in the tokenData.rawToken field — verify the call shape
+      expect(mockRepo.registerUserWithVerificationToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'test@example.com',
+          status: 'ACTIVE',
+        }),
+        expect.objectContaining({
+          tokenHash: expect.any(String),
+          expiresAt: expect.any(Date),
+          rawToken: expect.any(String),
+        }),
       );
+      // jobs.enqueueEmailVerification is NOT called directly — the outbox handles dispatch
+      expect(mockJobs.enqueueEmailVerification).not.toHaveBeenCalled();
     });
   });
 
