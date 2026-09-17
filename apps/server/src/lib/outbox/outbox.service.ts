@@ -64,7 +64,7 @@ export class OutboxService {
     for (const event of pendingEvents) {
       try {
         // Dispatch outbox event payload to queue worker
-        await sendJob(event.eventType as any, event.payload as any);
+        await sendJob(event.eventType, event.payload as Record<string, unknown>);
 
         // Mark as PROCESSED on success
         await this.db

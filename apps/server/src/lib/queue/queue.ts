@@ -5,10 +5,19 @@ import { createLogger } from '@siteflow/observability/server';
 
 const logger = createLogger({ name: 'pg-boss-queue' });
 
+import {
+  AUTH_QUEUES,
+  type SendEmailVerificationPayload,
+  type SendPasswordResetPayload,
+  type SendPasswordChangedPayload,
+  type SendNewLoginPayload,
+} from '../../modules/auth/auth.jobs.js';
+
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {
   EMAIL_SEND: 'email:send',
   RESOURCE_EXPORT: 'resource:export',
+  ...AUTH_QUEUES,
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -30,6 +39,13 @@ export interface ExportPayload {
 export type JobPayloads = {
   [QUEUES.EMAIL_SEND]: SendEmailPayload;
   [QUEUES.RESOURCE_EXPORT]: ExportPayload;
+  [AUTH_QUEUES.SEND_EMAIL_VERIFICATION]: SendEmailVerificationPayload;
+  [AUTH_QUEUES.SEND_PASSWORD_RESET]: SendPasswordResetPayload;
+  [AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION]: SendPasswordChangedPayload;
+  [AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION]: SendNewLoginPayload;
+  [AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS]?: Record<string, unknown>;
+  [AUTH_QUEUES.CLEANUP_EXPIRED_VERIFICATION_TOKENS]?: Record<string, unknown>;
+  [AUTH_QUEUES.CLEANUP_EXPIRED_PASSWORD_RESET_TOKENS]?: Record<string, unknown>;
 };
 
 let _bossInstance: PgBoss | undefined;
@@ -87,16 +103,18 @@ export async function stopQueue(): Promise<void> {
 }
 
 /**
- * Enqueues a job with typed payload.
- * Automatically ensures PgBoss is started before sending jobs.
+ * Single strongly-typed sendJob function.
+ * Accepts any registered queue name with auto-completed payload type,
+ * while allowing runtime event strings for dynamic outbox dispatches.
  */
-export async function sendJob<N extends keyof JobPayloads>(
+export async function sendJob<N extends keyof JobPayloads | (string & {})>(
   name: N,
-  data: JobPayloads[N],
+  data: N extends keyof JobPayloads ? JobPayloads[N] : Record<string, unknown>,
   options?: PgBoss.SendOptions,
 ): Promise<string | null> {
   const boss = await startQueue();
   return options
-    ? boss.send(name, data as object, options)
-    : boss.send(name, data as object);
+    ? boss.send(name as string, data as object, options)
+    : boss.send(name as string, data as object);
 }
+
