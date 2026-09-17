@@ -17,12 +17,20 @@ declare module 'fastify' {
 export async function authenticate(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
   let token: string | undefined;
 
-  // 1. Check HttpOnly cookie
+  // 1. Check HttpOnly cookie (signed or raw)
   if (request.cookies && request.cookies['access_token']) {
-    token = request.cookies['access_token'];
+    const rawCookie = request.cookies['access_token'];
+    const unsigned = request.unsignCookie(rawCookie);
+    if (unsigned.valid && unsigned.value) {
+      token = unsigned.value;
+    } else if (!rawCookie.startsWith('s:')) {
+      // Fallback for unsigned cookie in direct/test requests
+      token = rawCookie;
+    }
   }
+
   // 2. Fall back to Authorization header
-  else if (request.headers.authorization && request.headers.authorization.startsWith('Bearer ')) {
+  if (!token && request.headers.authorization && request.headers.authorization.startsWith('Bearer ')) {
     token = request.headers.authorization.substring(7);
   }
 

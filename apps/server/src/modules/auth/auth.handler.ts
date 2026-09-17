@@ -22,6 +22,7 @@ function setAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: 
   reply.setCookie('access_token', accessToken, {
     path: '/',
     httpOnly: true,
+    signed: true,
     secure: isProd,
     sameSite: 'lax',
     maxAge: 15 * 60, // 15 minutes in seconds
@@ -30,6 +31,7 @@ function setAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: 
   reply.setCookie('refresh_token', refreshToken, {
     path: '/',
     httpOnly: true,
+    signed: true,
     secure: isProd,
     sameSite: 'lax',
     maxAge: serverEnv.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60, // days in seconds
@@ -50,7 +52,6 @@ export async function handleRegister(request: FastifyRequest, reply: FastifyRepl
   return reply.status(201).send(
     createSuccessResponse({
       user: result.user,
-      accessToken: result.accessToken,
     }),
   );
 }
@@ -67,7 +68,6 @@ export async function handleLogin(request: FastifyRequest, reply: FastifyReply) 
   return reply.send(
     createSuccessResponse({
       user: result.user,
-      accessToken: result.accessToken,
     }),
   );
 }
@@ -97,7 +97,6 @@ export async function handleGoogleCallback(request: FastifyRequest, reply: Fasti
   return reply.send(
     createSuccessResponse({
       user: result.user,
-      accessToken: result.accessToken,
     }),
   );
 }
@@ -106,7 +105,13 @@ export async function handleRefresh(request: FastifyRequest, reply: FastifyReply
   let refreshToken: string | undefined;
 
   if (request.cookies && request.cookies['refresh_token']) {
-    refreshToken = request.cookies['refresh_token'];
+    const rawCookie = request.cookies['refresh_token'];
+    const unsigned = request.unsignCookie(rawCookie);
+    if (unsigned.valid && unsigned.value) {
+      refreshToken = unsigned.value;
+    } else if (!rawCookie.startsWith('s:')) {
+      refreshToken = rawCookie;
+    }
   } else if (request.body && typeof request.body === 'object' && 'refreshToken' in request.body) {
     refreshToken = (request.body as { refreshToken: string }).refreshToken;
   }
@@ -127,7 +132,7 @@ export async function handleRefresh(request: FastifyRequest, reply: FastifyReply
 
   return reply.send(
     createSuccessResponse({
-      accessToken: result.accessToken,
+      message: 'Token refreshed successfully',
     }),
   );
 }

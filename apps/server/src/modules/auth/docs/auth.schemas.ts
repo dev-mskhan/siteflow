@@ -66,9 +66,8 @@ const authTokensResponse = (description: string) => ({
       type: 'object',
       properties: {
         user: userSchema,
-        accessToken: { type: 'string', description: 'Short-lived JWT (15m). Also set as HttpOnly cookie.', example: 'eyJhbGciOiJIUzI1NiJ9...' },
       },
-      required: ['user', 'accessToken'],
+      required: ['user'],
     },
     meta: {
       type: 'object',
@@ -194,22 +193,9 @@ export const googleCallbackSchema = {
 export const refreshSchema = {
   tags: ['auth'],
   summary: 'Refresh access token',
-  description: 'Uses the refresh_token HttpOnly cookie (or body field) to issue a new access token and rotated refresh token.',
+  description: 'Uses the refresh_token HttpOnly signed cookie to issue new signed cookies.',
   response: {
-    200: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', enum: [true], example: true },
-        data: {
-          type: 'object',
-          properties: {
-            accessToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiJ9...' },
-          },
-          required: ['accessToken'],
-        },
-        meta: { type: 'object', properties: { timestamp: { type: 'string' } } },
-      },
-    },
+    200: messageResponse('Token refreshed successfully'),
     401: responses[401],
   },
 };
