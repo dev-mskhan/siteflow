@@ -2,7 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthService } from '../../../src/modules/auth/auth.service.js';
 import { ConflictError, UnauthorizedError } from '../../../src/modules/auth/auth.errors.js';
-import type { User, Session } from '@siteflow/database/schema';
+import { googleOAuthService } from '../../../src/modules/auth/google-oauth.service.js';
+import type { User, Session, OAuthAccount } from '@siteflow/database/schema';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,16 @@ const mockUser: User = {
   status: 'ACTIVE',
   emailVerifiedAt: new Date(),
   lastLoginAt: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const mockOAuthAccount: OAuthAccount = {
+  id: 'oa_test123',
+  userId: 'usr_test123',
+  provider: 'GOOGLE',
+  providerAccountId: 'google_sub_123',
+  email: 'test@example.com',
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -52,6 +63,9 @@ describe('AuthService (Unit)', () => {
       updatePasswordHash: vi.fn(),
       revokeSession: vi.fn(),
       revokeAllUserSessions: vi.fn(),
+      findOAuthAccount: vi.fn(),
+      createOAuthUserAndAccount: vi.fn(),
+      linkOAuthAccount: vi.fn(),
     };
 
     mockSessionService = {
@@ -138,6 +152,52 @@ describe('AuthService (Unit)', () => {
       ).rejects.toThrow(UnauthorizedError);
 
       expect(mockCacheService.incrementLoginAttempts).toHaveBeenCalled();
+    });
+  });
+
+  describe('loginWithGoogle()', () => {
+    it('should authenticate existing OAuth user via Google sub', async () => {
+      vi.spyOn(googleOAuthService, 'getGoogleUserFromCode').mockResolvedValue({
+        sub: 'google_sub_123',
+        email: 'test@example.com',
+        given_name: 'Test',
+        family_name: 'User',
+      });
+
+      mockRepo.findOAuthAccount.mockResolvedValue({
+        ...mockOAuthAccount,
+        user: mockUser,
+      });
+
+      const result = await authService.loginWithGoogle('valid_google_code');
+
+      expect(result.user.id).toBe(mockUser.id);
+      expect(result.user.email).toBe(mockUser.email);
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBe('raw_refresh_token');
+      expect(mockRepo.updateLastLogin).toHaveBeenCalledWith(mockUser.id);
+    });
+
+    it('should create new User + OAuthAccount if no account exists', async () => {
+      vi.spyOn(googleOAuthService, 'getGoogleUserFromCode').mockResolvedValue({
+        sub: 'new_google_sub',
+        email: 'newgoogleuser@example.com',
+        given_name: 'New',
+        family_name: 'Google',
+      });
+
+      mockRepo.findOAuthAccount.mockResolvedValue(undefined);
+      mockRepo.findUserByEmail.mockResolvedValue(undefined);
+      mockRepo.createOAuthUserAndAccount.mockResolvedValue({
+        user: { ...mockUser, id: 'usr_new_google', email: 'newgoogleuser@example.com' },
+        oauthAccount: { ...mockOAuthAccount, id: 'oa_new_google' },
+      });
+
+      const result = await authService.loginWithGoogle('new_google_code');
+
+      expect(result.user.id).toBe('usr_new_google');
+      expect(result.user.email).toBe('newgoogleuser@example.com');
+      expect(mockRepo.createOAuthUserAndAccount).toHaveBeenCalled();
     });
   });
 });

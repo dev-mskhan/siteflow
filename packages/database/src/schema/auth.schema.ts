@@ -1,4 +1,4 @@
-import { pgSchema, uuid, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgSchema, uuid, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // ─── PostgreSQL Schema Specification ──────────────────────────────────────────
 export const appSchema = pgSchema('app');
@@ -10,12 +10,19 @@ export const userStatusEnum = appSchema.enum('user_status', [
   'SUSPENDED',
 ]);
 
+// OAuth Provider Enum
+export const oauthProviderEnum = appSchema.enum('oauth_provider', [
+  'GOOGLE',
+  'GITHUB',
+  'MICROSOFT',
+]);
+
 // ─── User Table ───────────────────────────────────────────────────────────────
 export const users = appSchema.table('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: text('email').notNull().unique(),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
-  passwordHash: text('password_hash').notNull(),
+  passwordHash: text('password_hash'), // Nullable for OAuth-only users
   firstName: text('first_name').notNull(),
   lastName: text('last_name'),
   status: userStatusEnum('status').default('ACTIVE').notNull(),
@@ -23,6 +30,25 @@ export const users = appSchema.table('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ─── OAuth Account Table ───────────────────────────────────────────────────────
+export const oauthAccounts = appSchema.table(
+  'oauth_accounts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: oauthProviderEnum('provider').notNull(),
+    providerAccountId: text('provider_account_id').notNull(),
+    email: text('email'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('oauth_provider_account_idx').on(table.provider, table.providerAccountId),
+  ],
+);
 
 // ─── Session Table ────────────────────────────────────────────────────────────
 export const sessions = appSchema.table('sessions', {
@@ -67,6 +93,9 @@ export const passwordResetTokens = appSchema.table('password_reset_tokens', {
 // ─── TypeScript Types Derived from Drizzle Schemas ────────────────────────────
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+export type OAuthAccount = typeof oauthAccounts.$inferSelect;
+export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;

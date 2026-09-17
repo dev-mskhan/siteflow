@@ -150,6 +150,47 @@ export const loginSchema = {
   },
 };
 
+export const googleAuthSchema = {
+  tags: ['auth'],
+  summary: 'Get Google OAuth 2.0 Authorization URL',
+  description: 'Returns the Google OAuth login consent URL for client redirection.',
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true], example: true },
+        data: {
+          type: 'object',
+          properties: {
+            url: { type: 'string', example: 'https://accounts.google.com/o/oauth2/v2/auth?...' },
+          },
+          required: ['url'],
+        },
+        meta: { type: 'object', properties: { timestamp: { type: 'string' } } },
+      },
+    },
+    422: responses[422],
+  },
+};
+
+export const googleCallbackSchema = {
+  tags: ['auth'],
+  summary: 'Google OAuth 2.0 Callback',
+  description: 'Exchanges the authorization code from Google for user profile & tokens. Creates or links account and sets HttpOnly cookies.',
+  querystring: {
+    type: 'object',
+    required: ['code'],
+    properties: {
+      code: { type: 'string', description: 'Authorization code returned by Google OAuth prompt', example: '4/0AVG7fi...' },
+    },
+  },
+  response: {
+    200: authTokensResponse('Google OAuth login successful'),
+    400: responses[400],
+    422: responses[422],
+  },
+};
+
 export const refreshSchema = {
   tags: ['auth'],
   summary: 'Refresh access token',

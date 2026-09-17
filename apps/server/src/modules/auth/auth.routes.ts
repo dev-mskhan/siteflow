@@ -5,6 +5,8 @@ import { authenticate } from './auth.middleware.js';
 import {
   handleRegister,
   handleLogin,
+  handleGoogleAuth,
+  handleGoogleCallback,
   handleRefresh,
   handleLogout,
   handleVerifyEmail,
@@ -20,6 +22,8 @@ import {
 import {
   registerSchema,
   loginSchema,
+  googleAuthSchema,
+  googleCallbackSchema,
   refreshSchema,
   logoutSchema,
   verifyEmailSchema,
@@ -37,6 +41,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   // ─── Public Routes ────────────────────────────────────────────────────────
   fastify.post('/register', { schema: registerSchema }, handleRegister);
   fastify.post('/login', { schema: loginSchema }, handleLogin);
+  fastify.get('/google', { schema: googleAuthSchema }, handleGoogleAuth);
+  fastify.get('/google/callback', { schema: googleCallbackSchema }, handleGoogleCallback);
   fastify.post('/refresh', { schema: refreshSchema }, handleRefresh);
   fastify.post('/verify-email', { schema: verifyEmailSchema }, handleVerifyEmail);
   fastify.post('/resend-verification', { schema: resendVerificationSchema }, handleResendVerification);

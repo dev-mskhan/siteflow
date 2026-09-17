@@ -72,6 +72,36 @@ export async function handleLogin(request: FastifyRequest, reply: FastifyReply) 
   );
 }
 
+export async function handleGoogleAuth(_request: FastifyRequest, reply: FastifyReply) {
+  const { url } = authService.getGoogleAuthUrl();
+  return reply.send(createSuccessResponse({ url }));
+}
+
+export async function handleGoogleCallback(request: FastifyRequest, reply: FastifyReply) {
+  const query = request.query as { code?: string };
+
+  if (!query.code) {
+    return reply.status(400).send({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Authorization code is required in query parameter' },
+    });
+  }
+
+  const ipAddress = request.ip;
+  const userAgent = request.headers['user-agent'];
+
+  const result = await authService.loginWithGoogle(query.code, ipAddress, userAgent);
+
+  setAuthCookies(reply, result.accessToken, result.refreshToken);
+
+  return reply.send(
+    createSuccessResponse({
+      user: result.user,
+      accessToken: result.accessToken,
+    }),
+  );
+}
+
 export async function handleRefresh(request: FastifyRequest, reply: FastifyReply) {
   let refreshToken: string | undefined;
 

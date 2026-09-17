@@ -7,6 +7,7 @@ import { createAccessToken } from './token.service.js';
 import { SessionService } from './session.service.js';
 import { EmailVerificationService } from './email-verification.service.js';
 import { PasswordResetService } from './password-reset.service.js';
+import { googleOAuthService } from './google-oauth.service.js';
 import { AuthCacheService } from './auth.cache.service.js';
 import { AuthJobs } from './auth.jobs.js';
 import {
@@ -113,7 +114,7 @@ export class AuthService {
       }
 
       const user = await this.repo.findUserByEmail(input.email);
-      if (!user) {
+      if (!user || !user.passwordHash) {
         await this.cacheService.incrementLoginAttempts(attemptsKey);
         throw new UnauthorizedError('Invalid email or password');
       }
@@ -151,6 +152,83 @@ export class AuthService {
       });
 
       logger.info({ userId: user.id }, 'User logged in successfully');
+      return {
+        user: toUserDTO(user),
+        accessToken,
+        refreshToken,
+      };
+    });
+  }
+
+  // ─── Google OAuth 2.0 ───────────────────────────────────────────────────────
+  getGoogleAuthUrl(): { url: string } {
+    return { url: googleOAuthService.getAuthorizationUrl() };
+  }
+
+  async loginWithGoogle(
+    code: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ user: UserDTO; accessToken: string; refreshToken: string }> {
+    return withSpan(tracer, 'auth.loginWithGoogle', async (span) => {
+      const googleUser = await googleOAuthService.getGoogleUserFromCode(code);
+      span.setAttribute('google.sub', googleUser.sub);
+      span.setAttribute('google.email', googleUser.email);
+
+      logger.info({ sub: googleUser.sub, email: googleUser.email }, 'Processing Google OAuth login/signup');
+
+      // 1. Search for existing OAuthAccount (provider=GOOGLE, providerAccountId=sub)
+      let oauthMatch = await this.repo.findOAuthAccount('GOOGLE', googleUser.sub);
+      let user: User;
+
+      if (oauthMatch) {
+        user = oauthMatch.user;
+      } else {
+        // 2. Check if a local user exists with the same email address
+        const existingUserByEmail = await this.repo.findUserByEmail(googleUser.email);
+
+        if (existingUserByEmail) {
+          user = existingUserByEmail;
+          // Link new Google OAuth account to existing user
+          await this.repo.linkOAuthAccount(user.id, 'GOOGLE', googleUser.sub, googleUser.email);
+        } else {
+          // 3. Create new User + OAuthAccount
+          const created = await this.repo.createOAuthUserAndAccount({
+            email: googleUser.email,
+            firstName: googleUser.given_name ?? 'Google User',
+            lastName: googleUser.family_name ?? undefined,
+            emailVerifiedAt: googleUser.email_verified ? new Date() : undefined,
+            provider: 'GOOGLE',
+            providerAccountId: googleUser.sub,
+          });
+          user = created.user;
+        }
+      }
+
+      if (user.status === 'SUSPENDED') {
+        throw new ForbiddenError('Account is suspended');
+      }
+
+      // Update last login timestamp
+      await this.repo.updateLastLogin(user.id);
+
+      // Create Session & JWT token
+      const { refreshToken } = await this.sessionService.createSession(user.id, ipAddress, userAgent);
+      const accessToken = createAccessToken({
+        sub: user.id,
+        email: user.email,
+        status: user.status as any,
+      });
+
+      // Send new login notification job
+      await this.jobs.enqueueNewLoginNotification({
+        userId: user.id,
+        email: user.email,
+        ipAddress,
+        userAgent,
+      });
+
+      logger.info({ userId: user.id, provider: 'GOOGLE' }, 'User authenticated successfully via Google OAuth');
       return {
         user: toUserDTO(user),
         accessToken,
@@ -223,6 +301,10 @@ export class AuthService {
       const user = await this.repo.findUserById(userId);
       if (!user) {
         throw new UnauthorizedError('User not found');
+      }
+
+      if (!user.passwordHash) {
+        throw new ValidationError('Account was created via OAuth and has no password set');
       }
 
       const isValidPassword = await verifyPassword(input.currentPassword, user.passwordHash);

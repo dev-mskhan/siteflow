@@ -3,10 +3,12 @@ import { getDb } from '../../lib/db/index.js';
 import {
   users,
   sessions,
+  oauthAccounts,
   emailVerificationTokens,
   passwordResetTokens,
   type User,
   type NewUser,
+  type OAuthAccount,
   type Session,
   type NewSession,
   type EmailVerificationToken,
@@ -71,6 +73,94 @@ export class AuthRepository {
       .update(users)
       .set({ passwordHash, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  // ─── OAuth Account Operations ───────────────────────────────────────────────
+  async findOAuthAccount(
+    provider: 'GOOGLE' | 'GITHUB' | 'MICROSOFT',
+    providerAccountId: string,
+  ): Promise<(OAuthAccount & { user: User }) | undefined> {
+    const result = await this.db
+      .select({
+        oauthAccount: oauthAccounts,
+        user: users,
+      })
+      .from(oauthAccounts)
+      .innerJoin(users, eq(oauthAccounts.userId, users.id))
+      .where(
+        and(
+          eq(oauthAccounts.provider, provider),
+          eq(oauthAccounts.providerAccountId, providerAccountId),
+        ),
+      )
+      .limit(1);
+
+    if (!result[0]) return undefined;
+    return {
+      ...result[0].oauthAccount,
+      user: result[0].user,
+    };
+  }
+
+  async createOAuthUserAndAccount(data: {
+    email: string;
+    firstName: string;
+    lastName?: string;
+    emailVerifiedAt?: Date;
+    provider: 'GOOGLE' | 'GITHUB' | 'MICROSOFT';
+    providerAccountId: string;
+  }): Promise<{ user: User; oauthAccount: OAuthAccount }> {
+    logger.info({ email: data.email, provider: data.provider, providerAccountId: data.providerAccountId }, 'Creating new user from OAuth');
+
+    return this.db.transaction(async (tx) => {
+      const newUser = await tx
+        .insert(users)
+        .values({
+          email: data.email.toLowerCase(),
+          passwordHash: null,
+          firstName: data.firstName,
+          lastName: data.lastName ?? null,
+          emailVerifiedAt: data.emailVerifiedAt ?? new Date(),
+          status: 'ACTIVE',
+        })
+        .returning();
+
+      const user = newUser[0]!;
+
+      const newOAuth = await tx
+        .insert(oauthAccounts)
+        .values({
+          userId: user.id,
+          provider: data.provider,
+          providerAccountId: data.providerAccountId,
+          email: data.email.toLowerCase(),
+        })
+        .returning();
+
+      return {
+        user,
+        oauthAccount: newOAuth[0]!,
+      };
+    });
+  }
+
+  async linkOAuthAccount(
+    userId: string,
+    provider: 'GOOGLE' | 'GITHUB' | 'MICROSOFT',
+    providerAccountId: string,
+    email?: string,
+  ): Promise<OAuthAccount> {
+    logger.info({ userId, provider, providerAccountId }, 'Linking OAuth account to existing user');
+    const result = await this.db
+      .insert(oauthAccounts)
+      .values({
+        userId,
+        provider,
+        providerAccountId,
+        email: email ? email.toLowerCase() : null,
+      })
+      .returning();
+    return result[0]!;
   }
 
   // ─── Session Operations ─────────────────────────────────────────────────────

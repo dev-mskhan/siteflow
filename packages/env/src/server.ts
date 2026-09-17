@@ -46,6 +46,11 @@ export const serverEnv = createEnv({
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().default('SiteFlow <noreply@siteflow.dev>'),
 
+    // Google OAuth 2.0
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_CALLBACK_URL: z.string().default('http://localhost:3000/api/v1/auth/google/callback'),
+
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   },
