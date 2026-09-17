@@ -10,12 +10,16 @@ initTelemetry({
 
 import { createLogger } from '@siteflow/observability/server';
 import { startQueue, stopQueue, QUEUES, type SendEmailPayload, type ExportPayload } from './lib/queue/index.js';
+import { registerAuthWorkers } from './modules/auth/auth.worker.js';
 import type { Job } from 'pg-boss';
 
 const logger = createLogger({ name: 'worker' });
 
 async function runWorker() {
   const boss = await startQueue();
+
+  // ─── Register Auth workers ───────────────────────────────────────────────────
+  await registerAuthWorkers(boss);
 
   // ─── Register worker for Send Email ─────────────────────────────────────────
   await boss.work(QUEUES.EMAIL_SEND, async (job: Job<SendEmailPayload> | Job<SendEmailPayload>[]) => {
@@ -35,7 +39,7 @@ async function runWorker() {
     logger.info({ jobId: item.id }, 'Export job processed successfully');
   });
 
-  logger.info('PgBoss worker registered and listening for jobs on queues: email:send, resource:export');
+  logger.info('PgBoss worker registered and listening for jobs on queues');
 }
 
 runWorker().catch((err) => {

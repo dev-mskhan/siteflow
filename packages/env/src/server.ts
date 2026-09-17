@@ -13,7 +13,7 @@ export const serverEnv = createEnv({
     HOST: z.string().default('0.0.0.0'),
 
     // Database (PostgreSQL)
-    DATABASE_URL: z.string().url().default('postgres://siteflow:siteflow@localhost:5433/siteflow'),
+    DATABASE_URL: z.string().url().default('postgres://siteflow:siteflow@localhost:5434/siteflow'),
 
     // Redis
     REDIS_URL: z.string().url().default('redis://localhost:6379'),
@@ -32,6 +32,19 @@ export const serverEnv = createEnv({
     // OTEL
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().default('http://localhost:4318'),
     OTEL_SERVICE_NAME: z.string().default('siteflow-server'),
+
+    // Auth / JWT
+    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').default('change-me-please-at-least-32-chars-long!!'),
+    JWT_EXPIRY: z.string().default('15m'),
+    COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters').default('change-me-cookie-secret-32-chars!!'),
+    REFRESH_TOKEN_EXPIRY_DAYS: z.coerce.number().int().positive().default(30),
+
+    // SMTP / Email
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().default('SiteFlow <noreply@siteflow.dev>'),
 
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),

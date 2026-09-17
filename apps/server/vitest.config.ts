@@ -5,9 +5,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
-    // Include both co-located tests in src/ and tests in tests/
-    include: ['src/**/*.{test,spec}.ts', 'tests/**/*.{test,spec}.ts'],
-    exclude: ['src/**/*.e2e.ts', 'tests/**/*.e2e.ts', 'node_modules', 'dist'],
+    // All tests live under tests/ — never co-located inside src/
+    include: ['tests/**/*.{test,spec}.ts'],
+    exclude: ['tests/**/*.e2e.ts', 'node_modules', 'dist'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -20,7 +20,7 @@ export default defineConfig({
     },
     env: {
       NODE_ENV: 'test',
-      DATABASE_URL: 'postgres://siteflow:siteflow@localhost:5433/siteflow',
+      DATABASE_URL: 'postgres://siteflow:siteflow@localhost:5434/siteflow',
       REDIS_URL: 'redis://localhost:6379',
       MINIO_ENDPOINT: 'localhost',
       MINIO_PORT: '9000',
