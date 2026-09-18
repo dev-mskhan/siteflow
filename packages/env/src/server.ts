@@ -1,6 +1,17 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'node:path';
 import { createEnv } from '@t3-oss/env-core';
 import { z } from 'zod';
+
+// Pre-load dotenv from process.cwd() and monorepo root parent directories
+const cwd = process.cwd();
+dotenv.config({
+  path: [
+    path.resolve(cwd, '.env'),
+    path.resolve(cwd, '../../.env'),
+    path.resolve(cwd, '../.env'),
+  ],
+});
 
 /**
  * Validated environment variables for the server.
