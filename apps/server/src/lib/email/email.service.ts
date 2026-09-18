@@ -183,6 +183,33 @@ export class EmailService {
 
     await this.sendMail({ to, subject, html });
   }
+
+  /**
+   * Send Organization Invitation Email
+   */
+  async sendInvitationEmail(
+    to: string,
+    options: { orgName: string; inviterName: string; token: string },
+  ): Promise<void> {
+    const acceptUrl = `http://localhost:3000/accept-invitation?token=${options.token}`;
+    const subject = `You've been invited to join ${options.orgName} on SiteFlow`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #2563eb;">Organization Invitation</h2>
+        <p><strong>${options.inviterName}</strong> has invited you to join <strong>${options.orgName}</strong> on SiteFlow.</p>
+        <div style="margin: 30px 0;">
+          <a href="${acceptUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Accept Invitation</a>
+        </div>
+        <p style="color: #666; font-size: 14px;">Or copy and paste this link into your browser:</p>
+        <p style="color: #666; font-size: 14px; word-break: break-all;">${acceptUrl}</p>
+        <p style="color: #666; font-size: 13px;">This invitation will expire in 7 days.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="color: #999; font-size: 12px;">If you were not expecting this invitation, you can safely ignore this email.</p>
+      </div>
+    `;
+
+    await this.sendMail({ to, subject, html });
+  }
 }
 
 export const emailService = new EmailService();

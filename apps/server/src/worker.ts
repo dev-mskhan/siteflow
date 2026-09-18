@@ -11,7 +11,7 @@ initTelemetry({
 import { createLogger } from '@siteflow/observability/server';
 import { startQueue, stopQueue, QUEUES, type SendEmailPayload, type ExportPayload } from './lib/queue/index.js';
 import { registerAuthWorkers } from './modules/auth/auth.worker.js';
-
+import { registerOrgWorkers } from './modules/invitation/invitation.worker.js';
 
 import { outboxService } from './lib/outbox/outbox.service.js';
 import type { Job } from 'pg-boss';
@@ -23,6 +23,9 @@ async function runWorker() {
 
   // ─── Register Auth workers ───────────────────────────────────────────────────
   await registerAuthWorkers(boss);
+
+  // ─── Register Org workers ────────────────────────────────────────────────────
+  await registerOrgWorkers(boss);
 
   // ─── Start Outbox Poller (Worker exclusively owns outbox polling) ───────────
   outboxService.startPoller(3000);

@@ -12,6 +12,10 @@ import { serverEnv } from '../config/env.js';
 import { registerErrorHandlers } from '../middleware/error-handler.js';
 import { healthRoutes } from '../modules/health/health.routes.js';
 import { authRoutes } from '../modules/auth/auth.routes.js';
+import { organizationRoutes } from '../modules/organization/organization.routes.js';
+import { membershipRoutes } from '../modules/membership/membership.routes.js';
+import { invitationRoutes } from '../modules/invitation/invitation.routes.js';
+import { auditRoutes } from '../modules/audit/audit.routes.js';
 
 /**
  * Creates and configures the Fastify application instance.
@@ -71,6 +75,10 @@ export async function buildApp(): Promise<FastifyInstance> {
       tags: [
         { name: 'health', description: 'Health & readiness checks' },
         { name: 'auth', description: 'Authentication & Session management' },
+        { name: 'organizations', description: 'Organization management' },
+        { name: 'members', description: 'Organization membership management' },
+        { name: 'invitations', description: 'Organization invitation management' },
+        { name: 'audit', description: 'Organization security audit trail' },
       ],
     },
   });
@@ -85,6 +93,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   // ─── Route modules ──────────────────────────────────────────────────────────
   await app.register(healthRoutes, { prefix: '/health' });
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
+  await app.register(organizationRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(membershipRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(invitationRoutes, { prefix: '/api/v1' });
+  await app.register(auditRoutes, { prefix: '/api/v1/organizations' });
 
   return app;
 }

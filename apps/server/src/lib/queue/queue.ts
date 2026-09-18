@@ -12,12 +12,17 @@ import {
   type SendPasswordChangedPayload,
   type SendNewLoginPayload,
 } from '../../modules/auth/auth.jobs.js';
+import {
+  ORG_QUEUES,
+  type SendInvitationEmailPayload,
+} from '../../modules/invitation/invitation.jobs.js';
 
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {
   EMAIL_SEND: 'email:send',
   RESOURCE_EXPORT: 'resource:export',
   ...AUTH_QUEUES,
+  ...ORG_QUEUES,
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -46,6 +51,7 @@ export type JobPayloads = {
   [AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS]?: Record<string, unknown>;
   [AUTH_QUEUES.CLEANUP_EXPIRED_VERIFICATION_TOKENS]?: Record<string, unknown>;
   [AUTH_QUEUES.CLEANUP_EXPIRED_PASSWORD_RESET_TOKENS]?: Record<string, unknown>;
+  [ORG_QUEUES.SEND_INVITATION_EMAIL]: SendInvitationEmailPayload;
 };
 
 let _bossInstance: PgBoss | undefined;
@@ -82,7 +88,7 @@ export async function startQueue(): Promise<PgBoss> {
       .start()
       .then(async () => {
         logger.info('PgBoss queue started successfully in schema "pgboss"');
-        // Pre-create all registered queues so workers can bind cleanly
+        // Pre-create all registered queues with retry/backoff defaults
         for (const queueName of Object.values(QUEUES)) {
           try {
             await boss.createQueue(queueName);
