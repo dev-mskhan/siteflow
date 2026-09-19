@@ -28,7 +28,11 @@ async function runWorker() {
   await registerOrgWorkers(boss);
 
   // ─── Start Outbox Poller (Worker exclusively owns outbox polling) ───────────
-  outboxService.startPoller(3000);
+  outboxService.startPoller({
+    minIntervalMs: 1000,
+    maxIntervalMs: 10000,
+    backoffMultiplier: 1.5,
+  });
 
   // ─── Register worker for Send Email ─────────────────────────────────────────
   await boss.work(QUEUES.EMAIL_SEND, async (job: Job<SendEmailPayload> | Job<SendEmailPayload>[]) => {
@@ -58,6 +62,7 @@ runWorker().catch((err) => {
 
 const shutdown = async () => {
   logger.info('Worker shutting down…');
+  outboxService.stopPoller();
   await stopQueue();
   process.exit(0);
 };

@@ -31,7 +31,16 @@ export async function writeOutboxEvent(
   return result[0];
 }
 
+export interface OutboxPollerOptions {
+  minIntervalMs?: number;
+  maxIntervalMs?: number;
+  backoffMultiplier?: number;
+}
+
 export class OutboxService {
+  private pollerTimeout: NodeJS.Timeout | null = null;
+  private isPolling = false;
+
   private get db() {
     return getDb();
   }
@@ -105,17 +114,68 @@ export class OutboxService {
   }
 
   /**
-   * Starts a background poller interval to periodically sweep pending outbox events.
+   * Starts an adaptive background poller loop to sweep pending outbox events.
+   * Dynamically adjusts polling interval between minIntervalMs and maxIntervalMs
+   * based on table activity to prevent hammering PostgreSQL when idle.
    */
-  startPoller(intervalMs = 10000): NodeJS.Timeout {
-    logger.info({ intervalMs }, 'Starting outbox poller loop');
-    return setInterval(async () => {
+  startPoller(options?: number | OutboxPollerOptions): void {
+    if (this.isPolling) {
+      logger.warn('Outbox poller is already running');
+      return;
+    }
+
+    const config: Required<OutboxPollerOptions> = {
+      minIntervalMs: typeof options === 'number' ? options : options?.minIntervalMs ?? 1000,
+      maxIntervalMs: typeof options === 'number' ? Math.max(options, 10000) : options?.maxIntervalMs ?? 10000,
+      backoffMultiplier: typeof options === 'number' ? 1.5 : options?.backoffMultiplier ?? 1.5,
+    };
+
+    this.isPolling = true;
+    let currentInterval = config.minIntervalMs;
+
+    logger.info(
+      { minIntervalMs: config.minIntervalMs, maxIntervalMs: config.maxIntervalMs },
+      'Outbox processor ready (adaptive poller started)',
+    );
+
+    const poll = async () => {
+      if (!this.isPolling) return;
+
       try {
-        await this.publishPendingEvents();
+        const count = await this.publishPendingEvents();
+
+        if (count > 0) {
+          // Reset to min interval immediately when work was done
+          currentInterval = config.minIntervalMs;
+        } else {
+          // Exponentially back off up to maxIntervalMs when idle
+          currentInterval = Math.min(Math.round(currentInterval * config.backoffMultiplier), config.maxIntervalMs);
+        }
       } catch (err) {
         logger.error({ err }, 'Unhandled exception in outbox poller sweep');
+        currentInterval = Math.min(Math.round(currentInterval * config.backoffMultiplier), config.maxIntervalMs);
       }
-    }, intervalMs);
+
+      if (this.isPolling) {
+        this.pollerTimeout = setTimeout(poll, currentInterval);
+      }
+    };
+
+    // Schedule first poll asynchronously
+    this.pollerTimeout = setTimeout(poll, 0);
+  }
+
+  /**
+   * Stops the background poller loop cleanly.
+   */
+  stopPoller(): void {
+    if (!this.isPolling) return;
+    this.isPolling = false;
+    if (this.pollerTimeout) {
+      clearTimeout(this.pollerTimeout);
+      this.pollerTimeout = null;
+    }
+    logger.info('Outbox poller loop stopped');
   }
 }
 

@@ -81,4 +81,23 @@ describe('OutboxService (Unit)', () => {
       expect(mockDbInstance.update).toHaveBeenCalled();
     });
   });
+
+  describe('startPoller() and stopPoller()', () => {
+    it('should start and stop the poller loop cleanly', () => {
+      vi.useFakeTimers();
+      const service = new OutboxService();
+      vi.spyOn(service, 'publishPendingEvents').mockResolvedValue(0);
+
+      service.startPoller({ minIntervalMs: 1000, maxIntervalMs: 5000, backoffMultiplier: 2.0 });
+      expect((service as any).isPolling).toBe(true);
+
+      // Fast-forward initial async poll
+      vi.advanceTimersByTime(10);
+      expect(service.publishPendingEvents).toHaveBeenCalledTimes(1);
+
+      service.stopPoller();
+      expect((service as any).isPolling).toBe(false);
+      vi.useRealTimers();
+    });
+  });
 });
