@@ -4,6 +4,7 @@ import { auditService } from './audit.service.js';
 import { createSuccessResponse } from '../../shared/response.js';
 import { authenticate } from '../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../rbac/permission.middleware.js';
+import { listAuditLogsSchemaDoc } from './docs/audit.schemas.js';
 
 export async function handleListAuditLogs(request: FastifyRequest, reply: FastifyReply) {
   const { organizationId } = request.params as { organizationId: string };
@@ -23,6 +24,6 @@ export const auditRoutes: FastifyPluginAsync = async (fastify) => {
     protectedRoutes.addHook('preHandler', organizationContext);
     protectedRoutes.addHook('preHandler', requirePermission('audit:read'));
 
-    protectedRoutes.get('/:organizationId/audit-logs', handleListAuditLogs);
+    protectedRoutes.get('/:organizationId/audit-logs', { schema: listAuditLogsSchemaDoc }, handleListAuditLogs);
   });
 };

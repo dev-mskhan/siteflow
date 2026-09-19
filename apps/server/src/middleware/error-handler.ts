@@ -51,6 +51,12 @@ export function registerErrorHandlers(app: FastifyInstance): void {
       if (activeSpan) {
         activeSpan.recordException(error);
         activeSpan.setStatus({ code: SpanStatusCode.ERROR, message: error.message ?? 'Unhandled Error' });
+        activeSpan.setAttribute('error.code', errorCode);
+        activeSpan.setAttribute('http.status_code', statusCode);
+        if (request.orgContext) {
+          activeSpan.setAttribute('organization.id', request.orgContext.organizationId);
+          activeSpan.setAttribute('user.id', request.orgContext.userId);
+        }
       }
 
       // 2. Structured pino logging

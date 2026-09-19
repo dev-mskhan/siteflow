@@ -8,6 +8,12 @@ import {
   handleUpdateMember,
   handleRemoveMember,
 } from './membership.handler.js';
+import {
+  listMembersSchemaDoc,
+  getMemberSchemaDoc,
+  updateMemberSchemaDoc,
+  removeMemberSchemaDoc,
+} from './docs/membership.schemas.js';
 
 export const membershipRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(async (scopedRoutes) => {
@@ -16,22 +22,22 @@ export const membershipRoutes: FastifyPluginAsync = async (fastify) => {
 
     scopedRoutes.get(
       '/:organizationId/members',
-      { preHandler: [requirePermission('member:read')] },
+      { schema: listMembersSchemaDoc, preHandler: [requirePermission('member:read')] },
       handleListMembers,
     );
     scopedRoutes.get(
       '/:organizationId/members/:memberId',
-      { preHandler: [requirePermission('member:read')] },
+      { schema: getMemberSchemaDoc, preHandler: [requirePermission('member:read')] },
       handleGetMember,
     );
     scopedRoutes.patch(
       '/:organizationId/members/:memberId',
-      { preHandler: [requirePermission('member:update')] },
+      { schema: updateMemberSchemaDoc, preHandler: [requirePermission('member:update')] },
       handleUpdateMember,
     );
     scopedRoutes.delete(
       '/:organizationId/members/:memberId',
-      { preHandler: [requirePermission('member:remove')] },
+      { schema: removeMemberSchemaDoc, preHandler: [requirePermission('member:remove')] },
       handleRemoveMember,
     );
   });

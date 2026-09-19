@@ -1,4 +1,6 @@
 // apps/server/src/modules/membership/membership.service.ts
+import { trace } from '@opentelemetry/api';
+import { withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../lib/db/index.js';
 import { MembershipRepository, type MemberWithDetails } from './membership.repository.js';
 import { rbacCacheService } from '../rbac/rbac.cache.service.js';
@@ -7,6 +9,8 @@ import { NotFoundError, ForbiddenError, ValidationError } from './membership.err
 import type { MemberDTO, UpdateMemberInput } from './membership.types.js';
 import type { OrganizationContext } from '../rbac/rbac.types.js';
 import type { Membership } from '@siteflow/database/schema';
+
+const tracer = trace.getTracer('membership-service');
 
 export function toMemberDTO(member: MemberWithDetails | Membership): MemberDTO {
   const withDetails = member as MemberWithDetails;
@@ -47,17 +51,25 @@ export class MembershipService {
   }
 
   async listMembers(orgId: string): Promise<MemberDTO[]> {
-    const members = await this.repo.findByOrg(orgId);
-    return members.map(toMemberDTO);
+    return withSpan(tracer, 'membership.listMembers', async (span) => {
+      span.setAttribute('organization.id', orgId);
+      const members = await this.repo.findByOrg(orgId);
+      return members.map(toMemberDTO);
+    });
   }
 
   async getMember(orgId: string, memberId: string): Promise<MemberDTO> {
-    const member = await this.repo.findMemberWithDetails(memberId);
-    if (!member || member.status === 'REMOVED') {
-      throw new NotFoundError('Member not found');
-    }
-    this.assertSameTenant(member, orgId);
-    return toMemberDTO(member);
+    return withSpan(tracer, 'membership.getMember', async (span) => {
+      span.setAttribute('organization.id', orgId);
+      span.setAttribute('membership.id', memberId);
+
+      const member = await this.repo.findMemberWithDetails(memberId);
+      if (!member || member.status === 'REMOVED') {
+        throw new NotFoundError('Member not found');
+      }
+      this.assertSameTenant(member, orgId);
+      return toMemberDTO(member);
+    });
   }
 
   async updateMember(
@@ -66,38 +78,47 @@ export class MembershipService {
     actorCtx: OrganizationContext,
     input: UpdateMemberInput,
   ): Promise<MemberDTO> {
-    const existing = await this.repo.findById(memberId);
-    if (!existing || existing.status === 'REMOVED') {
-      throw new NotFoundError('Member not found');
-    }
-    this.assertSameTenant(existing, orgId);
+    return withSpan(tracer, 'membership.updateMember', async (span) => {
+      span.setAttribute('organization.id', orgId);
+      span.setAttribute('membership.id', memberId);
+      span.setAttribute('user.id', actorCtx.userId);
 
-    // Guard if demoting or suspending an admin
-    if (input.roleId || input.status === 'SUSPENDED') {
-      await this.assertNotLastAdmin(orgId, existing);
-    }
+      const existing = await this.repo.findById(memberId);
+      if (!existing || existing.status === 'REMOVED') {
+        throw new NotFoundError('Member not found');
+      }
+      this.assertSameTenant(existing, orgId);
 
-    const updated = await this.db.transaction(async (tx) => {
-      const result = await this.repo.update(memberId, input, tx);
-      await auditService.log(
-        {
-          organizationId: orgId,
-          actorUserId: actorCtx.userId,
-          action: input.roleId ? 'member.role_changed' : 'member.updated',
-          resourceType: 'Membership',
-          resourceId: memberId,
-          metadata: input as Record<string, unknown>,
-        },
-        tx,
-      );
-      return result;
+      // Guard if demoting or suspending an existing Organization Admin
+      if (input.roleId || input.status === 'SUSPENDED') {
+        const currentMember = await this.repo.findMemberWithDetails(memberId);
+        if (currentMember?.roleName === 'Organization Admin') {
+          await this.assertNotLastAdmin(orgId, existing);
+        }
+      }
+
+      const updated = await this.db.transaction(async (tx) => {
+        const result = await this.repo.update(memberId, input, tx);
+        await auditService.log(
+          {
+            organizationId: orgId,
+            actorUserId: actorCtx.userId,
+            action: input.roleId ? 'member.role_changed' : 'member.updated',
+            resourceType: 'Membership',
+            resourceId: memberId,
+            metadata: input as Record<string, unknown>,
+          },
+          tx,
+        );
+        return result;
+      });
+
+      // Synchronous cache invalidation AFTER transaction commit
+      await rbacCacheService.invalidate(orgId, existing.userId);
+
+      const refreshed = await this.repo.findMemberWithDetails(memberId);
+      return toMemberDTO(refreshed ?? updated);
     });
-
-    // Synchronous cache invalidation AFTER transaction commit
-    await rbacCacheService.invalidate(orgId, existing.userId);
-
-    const refreshed = await this.repo.findMemberWithDetails(memberId);
-    return toMemberDTO(refreshed ?? updated);
   }
 
   async removeMember(
@@ -105,29 +126,35 @@ export class MembershipService {
     memberId: string,
     actorCtx: OrganizationContext,
   ): Promise<void> {
-    const existing = await this.repo.findById(memberId);
-    if (!existing || existing.status === 'REMOVED') {
-      throw new NotFoundError('Member not found');
-    }
-    this.assertSameTenant(existing, orgId);
+    return withSpan(tracer, 'membership.removeMember', async (span) => {
+      span.setAttribute('organization.id', orgId);
+      span.setAttribute('membership.id', memberId);
+      span.setAttribute('user.id', actorCtx.userId);
 
-    await this.assertNotLastAdmin(orgId, existing);
+      const existing = await this.repo.findById(memberId);
+      if (!existing || existing.status === 'REMOVED') {
+        throw new NotFoundError('Member not found');
+      }
+      this.assertSameTenant(existing, orgId);
 
-    await this.db.transaction(async (tx) => {
-      await this.repo.softRemove(memberId, tx);
-      await auditService.log(
-        {
-          organizationId: orgId,
-          actorUserId: actorCtx.userId,
-          action: 'member.removed',
-          resourceType: 'Membership',
-          resourceId: memberId,
-        },
-        tx,
-      );
+      await this.assertNotLastAdmin(orgId, existing);
+
+      await this.db.transaction(async (tx) => {
+        await this.repo.softRemove(memberId, tx);
+        await auditService.log(
+          {
+            organizationId: orgId,
+            actorUserId: actorCtx.userId,
+            action: 'member.removed',
+            resourceType: 'Membership',
+            resourceId: memberId,
+          },
+          tx,
+        );
+      });
+
+      // Synchronous cache invalidation AFTER transaction commit
+      await rbacCacheService.invalidate(orgId, existing.userId);
     });
-
-    // Synchronous cache invalidation AFTER transaction commit
-    await rbacCacheService.invalidate(orgId, existing.userId);
   }
 }

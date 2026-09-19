@@ -1,5 +1,6 @@
 // apps/server/src/modules/rbac/permission.middleware.ts
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 import { rbacService } from './rbac.service.js';
 import { auditService } from '../audit/audit.service.js';
 import { UnauthorizedError, ForbiddenError, ValidationError } from '../auth/auth.errors.js';
@@ -27,6 +28,14 @@ export async function organizationContext(
   const userId = request.user.sub;
   const ctx = await rbacService.getOrganizationContext(organizationId, userId);
   request.orgContext = ctx;
+
+  const activeSpan = trace.getActiveSpan();
+  if (activeSpan) {
+    activeSpan.setAttribute('organization.id', ctx.organizationId);
+    activeSpan.setAttribute('user.id', ctx.userId);
+    activeSpan.setAttribute('membership.id', ctx.membershipId);
+    activeSpan.setAttribute('role.id', ctx.roleId);
+  }
 }
 
 /**
@@ -43,7 +52,20 @@ export function requirePermission(permission: string) {
       throw new ForbiddenError('Organization context not established');
     }
 
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttribute('permission.required', permission);
+    }
+
     if (!rbacService.hasPermission(request.orgContext, permission)) {
+      if (activeSpan) {
+        activeSpan.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: `Permission denied: missing ${permission}`,
+        });
+        activeSpan.setAttribute('permission.denied', true);
+      }
+
       // Asynchronously log permission.denied audit event
       auditService
         .log({

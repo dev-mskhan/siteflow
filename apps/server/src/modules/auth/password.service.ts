@@ -4,7 +4,7 @@ import { createLogger } from '@siteflow/observability/server';
 
 const logger = createLogger({ name: 'password-service' });
 
-const SALT_ROUNDS = 12;
+const SALT_ROUNDS = process.env.NODE_ENV === 'test' ? 4 : 12;
 
 /**
  * Hashes a plain-text password using bcrypt.

@@ -1,4 +1,4 @@
-CREATE SCHEMA "app";
+CREATE SCHEMA IF NOT EXISTS "app";
 --> statement-breakpoint
 CREATE TYPE "app"."oauth_provider" AS ENUM('GOOGLE', 'GITHUB', 'MICROSOFT');--> statement-breakpoint
 CREATE TYPE "app"."user_status" AS ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED');--> statement-breakpoint

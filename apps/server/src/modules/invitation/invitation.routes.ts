@@ -8,10 +8,20 @@ import {
   handleCancelInvitation,
   handleAcceptInvitation,
 } from './invitation.handler.js';
+import {
+  createInvitationSchemaDoc,
+  listInvitationsSchemaDoc,
+  cancelInvitationSchemaDoc,
+  acceptInvitationSchemaDoc,
+} from './docs/invitation.schemas.js';
 
 export const invitationRoutes: FastifyPluginAsync = async (fastify) => {
   // Public/authenticated acceptance endpoint
-  fastify.post('/invitations/:token/accept', { preHandler: [authenticate] }, handleAcceptInvitation);
+  fastify.post(
+    '/invitations/:token/accept',
+    { schema: acceptInvitationSchemaDoc, preHandler: [authenticate] },
+    handleAcceptInvitation,
+  );
 
   // Org-scoped invitation management routes
   fastify.register(async (scopedRoutes) => {
@@ -20,17 +30,17 @@ export const invitationRoutes: FastifyPluginAsync = async (fastify) => {
 
     scopedRoutes.post(
       '/organizations/:organizationId/invitations',
-      { preHandler: [requirePermission('member:invite')] },
+      { schema: createInvitationSchemaDoc, preHandler: [requirePermission('member:invite')] },
       handleCreateInvitation,
     );
     scopedRoutes.get(
       '/organizations/:organizationId/invitations',
-      { preHandler: [requirePermission('member:read')] },
+      { schema: listInvitationsSchemaDoc, preHandler: [requirePermission('member:read')] },
       handleListInvitations,
     );
     scopedRoutes.delete(
       '/organizations/:organizationId/invitations/:id',
-      { preHandler: [requirePermission('invitation:cancel')] },
+      { schema: cancelInvitationSchemaDoc, preHandler: [requirePermission('invitation:cancel')] },
       handleCancelInvitation,
     );
   });

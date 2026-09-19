@@ -1,6 +1,10 @@
 // apps/server/src/modules/audit/audit.service.ts
+import { trace } from '@opentelemetry/api';
+import { withSpan } from '@siteflow/observability/server';
 import { AuditRepository } from './audit.repository.js';
 import type { AuditLog, NewAuditLog, AuditLogDTO } from './audit.types.js';
+
+const tracer = trace.getTracer('audit-service');
 
 export function toAuditLogDTO(log: AuditLog): AuditLogDTO {
   return {
@@ -27,8 +31,14 @@ export class AuditService {
     entry: Omit<NewAuditLog, 'id' | 'createdAt'>,
     tx?: any,
   ): Promise<AuditLogDTO> {
-    const created = await this.repo.create(entry, tx);
-    return toAuditLogDTO(created);
+    return withSpan(tracer, 'audit.log', async (span) => {
+      span.setAttribute('organization.id', entry.organizationId);
+      span.setAttribute('audit.action', entry.action);
+      if (entry.actorUserId) span.setAttribute('user.id', entry.actorUserId);
+
+      const created = await this.repo.create(entry, tx);
+      return toAuditLogDTO(created);
+    });
   }
 
   async listForOrg(
@@ -36,8 +46,14 @@ export class AuditService {
     limit = 50,
     offset = 0,
   ): Promise<AuditLogDTO[]> {
-    const logs = await this.repo.findByOrganizationId(orgId, limit, offset);
-    return logs.map(toAuditLogDTO);
+    return withSpan(tracer, 'audit.listForOrg', async (span) => {
+      span.setAttribute('organization.id', orgId);
+      span.setAttribute('query.limit', limit);
+      span.setAttribute('query.offset', offset);
+
+      const logs = await this.repo.findByOrganizationId(orgId, limit, offset);
+      return logs.map(toAuditLogDTO);
+    });
   }
 }
 

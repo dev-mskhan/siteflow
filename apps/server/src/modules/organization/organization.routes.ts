@@ -10,14 +10,22 @@ import {
   handleGetSettings,
   handleUpdateSettings,
 } from './organization.handler.js';
+import {
+  createOrgSchemaDoc,
+  listOrgsSchemaDoc,
+  getOrgSchemaDoc,
+  updateOrgSchemaDoc,
+  getSettingsSchemaDoc,
+  updateSettingsSchemaDoc,
+} from './docs/organization.schemas.js';
 
 export const organizationRoutes: FastifyPluginAsync = async (fastify) => {
   // Public/authenticated user routes (no org context required yet)
   fastify.register(async (userOrgRoutes) => {
     userOrgRoutes.addHook('preHandler', authenticate);
 
-    userOrgRoutes.post('/', handleCreateOrg);
-    userOrgRoutes.get('/', handleListOrgs);
+    userOrgRoutes.post('/', { schema: createOrgSchemaDoc }, handleCreateOrg);
+    userOrgRoutes.get('/', { schema: listOrgsSchemaDoc }, handleListOrgs);
   });
 
   // Org-scoped routes requiring organizationContext & permissions
@@ -25,22 +33,22 @@ export const organizationRoutes: FastifyPluginAsync = async (fastify) => {
     scopedRoutes.addHook('preHandler', authenticate);
     scopedRoutes.addHook('preHandler', organizationContext);
 
-    scopedRoutes.get('/:organizationId', handleGetOrg);
+    scopedRoutes.get('/:organizationId', { schema: getOrgSchemaDoc }, handleGetOrg);
     scopedRoutes.patch(
       '/:organizationId',
-      { preHandler: [requirePermission('organization:update')] },
+      { schema: updateOrgSchemaDoc, preHandler: [requirePermission('organization:update')] },
       handleUpdateOrg,
     );
 
     // Settings routes
     scopedRoutes.get(
       '/:organizationId/settings',
-      { preHandler: [requirePermission('settings:read')] },
+      { schema: getSettingsSchemaDoc, preHandler: [requirePermission('settings:read')] },
       handleGetSettings,
     );
     scopedRoutes.patch(
       '/:organizationId/settings',
-      { preHandler: [requirePermission('settings:update')] },
+      { schema: updateSettingsSchemaDoc, preHandler: [requirePermission('settings:update')] },
       handleUpdateSettings,
     );
   });
