@@ -20,13 +20,16 @@ export async function writeOutboxEvent(
   tx: any,
   eventType: string,
   payload: Record<string, any>,
+  organizationId?: string,
 ): Promise<OutboxEvent> {
-  logger.debug({ eventType }, 'Writing outbox event to transaction');
+  const orgId = organizationId ?? (payload['organizationId'] as string | undefined) ?? null;
+  logger.debug({ eventType, organizationId: orgId }, 'Writing outbox event to transaction');
   const result = await tx
     .insert(outboxEvents)
     .values({
       eventType,
       payload,
+      organizationId: orgId,
       status: 'PENDING',
       retryCount: 0,
     })

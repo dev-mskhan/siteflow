@@ -3,6 +3,7 @@ import { eq, and } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import {
   organizationMemberships,
+  organizations,
   rolePermissions,
   permissions,
   type Membership,
@@ -13,13 +14,17 @@ export class RbacRepository {
     return getDb();
   }
 
-  async findActiveMembership(
+  async findActiveMembershipWithOrgStatus(
     orgId: string,
     userId: string,
-  ): Promise<Membership | undefined> {
+  ): Promise<{ membership: Membership; orgStatus: string } | undefined> {
     const result = await this.db
-      .select()
+      .select({
+        membership: organizationMemberships,
+        orgStatus: organizations.status,
+      })
       .from(organizationMemberships)
+      .innerJoin(organizations, eq(organizationMemberships.organizationId, organizations.id))
       .where(
         and(
           eq(organizationMemberships.organizationId, orgId),
@@ -28,7 +33,20 @@ export class RbacRepository {
         ),
       )
       .limit(1);
-    return result[0];
+
+    if (!result[0]) return undefined;
+    return {
+      membership: result[0].membership,
+      orgStatus: result[0].orgStatus,
+    };
+  }
+
+  async findActiveMembership(
+    orgId: string,
+    userId: string,
+  ): Promise<Membership | undefined> {
+    const res = await this.findActiveMembershipWithOrgStatus(orgId, userId);
+    return res?.membership;
   }
 
   async getPermissionsForRole(roleId: string): Promise<string[]> {

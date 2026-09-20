@@ -8,7 +8,8 @@ import { auditService } from '../audit/audit.service.js';
 import { NotFoundError, ForbiddenError, ValidationError } from './membership.errors.js';
 import type { MemberDTO, UpdateMemberInput } from './membership.types.js';
 import type { OrganizationContext } from '../rbac/rbac.types.js';
-import type { Membership } from '@siteflow/database/schema';
+import { eq, and } from 'drizzle-orm';
+import { roles, type Membership } from '@siteflow/database/schema';
 
 const tracer = trace.getTracer('membership-service');
 
@@ -88,6 +89,18 @@ export class MembershipService {
         throw new NotFoundError('Member not found');
       }
       this.assertSameTenant(existing, orgId);
+
+      if (input.roleId) {
+        const targetRole = await this.db
+          .select()
+          .from(roles)
+          .where(and(eq(roles.id, input.roleId), eq(roles.organizationId, orgId)))
+          .limit(1);
+
+        if (!targetRole[0]) {
+          throw new ValidationError('Role does not belong to this organization');
+        }
+      }
 
       // Guard if demoting or suspending an existing Organization Admin
       if (input.roleId || input.status === 'SUSPENDED') {

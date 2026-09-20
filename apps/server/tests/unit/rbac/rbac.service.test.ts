@@ -10,6 +10,7 @@ describe('RbacService (Unit)', () => {
 
   beforeEach(() => {
     mockRepo = {
+      findActiveMembershipWithOrgStatus: vi.fn(),
       findActiveMembership: vi.fn(),
       getPermissionsForMembership: vi.fn(),
     };
@@ -23,20 +24,40 @@ describe('RbacService (Unit)', () => {
   });
 
   it('should throw ForbiddenError if active membership is not found', async () => {
-    mockRepo.findActiveMembership.mockResolvedValue(undefined);
+    mockRepo.findActiveMembershipWithOrgStatus.mockResolvedValue(undefined);
 
     await expect(
       rbacService.getOrganizationContext('org-123', 'user-456'),
     ).rejects.toThrow(ForbiddenError);
   });
 
+  it('should throw ForbiddenError if organization is suspended or archived', async () => {
+    mockRepo.findActiveMembershipWithOrgStatus.mockResolvedValue({
+      membership: {
+        id: 'mem-1',
+        organizationId: 'org-123',
+        userId: 'user-456',
+        roleId: 'role-789',
+        status: 'ACTIVE',
+      },
+      orgStatus: 'SUSPENDED',
+    });
+
+    await expect(
+      rbacService.getOrganizationContext('org-123', 'user-456'),
+    ).rejects.toThrow('Organization is suspended or archived');
+  });
+
   it('should return context from cache on cache hit', async () => {
-    mockRepo.findActiveMembership.mockResolvedValue({
-      id: 'mem-1',
-      organizationId: 'org-123',
-      userId: 'user-456',
-      roleId: 'role-789',
-      status: 'ACTIVE',
+    mockRepo.findActiveMembershipWithOrgStatus.mockResolvedValue({
+      membership: {
+        id: 'mem-1',
+        organizationId: 'org-123',
+        userId: 'user-456',
+        roleId: 'role-789',
+        status: 'ACTIVE',
+      },
+      orgStatus: 'ACTIVE',
     });
     mockCache.getPermissions.mockResolvedValue(['organization:read', 'member:read']);
 
@@ -48,12 +69,15 @@ describe('RbacService (Unit)', () => {
   });
 
   it('should query DB and populate cache on cache miss', async () => {
-    mockRepo.findActiveMembership.mockResolvedValue({
-      id: 'mem-1',
-      organizationId: 'org-123',
-      userId: 'user-456',
-      roleId: 'role-789',
-      status: 'ACTIVE',
+    mockRepo.findActiveMembershipWithOrgStatus.mockResolvedValue({
+      membership: {
+        id: 'mem-1',
+        organizationId: 'org-123',
+        userId: 'user-456',
+        roleId: 'role-789',
+        status: 'ACTIVE',
+      },
+      orgStatus: 'ACTIVE',
     });
     mockCache.getPermissions.mockResolvedValue(null);
     mockRepo.getPermissionsForMembership.mockResolvedValue(['organization:read', 'organization:update']);

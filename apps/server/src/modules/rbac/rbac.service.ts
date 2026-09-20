@@ -22,10 +22,16 @@ export class RbacService {
       span.setAttribute('organization.id', orgId);
       span.setAttribute('user.id', userId);
 
-      const membership = await this.repo.findActiveMembership(orgId, userId);
-      if (!membership) {
+      const res = await this.repo.findActiveMembershipWithOrgStatus(orgId, userId);
+      if (!res) {
         throw new ForbiddenError('Not a member of this organization');
       }
+
+      if (res.orgStatus !== 'ACTIVE') {
+        throw new ForbiddenError('Organization is suspended or archived');
+      }
+
+      const membership = res.membership;
 
       span.setAttribute('membership.id', membership.id);
       span.setAttribute('role.id', membership.roleId);

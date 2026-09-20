@@ -12,9 +12,9 @@ import { ORG_QUEUES } from './invitation.jobs.js';
 import { NotFoundError, ConflictError, ValidationError } from './invitation.errors.js';
 import type { InvitationDTO, CreateInvitationInput } from './invitation.types.js';
 import type { OrganizationContext } from '../rbac/rbac.types.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { Invitation } from '@siteflow/database/schema';
-import { organizationMemberships, users } from '@siteflow/database/schema';
+import { organizationMemberships, users, roles } from '@siteflow/database/schema';
 
 const logger = createLogger({ name: 'invitation-service' });
 const tracer = trace.getTracer('invitation-service');
@@ -60,6 +60,17 @@ export class InvitationService {
       // 1. Check if org exists
       const org = await this.orgRepo.findById(orgId);
       if (!org) throw new NotFoundError('Organization not found');
+
+      // 1b. Check if role belongs to this organization
+      const targetRole = await this.db
+        .select()
+        .from(roles)
+        .where(and(eq(roles.id, input.roleId), eq(roles.organizationId, orgId)))
+        .limit(1);
+
+      if (!targetRole[0]) {
+        throw new ValidationError('Role does not belong to this organization');
+      }
 
       // 2. Check existing active membership (if user already registered)
       const existingUser = await this.db
