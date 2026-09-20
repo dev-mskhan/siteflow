@@ -31,11 +31,19 @@ processors:
     timeout: 5s
 
 exporters:
-  # Forward to SigNoz via its native ClickHouse exporter (built into the image)
+  # Traces exporter
   clickhousetraces:
     datasource: tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
 
-  # Debug exporter — prints spans to collector stdout in dev
+  # Metrics exporter
+  signozclickhousemetrics:
+    dsn: tcp://siteflow-signoz-clickhouse:9000?database=signoz_metrics&username=default&password=
+
+  # Logs exporter
+  clickhouselogsexporter:
+    dsn: tcp://siteflow-signoz-clickhouse:9000?database=signoz_logs&username=default&password=
+
+  # Debug exporter — prints telemetry to collector stdout in dev
   debug:
     verbosity: detailed
     sampling_initial: 5
@@ -59,8 +67,8 @@ service:
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, resourcedetection, batch]
-      exporters: [debug]
+      exporters: [signozclickhousemetrics, debug]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resourcedetection, batch]
-      exporters: [debug]
+      exporters: [clickhouselogsexporter, debug]

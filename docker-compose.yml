@@ -230,6 +230,7 @@ services:
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - ./infra/docker/clickhouse/listen.xml:/etc/clickhouse-server/config.d/listen.xml:ro
+      - ./infra/docker/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
     networks:
       - signoz-net
     depends_on:
@@ -242,9 +243,21 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  signoz-telemetrystore-migrator:
+    profiles: ['observability']
+    image: signoz/signoz-schema-migrator:v0.129.0
+    container_name: siteflow-signoz-schema-migrator
+    command: ["sync", "--dsn=tcp://siteflow-signoz-clickhouse:9000"]
+    networks:
+      - signoz-net
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: on-failure
+
   otel-collector:
     profiles: ['observability']
-    image: signoz/signoz-otel-collector:v0.129.6
+    image: signoz/signoz-otel-collector:v0.129.0
     container_name: siteflow-otel-collector
     command: ['--config=/etc/otel-collector-config.yaml']
     ports:
@@ -258,6 +271,8 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+      signoz-telemetrystore-migrator:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   signoz:

@@ -5,6 +5,8 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { Resource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
@@ -50,17 +52,25 @@ export function initTelemetry(config: TelemetryConfig): void {
     exporter: new OTLPMetricExporter({
       url: `${endpoint}/v1/metrics`,
     }),
-    exportIntervalMillis: 30_000,
+    exportIntervalMillis: 10_000,
   });
+
+  const logRecordProcessor = new BatchLogRecordProcessor(
+    new OTLPLogExporter({
+      url: `${endpoint}/v1/logs`,
+    }),
+  );
 
   sdk = new NodeSDK({
     resource,
     traceExporter,
     metricReader: metricReader as any,
+    logRecordProcessor: logRecordProcessor as any,
     instrumentations: [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-fs': { enabled: false },
         '@opentelemetry/instrumentation-dns': { enabled: false },
+        '@opentelemetry/instrumentation-pino': { enabled: true },
       }),
     ],
   });
@@ -77,4 +87,3 @@ export function initTelemetry(config: TelemetryConfig): void {
 
 export { NodeSDK };
 export * from './logger.js';
-
