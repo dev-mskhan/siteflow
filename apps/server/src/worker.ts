@@ -27,10 +27,10 @@ async function runWorker() {
   // ─── Register Org workers ────────────────────────────────────────────────────
   await registerOrgWorkers(boss);
 
-  // ─── Start Outbox Poller (Worker exclusively owns outbox polling) ───────────
+  // ─── Start Outbox Listener & Poller (Worker exclusively owns outbox processing) ───
   outboxService.startPoller({
-    minIntervalMs: 1000,
-    maxIntervalMs: 10000,
+    minIntervalMs: 30000,
+    maxIntervalMs: 60000,
     backoffMultiplier: 1.5,
   });
 
@@ -62,7 +62,7 @@ runWorker().catch((err) => {
 
 const shutdown = async () => {
   logger.info('Worker shutting down…');
-  outboxService.stopPoller();
+  await outboxService.stopPoller();
   await stopQueue();
   process.exit(0);
 };

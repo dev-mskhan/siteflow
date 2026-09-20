@@ -68,7 +68,8 @@ export function getQueueInstance(): PgBoss {
       schema: 'pgboss',
       deleteAfterDays: 7,
       archiveCompletedAfterSeconds: 3600 * 24,
-    });
+      useListenNotify: true,
+    } as PgBoss.ConstructorOptions);
 
     _bossInstance.on('error', (err) => {
       logger.error({ err }, 'PgBoss queue error occurred');

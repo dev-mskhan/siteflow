@@ -95,9 +95,17 @@ describe('Task 2: Member Invitation, Outbox Queue & Acceptance Flow', () => {
     rawInvitationToken = eventPayload.token;
     expect(rawInvitationToken).toBeDefined();
 
-    // Trigger Outbox Service processing
-    const processedCount = await outboxService.publishPendingEvents();
-    expect(processedCount).toBeGreaterThan(0);
+    // Trigger Outbox Service processing if not already processed via real-time LISTEN/NOTIFY
+    const updatedEvent = (
+      await db.select().from(outboxEvents).where(eq(outboxEvents.id, targetEvent.id))
+    )[0];
+
+    if (updatedEvent?.status === 'PENDING') {
+      const processedCount = await outboxService.publishPendingEvents();
+      expect(processedCount).toBeGreaterThan(0);
+    } else {
+      expect(updatedEvent?.status).toBe('PROCESSED');
+    }
   });
 
   it('2.2 should accept invitation and create active membership for authenticated user', async () => {

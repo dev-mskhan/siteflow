@@ -247,7 +247,7 @@ services:
     profiles: ['observability']
     image: signoz/signoz-schema-migrator:v0.129.0
     container_name: siteflow-signoz-schema-migrator
-    command: ["sync", "--dsn=tcp://siteflow-signoz-clickhouse:9000"]
+    command: ['sync', '--dsn=tcp://siteflow-signoz-clickhouse:9000']
     networks:
       - signoz-net
     depends_on:
