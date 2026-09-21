@@ -171,17 +171,18 @@ export class AuthService {
   }
 
   // ─── Google OAuth 2.0 ───────────────────────────────────────────────────────
-  getGoogleAuthUrl(): { url: string } {
-    return { url: googleOAuthService.getAuthorizationUrl() };
+  getGoogleAuthUrl(state?: string, codeChallenge?: string): { url: string } {
+    return { url: googleOAuthService.getAuthorizationUrl(state, codeChallenge) };
   }
 
   async loginWithGoogle(
     code: string,
     ipAddress?: string,
     userAgent?: string,
+    codeVerifier?: string,
   ): Promise<{ user: UserDTO; accessToken: string; refreshToken: string }> {
     return withSpan(tracer, 'auth.loginWithGoogle', async (span) => {
-      const googleUser = await googleOAuthService.getGoogleUserFromCode(code);
+      const googleUser = await googleOAuthService.getGoogleUserFromCode(code, codeVerifier);
       span.setAttribute('google.sub', googleUser.sub);
       span.setAttribute('google.email', googleUser.email);
 

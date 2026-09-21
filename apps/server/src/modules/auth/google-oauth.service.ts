@@ -1,5 +1,6 @@
 // apps/server/src/modules/auth/google-oauth.service.ts
 import { OAuth2Client } from 'google-auth-library';
+import crypto from 'node:crypto';
 import { createLogger } from '@siteflow/observability/server';
 import { serverEnv } from '../../config/env.js';
 import { ValidationError } from './auth.errors.js';
@@ -13,6 +14,19 @@ export interface GoogleUserProfile {
   given_name?: string;
   family_name?: string;
   picture?: string;
+}
+
+export function generateOAuthState(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+export function generatePkcePair(): { codeVerifier: string; codeChallenge: string } {
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto
+    .createHash('sha256')
+    .update(codeVerifier)
+    .digest('base64url');
+  return { codeVerifier, codeChallenge };
 }
 
 export class GoogleOAuthService {
@@ -31,9 +45,9 @@ export class GoogleOAuthService {
   }
 
   /**
-   * Generates the Google OAuth 2.0 authorization URL for user consent.
+   * Generates the Google OAuth 2.0 authorization URL for user consent with optional CSRF state & PKCE challenge.
    */
-  getAuthorizationUrl(): string {
+  getAuthorizationUrl(state?: string, codeChallenge?: string): string {
     const client = this.getClient();
 
     return client.generateAuthUrl({
@@ -44,17 +58,20 @@ export class GoogleOAuthService {
         'openid',
       ],
       prompt: 'select_account',
+      ...(state ? { state } : {}),
+      ...(codeChallenge ? { code_challenge: codeChallenge, code_challenge_method: 'S256' as any } : {}),
     });
   }
 
   /**
-   * Exchanges authorization code for tokens and verifies/decodes the user profile from Google.
+   * Exchanges authorization code for tokens (with optional PKCE code verifier) and verifies/decodes the user profile from Google.
    */
-  async getGoogleUserFromCode(code: string): Promise<GoogleUserProfile> {
+  async getGoogleUserFromCode(code: string, codeVerifier?: string): Promise<GoogleUserProfile> {
     const client = this.getClient();
 
     logger.debug('Exchanging authorization code for Google OAuth tokens');
-    const { tokens } = await client.getToken(code);
+    const tokenOptions = codeVerifier ? { code, codeVerifier } : code;
+    const { tokens } = await client.getToken(tokenOptions as any);
     client.setCredentials(tokens);
 
     if (tokens.id_token) {

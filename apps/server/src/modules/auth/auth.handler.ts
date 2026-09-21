@@ -1,6 +1,7 @@
 // apps/server/src/modules/auth/auth.handler.ts
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService } from './auth.service.js';
+import { generateOAuthState, generatePkcePair } from './google-oauth.service.js';
 import { createSuccessResponse } from '../../shared/response.js';
 import { serverEnv } from '../../config/env.js';
 import {
@@ -72,13 +73,42 @@ export async function handleLogin(request: FastifyRequest, reply: FastifyReply) 
   );
 }
 
-export async function handleGoogleAuth(_request: FastifyRequest, reply: FastifyReply) {
-  const { url } = authService.getGoogleAuthUrl();
-  return reply.send(createSuccessResponse({ url }));
+export async function handleGoogleAuth(request: FastifyRequest, reply: FastifyReply) {
+  const state = generateOAuthState();
+  const { codeVerifier, codeChallenge } = generatePkcePair();
+  const isProd = serverEnv.NODE_ENV === 'production';
+
+  // Store CSRF state & PKCE verifier in short-lived signed cookies
+  reply.setCookie('oauth_state', state, {
+    path: '/',
+    httpOnly: true,
+    signed: true,
+    secure: isProd,
+    sameSite: 'lax',
+    maxAge: 600,
+  });
+
+  reply.setCookie('oauth_code_verifier', codeVerifier, {
+    path: '/',
+    httpOnly: true,
+    signed: true,
+    secure: isProd,
+    sameSite: 'lax',
+    maxAge: 600,
+  });
+
+  const { url } = authService.getGoogleAuthUrl(state, codeChallenge);
+
+  const acceptHeader = request.headers['accept'] ?? '';
+  if (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json')) {
+    return reply.redirect(url, 302);
+  }
+
+  return reply.send(createSuccessResponse({ url, state }));
 }
 
 export async function handleGoogleCallback(request: FastifyRequest, reply: FastifyReply) {
-  const query = request.query as { code?: string };
+  const query = request.query as { code?: string; state?: string };
 
   if (!query.code) {
     return reply.status(400).send({
@@ -87,18 +117,49 @@ export async function handleGoogleCallback(request: FastifyRequest, reply: Fasti
     });
   }
 
+  let storedState: string | undefined;
+  let storedVerifier: string | undefined;
+
+  if (request.cookies && request.cookies['oauth_state']) {
+    const rawState = request.cookies['oauth_state'];
+    const unsigned = request.unsignCookie(rawState);
+    if (unsigned.valid && unsigned.value) storedState = unsigned.value;
+  }
+  if (request.cookies && request.cookies['oauth_code_verifier']) {
+    const rawVerifier = request.cookies['oauth_code_verifier'];
+    const unsigned = request.unsignCookie(rawVerifier);
+    if (unsigned.valid && unsigned.value) storedVerifier = unsigned.value;
+  }
+
+  if (storedState && query.state !== storedState) {
+    return reply.status(400).send({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Invalid or expired OAuth state parameter' },
+    });
+  }
+
+  reply.clearCookie('oauth_state', { path: '/' });
+  reply.clearCookie('oauth_code_verifier', { path: '/' });
+
   const ipAddress = request.ip;
   const userAgent = request.headers['user-agent'];
 
-  const result = await authService.loginWithGoogle(query.code, ipAddress, userAgent);
+  const result = await authService.loginWithGoogle(query.code, ipAddress, userAgent, storedVerifier);
 
   setAuthCookies(reply, result.accessToken, result.refreshToken);
 
-  return reply.send(
-    createSuccessResponse({
-      user: result.user,
-    }),
-  );
+  const acceptHeader = request.headers['accept'] ?? '';
+  if (acceptHeader.includes('application/json')) {
+    return reply.send(
+      createSuccessResponse({
+        user: result.user,
+        code: query.code,
+      }),
+    );
+  }
+
+  const frontendTarget = `${serverEnv.FRONTEND_URL.replace(/\/$/, '')}/auth/complete`;
+  return reply.redirect(frontendTarget, 302);
 }
 
 export async function handleRefresh(request: FastifyRequest, reply: FastifyReply) {
