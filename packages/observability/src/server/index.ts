@@ -9,6 +9,7 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { Resource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 
 export interface TelemetryConfig {
   serviceName: string;
@@ -35,6 +36,10 @@ export function initTelemetry(config: TelemetryConfig): void {
   if (!enabled || process.env.NODE_ENV === 'test') {
     return;
   }
+
+  // Only surface WARN/ERROR from the OTel SDK — keeps stdout clean during normal operation.
+  // Set OTEL_LOG_LEVEL=debug in your environment if you need to re-enable verbose diagnostics.
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
 
   const endpoint = otlpEndpoint ?? process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318';
 
