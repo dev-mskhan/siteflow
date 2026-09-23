@@ -17,6 +17,11 @@
       "import": "./dist/server/index.js",
       "require": "./dist/server/index.cjs"
     },
+    "./server/register": {
+      "types": "./dist/server/register.d.ts",
+      "import": "./dist/server/register.js",
+      "require": "./dist/server/register.cjs"
+    },
     "./client": {
       "types": "./dist/client/index.d.ts",
       "import": "./dist/client/index.js",

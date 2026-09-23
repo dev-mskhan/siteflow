@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'server/index': 'src/server/index.ts',
     'server/logger': 'src/server/logger.ts',
+    'server/register': 'src/server/register.ts',
     'client/index': 'src/client/index.ts',
   },
   format: ['cjs', 'esm'],

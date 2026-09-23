@@ -70,7 +70,7 @@ export function initTelemetry(config: TelemetryConfig): void {
     resource,
     traceExporter,
     metricReader,
-    logRecordProcessor,
+    logRecordProcessors: [logRecordProcessor],
     instrumentations: [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-fs': { enabled: false },

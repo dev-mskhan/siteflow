@@ -1,15 +1,10 @@
 // apps/server/src/worker.ts — PgBoss worker process entry point
 //
-// ⚠️ OTEL MUST be initialised first before any other module import.
-import { initTelemetry } from '@siteflow/observability/server';
-
-initTelemetry({
-  serviceName: process.env['OTEL_SERVICE_NAME'] ?? 'siteflow-worker',
-  otlpEndpoint: process.env['OTEL_EXPORTER_OTLP_ENDPOINT'],
-});
-
+// ⚠️  OTEL is bootstrapped via --import @siteflow/observability/server/register
+//     in the dev:worker/start:worker scripts.
 import { createLogger } from '@siteflow/observability/server';
 import { startQueue, stopQueue, QUEUES, type SendEmailPayload, type ExportPayload } from './lib/queue/index.js';
+
 import { registerAuthWorkers } from './modules/auth/auth.worker.js';
 import { registerOrgWorkers } from './modules/invitation/invitation.worker.js';
 
