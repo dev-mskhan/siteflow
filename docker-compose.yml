@@ -289,7 +289,6 @@ services:
       - SIGNOZ_TELEMETRYSTORE_PROVIDER=clickhouse
       - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN=tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
       - CLICKHOUSE_DSN=tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
-      - ALERTMANAGER_API_PREFIX=http://alertmanager:9093/api/
     networks:
       - signoz-net
     depends_on:

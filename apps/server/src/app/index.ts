@@ -24,6 +24,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
     logger: {
       level: serverEnv.LOG_LEVEL,
+      redact: {
+        paths: ['req.headers.authorization', 'req.headers.cookie'],
+        censor: '[REDACTED]',
+      },
       transport:
         serverEnv.NODE_ENV === 'development'
           ? { target: 'pino-pretty', options: { colorize: true } }

@@ -7,13 +7,33 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: "0.0.0.0:4317"
+        endpoint: '0.0.0.0:4317'
       http:
-        endpoint: "0.0.0.0:4318"
+        endpoint: '0.0.0.0:4318'
         cors:
           allowed_origins:
-            - "http://localhost:3000"
-            - "http://localhost:3001"
+            - 'http://localhost:3000'
+            - 'http://localhost:3001'
+
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      disk: {}
+      network: {}
+      load: {}
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+      processes: {}
 
 processors:
   batch:
@@ -35,7 +55,7 @@ exporters:
   clickhousetraces:
     datasource: tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
 
-  # Metrics exporter
+  # Metrics exporter (receives both app-pushed metrics AND span-derived RED metrics)
   signozclickhousemetrics:
     dsn: tcp://siteflow-signoz-clickhouse:9000?database=signoz_metrics&username=default&password=
 
@@ -49,13 +69,49 @@ exporters:
     sampling_initial: 5
     sampling_thereafter: 200
 
+# ─── Connectors ───────────────────────────────────────────────────────────────
+# signozspanmetrics derives RED metrics (Rate/Error/Duration) from trace spans.
+# It acts as both an exporter (receives from traces pipeline) and a receiver
+# (feeds into the metrics pipeline). Required for SigNoz Services overview.
+connectors:
+  signozspanmetrics:
+    histogram:
+      explicit:
+        buckets:
+          [
+            2ms,
+            4ms,
+            6ms,
+            8ms,
+            10ms,
+            50ms,
+            100ms,
+            250ms,
+            500ms,
+            1000ms,
+            1400ms,
+            2000ms,
+            5000ms,
+            10000ms,
+            20000ms,
+            40000ms,
+            60000ms,
+          ]
+    dimensions:
+      - name: service.namespace
+        default: default
+      - name: deployment.environment
+        default: default
+    exemplars:
+      enabled: true
+
 extensions:
   health_check:
-    endpoint: "0.0.0.0:13133"
+    endpoint: '0.0.0.0:13133'
   pprof:
-    endpoint: "0.0.0.0:1777"
+    endpoint: '0.0.0.0:1777'
   zpages:
-    endpoint: "0.0.0.0:55679"
+    endpoint: '0.0.0.0:55679'
 
 service:
   extensions: [health_check, pprof, zpages]
@@ -63,9 +119,11 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resourcedetection, batch]
-      exporters: [clickhousetraces, debug]
+      # signozspanmetrics is an exporter here — it reads spans to derive metrics
+      exporters: [clickhousetraces, signozspanmetrics, debug]
     metrics:
-      receivers: [otlp]
+      # signozspanmetrics is a receiver here — it feeds derived RED metrics in
+      receivers: [otlp, signozspanmetrics, hostmetrics]
       processors: [memory_limiter, resourcedetection, batch]
       exporters: [signozclickhousemetrics, debug]
     logs:

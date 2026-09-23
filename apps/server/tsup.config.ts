@@ -10,6 +10,9 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   minify: false,
-  bundle: true,
-  noExternal: [],
+  // Do NOT bundle dependencies — Node.js must load them as separate modules
+  // so OpenTelemetry's require-in-the-middle / import-in-the-middle can patch
+  // them at startup. Bundling inlines the code and breaks all auto-instrumentation
+  // (HTTP spans, pg spans, ioredis spans, Fastify spans).
+  bundle: false,
 });

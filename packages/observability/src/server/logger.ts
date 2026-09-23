@@ -12,11 +12,36 @@ export function createLogger(options: LoggerOptions & { name: string }): Logger 
   return pino({
     level: process.env.LOG_LEVEL ?? 'info',
     ...options,
+    redact: {
+      paths: [
+        'password',
+        'passwordHash',
+        'currentPassword',
+        'newPassword',
+        'token',
+        'refreshToken',
+        'accessToken',
+        'authorization',
+        'cookie',
+        '*.password',
+        '*.passwordHash',
+        '*.token',
+        '*.refreshToken',
+        '*.accessToken',
+        'req.headers.authorization',
+        'req.headers.cookie',
+      ],
+      censor: '[REDACTED]',
+    },
     mixin() {
       const span = trace.getActiveSpan();
       if (!span) return {};
       const { traceId, spanId, traceFlags } = span.spanContext();
-      return { traceId, spanId, traceFlags };
+      return {
+        trace_id: traceId,
+        span_id: spanId,
+        trace_flags: `0${traceFlags.toString(16)}`,
+      };
     },
   });
 }

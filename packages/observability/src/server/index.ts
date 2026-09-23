@@ -69,8 +69,8 @@ export function initTelemetry(config: TelemetryConfig): void {
   sdk = new NodeSDK({
     resource,
     traceExporter,
-    metricReader: metricReader as any,
-    logRecordProcessor: logRecordProcessor as any,
+    metricReader,
+    logRecordProcessor,
     instrumentations: [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-fs': { enabled: false },
