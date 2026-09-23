@@ -70,11 +70,11 @@ exporters:
     sampling_thereafter: 200
 
 # ─── Connectors ───────────────────────────────────────────────────────────────
-# signozspanmetrics derives RED metrics (Rate/Error/Duration) from trace spans.
+# spanmetrics derives RED metrics (Rate/Error/Duration) from trace spans.
 # It acts as both an exporter (receives from traces pipeline) and a receiver
 # (feeds into the metrics pipeline). Required for SigNoz Services overview.
 connectors:
-  signozspanmetrics:
+  spanmetrics:
     histogram:
       explicit:
         buckets:
@@ -119,11 +119,11 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resourcedetection, batch]
-      # signozspanmetrics is an exporter here — it reads spans to derive metrics
-      exporters: [clickhousetraces, signozspanmetrics, debug]
+      # spanmetrics is an exporter here — it reads spans to derive metrics
+      exporters: [clickhousetraces, spanmetrics, debug]
     metrics:
-      # signozspanmetrics is a receiver here — it feeds derived RED metrics in
-      receivers: [otlp, signozspanmetrics, hostmetrics]
+      # spanmetrics is a receiver here — it feeds derived RED metrics in
+      receivers: [otlp, spanmetrics, hostmetrics]
       processors: [memory_limiter, resourcedetection, batch]
       exporters: [signozclickhousemetrics, debug]
     logs:
