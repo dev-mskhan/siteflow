@@ -15,6 +15,13 @@
       "when": 1789726776798,
       "tag": "0001_faulty_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790000000000,
+      "tag": "0002_text_ids",
+      "breakpoints": true
     }
   ]
 }

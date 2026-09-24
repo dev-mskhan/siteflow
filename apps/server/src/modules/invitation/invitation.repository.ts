@@ -1,6 +1,7 @@
 // apps/server/src/modules/invitation/invitation.repository.ts
 import { eq, and, gt } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
+import { generateId } from '../../lib/id.js';
 import {
   invitations,
   roles,
@@ -72,6 +73,7 @@ export class InvitationRepository {
     const result = await client
       .insert(invitations)
       .values({
+        id: generateId(),
         ...data,
         email: data.email.toLowerCase(),
       })

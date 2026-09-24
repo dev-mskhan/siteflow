@@ -1,6 +1,7 @@
 // apps/server/src/modules/organization/organization.repository.ts
 import { eq, inArray, and, ne } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
+import { generateId } from '../../lib/id.js';
 import {
   organizations,
   organizationMemberships,
@@ -52,6 +53,7 @@ export class OrganizationRepository {
     const result = await client
       .insert(organizations)
       .values({
+        id: generateId(),
         ...data,
         slug: data.slug.toLowerCase(),
       })

@@ -1,4 +1,4 @@
-import { pgSchema, uuid, text, timestamp, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgSchema, text, timestamp, integer, jsonb, index } from 'drizzle-orm/pg-core';
 
 // Re-use the same 'app' PostgreSQL schema — Drizzle merges all tables under the same schema
 const appSchema = pgSchema('app');
@@ -12,8 +12,8 @@ export const outboxStatusEnum = appSchema.enum('outbox_status', [
 export const outboxEvents = appSchema.table(
   'outbox_events',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    organizationId: uuid('organization_id'),
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id'),
     eventType: text('event_type').notNull(),
     payload: jsonb('payload').notNull(),
     status: outboxStatusEnum('status').default('PENDING').notNull(),

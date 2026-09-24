@@ -2,6 +2,7 @@
 import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../lib/db/index.js';
+import { generateId } from '../../lib/id.js';
 import { InvitationRepository, type InvitationWithRole } from './invitation.repository.js';
 import { MembershipRepository } from '../membership/membership.repository.js';
 import { OrganizationRepository } from '../organization/organization.repository.js';
@@ -227,6 +228,7 @@ export class InvitationService {
       await this.db.transaction(async (tx) => {
         // 1. Create Organization Membership
         await tx.insert(organizationMemberships).values({
+          id: generateId(),
           organizationId: invite.organizationId,
           userId,
           roleId: invite.roleId,

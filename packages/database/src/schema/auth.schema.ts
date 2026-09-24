@@ -1,4 +1,4 @@
-import { pgSchema, uuid, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgSchema, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // ─── PostgreSQL Schema Specification ──────────────────────────────────────────
 export const appSchema = pgSchema('app');
@@ -19,7 +19,7 @@ export const oauthProviderEnum = appSchema.enum('oauth_provider', [
 
 // ─── User Table ───────────────────────────────────────────────────────────────
 export const users = appSchema.table('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
   passwordHash: text('password_hash'), // Nullable for OAuth-only users
@@ -35,8 +35,8 @@ export const users = appSchema.table('users', {
 export const oauthAccounts = appSchema.table(
   'oauth_accounts',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('user_id')
+    id: text('id').primaryKey(),
+    userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     provider: oauthProviderEnum('provider').notNull(),
@@ -52,8 +52,8 @@ export const oauthAccounts = appSchema.table(
 
 // ─── Session Table ────────────────────────────────────────────────────────────
 export const sessions = appSchema.table('sessions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
+  id: text('id').primaryKey(),
+  userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   refreshTokenHash: text('refresh_token_hash').notNull(),
@@ -68,8 +68,8 @@ export const sessions = appSchema.table('sessions', {
 
 // ─── Email Verification Token Table ───────────────────────────────────────────
 export const emailVerificationTokens = appSchema.table('email_verification_tokens', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
+  id: text('id').primaryKey(),
+  userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   tokenHash: text('token_hash').notNull(),
@@ -80,8 +80,8 @@ export const emailVerificationTokens = appSchema.table('email_verification_token
 
 // ─── Password Reset Token Table ───────────────────────────────────────────────
 export const passwordResetTokens = appSchema.table('password_reset_tokens', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
+  id: text('id').primaryKey(),
+  userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   tokenHash: text('token_hash').notNull(),

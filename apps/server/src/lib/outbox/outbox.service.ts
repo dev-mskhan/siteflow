@@ -2,6 +2,7 @@
 import { eq, and, or, lt, sql } from 'drizzle-orm';
 import pg from 'pg';
 import { getDb } from '../db/index.js';
+import { generateId } from '../id.js';
 import { outboxEvents, type OutboxEvent } from '@siteflow/database/schema';
 import { sendJob } from '../queue/queue.js';
 import { serverEnv } from '../../config/env.js';
@@ -27,6 +28,7 @@ export async function writeOutboxEvent(
   const result = await tx
     .insert(outboxEvents)
     .values({
+      id: generateId(),
       eventType,
       payload,
       organizationId: orgId,

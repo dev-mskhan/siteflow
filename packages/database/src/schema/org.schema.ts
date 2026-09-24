@@ -1,7 +1,6 @@
 // packages/database/src/schema/org.schema.ts
 import {
   pgSchema,
-  uuid,
   text,
   boolean,
   timestamp,
@@ -39,12 +38,12 @@ export const invitationStatusEnum = appSchema.enum('invitation_status', [
 export const organizations = appSchema.table(
   'organizations',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
+    id: text('id').primaryKey(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     status: orgStatusEnum('status').default('ACTIVE').notNull(),
     settings: jsonb('settings').default({}).notNull(),
-    createdBy: uuid('created_by')
+    createdBy: text('created_by')
       .notNull()
       .references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -58,8 +57,8 @@ export const organizations = appSchema.table(
 export const roles = appSchema.table(
   'roles',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    organizationId: uuid('organization_id')
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
@@ -74,7 +73,7 @@ export const roles = appSchema.table(
 // ── Permission ────────────────────────────────────────────────────────────────
 
 export const permissions = appSchema.table('permissions', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: text('id').primaryKey(),
   key: text('key').notNull().unique(),
   description: text('description'),
 });
@@ -84,10 +83,10 @@ export const permissions = appSchema.table('permissions', {
 export const rolePermissions = appSchema.table(
   'role_permissions',
   {
-    roleId: uuid('role_id')
+    roleId: text('role_id')
       .notNull()
       .references(() => roles.id, { onDelete: 'cascade' }),
-    permissionId: uuid('permission_id')
+    permissionId: text('permission_id')
       .notNull()
       .references(() => permissions.id, { onDelete: 'cascade' }),
   },
@@ -99,14 +98,14 @@ export const rolePermissions = appSchema.table(
 export const organizationMemberships = appSchema.table(
   'organization_memberships',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    organizationId: uuid('organization_id')
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id')
+    userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    roleId: uuid('role_id')
+    roleId: text('role_id')
       .notNull()
       .references(() => roles.id),
     status: memberStatusEnum('status').default('ACTIVE').notNull(),
@@ -126,19 +125,19 @@ export const organizationMemberships = appSchema.table(
 export const invitations = appSchema.table(
   'invitations',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    organizationId: uuid('organization_id')
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     email: text('email').notNull(),
-    roleId: uuid('role_id')
+    roleId: text('role_id')
       .notNull()
       .references(() => roles.id),
     tokenHash: text('token_hash').notNull(),
     status: invitationStatusEnum('status').default('PENDING').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-    invitedBy: uuid('invited_by')
+    invitedBy: text('invited_by')
       .notNull()
       .references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -155,11 +154,11 @@ export const invitations = appSchema.table(
 export const auditLogs = appSchema.table(
   'audit_logs',
   {
-    id: uuid('id').defaultRandom().primaryKey(),
-    organizationId: uuid('organization_id')
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
       .notNull()
       .references(() => organizations.id),
-    actorUserId: uuid('actor_user_id').references(() => users.id),
+    actorUserId: text('actor_user_id').references(() => users.id),
     action: text('action').notNull(),
     resourceType: text('resource_type'),
     resourceId: text('resource_id'),

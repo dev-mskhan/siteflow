@@ -2,6 +2,7 @@
 import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../lib/db/index.js';
+import { generateId } from '../../lib/id.js';
 import { OrganizationRepository } from './organization.repository.js';
 import { auditService } from '../audit/audit.service.js';
 import { SYSTEM_PERMISSIONS, DEFAULT_ORG_ROLES } from '../rbac/permissions.seed.js';
@@ -88,7 +89,7 @@ export class OrganizationService {
         for (const permKey of SYSTEM_PERMISSIONS) {
           await tx
             .insert(permissions)
-            .values({ key: permKey })
+            .values({ id: generateId(), key: permKey })
             .onConflictDoNothing({ target: permissions.key });
         }
 
@@ -104,6 +105,7 @@ export class OrganizationService {
           const createdRole = await tx
             .insert(roles)
             .values({
+              id: generateId(),
               organizationId: org.id,
               name: roleName,
               isSystem: true,
@@ -135,6 +137,7 @@ export class OrganizationService {
 
         // 4. Create Creator Membership (Organization Admin)
         await tx.insert(organizationMemberships).values({
+          id: generateId(),
           organizationId: org.id,
           userId,
           roleId: adminRoleId,

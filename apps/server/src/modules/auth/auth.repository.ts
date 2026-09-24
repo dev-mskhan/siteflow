@@ -1,5 +1,6 @@
 import { eq, and, gt, lt, isNull, sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
+import { generateId } from '../../lib/id.js';
 import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
 import { AUTH_QUEUES } from './auth.jobs.js';
 import {
@@ -41,6 +42,7 @@ export class AuthRepository {
   async createUser(data: NewUser): Promise<User> {
     logger.debug({ email: data.email }, 'Creating new user');
     const result = await this.db.insert(users).values({
+      id: generateId(),
       ...data,
       email: data.email.toLowerCase(),
     }).returning();
@@ -56,6 +58,7 @@ export class AuthRepository {
       const newUser = await tx
         .insert(users)
         .values({
+          id: generateId(),
           ...userData,
           email: userData.email.toLowerCase(),
         })
@@ -77,6 +80,7 @@ export class AuthRepository {
       const newToken = await tx
         .insert(emailVerificationTokens)
         .values({
+          id: generateId(),
           userId: user.id,
           tokenHash: tokenData.tokenHash,
           expiresAt: tokenData.expiresAt,
@@ -233,6 +237,7 @@ export class AuthRepository {
       const newUser = await tx
         .insert(users)
         .values({
+          id: generateId(),
           email: data.email.toLowerCase(),
           passwordHash: null,
           firstName: data.firstName,
@@ -247,6 +252,7 @@ export class AuthRepository {
       const newOAuth = await tx
         .insert(oauthAccounts)
         .values({
+          id: generateId(),
           userId: user.id,
           provider: data.provider,
           providerAccountId: data.providerAccountId,
@@ -271,6 +277,7 @@ export class AuthRepository {
     const result = await this.db
       .insert(oauthAccounts)
       .values({
+        id: generateId(),
         userId,
         provider,
         providerAccountId,
@@ -282,7 +289,7 @@ export class AuthRepository {
 
   // ─── Session Operations ─────────────────────────────────────────────────────
   async createSession(data: NewSession): Promise<Session> {
-    const result = await this.db.insert(sessions).values(data).returning();
+    const result = await this.db.insert(sessions).values({ id: generateId(), ...data }).returning();
     return result[0]!;
   }
 
@@ -382,7 +389,7 @@ export class AuthRepository {
         ),
       );
 
-    const result = await this.db.insert(emailVerificationTokens).values(data).returning();
+    const result = await this.db.insert(emailVerificationTokens).values({ id: generateId(), ...data }).returning();
     return result[0]!;
   }
 
@@ -402,7 +409,7 @@ export class AuthRepository {
           ),
         );
 
-      const result = await tx.insert(emailVerificationTokens).values(data).returning();
+      const result = await tx.insert(emailVerificationTokens).values({ id: generateId(), ...data }).returning();
       const token = result[0]!;
 
       await writeOutboxEvent(tx, AUTH_QUEUES.SEND_EMAIL_VERIFICATION, {
@@ -460,7 +467,7 @@ export class AuthRepository {
         ),
       );
 
-    const result = await this.db.insert(passwordResetTokens).values(data).returning();
+    const result = await this.db.insert(passwordResetTokens).values({ id: generateId(), ...data }).returning();
     return result[0]!;
   }
 
@@ -480,7 +487,7 @@ export class AuthRepository {
           ),
         );
 
-      const result = await tx.insert(passwordResetTokens).values(data).returning();
+      const result = await tx.insert(passwordResetTokens).values({ id: generateId(), ...data }).returning();
       const token = result[0]!;
 
       await writeOutboxEvent(tx, AUTH_QUEUES.SEND_PASSWORD_RESET, {

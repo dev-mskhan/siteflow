@@ -1,6 +1,7 @@
 // apps/server/src/modules/audit/audit.repository.ts
 import { eq, and, desc } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
+import { generateId } from '../../lib/id.js';
 import { auditLogs, type AuditLog, type NewAuditLog } from '@siteflow/database/schema';
 import { createLogger } from '@siteflow/observability/server';
 
@@ -17,7 +18,7 @@ export class AuditRepository {
   async create(data: NewAuditLog, tx?: any): Promise<AuditLog> {
     logger.debug({ action: data.action, orgId: data.organizationId }, 'Writing audit log entry');
     const client = tx ?? this.db;
-    const result = await client.insert(auditLogs).values(data).returning();
+    const result = await client.insert(auditLogs).values({ id: generateId(), ...data }).returning();
     return result[0]!;
   }
 
