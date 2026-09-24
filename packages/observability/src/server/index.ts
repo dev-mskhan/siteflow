@@ -75,7 +75,21 @@ export function initTelemetry(config: TelemetryConfig): void {
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-fs': { enabled: false },
         '@opentelemetry/instrumentation-dns': { enabled: false },
+        '@opentelemetry/instrumentation-net': { enabled: false },
         '@opentelemetry/instrumentation-pino': { enabled: true },
+        '@opentelemetry/instrumentation-pg': {
+          requireParentSpan: true,
+        },
+        '@opentelemetry/instrumentation-fastify': {
+          requestHook: (span, info) => {
+            const req = info.request as any;
+            const route = req?.routeOptions?.url || req?.routerPath || req?.url;
+            if (route) {
+              span.setAttribute('http.route', route);
+              span.updateName(`${req.method ?? 'HTTP'} ${route}`);
+            }
+          },
+        },
       }),
     ],
   });
