@@ -12,12 +12,15 @@ import { createErrorResponse } from '../shared/response.js';
 function resolveStatusCode(error: FastifyError | Error | AuthError): number {
   if (error.name === 'ZodError' || error.constructor?.name === 'ZodError') return 422;
   if (error instanceof AuthError) return error.statusCode;
+  // PostgreSQL invalid input syntax for type uuid (e.g. ULID passed as UUID param)
+  if ((error as any).code === '22P02') return 400;
   return (error as FastifyError).statusCode ?? 500;
 }
 
 function resolveErrorCode(error: FastifyError | Error | AuthError, statusCode: number): string {
   if (error.name === 'ZodError' || error.constructor?.name === 'ZodError') return 'VALIDATION_ERROR';
   if (error instanceof AuthError) return error.code;
+  if ((error as any).code === '22P02') return 'VALIDATION_ERROR';
 
   const map: Record<number, string> = {
     400: 'BAD_REQUEST',
@@ -86,7 +89,9 @@ export function registerErrorHandlers(app: FastifyInstance): void {
         errorCode,
         statusCode === 500 && serverEnv.NODE_ENV === 'production'
           ? 'Internal server error'
-          : (error.message ?? 'Unknown error'),
+          : (error as any).code === '22P02'
+            ? 'Invalid ID format in request'
+            : (error.message ?? 'Unknown error'),
         details,
         request.id,
       );

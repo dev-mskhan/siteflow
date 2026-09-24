@@ -25,6 +25,11 @@ export async function organizationContext(
     throw new ValidationError('Organization ID missing in request parameters');
   }
 
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_REGEX.test(organizationId)) {
+    throw new ValidationError(`Invalid organization ID format: '${organizationId}'`);
+  }
+
   const userId = request.user.sub;
   const ctx = await rbacService.getOrganizationContext(organizationId, userId);
   request.orgContext = ctx;
