@@ -35,7 +35,7 @@ export class AuthRepository {
   }
 
   async findUserByEmail(email: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+    const result = await this.db.select().from(users).where(eq(users.email, email.trim().toLowerCase())).limit(1);
     return result[0];
   }
 
@@ -44,7 +44,7 @@ export class AuthRepository {
     const result = await this.db.insert(users).values({
       id: generateId(),
       ...data,
-      email: data.email.toLowerCase(),
+      email: data.email.trim().toLowerCase(),
     }).returning();
     return result[0]!;
   }
@@ -60,7 +60,7 @@ export class AuthRepository {
         .values({
           id: generateId(),
           ...userData,
-          email: userData.email.toLowerCase(),
+          email: userData.email.trim().toLowerCase(),
         })
         .returning();
 
@@ -238,7 +238,7 @@ export class AuthRepository {
         .insert(users)
         .values({
           id: generateId(),
-          email: data.email.toLowerCase(),
+          email: data.email.trim().toLowerCase(),
           passwordHash: null,
           firstName: data.firstName,
           lastName: data.lastName ?? null,
@@ -256,7 +256,7 @@ export class AuthRepository {
           userId: user.id,
           provider: data.provider,
           providerAccountId: data.providerAccountId,
-          email: data.email.toLowerCase(),
+          email: data.email.trim().toLowerCase(),
         })
         .returning();
 
@@ -281,7 +281,7 @@ export class AuthRepository {
         userId,
         provider,
         providerAccountId,
-        email: email ? email.toLowerCase() : null,
+        email: email ? email.trim().toLowerCase() : null,
       })
       .returning();
     return result[0]!;

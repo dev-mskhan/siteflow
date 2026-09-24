@@ -28,7 +28,7 @@ export class InvitationRepository {
       .where(
         and(
           eq(invitations.organizationId, orgId),
-          eq(invitations.email, email.toLowerCase()),
+          eq(invitations.email, email.trim().toLowerCase()),
           eq(invitations.status, 'PENDING'),
         ),
       )
@@ -75,7 +75,7 @@ export class InvitationRepository {
       .values({
         id: generateId(),
         ...data,
-        email: data.email.toLowerCase(),
+        email: data.email.trim().toLowerCase(),
       })
       .returning();
     return result[0]!;

@@ -1,4 +1,5 @@
 import { pgSchema, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // ─── PostgreSQL Schema Specification ──────────────────────────────────────────
 export const appSchema = pgSchema('app');
@@ -18,18 +19,24 @@ export const oauthProviderEnum = appSchema.enum('oauth_provider', [
 ]);
 
 // ─── User Table ───────────────────────────────────────────────────────────────
-export const users = appSchema.table('users', {
-  id: text('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
-  passwordHash: text('password_hash'), // Nullable for OAuth-only users
-  firstName: text('first_name').notNull(),
-  lastName: text('last_name'),
-  status: userStatusEnum('status').default('ACTIVE').notNull(),
-  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
-});
+export const users = appSchema.table(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    email: text('email').notNull(),
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    passwordHash: text('password_hash'), // Nullable for OAuth-only users
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name'),
+    status: userStatusEnum('status').default('ACTIVE').notNull(),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+  },
+  (t) => [
+    uniqueIndex('users_email_unique_lower').on(sql`lower(${t.email})`),
+  ],
+);
 
 // ─── OAuth Account Table ───────────────────────────────────────────────────────
 export const oauthAccounts = appSchema.table(

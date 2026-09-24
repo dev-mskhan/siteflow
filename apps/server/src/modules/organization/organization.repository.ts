@@ -1,5 +1,5 @@
 // apps/server/src/modules/organization/organization.repository.ts
-import { eq, inArray, and, ne } from 'drizzle-orm';
+import { eq, inArray, and, ne, sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
 import {
@@ -45,6 +45,14 @@ export class OrganizationRepository {
       .select()
       .from(organizations)
       .where(inArray(organizations.id, orgIds));
+  }
+
+  async countByCreator(userId: string): Promise<number> {
+    const result = await this.db
+      .select({ count: sql<number>`cast(count(*) as int)` })
+      .from(organizations)
+      .where(eq(organizations.createdBy, userId));
+    return result[0]?.count ?? 0;
   }
 
   async create(data: NewOrganization, tx?: any): Promise<Organization> {

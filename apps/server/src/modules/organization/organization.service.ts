@@ -1,4 +1,5 @@
 // apps/server/src/modules/organization/organization.service.ts
+import { eq } from 'drizzle-orm';
 import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../lib/db/index.js';
@@ -11,9 +12,10 @@ import {
   roles,
   rolePermissions,
   organizationMemberships,
+  users,
   type Organization,
 } from '@siteflow/database/schema';
-import { ConflictError, NotFoundError } from './organization.errors.js';
+import { ConflictError, NotFoundError, ForbiddenError } from './organization.errors.js';
 import type {
   CreateOrgInput,
   UpdateOrgInput,
@@ -30,6 +32,8 @@ const DEFAULT_SETTINGS: OrgSettings = {
   currency: 'USD',
   dateFormat: 'YYYY-MM-DD',
 };
+
+const MAX_ORGS_PER_USER = 5;
 
 export function toOrgDTO(org: Organization): OrgDTO {
   return {
@@ -60,6 +64,23 @@ export class OrganizationService {
       span.setAttribute('user.id', userId);
       span.setAttribute('organization.slug', input.slug);
       logger.info({ userId, slug: input.slug }, 'Creating organization');
+
+      // Guard 1: email must be verified
+      const creator = await this.db
+        .select({ emailVerifiedAt: users.emailVerifiedAt })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!creator[0] || !creator[0].emailVerifiedAt) {
+        throw new ForbiddenError('You must verify your email address before creating an organization');
+      }
+
+      // Guard 2: org cap per user
+      const orgCount = await this.repo.countByCreator(userId);
+      if (orgCount >= MAX_ORGS_PER_USER) {
+        throw new ForbiddenError(`You have reached the maximum limit of ${MAX_ORGS_PER_USER} organizations`);
+      }
 
       const existing = await this.repo.findBySlug(input.slug);
       if (existing) {
