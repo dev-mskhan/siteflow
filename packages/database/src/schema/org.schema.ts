@@ -8,6 +8,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { users } from './auth.schema';
 
 const appSchema = pgSchema('app');
@@ -48,7 +49,7 @@ export const organizations = appSchema.table(
       .notNull()
       .references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (t) => [uniqueIndex('organizations_slug_unique').on(t.slug)],
 );
@@ -66,7 +67,7 @@ export const roles = appSchema.table(
     description: text('description'),
     isSystem: boolean('is_system').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (t) => [uniqueIndex('roles_org_name_unique').on(t.organizationId, t.name)],
 );
@@ -112,7 +113,7 @@ export const organizationMemberships = appSchema.table(
     status: memberStatusEnum('status').default('ACTIVE').notNull(),
     joinedAt: timestamp('joined_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (t) => [
     uniqueIndex('memberships_org_user_unique').on(t.organizationId, t.userId),
@@ -142,11 +143,14 @@ export const invitations = appSchema.table(
       .notNull()
       .references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (t) => [
     index('invitations_email_org_idx').on(t.email, t.organizationId),
     uniqueIndex('invitations_token_hash_unique').on(t.tokenHash),
+    uniqueIndex('invitations_pending_org_email_unique')
+      .on(t.organizationId, t.email)
+      .where(sql`${t.status} = 'PENDING'`),
   ],
 );
 

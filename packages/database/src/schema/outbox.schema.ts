@@ -21,7 +21,7 @@ export const outboxEvents = appSchema.table(
     lastError: text('last_error'),
     processedAt: timestamp('processed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (t) => [
     index('outbox_events_org_idx').on(t.organizationId),

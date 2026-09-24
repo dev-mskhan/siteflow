@@ -28,7 +28,7 @@ export const users = appSchema.table('users', {
   status: userStatusEnum('status').default('ACTIVE').notNull(),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
 // ─── OAuth Account Table ───────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ export const oauthAccounts = appSchema.table(
     providerAccountId: text('provider_account_id').notNull(),
     email: text('email'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (table) => [
     uniqueIndex('oauth_provider_account_idx').on(table.provider, table.providerAccountId),
@@ -63,7 +63,7 @@ export const sessions = appSchema.table('sessions', {
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
 // ─── Email Verification Token Table ───────────────────────────────────────────
