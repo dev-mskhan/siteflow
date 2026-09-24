@@ -41,6 +41,7 @@ export const organizations = appSchema.table(
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
+    country: text('country'),  // ISO 3166-1 alpha-2, nullable
     status: orgStatusEnum('status').default('ACTIVE').notNull(),
     settings: jsonb('settings').default({}).notNull(),
     createdBy: text('created_by')

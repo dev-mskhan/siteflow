@@ -36,13 +36,14 @@ const organizationSchema = {
     id: { type: 'string', example: '01J9Z0F8QPXKMPQ1VRFP1D5K3A' },
     name: { type: 'string', example: 'Acme Construction' },
     slug: { type: 'string', example: 'acme-construction' },
+    country: { type: 'string', nullable: true, minLength: 2, maxLength: 2, example: 'US' },
     status: { type: 'string', enum: ['ACTIVE', 'SUSPENDED', 'ARCHIVED'], example: 'ACTIVE' },
     settings: orgSettingsSchema,
     createdBy: { type: 'string', example: 'usr_01J9Z0F8QPXKMPQ1VRFP1D5K3B' },
     createdAt: { type: 'string', format: 'date-time', example: '2024-01-01T00:00:00.000Z' },
     updatedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
   },
-  required: ['id', 'name', 'slug', 'status', 'createdBy', 'createdAt', 'updatedAt'],
+  required: ['id', 'name', 'slug', 'country', 'status', 'createdBy', 'createdAt', 'updatedAt'],
 } as const;
 
 const responses = {
@@ -65,6 +66,7 @@ export const createOrgSchemaDoc = {
     properties: {
       name: { type: 'string', minLength: 2, maxLength: 100, example: 'Acme Construction' },
       slug: { type: 'string', minLength: 2, maxLength: 50, pattern: '^[a-z0-9-]+$', example: 'acme-construction' },
+      country: { type: 'string', minLength: 2, maxLength: 2, example: 'US', description: 'ISO 3166-1 alpha-2 country code' },
       settings: orgSettingsSchema,
     },
   },
@@ -161,6 +163,7 @@ export const updateOrgSchemaDoc = {
     type: 'object',
     properties: {
       name: { type: 'string', minLength: 2, maxLength: 100, example: 'Acme Global Construction' },
+      country: { type: 'string', minLength: 2, maxLength: 2, example: 'GB', description: 'ISO 3166-1 alpha-2 country code' },
       settings: orgSettingsSchema,
     },
   },

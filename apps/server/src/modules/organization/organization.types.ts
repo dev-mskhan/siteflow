@@ -11,6 +11,7 @@ export interface OrgDTO {
   id: string;
   name: string;
   slug: string;
+  country: string | null;
   status: string;
   settings: OrgSettings;
   createdBy: string;
@@ -21,7 +22,8 @@ export interface OrgDTO {
 export type CreateOrgInput = {
   name: string;
   slug: string;
+  country?: string;
   settings?: Partial<OrgSettings>;
 };
 
-export type UpdateOrgInput = Partial<Pick<CreateOrgInput, 'name' | 'settings'>>;
+export type UpdateOrgInput = Partial<Pick<CreateOrgInput, 'name' | 'country' | 'settings'>>;

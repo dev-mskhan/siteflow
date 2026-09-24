@@ -36,6 +36,7 @@ export function toOrgDTO(org: Organization): OrgDTO {
     id: org.id,
     name: org.name,
     slug: org.slug,
+    country: org.country ?? null,
     status: org.status,
     settings: {
       ...DEFAULT_SETTINGS,
@@ -76,6 +77,7 @@ export class OrganizationService {
           {
             name: input.name,
             slug: input.slug,
+            country: input.country ?? null,
             settings,
             createdBy: userId,
             status: 'ACTIVE',
@@ -196,6 +198,7 @@ export class OrganizationService {
 
       const updateData: Partial<Organization> = {};
       if (input.name) updateData.name = input.name;
+      if (input.country !== undefined) updateData.country = input.country ?? null;
       if (input.settings) {
         updateData.settings = {
           ...(existing.settings as Record<string, unknown>),
