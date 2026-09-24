@@ -1,5 +1,5 @@
 // apps/server/src/modules/membership/membership.repository.ts
-import { eq, and, ne } from 'drizzle-orm';
+import { eq, and, ne, sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import {
   organizationMemberships,
@@ -21,11 +21,15 @@ export class MembershipRepository {
     return getDb();
   }
 
-  async findById(id: string): Promise<Membership | undefined> {
+  async findById(id: string, orgId?: string): Promise<Membership | undefined> {
+    const conditions = orgId
+      ? and(eq(organizationMemberships.id, id), eq(organizationMemberships.organizationId, orgId))
+      : eq(organizationMemberships.id, id);
+
     const result = await this.db
       .select()
       .from(organizationMemberships)
-      .where(eq(organizationMemberships.id, id))
+      .where(conditions)
       .limit(1);
     return result[0];
   }
@@ -73,7 +77,11 @@ export class MembershipRepository {
     }));
   }
 
-  async findMemberWithDetails(id: string): Promise<MemberWithDetails | undefined> {
+  async findMemberWithDetails(id: string, orgId?: string): Promise<MemberWithDetails | undefined> {
+    const conditions = orgId
+      ? and(eq(organizationMemberships.id, id), eq(organizationMemberships.organizationId, orgId))
+      : eq(organizationMemberships.id, id);
+
     const rows = await this.db
       .select({
         membership: organizationMemberships,
@@ -85,7 +93,7 @@ export class MembershipRepository {
       .from(organizationMemberships)
       .innerJoin(users, eq(organizationMemberships.userId, users.id))
       .innerJoin(roles, eq(organizationMemberships.roleId, roles.id))
-      .where(eq(organizationMemberships.id, id))
+      .where(conditions)
       .limit(1);
 
     if (!rows[0]) return undefined;
@@ -100,30 +108,19 @@ export class MembershipRepository {
   }
 
   async countActiveAdmins(orgId: string): Promise<number> {
-    const adminRoles = await this.db
-      .select({ id: roles.id })
-      .from(roles)
-      .where(and(eq(roles.organizationId, orgId), eq(roles.name, 'Organization Admin')));
-
-    if (adminRoles.length === 0) return 0;
-
-    const adminRoleIds = adminRoles.map((r) => r.id);
-
-    const activeAdmins = await this.db
-      .select({ id: organizationMemberships.id })
+    const result = await this.db
+      .select({ count: sql<number>`cast(count(*) as int)` })
       .from(organizationMemberships)
+      .innerJoin(roles, eq(organizationMemberships.roleId, roles.id))
       .where(
         and(
           eq(organizationMemberships.organizationId, orgId),
           eq(organizationMemberships.status, 'ACTIVE'),
+          eq(roles.name, 'Organization Admin'),
         ),
       );
 
-    const adminCount = activeAdmins.filter((m) =>
-      adminRoleIds.includes((m as any).roleId),
-    ).length;
-
-    return adminCount;
+    return result[0]?.count ?? 0;
   }
 
   async update(id: string, data: Partial<NewMembership>, tx?: any): Promise<Membership> {

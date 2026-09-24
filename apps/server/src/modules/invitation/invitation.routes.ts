@@ -18,7 +18,7 @@ import {
 export const invitationRoutes: FastifyPluginAsync = async (fastify) => {
   // Public/authenticated acceptance endpoint
   fastify.post(
-    '/invitations/:token/accept',
+    '/invitations/accept',
     { schema: acceptInvitationSchemaDoc, preHandler: [authenticate] },
     handleAcceptInvitation,
   );

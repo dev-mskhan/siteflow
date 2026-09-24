@@ -1,5 +1,5 @@
 // apps/server/src/modules/organization/organization.repository.ts
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and, ne } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import {
   organizations,
@@ -31,7 +31,10 @@ export class OrganizationRepository {
       .select({ organizationId: organizationMemberships.organizationId })
       .from(organizationMemberships)
       .where(
-        eq(organizationMemberships.userId, userId),
+        and(
+          eq(organizationMemberships.userId, userId),
+          ne(organizationMemberships.status, 'REMOVED'),
+        ),
       );
 
     if (userMemberships.length === 0) return [];

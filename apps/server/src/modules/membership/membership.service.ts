@@ -64,11 +64,10 @@ export class MembershipService {
       span.setAttribute('organization.id', orgId);
       span.setAttribute('membership.id', memberId);
 
-      const member = await this.repo.findMemberWithDetails(memberId);
+      const member = await this.repo.findMemberWithDetails(memberId, orgId);
       if (!member || member.status === 'REMOVED') {
         throw new NotFoundError('Member not found');
       }
-      this.assertSameTenant(member, orgId);
       return toMemberDTO(member);
     });
   }
@@ -84,11 +83,10 @@ export class MembershipService {
       span.setAttribute('membership.id', memberId);
       span.setAttribute('user.id', actorCtx.userId);
 
-      const existing = await this.repo.findById(memberId);
+      const existing = await this.repo.findById(memberId, orgId);
       if (!existing || existing.status === 'REMOVED') {
         throw new NotFoundError('Member not found');
       }
-      this.assertSameTenant(existing, orgId);
 
       if (input.roleId) {
         const targetRole = await this.db
@@ -104,7 +102,7 @@ export class MembershipService {
 
       // Guard if demoting or suspending an existing Organization Admin
       if (input.roleId || input.status === 'SUSPENDED') {
-        const currentMember = await this.repo.findMemberWithDetails(memberId);
+        const currentMember = await this.repo.findMemberWithDetails(memberId, orgId);
         if (currentMember?.roleName === 'Organization Admin') {
           await this.assertNotLastAdmin(orgId, existing);
         }
@@ -129,7 +127,7 @@ export class MembershipService {
       // Synchronous cache invalidation AFTER transaction commit
       await rbacCacheService.invalidate(orgId, existing.userId);
 
-      const refreshed = await this.repo.findMemberWithDetails(memberId);
+      const refreshed = await this.repo.findMemberWithDetails(memberId, orgId);
       return toMemberDTO(refreshed ?? updated);
     });
   }
@@ -144,11 +142,10 @@ export class MembershipService {
       span.setAttribute('membership.id', memberId);
       span.setAttribute('user.id', actorCtx.userId);
 
-      const existing = await this.repo.findById(memberId);
+      const existing = await this.repo.findById(memberId, orgId);
       if (!existing || existing.status === 'REMOVED') {
         throw new NotFoundError('Member not found');
       }
-      this.assertSameTenant(existing, orgId);
 
       await this.assertNotLastAdmin(orgId, existing);
 

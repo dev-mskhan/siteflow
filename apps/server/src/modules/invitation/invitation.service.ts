@@ -189,6 +189,17 @@ export class InvitationService {
     return withSpan(tracer, 'invitation.acceptInvitation', async (span) => {
       span.setAttribute('user.id', userId);
 
+      // Verify the accepting user's email matches the invitation
+      const acceptingUser = await this.db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!acceptingUser[0]) {
+        throw new ValidationError('User not found');
+      }
+
       const tokenHash = hashOneTimeToken(rawToken);
       const invite = await this.repo.findValidPending(tokenHash);
 
@@ -201,6 +212,16 @@ export class InvitationService {
 
       if (invite.expiresAt < new Date()) {
         throw new ValidationError('Invitation has expired');
+      }
+
+      if (invite.email.toLowerCase() !== acceptingUser[0].email.toLowerCase()) {
+        throw new ValidationError('This invitation was sent to a different email address');
+      }
+
+      // Check if user is already a member of this org
+      const existingMembership = await this.membershipRepo.findByOrgAndUser(invite.organizationId, userId);
+      if (existingMembership) {
+        throw new ConflictError('You are already a member of this organization');
       }
 
       await this.db.transaction(async (tx) => {
