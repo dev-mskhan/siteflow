@@ -15,7 +15,7 @@ export class AuditRepository {
   /**
    * Writes an audit entry. Can be passed an optional transaction (`tx`).
    */
-  async create(data: NewAuditLog, tx?: any): Promise<AuditLog> {
+  async create(data: Omit<NewAuditLog, 'id'>, tx?: any): Promise<AuditLog> {
     logger.debug({ action: data.action, orgId: data.organizationId }, 'Writing audit log entry');
     const client = tx ?? this.db;
     const result = await client.insert(auditLogs).values({ id: generateId(), ...data }).returning();

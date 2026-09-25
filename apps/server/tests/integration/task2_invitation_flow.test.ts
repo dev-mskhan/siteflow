@@ -34,10 +34,12 @@ describe('Task 2: Member Invitation, Outbox Queue & Acceptance Flow', () => {
     const adminUser = await db
       .insert(users)
       .values({
+        id: crypto.randomUUID(),
         email: adminEmail,
         passwordHash: 'dummyhash',
         firstName: 'Admin',
         status: 'ACTIVE',
+        emailVerifiedAt: new Date(),
       })
       .returning();
     adminToken = createAccessToken({ sub: adminUser[0]!.id, email: adminEmail, status: 'ACTIVE' });
@@ -117,6 +119,7 @@ describe('Task 2: Member Invitation, Outbox Queue & Acceptance Flow', () => {
     const inviteeUser = await db
       .insert(users)
       .values({
+        id: crypto.randomUUID(),
         email: inviteeEmail,
         passwordHash: 'dummyhash',
         firstName: 'Bob',

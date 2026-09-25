@@ -158,8 +158,8 @@ export const cancelInvitationSchemaDoc = {
 export const acceptInvitationSchemaDoc = {
   tags: ['invitations'],
   summary: 'Accept organization invitation',
-  description: 'Accepts an invitation token from the request body, creating active membership in target organization. Token is passed in the body to avoid URL logging.',
-  body: {
+  description: 'Accepts an invitation token from the URL path, creating active membership in target organization.',
+  params: {
     type: 'object',
     required: ['token'],
     properties: {

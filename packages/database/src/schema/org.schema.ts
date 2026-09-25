@@ -7,6 +7,8 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  integer,
+  check,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { users } from './auth.schema';
@@ -34,6 +36,36 @@ export const invitationStatusEnum = appSchema.enum('invitation_status', [
   'CANCELLED',
 ]);
 
+export const businessTypeEnum = appSchema.enum('business_type', [
+  'GENERAL_CONTRACTOR',
+  'SUBCONTRACTOR',
+  'SPECIALTY_CONTRACTOR',
+  'DESIGN_BUILD',
+  'DEVELOPER',
+  'CONSULTANT',
+  'OTHER',
+]);
+
+export const dateFormatEnum = appSchema.enum('date_format', [
+  'DD_MM_YYYY',
+  'MM_DD_YYYY',
+  'YYYY_MM_DD',
+]);
+
+export const timeFormatEnum = appSchema.enum('time_format', ['H12', 'H24']);
+
+export const unitSystemEnum = appSchema.enum('unit_system', ['METRIC', 'IMPERIAL']);
+
+export const documentSequenceTypeEnum = appSchema.enum('document_sequence_type', [
+  'PROJECT',
+  'ESTIMATE',
+  'INVOICE',
+  'PURCHASE_ORDER',
+  'CHANGE_ORDER',
+  'RFI',
+  'SUBMITTAL',
+]);
+
 // ── Organization ──────────────────────────────────────────────────────────────
 
 export const organizations = appSchema.table(
@@ -42,9 +74,7 @@ export const organizations = appSchema.table(
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
-    country: text('country'),  // ISO 3166-1 alpha-2, nullable
     status: orgStatusEnum('status').default('ACTIVE').notNull(),
-    settings: jsonb('settings').default({}).notNull(),
     createdBy: text('created_by')
       .notNull()
       .references(() => users.id),
@@ -52,6 +82,91 @@ export const organizations = appSchema.table(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (t) => [uniqueIndex('organizations_slug_unique').on(t.slug)],
+);
+
+// ── Organization Profile ──────────────────────────────────────────────────────
+
+export const organizationProfiles = appSchema.table('organization_profiles', {
+  organizationId: text('organization_id')
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  legalName: text('legal_name'),
+  businessName: text('business_name'),
+  businessType: businessTypeEnum('business_type'),
+  registrationNumber: text('registration_number'),
+  taxIdentificationNumber: text('tax_identification_number'),
+  primaryEmail: text('primary_email'),
+  primaryPhone: text('primary_phone'),
+  secondaryPhone: text('secondary_phone'),
+  website: text('website'),
+  addressLine1: text('address_line_1'),
+  addressLine2: text('address_line_2'),
+  city: text('city'),
+  stateProvince: text('state_province'),
+  postalCode: text('postal_code'),
+  country: text('country'), // ISO 3166-1 alpha-2
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+// ── Organization Settings ─────────────────────────────────────────────────────
+
+export const organizationSettings = appSchema.table(
+  'organization_settings',
+  {
+    organizationId: text('organization_id')
+      .primaryKey()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    timezone: text('timezone').default('UTC').notNull(),
+    currency: text('currency').default('USD').notNull(),
+    locale: text('locale').default('en-US').notNull(),
+    dateFormat: dateFormatEnum('date_format').default('YYYY_MM_DD').notNull(),
+    timeFormat: timeFormatEnum('time_format').default('H24').notNull(),
+    unitSystem: unitSystemEnum('unit_system').default('METRIC').notNull(),
+    weekStartsOn: integer('week_starts_on').default(1).notNull(), // 0=Sunday, 1=Monday
+    fiscalYearStartMonth: integer('fiscal_year_start_month').default(1).notNull(), // 1–12
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    check('settings_week_starts_on_range', sql`${t.weekStartsOn} >= 0 AND ${t.weekStartsOn} <= 6`),
+    check(
+      'settings_fiscal_year_month_range',
+      sql`${t.fiscalYearStartMonth} >= 1 AND ${t.fiscalYearStartMonth} <= 12`,
+    ),
+    check('settings_currency_length', sql`char_length(${t.currency}) = 3`),
+  ],
+);
+
+// ── Document Sequences ────────────────────────────────────────────────────────
+
+export const documentSequences = appSchema.table(
+  'document_sequences',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    type: documentSequenceTypeEnum('type').notNull(),
+    prefix: text('prefix').notNull(),
+    padding: integer('padding').default(4).notNull(),
+    nextValue: integer('next_value').default(1).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex('document_sequences_org_type_unique').on(t.organizationId, t.type),
+    check('document_sequences_padding_range', sql`${t.padding} >= 1 AND ${t.padding} <= 10`),
+    check('document_sequences_next_value_positive', sql`${t.nextValue} >= 1`),
+  ],
 );
 
 // ── Role ──────────────────────────────────────────────────────────────────────
@@ -182,6 +297,12 @@ export const auditLogs = appSchema.table(
 
 export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
+export type OrganizationProfile = typeof organizationProfiles.$inferSelect;
+export type NewOrganizationProfile = typeof organizationProfiles.$inferInsert;
+export type OrganizationSettings = typeof organizationSettings.$inferSelect;
+export type NewOrganizationSettings = typeof organizationSettings.$inferInsert;
+export type DocumentSequence = typeof documentSequences.$inferSelect;
+export type NewDocumentSequence = typeof documentSequences.$inferInsert;
 export type Role = typeof roles.$inferSelect;
 export type NewRole = typeof roles.$inferInsert;
 export type Permission = typeof permissions.$inferSelect;

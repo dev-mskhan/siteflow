@@ -239,7 +239,18 @@ export class InvitationService {
         // 2. Mark Invitation ACCEPTED
         await this.repo.updateStatus(invite.id, 'ACCEPTED', tx);
 
-        // 3. Audit log
+        // 3. Audit log — both events for full vocabulary
+        await auditService.log(
+          {
+            organizationId: invite.organizationId,
+            actorUserId: userId,
+            action: 'invitation.accepted',
+            resourceType: 'Invitation',
+            resourceId: invite.id,
+            metadata: { invitationId: invite.id },
+          },
+          tx,
+        );
         await auditService.log(
           {
             organizationId: invite.organizationId,

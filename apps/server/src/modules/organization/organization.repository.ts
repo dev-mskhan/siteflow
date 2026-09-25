@@ -55,7 +55,7 @@ export class OrganizationRepository {
     return result[0]?.count ?? 0;
   }
 
-  async create(data: NewOrganization, tx?: any): Promise<Organization> {
+  async create(data: Omit<NewOrganization, 'id'>, tx?: any): Promise<Organization> {
     logger.debug({ name: data.name, slug: data.slug }, 'Creating organization');
     const client = tx ?? this.db;
     const result = await client

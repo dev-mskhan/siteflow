@@ -12,26 +12,33 @@ import {
   roles,
   rolePermissions,
   organizationMemberships,
+  organizationProfiles,
+  organizationSettings,
+  documentSequences,
   users,
   type Organization,
 } from '@siteflow/database/schema';
 import { ConflictError, NotFoundError, ForbiddenError } from './organization.errors.js';
-import type {
-  CreateOrgInput,
-  UpdateOrgInput,
-  OrgDTO,
-  OrgSettings,
-} from './organization.types.js';
+import type { CreateOrgInput, UpdateOrgInput, OrgDTO } from './organization.types.js';
+import { DEFAULT_DOCUMENT_SEQUENCES } from './sequences/sequences.seed.js';
 
 const logger = createLogger({ name: 'organization-service' });
 const tracer = trace.getTracer('organization-service');
 
-const DEFAULT_SETTINGS: OrgSettings = {
-  timezone: 'UTC',
-  locale: 'en-US',
-  currency: 'USD',
-  dateFormat: 'YYYY-MM-DD',
-};
+/**
+ * Derives a URL-safe slug from an organization name.
+ * Example: "Khan Construction LLC" → "khan-construction-llc"
+ */
+function deriveSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '') // remove non-alphanumeric except spaces and hyphens
+    .replace(/\s+/g, '-')          // spaces → hyphens
+    .replace(/-+/g, '-')           // collapse multiple hyphens
+    .replace(/^-|-$/g, '')         // strip leading/trailing hyphens
+    .substring(0, 50);             // truncate to 50 chars
+}
 
 const MAX_ORGS_PER_USER = 5;
 
@@ -40,12 +47,7 @@ export function toOrgDTO(org: Organization): OrgDTO {
     id: org.id,
     name: org.name,
     slug: org.slug,
-    country: org.country ?? null,
     status: org.status,
-    settings: {
-      ...DEFAULT_SETTINGS,
-      ...(org.settings as Partial<OrgSettings>),
-    },
     createdBy: org.createdBy,
     createdAt: org.createdAt.toISOString(),
     updatedAt: org.updatedAt.toISOString(),
@@ -62,7 +64,7 @@ export class OrganizationService {
   async createOrganization(userId: string, input: CreateOrgInput): Promise<OrgDTO> {
     return withSpan(tracer, 'org.createOrganization', async (span) => {
       span.setAttribute('user.id', userId);
-      span.setAttribute('organization.slug', input.slug);
+      span.setAttribute('organization.slug', input.slug ?? deriveSlug(input.name));
       logger.info({ userId, slug: input.slug }, 'Creating organization');
 
       // Guard 1: email must be verified
@@ -82,24 +84,28 @@ export class OrganizationService {
         throw new ForbiddenError(`You have reached the maximum limit of ${MAX_ORGS_PER_USER} organizations`);
       }
 
-      const existing = await this.repo.findBySlug(input.slug);
-      if (existing) {
-        throw new ConflictError(`Organization slug '${input.slug}' is already taken`);
+      // Derive slug from name if not provided
+      let slug = input.slug ? input.slug.toLowerCase().trim() : deriveSlug(input.name);
+
+      // Ensure slug is unique — try up to 10 suffixes on collision
+      const baseSlug = slug;
+      let attempt = 0;
+      while (true) {
+        const existing = await this.repo.findBySlug(slug);
+        if (!existing) break;
+        attempt++;
+        if (attempt > 10) {
+          throw new ConflictError(`Could not generate a unique slug for '${baseSlug}'. Please provide one explicitly.`);
+        }
+        slug = `${baseSlug}-${attempt + 1}`;
       }
 
-      const settings = {
-        ...DEFAULT_SETTINGS,
-        ...input.settings,
-      };
-
       const result = await this.db.transaction(async (tx) => {
-        // 1. Create Organization
+        // 1. Create Organization row
         const org = await this.repo.create(
           {
             name: input.name,
-            slug: input.slug,
-            country: input.country ?? null,
-            settings,
+            slug, // ← resolved slug, not input.slug
             createdBy: userId,
             status: 'ACTIVE',
           },
@@ -107,6 +113,29 @@ export class OrganizationService {
         );
 
         span.setAttribute('organization.id', org.id);
+
+        // 1b. Create empty Organization Profile
+        await tx.insert(organizationProfiles).values({
+          organizationId: org.id,
+        });
+
+        // 1c. Create Organization Settings with defaults
+        await tx.insert(organizationSettings).values({
+          organizationId: org.id,
+          // All other fields use column defaults (UTC, USD, en-US, etc.)
+        });
+
+        // 1d. Seed Document Sequences (7 types)
+        for (const seq of DEFAULT_DOCUMENT_SEQUENCES) {
+          await tx.insert(documentSequences).values({
+            id: generateId(),
+            organizationId: org.id,
+            type: seq.type,
+            prefix: seq.prefix,
+            padding: seq.padding,
+            nextValue: 1,
+          });
+        }
 
         // 2. Ensure system permissions exist (upsert)
         for (const permKey of SYSTEM_PERMISSIONS) {
@@ -219,13 +248,6 @@ export class OrganizationService {
 
       const updateData: Partial<Organization> = {};
       if (input.name) updateData.name = input.name;
-      if (input.country !== undefined) updateData.country = input.country ?? null;
-      if (input.settings) {
-        updateData.settings = {
-          ...(existing.settings as Record<string, unknown>),
-          ...input.settings,
-        };
-      }
 
       const updated = await this.db.transaction(async (tx) => {
         const result = await this.repo.update(orgId, updateData, tx);
@@ -244,43 +266,6 @@ export class OrganizationService {
       });
 
       return toOrgDTO(updated);
-    });
-  }
-
-  async updateSettings(
-    orgId: string,
-    actorUserId: string,
-    newSettings: Partial<OrgSettings>,
-  ): Promise<OrgSettings> {
-    return withSpan(tracer, 'org.updateSettings', async (span) => {
-      span.setAttribute('organization.id', orgId);
-      span.setAttribute('user.id', actorUserId);
-
-      const existing = await this.repo.findById(orgId);
-      if (!existing) throw new NotFoundError('Organization not found');
-
-      const mergedSettings = {
-        ...DEFAULT_SETTINGS,
-        ...(existing.settings as Partial<OrgSettings>),
-        ...newSettings,
-      };
-
-      await this.db.transaction(async (tx) => {
-        await this.repo.update(orgId, { settings: mergedSettings }, tx);
-        await auditService.log(
-          {
-            organizationId: orgId,
-            actorUserId,
-            action: 'settings.updated',
-            resourceType: 'OrganizationSettings',
-            resourceId: orgId,
-            metadata: newSettings as Record<string, unknown>,
-          },
-          tx,
-        );
-      });
-
-      return mergedSettings;
     });
   }
 }

@@ -20,30 +20,18 @@ const apiErrorSchema = {
   required: ['success', 'error'],
 } as const;
 
-const orgSettingsSchema = {
-  type: 'object',
-  properties: {
-    timezone: { type: 'string', example: 'UTC' },
-    locale: { type: 'string', example: 'en-US' },
-    currency: { type: 'string', example: 'USD' },
-    dateFormat: { type: 'string', example: 'YYYY-MM-DD' },
-  },
-} as const;
-
 const organizationSchema = {
   type: 'object',
   properties: {
     id: { type: 'string', example: '01J9Z0F8QPXKMPQ1VRFP1D5K3A' },
     name: { type: 'string', example: 'Acme Construction' },
     slug: { type: 'string', example: 'acme-construction' },
-    country: { type: 'string', nullable: true, minLength: 2, maxLength: 2, example: 'US' },
     status: { type: 'string', enum: ['ACTIVE', 'SUSPENDED', 'ARCHIVED'], example: 'ACTIVE' },
-    settings: orgSettingsSchema,
     createdBy: { type: 'string', example: 'usr_01J9Z0F8QPXKMPQ1VRFP1D5K3B' },
     createdAt: { type: 'string', format: 'date-time', example: '2024-01-01T00:00:00.000Z' },
     updatedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
   },
-  required: ['id', 'name', 'slug', 'country', 'status', 'createdBy', 'createdAt', 'updatedAt'],
+  required: ['id', 'name', 'slug', 'status', 'createdBy', 'createdAt', 'updatedAt'],
 } as const;
 
 const responses = {
@@ -59,15 +47,20 @@ const responses = {
 export const createOrgSchemaDoc = {
   tags: ['organizations'],
   summary: 'Create a new organization',
-  description: 'Creates a new organization, seeds 7 system roles and permissions, assigns creator as Organization Admin, and returns the organization details.',
+  description: 'Creates a new organization, seeds 7 system roles and permissions, empty profile, default settings, 7 document sequences, and assigns creator as Organization Admin.',
   body: {
     type: 'object',
-    required: ['name', 'slug'],
+    required: ['name'],
     properties: {
       name: { type: 'string', minLength: 2, maxLength: 100, example: 'Acme Construction' },
-      slug: { type: 'string', minLength: 2, maxLength: 50, pattern: '^[a-z0-9-]+$', example: 'acme-construction' },
-      country: { type: 'string', minLength: 2, maxLength: 2, example: 'US', description: 'ISO 3166-1 alpha-2 country code' },
-      settings: orgSettingsSchema,
+      slug: {
+        type: 'string',
+        minLength: 2,
+        maxLength: 50,
+        pattern: '^[a-z0-9-]+$',
+        example: 'acme-construction',
+        description: 'Optional. If omitted, derived from name automatically.',
+      },
     },
   },
   response: {
@@ -84,6 +77,7 @@ export const createOrgSchemaDoc = {
       required: ['success', 'data'],
     },
     401: responses[401],
+    403: responses[403],
     409: responses[409],
     422: responses[422],
     500: responses[500],
@@ -151,7 +145,7 @@ export const getOrgSchemaDoc = {
 export const updateOrgSchemaDoc = {
   tags: ['organizations'],
   summary: 'Update organization details',
-  description: 'Updates organization name or settings. Requires organization:update permission.',
+  description: 'Updates organization name. Requires organization:update permission.',
   params: {
     type: 'object',
     required: ['organizationId'],
@@ -163,8 +157,6 @@ export const updateOrgSchemaDoc = {
     type: 'object',
     properties: {
       name: { type: 'string', minLength: 2, maxLength: 100, example: 'Acme Global Construction' },
-      country: { type: 'string', minLength: 2, maxLength: 2, example: 'GB', description: 'ISO 3166-1 alpha-2 country code' },
-      settings: orgSettingsSchema,
     },
   },
   response: {
@@ -176,70 +168,6 @@ export const updateOrgSchemaDoc = {
           type: 'object',
           properties: { organization: organizationSchema },
           required: ['organization'],
-        },
-      },
-      required: ['success', 'data'],
-    },
-    401: responses[401],
-    403: responses[403],
-    404: responses[404],
-    422: responses[422],
-    500: responses[500],
-  },
-};
-
-export const getSettingsSchemaDoc = {
-  tags: ['organizations'],
-  summary: 'Get organization settings',
-  description: 'Returns organization settings object. Requires settings:read permission.',
-  params: {
-    type: 'object',
-    required: ['organizationId'],
-    properties: {
-      organizationId: { type: 'string', example: '01J9Z0F8QPXKMPQ1VRFP1D5K3A' },
-    },
-  },
-  response: {
-    200: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', enum: [true], example: true },
-        data: {
-          type: 'object',
-          properties: { settings: orgSettingsSchema },
-          required: ['settings'],
-        },
-      },
-      required: ['success', 'data'],
-    },
-    401: responses[401],
-    403: responses[403],
-    404: responses[404],
-    500: responses[500],
-  },
-};
-
-export const updateSettingsSchemaDoc = {
-  tags: ['organizations'],
-  summary: 'Update organization settings',
-  description: 'Merges partial settings into existing settings jsonb. Requires settings:update permission.',
-  params: {
-    type: 'object',
-    required: ['organizationId'],
-    properties: {
-      organizationId: { type: 'string', example: '01J9Z0F8QPXKMPQ1VRFP1D5K3A' },
-    },
-  },
-  body: orgSettingsSchema,
-  response: {
-    200: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', enum: [true], example: true },
-        data: {
-          type: 'object',
-          properties: { settings: orgSettingsSchema },
-          required: ['settings'],
         },
       },
       required: ['success', 'data'],

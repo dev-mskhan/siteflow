@@ -38,7 +38,7 @@ describe('Task 3: RBAC Authorization, Redis Caching & Tenant Isolation', () => {
     // 1. User A (Org A Admin)
     const userA = await db
       .insert(users)
-      .values({ email: emailA, passwordHash: 'dummy', firstName: 'UserA', status: 'ACTIVE' })
+      .values({ id: crypto.randomUUID(), email: emailA, passwordHash: 'dummy', firstName: 'UserA', status: 'ACTIVE', emailVerifiedAt: new Date() })
       .returning();
     userAToken = createAccessToken({ sub: userA[0]!.id, email: emailA, status: 'ACTIVE' });
 
@@ -53,7 +53,7 @@ describe('Task 3: RBAC Authorization, Redis Caching & Tenant Isolation', () => {
     // 2. User B (Org B Admin)
     const userB = await db
       .insert(users)
-      .values({ email: emailB, passwordHash: 'dummy', firstName: 'UserB', status: 'ACTIVE' })
+      .values({ id: crypto.randomUUID(), email: emailB, passwordHash: 'dummy', firstName: 'UserB', status: 'ACTIVE', emailVerifiedAt: new Date() })
       .returning();
     userBToken = createAccessToken({ sub: userB[0]!.id, email: emailB, status: 'ACTIVE' });
 
@@ -89,7 +89,7 @@ describe('Task 3: RBAC Authorization, Redis Caching & Tenant Isolation', () => {
     // User C registers and accepts
     const userC = await db
       .insert(users)
-      .values({ email: emailC, passwordHash: 'dummy', firstName: 'UserC', status: 'ACTIVE' })
+      .values({ id: crypto.randomUUID(), email: emailC, passwordHash: 'dummy', firstName: 'UserC', status: 'ACTIVE', emailVerifiedAt: new Date() })
       .returning();
     userCId = userC[0]!.id;
     userCToken = createAccessToken({ sub: userCId, email: emailC, status: 'ACTIVE' });

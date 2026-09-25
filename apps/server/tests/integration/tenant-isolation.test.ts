@@ -28,7 +28,7 @@ describe('Tenant Isolation & Cross-Tenant Security Audit (Integration)', () => {
     // Setup User A (Org A Admin)
     const userA = await db
       .insert(users)
-      .values({ email: emailA, passwordHash: 'dummy', firstName: 'UserA', status: 'ACTIVE' })
+      .values({ id: crypto.randomUUID(), email: emailA, passwordHash: 'dummy', firstName: 'UserA', status: 'ACTIVE', emailVerifiedAt: new Date() })
       .returning();
     userAToken = createAccessToken({ sub: userA[0]!.id, email: emailA, status: 'ACTIVE' });
 
@@ -43,7 +43,7 @@ describe('Tenant Isolation & Cross-Tenant Security Audit (Integration)', () => {
     // Setup User B (Org B Admin)
     const userB = await db
       .insert(users)
-      .values({ email: emailB, passwordHash: 'dummy', firstName: 'UserB', status: 'ACTIVE' })
+      .values({ id: crypto.randomUUID(), email: emailB, passwordHash: 'dummy', firstName: 'UserB', status: 'ACTIVE', emailVerifiedAt: new Date() })
       .returning();
     userBToken = createAccessToken({ sub: userB[0]!.id, email: emailB, status: 'ACTIVE' });
 

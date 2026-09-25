@@ -9,7 +9,9 @@ import { EmailVerificationService } from './email-verification.service.js';
 import { PasswordResetService } from './password-reset.service.js';
 import { googleOAuthService } from './google-oauth.service.js';
 import { AuthCacheService } from './auth.cache.service.js';
-import { AuthJobs } from './auth.jobs.js';
+import { AUTH_QUEUES } from './auth.jobs.js';
+import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
+import { getDb } from '../../lib/db/index.js';
 import {
   ConflictError,
   UnauthorizedError,
@@ -53,7 +55,6 @@ export class AuthService {
     private emailVerificationService = new EmailVerificationService(repo),
     private passwordResetService = new PasswordResetService(repo),
     private cacheService = new AuthCacheService(),
-    private jobs = new AuthJobs(),
   ) {}
 
   // ─── Register ───────────────────────────────────────────────────────────────
@@ -153,13 +154,12 @@ export class AuthService {
         status: user.status as any,
       });
 
-      // Send new login notification job
-      await this.jobs.enqueueNewLoginNotification({
-        userId: user.id,
-        email: user.email,
-        ipAddress,
-        userAgent,
-      });
+      // Write new-login notification to outbox (atomic with updateLastLogin)
+      await writeOutboxEvent(
+        getDb(), // no open transaction here — outbox will be swept by worker
+        AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION,
+        { userId: user.id, email: user.email, ipAddress, userAgent },
+      );
 
       logger.info({ userId: user.id }, 'User logged in successfully');
       return {
@@ -231,13 +231,12 @@ export class AuthService {
         status: user.status as any,
       });
 
-      // Send new login notification job
-      await this.jobs.enqueueNewLoginNotification({
-        userId: user.id,
-        email: user.email,
-        ipAddress,
-        userAgent,
-      });
+      // Write new-login notification to outbox (atomic with updateLastLogin)
+      await writeOutboxEvent(
+        getDb(), // no open transaction here — outbox will be swept by worker
+        AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION,
+        { userId: user.id, email: user.email, ipAddress, userAgent },
+      );
 
       logger.info({ userId: user.id, provider: 'GOOGLE' }, 'User authenticated successfully via Google OAuth');
       return {

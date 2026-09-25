@@ -110,11 +110,24 @@ export class MembershipService {
 
       const updated = await this.db.transaction(async (tx) => {
         const result = await this.repo.update(memberId, input, tx);
+
+        // Determine specific audit action based on what changed
+        let action: string;
+        if (input.roleId) {
+          action = 'member.role_changed';
+        } else if (input.status === 'SUSPENDED') {
+          action = 'member.suspended';
+        } else if (input.status === 'ACTIVE') {
+          action = 'member.reactivated';
+        } else {
+          action = 'member.updated';
+        }
+
         await auditService.log(
           {
             organizationId: orgId,
             actorUserId: actorCtx.userId,
-            action: input.roleId ? 'member.role_changed' : 'member.updated',
+            action,
             resourceType: 'Membership',
             resourceId: memberId,
             metadata: input as Record<string, unknown>,
@@ -147,6 +160,7 @@ export class MembershipService {
         throw new NotFoundError('Member not found');
       }
 
+      this.assertSameTenant(existing, orgId);
       await this.assertNotLastAdmin(orgId, existing);
 
       await this.db.transaction(async (tx) => {

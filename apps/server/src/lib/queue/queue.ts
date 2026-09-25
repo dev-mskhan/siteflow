@@ -15,6 +15,7 @@ import {
 import {
   ORG_QUEUES,
   type SendInvitationEmailPayload,
+  type ExpireInvitationsPayload,
 } from '../../modules/invitation/invitation.jobs.js';
 
 // ─── Queue job names ─────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export type JobPayloads = {
   [AUTH_QUEUES.CLEANUP_EXPIRED_VERIFICATION_TOKENS]?: Record<string, unknown>;
   [AUTH_QUEUES.CLEANUP_EXPIRED_PASSWORD_RESET_TOKENS]?: Record<string, unknown>;
   [ORG_QUEUES.SEND_INVITATION_EMAIL]: SendInvitationEmailPayload;
+  [ORG_QUEUES.EXPIRE_INVITATIONS]: ExpireInvitationsPayload;
 };
 
 let _bossInstance: PgBoss | undefined;

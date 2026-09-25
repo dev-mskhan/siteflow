@@ -1,7 +1,7 @@
 // apps/server/src/modules/auth/auth.worker.ts
 import type PgBoss from 'pg-boss';
-import type { Job } from 'pg-boss';
 import { createLogger } from '@siteflow/observability/server';
+import { registerWorker } from '../../lib/queue/worker-factory.js';
 import {
   AUTH_QUEUES,
   type SendEmailVerificationPayload,
@@ -17,67 +17,79 @@ const logger = createLogger({ name: 'auth-worker' });
 export async function registerAuthWorkers(boss: PgBoss): Promise<void> {
   const repository = new AuthRepository();
 
-  // 1. Send Email Verification Worker
-  await boss.work(
-    AUTH_QUEUES.SEND_EMAIL_VERIFICATION,
-    async (job: Job<SendEmailVerificationPayload> | Job<SendEmailVerificationPayload>[]) => {
-      const item = Array.isArray(job) ? job[0] : job;
-      if (!item) return;
-      logger.info({ jobId: item.id, to: item.data.email }, `Processing verification email for user ${item.data.userId}`);
-      await emailService.sendEmailVerification(item.data.email, item.data.token);
+  // 1. Send Email Verification
+  await registerWorker<SendEmailVerificationPayload>(
+    boss,
+    { queue: AUTH_QUEUES.SEND_EMAIL_VERIFICATION, concurrency: 5, timeoutSecs: 30 },
+    async (job) => {
+      logger.info({ jobId: job.id, to: job.data.email }, 'Sending verification email');
+      await emailService.sendEmailVerification(job.data.email, job.data.token);
     },
   );
 
-  // 2. Send Password Reset Worker
-  await boss.work(
-    AUTH_QUEUES.SEND_PASSWORD_RESET,
-    async (job: Job<SendPasswordResetPayload> | Job<SendPasswordResetPayload>[]) => {
-      const item = Array.isArray(job) ? job[0] : job;
-      if (!item) return;
-      logger.info({ jobId: item.id, to: item.data.email }, `Processing password reset email for user ${item.data.userId}`);
-      await emailService.sendPasswordReset(item.data.email, item.data.token);
+  // 2. Send Password Reset
+  await registerWorker<SendPasswordResetPayload>(
+    boss,
+    { queue: AUTH_QUEUES.SEND_PASSWORD_RESET, concurrency: 5, timeoutSecs: 30 },
+    async (job) => {
+      logger.info({ jobId: job.id, to: job.data.email }, 'Sending password reset email');
+      await emailService.sendPasswordReset(job.data.email, job.data.token);
     },
   );
 
-  // 3. Send Password Changed Notification Worker
-  await boss.work(
-    AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION,
-    async (job: Job<SendPasswordChangedPayload> | Job<SendPasswordChangedPayload>[]) => {
-      const item = Array.isArray(job) ? job[0] : job;
-      if (!item) return;
-      logger.info({ jobId: item.id, to: item.data.email }, `Processing password changed notification for user ${item.data.userId}`);
-      await emailService.sendPasswordChangedNotification(item.data.email);
+  // 3. Send Password Changed Notification
+  await registerWorker<SendPasswordChangedPayload>(
+    boss,
+    { queue: AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION, concurrency: 5, timeoutSecs: 30 },
+    async (job) => {
+      logger.info({ jobId: job.id, to: job.data.email }, 'Sending password changed notification');
+      await emailService.sendPasswordChangedNotification(job.data.email);
     },
   );
 
-  // 4. Send New Login Notification Worker
-  await boss.work(
-    AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION,
-    async (job: Job<SendNewLoginPayload> | Job<SendNewLoginPayload>[]) => {
-      const item = Array.isArray(job) ? job[0] : job;
-      if (!item) return;
-      logger.info({ jobId: item.id, to: item.data.email }, `Processing new login notification for user ${item.data.userId}`);
-      await emailService.sendNewLoginNotification(item.data.email, item.data.ipAddress, item.data.userAgent);
+  // 4. Send New Login Notification
+  await registerWorker<SendNewLoginPayload>(
+    boss,
+    { queue: AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION, concurrency: 10, timeoutSecs: 30 },
+    async (job) => {
+      logger.info({ jobId: job.id, to: job.data.email }, 'Sending new login notification');
+      await emailService.sendNewLoginNotification(
+        job.data.email,
+        job.data.ipAddress,
+        job.data.userAgent,
+      );
     },
   );
 
-  // 5. Cleanup Expired Sessions Scheduled Worker
-  await boss.work(AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS, async () => {
-    const deletedCount = await repository.cleanupExpiredSessions();
-    logger.info({ deletedCount }, 'Cleaned up expired sessions from database');
-  });
+  // 5. Cleanup Expired Sessions (scheduled via boss.schedule in worker.ts)
+  await registerWorker<Record<string, unknown>>(
+    boss,
+    { queue: AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS, concurrency: 1, timeoutSecs: 120 },
+    async (_job) => {
+      const count = await repository.cleanupExpiredSessions();
+      logger.info({ deletedCount: count }, 'Cleaned up expired sessions');
+    },
+  );
 
-  // 6. Cleanup Expired Verification Tokens Scheduled Worker
-  await boss.work(AUTH_QUEUES.CLEANUP_EXPIRED_VERIFICATION_TOKENS, async () => {
-    const deletedCount = await repository.cleanupExpiredVerificationTokens();
-    logger.info({ deletedCount }, 'Cleaned up expired verification tokens');
-  });
+  // 6. Cleanup Expired Verification Tokens (scheduled via boss.schedule in worker.ts)
+  await registerWorker<Record<string, unknown>>(
+    boss,
+    { queue: AUTH_QUEUES.CLEANUP_EXPIRED_VERIFICATION_TOKENS, concurrency: 1, timeoutSecs: 60 },
+    async (_job) => {
+      const count = await repository.cleanupExpiredVerificationTokens();
+      logger.info({ deletedCount: count }, 'Cleaned up expired verification tokens');
+    },
+  );
 
-  // 7. Cleanup Expired Password Reset Tokens Scheduled Worker
-  await boss.work(AUTH_QUEUES.CLEANUP_EXPIRED_PASSWORD_RESET_TOKENS, async () => {
-    const deletedCount = await repository.cleanupExpiredPasswordResetTokens();
-    logger.info({ deletedCount }, 'Cleaned up expired password reset tokens');
-  });
+  // 7. Cleanup Expired Password Reset Tokens (scheduled via boss.schedule in worker.ts)
+  await registerWorker<Record<string, unknown>>(
+    boss,
+    { queue: AUTH_QUEUES.CLEANUP_EXPIRED_PASSWORD_RESET_TOKENS, concurrency: 1, timeoutSecs: 60 },
+    async (_job) => {
+      const count = await repository.cleanupExpiredPasswordResetTokens();
+      logger.info({ deletedCount: count }, 'Cleaned up expired password reset tokens');
+    },
+  );
 
   logger.info('Registered all Auth module PgBoss workers');
 }

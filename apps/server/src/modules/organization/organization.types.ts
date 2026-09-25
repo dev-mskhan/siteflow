@@ -1,19 +1,10 @@
 // apps/server/src/modules/organization/organization.types.ts
 
-export type OrgSettings = {
-  timezone: string;
-  locale: string;
-  currency: string;
-  dateFormat: string;
-};
-
 export interface OrgDTO {
   id: string;
   name: string;
   slug: string;
-  country: string | null;
   status: string;
-  settings: OrgSettings;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -21,9 +12,7 @@ export interface OrgDTO {
 
 export type CreateOrgInput = {
   name: string;
-  slug: string;
-  country?: string;
-  settings?: Partial<OrgSettings>;
+  slug?: string; // optional — derived from name if omitted
 };
 
-export type UpdateOrgInput = Partial<Pick<CreateOrgInput, 'name' | 'country' | 'settings'>>;
+export type UpdateOrgInput = Partial<Pick<CreateOrgInput, 'name'>>;

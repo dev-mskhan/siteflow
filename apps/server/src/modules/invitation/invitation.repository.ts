@@ -1,5 +1,5 @@
 // apps/server/src/modules/invitation/invitation.repository.ts
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, lt } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
 import {
@@ -68,7 +68,7 @@ export class InvitationRepository {
     }));
   }
 
-  async create(data: NewInvitation, tx?: any): Promise<Invitation> {
+  async create(data: Omit<NewInvitation, 'id'>, tx?: any): Promise<Invitation> {
     const client = tx ?? this.db;
     const result = await client
       .insert(invitations)
@@ -79,6 +79,24 @@ export class InvitationRepository {
       })
       .returning();
     return result[0]!;
+  }
+
+  /**
+   * Finds all overdue PENDING invitations (expiresAt < now).
+   * Used by the expiry worker to batch-mark them as EXPIRED.
+   */
+  async findOverduePending(batchSize = 100): Promise<Invitation[]> {
+    const now = new Date();
+    return this.db
+      .select()
+      .from(invitations)
+      .where(
+        and(
+          eq(invitations.status, 'PENDING'),
+          lt(invitations.expiresAt, now),
+        ),
+      )
+      .limit(batchSize);
   }
 
   async updateStatus(id: string, status: 'ACCEPTED' | 'CANCELLED' | 'EXPIRED', tx?: any): Promise<void> {

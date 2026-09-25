@@ -39,7 +39,7 @@ export class AuthRepository {
     return result[0];
   }
 
-  async createUser(data: NewUser): Promise<User> {
+  async createUser(data: Omit<NewUser, 'id'>): Promise<User> {
     logger.debug({ email: data.email }, 'Creating new user');
     const result = await this.db.insert(users).values({
       id: generateId(),
@@ -50,7 +50,7 @@ export class AuthRepository {
   }
 
   async registerUserWithVerificationToken(
-    userData: NewUser,
+    userData: Omit<NewUser, 'id'>,
     tokenData: { tokenHash: string; expiresAt: Date; rawToken?: string },
   ): Promise<{ user: User; verificationToken: EmailVerificationToken }> {
     logger.info({ email: userData.email }, 'Registering user with verification token and outbox event in DB transaction');
@@ -288,7 +288,7 @@ export class AuthRepository {
   }
 
   // ─── Session Operations ─────────────────────────────────────────────────────
-  async createSession(data: NewSession): Promise<Session> {
+  async createSession(data: Omit<NewSession, 'id'>): Promise<Session> {
     const result = await this.db.insert(sessions).values({ id: generateId(), ...data }).returning();
     return result[0]!;
   }
@@ -377,7 +377,7 @@ export class AuthRepository {
   }
 
   // ─── Email Verification Token Operations ──────────────────────────────────
-  async createEmailVerificationToken(data: NewEmailVerificationToken): Promise<EmailVerificationToken> {
+  async createEmailVerificationToken(data: Omit<NewEmailVerificationToken, 'id'>): Promise<EmailVerificationToken> {
     // Invalidate existing unused tokens for this user first
     await this.db
       .update(emailVerificationTokens)
@@ -394,7 +394,7 @@ export class AuthRepository {
   }
 
   async createEmailVerificationTokenWithOutbox(
-    data: NewEmailVerificationToken,
+    data: Omit<NewEmailVerificationToken, 'id'>,
     email: string,
     rawToken: string,
   ): Promise<EmailVerificationToken> {
@@ -455,7 +455,7 @@ export class AuthRepository {
   }
 
   // ─── Password Reset Token Operations ─────────────────────────────────────
-  async createPasswordResetToken(data: NewPasswordResetToken): Promise<PasswordResetToken> {
+  async createPasswordResetToken(data: Omit<NewPasswordResetToken, 'id'>): Promise<PasswordResetToken> {
     // Invalidate existing unused tokens for this user first
     await this.db
       .update(passwordResetTokens)
@@ -472,7 +472,7 @@ export class AuthRepository {
   }
 
   async createPasswordResetTokenWithOutbox(
-    data: NewPasswordResetToken,
+    data: Omit<NewPasswordResetToken, 'id'>,
     email: string,
     rawToken: string,
   ): Promise<PasswordResetToken> {

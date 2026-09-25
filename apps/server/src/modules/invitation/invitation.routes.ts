@@ -16,9 +16,9 @@ import {
 } from './docs/invitation.schemas.js';
 
 export const invitationRoutes: FastifyPluginAsync = async (fastify) => {
-  // Public/authenticated acceptance endpoint
+  // Public/authenticated acceptance endpoint — token as URL path parameter
   fastify.post(
-    '/invitations/accept',
+    '/invitations/:token/accept',
     { schema: acceptInvitationSchemaDoc, preHandler: [authenticate] },
     handleAcceptInvitation,
   );

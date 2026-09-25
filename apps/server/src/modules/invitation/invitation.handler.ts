@@ -2,7 +2,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { InvitationService } from './invitation.service.js';
 import { createSuccessResponse } from '../../shared/response.js';
-import { createInvitationSchema, acceptInvitationSchema } from './invitation.validation.js';
+import { createInvitationSchema } from './invitation.validation.js';
 
 const invitationService = new InvitationService();
 
@@ -35,7 +35,7 @@ export async function handleCancelInvitation(request: FastifyRequest, reply: Fas
 }
 
 export async function handleAcceptInvitation(request: FastifyRequest, reply: FastifyReply) {
-  const { token } = acceptInvitationSchema.parse(request.body);
+  const { token } = request.params as { token: string };
   const userId = request.user!.sub;
 
   await invitationService.acceptInvitation(token, userId);

@@ -13,6 +13,9 @@ import { registerErrorHandlers } from '../middleware/error-handler.js';
 import { healthRoutes } from '../modules/health/health.routes.js';
 import { authRoutes } from '../modules/auth/auth.routes.js';
 import { organizationRoutes } from '../modules/organization/organization.routes.js';
+import { profileRoutes } from '../modules/organization/profile/profile.routes.js';
+import { settingsRoutes } from '../modules/organization/settings/settings.routes.js';
+import { sequenceRoutes } from '../modules/organization/sequences/sequences.routes.js';
 import { membershipRoutes } from '../modules/membership/membership.routes.js';
 import { invitationRoutes } from '../modules/invitation/invitation.routes.js';
 import { auditRoutes } from '../modules/audit/audit.routes.js';
@@ -80,6 +83,9 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'health', description: 'Health & readiness checks' },
         { name: 'auth', description: 'Authentication & Session management' },
         { name: 'organizations', description: 'Organization management' },
+        { name: 'profiles', description: 'Organization profile management' },
+        { name: 'settings', description: 'Organization settings management' },
+        { name: 'document-sequences', description: 'Organization document sequence management' },
         { name: 'members', description: 'Organization membership management' },
         { name: 'invitations', description: 'Organization invitation management' },
         { name: 'audit', description: 'Organization security audit trail' },
@@ -98,6 +104,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(healthRoutes, { prefix: '/health' });
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
   await app.register(organizationRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(profileRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(settingsRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(sequenceRoutes, { prefix: '/api/v1/organizations' });
   await app.register(membershipRoutes, { prefix: '/api/v1/organizations' });
   await app.register(invitationRoutes, { prefix: '/api/v1' });
   await app.register(auditRoutes, { prefix: '/api/v1/organizations' });

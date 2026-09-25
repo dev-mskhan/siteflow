@@ -1,26 +1,10 @@
 // apps/server/src/lib/queue/tenantJobLimit.ts
-import { Redis } from 'ioredis';
-import { serverEnv } from '../../config/env.js';
+import { ensureRedisConnected } from '../redis/redis.js';
 import { createLogger } from '@siteflow/observability/server';
 
 const logger = createLogger({ name: 'tenant-job-limit' });
 
 const MAX_CONCURRENT_TENANT_JOBS = 50;
-
-let redisInstance: Redis | undefined;
-
-function getRedis(): Redis {
-  if (!redisInstance) {
-    redisInstance = new Redis(serverEnv.REDIS_URL, {
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-    });
-    redisInstance.on('error', (err) => {
-      logger.warn({ err: err.message }, 'Redis connection warning in tenantJobLimit');
-    });
-  }
-  return redisInstance;
-}
 
 export function jobCountKey(tenantId: string): string {
   return `queue:tenant_jobs:${tenantId}`;
@@ -28,7 +12,7 @@ export function jobCountKey(tenantId: string): string {
 
 export async function canStartJob(tenantId: string): Promise<boolean> {
   try {
-    const redis = getRedis();
+    const redis = await ensureRedisConnected();
     const val = await redis.get(jobCountKey(tenantId));
     const current = val ? parseInt(val, 10) : 0;
     return current < MAX_CONCURRENT_TENANT_JOBS;
@@ -40,7 +24,7 @@ export async function canStartJob(tenantId: string): Promise<boolean> {
 
 export async function incrementJobCount(tenantId: string, ttlSeconds = 60): Promise<number> {
   try {
-    const redis = getRedis();
+    const redis = await ensureRedisConnected();
     const key = jobCountKey(tenantId);
     const count = await redis.incr(key);
     if (count === 1) {

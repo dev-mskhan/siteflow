@@ -158,7 +158,7 @@ export async function handleGoogleCallback(request: FastifyRequest, reply: Fasti
     );
   }
 
-  const frontendTarget = `${serverEnv.FRONTEND_URL.replace(/\/$/, '')}/auth/complete`;
+  const frontendTarget = `${(serverEnv.FRONTEND_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/auth/complete`;
   return reply.redirect(frontendTarget, 302);
 }
 

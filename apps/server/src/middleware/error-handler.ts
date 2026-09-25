@@ -11,6 +11,8 @@ import { createErrorResponse } from '../shared/response.js';
 
 function resolveStatusCode(error: FastifyError | Error | AuthError): number {
   if (error.name === 'ZodError' || error.constructor?.name === 'ZodError') return 422;
+  // Fastify JSON Schema validation errors — treat as semantic 422 (same as Zod)
+  if ((error as FastifyError).code === 'FST_ERR_VALIDATION') return 422;
   if (error instanceof AuthError) return error.statusCode;
   // PostgreSQL invalid input syntax for type uuid (e.g. ULID passed as UUID param)
   if ((error as any).code === '22P02') return 400;
@@ -19,6 +21,7 @@ function resolveStatusCode(error: FastifyError | Error | AuthError): number {
 
 function resolveErrorCode(error: FastifyError | Error | AuthError, statusCode: number): string {
   if (error.name === 'ZodError' || error.constructor?.name === 'ZodError') return 'VALIDATION_ERROR';
+  if ((error as FastifyError).code === 'FST_ERR_VALIDATION') return 'VALIDATION_ERROR';
   if (error instanceof AuthError) return error.code;
   if ((error as any).code === '22P02') return 'VALIDATION_ERROR';
 

@@ -7,16 +7,12 @@ import {
   handleListOrgs,
   handleGetOrg,
   handleUpdateOrg,
-  handleGetSettings,
-  handleUpdateSettings,
 } from './organization.handler.js';
 import {
   createOrgSchemaDoc,
   listOrgsSchemaDoc,
   getOrgSchemaDoc,
   updateOrgSchemaDoc,
-  getSettingsSchemaDoc,
-  updateSettingsSchemaDoc,
 } from './docs/organization.schemas.js';
 
 export const organizationRoutes: FastifyPluginAsync = async (fastify) => {
@@ -38,18 +34,6 @@ export const organizationRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId',
       { schema: updateOrgSchemaDoc, preHandler: [requirePermission('organization:update')] },
       handleUpdateOrg,
-    );
-
-    // Settings routes
-    scopedRoutes.get(
-      '/:organizationId/settings',
-      { schema: getSettingsSchemaDoc, preHandler: [requirePermission('settings:read')] },
-      handleGetSettings,
-    );
-    scopedRoutes.patch(
-      '/:organizationId/settings',
-      { schema: updateSettingsSchemaDoc, preHandler: [requirePermission('settings:update')] },
-      handleUpdateSettings,
     );
   });
 };

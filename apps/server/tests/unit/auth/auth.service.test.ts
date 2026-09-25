@@ -1,5 +1,26 @@
 // apps/server/tests/unit/auth/auth.service.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock the outbox module to prevent real DB calls
+vi.mock('../../../src/lib/outbox/outbox.service.js', () => ({
+  writeOutboxEvent: vi.fn().mockResolvedValue({ id: 'outbox-mock-id' }),
+  outboxService: {
+    startPoller: vi.fn(),
+    stopPoller: vi.fn().mockResolvedValue(undefined),
+    publishPendingEvents: vi.fn().mockResolvedValue(0),
+  },
+}));
+
+// Mock getDb so any stray DB call doesn't connect to a real DB
+vi.mock('../../../src/lib/db/index.js', () => ({
+  getDb: vi.fn(() => ({
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    transaction: vi.fn(),
+  })),
+}));
+
 import { AuthService } from '../../../src/modules/auth/auth.service.js';
 import { ConflictError, UnauthorizedError } from '../../../src/modules/auth/auth.errors.js';
 import { googleOAuthService } from '../../../src/modules/auth/google-oauth.service.js';
