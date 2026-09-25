@@ -38,5 +38,7 @@ pnpm-debug.log*
 coverage/
 dist/
 node_modules/
+testing/results/
 tasks_org_phase1.md
 tasks_phase1_completion.md
+testing/
