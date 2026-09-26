@@ -33,7 +33,7 @@ export async function createVerifiedUser(overrides?: {
       email,
       // bcrypt hash of "password123", cost factor 10
       passwordHash:
-        '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVDVqo/DK2',
+        '$2a$10$mFiueZBc6ydJ18PyZJfJde54Qu6pntiyu2uLWcWsNU3yRi3piWfKC',
       firstName: overrides?.firstName ?? 'Test',
       status: overrides?.status ?? 'ACTIVE',
       emailVerifiedAt: new Date(),
@@ -62,7 +62,7 @@ export async function createUnverifiedUser(email?: string) {
       id: crypto.randomUUID(),
       email: userEmail,
       passwordHash:
-        '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVDVqo/DK2',
+        '$2a$10$mFiueZBc6ydJ18PyZJfJde54Qu6pntiyu2uLWcWsNU3yRi3piWfKC',
       firstName: 'Unverified',
       status: 'ACTIVE',
       emailVerifiedAt: null,

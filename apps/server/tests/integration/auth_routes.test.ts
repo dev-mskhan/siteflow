@@ -130,7 +130,7 @@ describe('Auth API Routes — comprehensive integration', () => {
       expect((body.data.user as any).hacker).toBeUndefined();
     });
 
-    it('SQL injection name "\'\\'; DROP TABLE users--" → 201 (stored as harmless text)', async () => {
+    it(`SQL injection name "'\\'; DROP TABLE users--" → 201 (stored as harmless text)`, async () => {
       const email = `reg_sql_${runId}@test.dev`;
       const res = await app.inject({
         method: 'POST',

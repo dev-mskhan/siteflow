@@ -84,20 +84,28 @@ export class OrganizationService {
         throw new ForbiddenError(`You have reached the maximum limit of ${MAX_ORGS_PER_USER} organizations`);
       }
 
-      // Derive slug from name if not provided
-      let slug = input.slug ? input.slug.toLowerCase().trim() : deriveSlug(input.name);
-
-      // Ensure slug is unique — try up to 10 suffixes on collision
-      const baseSlug = slug;
-      let attempt = 0;
-      while (true) {
-        const existing = await this.repo.findBySlug(slug);
-        if (!existing) break;
-        attempt++;
-        if (attempt > 10) {
-          throw new ConflictError(`Could not generate a unique slug for '${baseSlug}'. Please provide one explicitly.`);
+      // Check explicit slug collision or auto-suffix derived slug
+      let slug: string;
+      if (input.slug) {
+        const normalizedSlug = input.slug.toLowerCase().trim();
+        const existing = await this.repo.findBySlug(normalizedSlug);
+        if (existing) {
+          throw new ConflictError('Organization with this slug already exists');
         }
-        slug = `${baseSlug}-${attempt + 1}`;
+        slug = normalizedSlug;
+      } else {
+        const baseSlug = deriveSlug(input.name);
+        slug = baseSlug;
+        let attempt = 0;
+        while (true) {
+          const existing = await this.repo.findBySlug(slug);
+          if (!existing) break;
+          attempt++;
+          if (attempt > 10) {
+            throw new ConflictError(`Could not generate a unique slug for '${baseSlug}'. Please provide one explicitly.`);
+          }
+          slug = `${baseSlug}-${attempt + 1}`;
+        }
       }
 
       const result = await this.db.transaction(async (tx) => {

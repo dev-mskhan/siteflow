@@ -91,11 +91,12 @@ export class AuthService {
       // The Worker process poller will sweep and publish it to PgBoss.
 
       // Create session
-      const { refreshToken } = await this.sessionService.createSession(newUser.id);
+      const { refreshToken, session } = await this.sessionService.createSession(newUser.id);
       const accessToken = createAccessToken({
         sub: newUser.id,
         email: newUser.email,
         status: newUser.status as any,
+        sessionId: session.id,
       });
 
       logger.info({ userId: newUser.id }, 'User registered successfully');
@@ -147,11 +148,12 @@ export class AuthService {
       await this.repo.updateLastLogin(user.id);
 
       // Create session & JWT token
-      const { refreshToken } = await this.sessionService.createSession(user.id, ipAddress, userAgent);
+      const { refreshToken, session } = await this.sessionService.createSession(user.id, ipAddress, userAgent);
       const accessToken = createAccessToken({
         sub: user.id,
         email: user.email,
         status: user.status as any,
+        sessionId: session.id,
       });
 
       // Write new-login notification to outbox (atomic with updateLastLogin)
@@ -224,11 +226,12 @@ export class AuthService {
       await this.repo.updateLastLogin(user.id);
 
       // Create Session & JWT token
-      const { refreshToken } = await this.sessionService.createSession(user.id, ipAddress, userAgent);
+      const { refreshToken, session } = await this.sessionService.createSession(user.id, ipAddress, userAgent);
       const accessToken = createAccessToken({
         sub: user.id,
         email: user.email,
         status: user.status as any,
+        sessionId: session.id,
       });
 
       // Write new-login notification to outbox (atomic with updateLastLogin)
@@ -254,7 +257,7 @@ export class AuthService {
     userAgent?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     return withSpan(tracer, 'auth.refreshToken', async () => {
-      const { refreshToken: newRefreshToken, user } = await this.sessionService.rotateRefreshToken(
+      const { refreshToken: newRefreshToken, session, user } = await this.sessionService.rotateRefreshToken(
         rawRefreshToken,
         ipAddress,
         userAgent,
@@ -264,6 +267,7 @@ export class AuthService {
         sub: user.id,
         email: user.email,
         status: user.status as any,
+        sessionId: session.id,
       });
 
       return { accessToken, refreshToken: newRefreshToken };

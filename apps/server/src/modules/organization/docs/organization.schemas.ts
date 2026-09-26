@@ -34,6 +34,18 @@ const organizationSchema = {
   required: ['id', 'name', 'slug', 'status', 'createdBy', 'createdAt', 'updatedAt'],
 } as const;
 
+const metaSchema = {
+  type: 'object',
+  properties: {
+    timestamp: { type: 'string', format: 'date-time' },
+    requestId: { type: 'string' },
+    page: { type: 'number' },
+    limit: { type: 'number' },
+    total: { type: 'number' },
+  },
+  additionalProperties: true,
+} as const;
+
 const responses = {
   400: { description: 'Bad request', ...apiErrorSchema },
   401: { description: 'Unauthorized', ...apiErrorSchema },
@@ -73,6 +85,7 @@ export const createOrgSchemaDoc = {
           properties: { organization: organizationSchema },
           required: ['organization'],
         },
+        meta: metaSchema,
       },
       required: ['success', 'data'],
     },
@@ -103,6 +116,7 @@ export const listOrgsSchemaDoc = {
           },
           required: ['organizations'],
         },
+        meta: metaSchema,
       },
       required: ['success', 'data'],
     },
@@ -132,6 +146,7 @@ export const getOrgSchemaDoc = {
           properties: { organization: organizationSchema },
           required: ['organization'],
         },
+        meta: metaSchema,
       },
       required: ['success', 'data'],
     },
@@ -169,6 +184,7 @@ export const updateOrgSchemaDoc = {
           properties: { organization: organizationSchema },
           required: ['organization'],
         },
+        meta: metaSchema,
       },
       required: ['success', 'data'],
     },

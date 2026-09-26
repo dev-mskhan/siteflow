@@ -139,7 +139,7 @@ export class InvitationService {
         return invite;
       });
 
-      return toInvitationDTO(created);
+      return toInvitationDTO({ ...created, roleName: targetRole[0]!.name });
     });
   }
 
@@ -202,7 +202,7 @@ export class InvitationService {
       }
 
       const tokenHash = hashOneTimeToken(rawToken);
-      const invite = await this.repo.findValidPending(tokenHash);
+      const invite = await this.repo.findPendingByTokenHash(tokenHash);
 
       if (!invite) {
         throw new NotFoundError('Invitation not found or invalid');

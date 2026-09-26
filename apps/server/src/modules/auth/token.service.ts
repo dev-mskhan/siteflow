@@ -11,6 +11,7 @@ export interface AccessTokenPayload {
   sub: string;   // userId
   email: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  sessionId?: string;
 }
 
 /**

@@ -36,6 +36,20 @@ export class InvitationRepository {
     return result[0];
   }
 
+  async findPendingByTokenHash(tokenHash: string): Promise<Invitation | undefined> {
+    const result = await this.db
+      .select()
+      .from(invitations)
+      .where(
+        and(
+          eq(invitations.tokenHash, tokenHash),
+          eq(invitations.status, 'PENDING'),
+        ),
+      )
+      .limit(1);
+    return result[0];
+  }
+
   async findValidPending(tokenHash: string): Promise<Invitation | undefined> {
     const now = new Date();
     const result = await this.db

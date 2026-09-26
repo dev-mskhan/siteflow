@@ -32,12 +32,12 @@ const userSchema = {
     firstName: { type: 'string', example: 'Jane' },
     lastName: { type: 'string', nullable: true, example: 'Doe' },
     status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'], example: 'ACTIVE' },
-    emailVerifiedAt: { type: 'string', format: 'date-time', nullable: true, example: '2024-01-15T10:30:00.000Z' },
+    emailVerified: { type: 'boolean', example: false },
     lastLoginAt: { type: 'string', format: 'date-time', nullable: true, example: '2024-01-15T10:30:00.000Z' },
     createdAt: { type: 'string', format: 'date-time', example: '2024-01-01T00:00:00.000Z' },
     updatedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
   },
-  required: ['id', 'email', 'firstName', 'status'],
+  required: ['id', 'email', 'firstName', 'status', 'emailVerified'],
 } as const;
 
 const sessionSchema = {
@@ -47,12 +47,12 @@ const sessionSchema = {
     userId: { type: 'string', example: 'usr_01J9Z0F8QPXKMPQ1VRFP1D5K3B' },
     ipAddress: { type: 'string', nullable: true, example: '192.168.1.100' },
     userAgent: { type: 'string', nullable: true, example: 'Mozilla/5.0 (Macintosh; ...)' },
-    lastUsedAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z' },
+    lastUsedAt: { type: 'string', format: 'date-time', nullable: true, example: '2024-01-15T10:30:00.000Z' },
     expiresAt: { type: 'string', format: 'date-time', example: '2024-02-15T10:30:00.000Z' },
     isCurrent: { type: 'boolean', example: true },
     createdAt: { type: 'string', format: 'date-time', example: '2024-01-01T00:00:00.000Z' },
   },
-  required: ['id', 'userId', 'expiresAt', 'createdAt'],
+  required: ['id', 'createdAt'],
 } as const;
 
 // ─── Common response wrappers ─────────────────────────────────────────────────
@@ -115,7 +115,7 @@ export const registerSchema = {
     type: 'object',
     required: ['email', 'password', 'firstName'],
     properties: {
-      email: { type: 'string', format: 'email', example: 'jane@example.com' },
+      email: { type: 'string', pattern: '^\\s*[^\\s@]+@[^\\s@]+\\.[^\\s@]+\\s*$', example: 'jane@example.com' },
       password: { type: 'string', minLength: 8, description: 'Min 8 chars, must include uppercase, number, and special character', example: 'Secret123!' },
       firstName: { type: 'string', minLength: 1, example: 'Jane' },
       lastName: { type: 'string', minLength: 1, nullable: true, example: 'Doe' },

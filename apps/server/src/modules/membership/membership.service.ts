@@ -44,10 +44,13 @@ export class MembershipService {
     }
   }
 
-  private async assertNotLastAdmin(orgId: string, _targetMembership: Membership): Promise<void> {
-    const adminCount = await this.repo.countActiveAdmins(orgId);
-    if (adminCount <= 1) {
-      throw new ValidationError('Cannot modify or remove the last Organization Admin');
+  private async assertNotLastAdmin(orgId: string, targetMembership: Membership): Promise<void> {
+    const targetMember = await this.repo.findMemberWithDetails(targetMembership.id, orgId);
+    if (targetMember?.roleName === 'Organization Admin') {
+      const adminCount = await this.repo.countActiveAdmins(orgId);
+      if (adminCount <= 1) {
+        throw new ValidationError('Cannot modify or remove the last Organization Admin');
+      }
     }
   }
 

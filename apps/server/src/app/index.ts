@@ -52,8 +52,18 @@ export async function buildApp(): Promise<FastifyInstance> {
     credentials: true,
   });
   await app.register(sensible);
+  const cookieSigner = {
+    sign: (value: string) => `s:${cookie.sign(value, serverEnv.COOKIE_SECRET)}`,
+    unsign: (input: string) => {
+      if (input.startsWith('s:')) {
+        return cookie.unsign(input.slice(2), serverEnv.COOKIE_SECRET);
+      }
+      return cookie.unsign(input, serverEnv.COOKIE_SECRET);
+    },
+  };
+
   await app.register(cookie, {
-    secret: serverEnv.COOKIE_SECRET,
+    secret: cookieSigner,
   });
 
   // ─── OpenAPI / Swagger ──────────────────────────────────────────────────────

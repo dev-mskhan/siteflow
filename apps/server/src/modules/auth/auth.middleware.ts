@@ -46,4 +46,5 @@ export async function authenticate(request: FastifyRequest, _reply: FastifyReply
 
   // Attach payload to request context
   request.user = payload;
+  request.sessionId = payload.sessionId;
 }
