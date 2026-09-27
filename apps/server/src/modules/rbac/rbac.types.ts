@@ -1,4 +1,4 @@
-// apps/server/src/modules/rbac/rbac.types.ts
+import type { ProjectContext } from '../project/core/project.types.js';
 
 export type OrganizationContext = {
   organizationId: string;
@@ -12,5 +12,6 @@ export type OrganizationContext = {
 declare module 'fastify' {
   interface FastifyRequest {
     orgContext?: OrganizationContext;
+    projectCtx?: ProjectContext;
   }
 }

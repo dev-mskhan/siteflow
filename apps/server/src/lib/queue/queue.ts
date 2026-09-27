@@ -17,6 +17,15 @@ import {
   type SendInvitationEmailPayload,
   type ExpireInvitationsPayload,
 } from '../../modules/invitation/invitation.jobs.js';
+import {
+  PROJECT_QUEUES,
+  type ProjectCreatedPayload,
+  type ProjectUpdatedPayload,
+  type ProjectStatusChangedPayload,
+  type ProjectMemberAddedPayload,
+  type ProjectMemberRoleChangedPayload,
+  type ProjectMemberRemovedPayload,
+} from '../../modules/project/core/project.jobs.js';
 
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {
@@ -24,6 +33,7 @@ export const QUEUES = {
   RESOURCE_EXPORT: 'resource:export',
   ...AUTH_QUEUES,
   ...ORG_QUEUES,
+  ...PROJECT_QUEUES,
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -54,6 +64,12 @@ export type JobPayloads = {
   [AUTH_QUEUES.CLEANUP_EXPIRED_PASSWORD_RESET_TOKENS]?: Record<string, unknown>;
   [ORG_QUEUES.SEND_INVITATION_EMAIL]: SendInvitationEmailPayload;
   [ORG_QUEUES.EXPIRE_INVITATIONS]: ExpireInvitationsPayload;
+  [PROJECT_QUEUES.PROJECT_CREATED]: ProjectCreatedPayload;
+  [PROJECT_QUEUES.PROJECT_UPDATED]: ProjectUpdatedPayload;
+  [PROJECT_QUEUES.PROJECT_STATUS_CHANGED]: ProjectStatusChangedPayload;
+  [PROJECT_QUEUES.PROJECT_MEMBER_ADDED]: ProjectMemberAddedPayload;
+  [PROJECT_QUEUES.PROJECT_MEMBER_ROLE_CHANGED]: ProjectMemberRoleChangedPayload;
+  [PROJECT_QUEUES.PROJECT_MEMBER_REMOVED]: ProjectMemberRemovedPayload;
 };
 
 let _bossInstance: PgBoss | undefined;

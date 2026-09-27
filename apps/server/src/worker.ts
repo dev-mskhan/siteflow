@@ -9,6 +9,7 @@ import { ORG_QUEUES } from './modules/invitation/invitation.jobs.js';
 
 import { registerAuthWorkers } from './modules/auth/auth.worker.js';
 import { registerOrgWorkers } from './modules/invitation/invitation.worker.js';
+import { registerProjectWorkers } from './modules/project/core/project.worker.js';
 
 import { outboxService } from './lib/outbox/outbox.service.js';
 
@@ -22,6 +23,9 @@ async function runWorker() {
 
   // ─── Register Org workers ────────────────────────────────────────────────────
   await registerOrgWorkers(boss);
+
+  // ─── Register Project workers ────────────────────────────────────────────────
+  await registerProjectWorkers(boss);
 
   // ─── Schedule cleanup jobs ───────────────────────────────────────────────────
   // Sessions: daily at 02:00 UTC

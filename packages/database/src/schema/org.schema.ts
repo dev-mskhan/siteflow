@@ -282,6 +282,7 @@ export const auditLogs = appSchema.table(
     action: text('action').notNull(),
     resourceType: text('resource_type'),
     resourceId: text('resource_id'),
+    projectId: text('project_id'),
     metadata: jsonb('metadata').default({}),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
@@ -290,6 +291,7 @@ export const auditLogs = appSchema.table(
   (t) => [
     index('audit_logs_org_idx').on(t.organizationId),
     index('audit_logs_actor_idx').on(t.actorUserId),
+    index('audit_logs_project_idx').on(t.projectId),
   ],
 );
 

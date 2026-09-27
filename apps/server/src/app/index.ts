@@ -19,6 +19,7 @@ import { sequenceRoutes } from '../modules/organization/sequences/sequences.rout
 import { membershipRoutes } from '../modules/membership/membership.routes.js';
 import { invitationRoutes } from '../modules/invitation/invitation.routes.js';
 import { auditRoutes } from '../modules/audit/audit.routes.js';
+import { projectRoutes } from '../modules/project/project.routes.js';
 
 /**
  * Creates and configures the Fastify application instance.
@@ -99,6 +100,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'members', description: 'Organization membership management' },
         { name: 'invitations', description: 'Organization invitation management' },
         { name: 'audit', description: 'Organization security audit trail' },
+        { name: 'projects', description: 'Project management' },
       ],
     },
   });
@@ -120,6 +122,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(membershipRoutes, { prefix: '/api/v1/organizations' });
   await app.register(invitationRoutes, { prefix: '/api/v1' });
   await app.register(auditRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(projectRoutes, { prefix: '/api/v1/organizations' });
 
   return app;
 }
