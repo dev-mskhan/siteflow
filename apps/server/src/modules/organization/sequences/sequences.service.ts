@@ -3,6 +3,7 @@ import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../../lib/db/index.js';
 import { DocumentSequenceRepository } from './sequences.repository.js';
+import { OrganizationCacheService } from '../organization.cache.service.js';
 import { auditService } from '../../audit/audit.service.js';
 import { NotFoundError } from '../organization.errors.js';
 import type { DocumentSequenceDTO, UpdateSequenceInput, AllocateNextResult, DocumentSequenceType } from './sequences.types.js';
@@ -25,7 +26,10 @@ export function toDocumentSequenceDTO(seq: DocumentSequence): DocumentSequenceDT
 }
 
 export class DocumentSequenceService {
-  constructor(private repo = new DocumentSequenceRepository()) {}
+  constructor(
+    private repo = new DocumentSequenceRepository(),
+    private cacheService = new OrganizationCacheService(),
+  ) {}
 
   private get db() {
     return getDb();
@@ -34,8 +38,18 @@ export class DocumentSequenceService {
   async listSequences(orgId: string): Promise<DocumentSequenceDTO[]> {
     return withSpan(tracer, 'sequences.listSequences', async (span) => {
       span.setAttribute('organization.id', orgId);
+
+      // Cache-aside pattern for sequence list (org:sequences:{organizationId}, 30-60s TTL jittered)
+      const cachedList = await this.cacheService.getSequenceList(orgId);
+      if (cachedList) {
+        return cachedList;
+      }
+
       const sequences = await this.repo.findByOrg(orgId);
-      return sequences.map(toDocumentSequenceDTO);
+      const dtos = sequences.map(toDocumentSequenceDTO);
+
+      await this.cacheService.setSequenceList(orgId, dtos, 45);
+      return dtos;
     });
   }
 
@@ -43,9 +57,19 @@ export class DocumentSequenceService {
     return withSpan(tracer, 'sequences.getSequence', async (span) => {
       span.setAttribute('organization.id', orgId);
       span.setAttribute('sequence.type', type);
+
+      // Cache-aside pattern for per-type sequence (org:sequence:{organizationId}:{type}, 30-60s TTL jittered)
+      const cached = await this.cacheService.getSequenceByType(orgId, type);
+      if (cached) {
+        return cached;
+      }
+
       const seq = await this.repo.findByOrgAndType(orgId, type);
       if (!seq) throw new NotFoundError(`Document sequence '${type}' not found`);
-      return toDocumentSequenceDTO(seq);
+
+      const dto = toDocumentSequenceDTO(seq);
+      await this.cacheService.setSequenceByType(orgId, type, dto, 45);
+      return dto;
     });
   }
 
@@ -82,6 +106,9 @@ export class DocumentSequenceService {
         return result!;
       });
 
+      // Invalidate both the per-type cache and the overall sequence list cache for this organization
+      await this.cacheService.invalidateSequence(orgId, type);
+
       return toDocumentSequenceDTO(updated);
     });
   }
@@ -89,12 +116,18 @@ export class DocumentSequenceService {
   /**
    * Allocates the next sequence number atomically.
    * Must be called inside a transaction passed as `tx`.
+   * Invalidates sequence caches since nextValue has been bumped.
    */
   async allocateNext(orgId: string, type: DocumentSequenceType, tx: any): Promise<AllocateNextResult> {
     return withSpan(tracer, 'sequences.allocateNext', async (span) => {
       span.setAttribute('organization.id', orgId);
       span.setAttribute('sequence.type', type);
-      return this.repo.allocateNext(orgId, type, tx);
+      const result = await this.repo.allocateNext(orgId, type, tx);
+
+      // Invalidate sequence caches because nextValue has changed
+      await this.cacheService.invalidateSequence(orgId, type);
+
+      return result;
     });
   }
 }

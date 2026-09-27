@@ -200,7 +200,8 @@ export async function handleRefresh(request: FastifyRequest, reply: FastifyReply
 
 export async function handleLogout(request: FastifyRequest, reply: FastifyReply) {
   const sessionId = request.sessionId;
-  await authService.logout(sessionId);
+  const userId = request.user?.sub;
+  await authService.logout(sessionId, userId);
   clearAuthCookies(reply);
 
   return reply.send(createSuccessResponse({ message: 'Logged out successfully' }));

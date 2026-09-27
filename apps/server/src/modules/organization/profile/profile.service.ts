@@ -3,6 +3,7 @@ import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../../lib/db/index.js';
 import { OrgProfileRepository } from './profile.repository.js';
+import { OrganizationCacheService } from '../organization.cache.service.js';
 import { auditService } from '../../audit/audit.service.js';
 import { NotFoundError } from '../organization.errors.js';
 import type { OrgProfileDTO, UpdateProfileInput } from './profile.types.js';
@@ -36,7 +37,10 @@ export function toOrgProfileDTO(profile: OrganizationProfile): OrgProfileDTO {
 }
 
 export class OrgProfileService {
-  constructor(private repo = new OrgProfileRepository()) {}
+  constructor(
+    private repo = new OrgProfileRepository(),
+    private cacheService = new OrganizationCacheService(),
+  ) {}
 
   private get db() {
     return getDb();
@@ -45,9 +49,19 @@ export class OrgProfileService {
   async getProfile(orgId: string): Promise<OrgProfileDTO> {
     return withSpan(tracer, 'profile.getProfile', async (span) => {
       span.setAttribute('organization.id', orgId);
+
+      // Cache-aside pattern for organization profile (org:profile:{organizationId}, 15 min fixed TTL)
+      const cached = await this.cacheService.getOrgProfile(orgId);
+      if (cached) {
+        return cached;
+      }
+
       const profile = await this.repo.findByOrgId(orgId);
       if (!profile) throw new NotFoundError('Organization profile not found');
-      return toOrgProfileDTO(profile);
+
+      const dto = toOrgProfileDTO(profile);
+      await this.cacheService.setOrgProfile(orgId, dto, 900);
+      return dto;
     });
   }
 
@@ -78,6 +92,9 @@ export class OrgProfileService {
 
         return result;
       });
+
+      // Explicit Invalidation: Immediately delete org:profile:{organizationId} after DB update
+      await this.cacheService.invalidateOrgProfile(orgId);
 
       return toOrgProfileDTO(updated);
     });

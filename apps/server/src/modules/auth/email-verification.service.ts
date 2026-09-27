@@ -34,7 +34,7 @@ export class EmailVerificationService {
   /**
    * Verifies an email token. Marks token used and sets emailVerifiedAt on the user atomically.
    */
-  async verifyEmail(rawToken: string): Promise<void> {
+  async verifyEmail(rawToken: string): Promise<string> {
     const hash = hashOneTimeToken(rawToken);
     const tokenRecord = await this.repo.findValidEmailVerificationToken(hash);
 
@@ -43,6 +43,7 @@ export class EmailVerificationService {
     }
 
     await this.repo.verifyEmailTransaction(tokenRecord.id, tokenRecord.userId);
+    return tokenRecord.userId;
   }
 
   /**

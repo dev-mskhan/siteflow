@@ -9,6 +9,7 @@ import { OrgSettingsRepository } from '../../organization/settings/settings.repo
 import { ProjectRepository } from './project.repository.js';
 import { ProjectMemberRepository } from '../members/project-member.repository.js';
 import { ProjectSettingsRepository } from '../settings/project-settings.repository.js';
+import { ProjectCacheService } from './project.cache.service.js';
 import { ProjectForbiddenError } from './project.errors.js';
 import { toProjectDTO } from './project.mapper.js';
 import { PROJECT_QUEUES } from './project.jobs.js';
@@ -30,6 +31,7 @@ export class ProjectService {
     private memberRepo = new ProjectMemberRepository(),
     private settingsRepo = new ProjectSettingsRepository(),
     private orgSettingsRepo = new OrgSettingsRepository(),
+    private cacheService = new ProjectCacheService(),
   ) {}
 
   private get db() {
@@ -125,6 +127,9 @@ export class ProjectService {
         return newProject;
       });
 
+      // Invalidate all cached list queries for this organization
+      await this.cacheService.invalidateOrgProjectLists(orgId);
+
       logger.info({ orgId, projectId: project.id, projectNumber: project.projectNumber }, 'Project created');
       return toProjectDTO(project);
     });
@@ -136,8 +141,18 @@ export class ProjectService {
     return withSpan(tracer, 'project.getProject', async (span) => {
       span.setAttribute('organization.id', orgId);
       span.setAttribute('project.id', projectId);
+
+      // Cache-aside pattern for single project (project:{projectId}, 5 min TTL jittered)
+      const cached = await this.cacheService.getProject(projectId);
+      if (cached) {
+        return cached;
+      }
+
       const project = await this.projectRepo.findByIdOrThrow(orgId, projectId);
-      return toProjectDTO(project);
+      const dto = toProjectDTO(project);
+
+      await this.cacheService.setProject(projectId, dto, 300);
+      return dto;
     });
   }
 
@@ -153,11 +168,21 @@ export class ProjectService {
   async listProjects(orgId: string, filters: ListProjectsFilter): Promise<ProjectListDTO> {
     return withSpan(tracer, 'project.listProjects', async (span) => {
       span.setAttribute('organization.id', orgId);
+
+      // Cache-aside pattern with filter hash (org:projects:list:{organizationId}:{hash}, 30-60s TTL)
+      const cachedList = await this.cacheService.getProjectList(orgId, filters);
+      if (cachedList) {
+        return cachedList;
+      }
+
       const { rows, nextCursor } = await this.projectRepo.findAll(orgId, filters);
-      return {
+      const result: ProjectListDTO = {
         data: rows.map(toProjectDTO),
         nextCursor,
       };
+
+      await this.cacheService.setProjectList(orgId, filters, result, 45);
+      return result;
     });
   }
 
@@ -177,6 +202,7 @@ export class ProjectService {
 
       const { expectedVersion, ...fields } = input;
 
+      // Note: Version check MUST hit PostgreSQL directly inside transaction (never read expectedVersion from cache)
       const updated = await this.db.transaction(async (tx) => {
         const project = await this.projectRepo.update(
           tx,
@@ -219,6 +245,9 @@ export class ProjectService {
 
         return project;
       });
+
+      // Invalidate project:{projectId} and all org:projects:list:{organizationId}:* after successful write
+      await this.cacheService.invalidateProjectAndOrgLists(orgId, projectId);
 
       return toProjectDTO(updated);
     });

@@ -40,7 +40,7 @@ export class PasswordResetService {
    * Resets user password using valid token.
    * Uses atomic DB transaction to mark token used, update password, revoke active user sessions, and write outbox event.
    */
-  async resetPassword(rawToken: string, newPassword: string): Promise<void> {
+  async resetPassword(rawToken: string, newPassword: string): Promise<string> {
     const hash = hashOneTimeToken(rawToken);
     const tokenRecord = await this.repo.findValidPasswordResetToken(hash);
 
@@ -58,7 +58,6 @@ export class PasswordResetService {
 
     // Atomically update password hash, mark token used, revoke sessions, and insert outbox event
     await this.repo.resetPasswordTransaction(tokenRecord.id, user.id, user.email, newPasswordHash);
-
-
+    return user.id;
   }
 }

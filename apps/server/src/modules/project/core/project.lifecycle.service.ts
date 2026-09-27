@@ -6,6 +6,7 @@ import { generateId } from '../../../lib/id.js';
 import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { auditService } from '../../audit/audit.service.js';
 import { ProjectRepository } from './project.repository.js';
+import { ProjectCacheService } from './project.cache.service.js';
 import { ProjectInvalidTransitionError } from './project.errors.js';
 import { VALID_TRANSITIONS, TRANSITION_TO_STATUS } from './project.types.js';
 import { toProjectDTO } from './project.mapper.js';
@@ -16,7 +17,10 @@ const logger = createLogger({ name: 'project-lifecycle-service' });
 const tracer = trace.getTracer('project-lifecycle-service');
 
 export class ProjectLifecycleService {
-  constructor(private projectRepo = new ProjectRepository()) {}
+  constructor(
+    private projectRepo = new ProjectRepository(),
+    private cacheService = new ProjectCacheService(),
+  ) {}
 
   private get db() {
     return getDb();
@@ -105,6 +109,9 @@ export class ProjectLifecycleService {
 
         return result;
       });
+
+      // Invalidate single project cache and all list query variants for this organization
+      await this.cacheService.invalidateProjectAndOrgLists(orgId, projectId);
 
       return toProjectDTO(updated);
     });

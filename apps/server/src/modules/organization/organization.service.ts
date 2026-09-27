@@ -5,6 +5,7 @@ import { createLogger, withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
 import { OrganizationRepository } from './organization.repository.js';
+import { OrganizationCacheService } from './organization.cache.service.js';
 import { auditService } from '../audit/audit.service.js';
 import { SYSTEM_PERMISSIONS, DEFAULT_ORG_ROLES } from '../rbac/permissions.seed.js';
 import {
@@ -55,7 +56,10 @@ export function toOrgDTO(org: Organization): OrgDTO {
 }
 
 export class OrganizationService {
-  constructor(private repo = new OrganizationRepository()) {}
+  constructor(
+    private repo = new OrganizationRepository(),
+    private cacheService = new OrganizationCacheService(),
+  ) {}
 
   private get db() {
     return getDb();
@@ -130,7 +134,6 @@ export class OrganizationService {
         // 1c. Create Organization Settings with defaults
         await tx.insert(organizationSettings).values({
           organizationId: org.id,
-          // All other fields use column defaults (UTC, USD, en-US, etc.)
         });
 
         // 1d. Seed Document Sequences (7 types)
@@ -153,7 +156,6 @@ export class OrganizationService {
             .onConflictDoNothing({ target: permissions.key });
         }
 
-        // Fetch all system permissions for role-permission mapping
         const permMap = new Map<string, string>(); // key -> permissionId
         const allPerms = await tx.select().from(permissions);
         allPerms.forEach((p) => permMap.set(p.key, p.id));
@@ -177,7 +179,6 @@ export class OrganizationService {
             adminRoleId = role.id;
           }
 
-          // Link role permissions
           const rolePermValues = permKeys
             .map((k) => permMap.get(k))
             .filter((id): id is string => Boolean(id))
@@ -221,6 +222,9 @@ export class OrganizationService {
         return toOrgDTO(org);
       });
 
+      // Explicit Invalidation: Delete creator's org list cache so the new org appears immediately
+      await this.cacheService.invalidateUserOrgList(userId);
+
       return result;
     });
   }
@@ -228,17 +232,37 @@ export class OrganizationService {
   async getOrganization(id: string): Promise<OrgDTO> {
     return withSpan(tracer, 'org.getOrganization', async (span) => {
       span.setAttribute('organization.id', id);
+
+      // Cache-aside for single org (org:{organizationId}, 10 min TTL jittered ±60s)
+      const cached = await this.cacheService.getOrg(id);
+      if (cached) {
+        return cached;
+      }
+
       const org = await this.repo.findById(id);
       if (!org) throw new NotFoundError('Organization not found');
-      return toOrgDTO(org);
+
+      const dto = toOrgDTO(org);
+      await this.cacheService.setOrg(id, dto, 600);
+      return dto;
     });
   }
 
   async listOrganizations(userId: string): Promise<OrgDTO[]> {
     return withSpan(tracer, 'org.listOrganizations', async (span) => {
       span.setAttribute('user.id', userId);
+
+      // Cache-aside for user's org list (org:list:user:{userId}, 2-5 min TTL jittered)
+      const cachedList = await this.cacheService.getUserOrgList(userId);
+      if (cachedList) {
+        return cachedList;
+      }
+
       const orgs = await this.repo.listByUserId(userId);
-      return orgs.map(toOrgDTO);
+      const dtos = orgs.map(toOrgDTO);
+
+      await this.cacheService.setUserOrgList(userId, dtos, 180);
+      return dtos;
     });
   }
 
@@ -272,6 +296,10 @@ export class OrganizationService {
         );
         return result!;
       });
+
+      // Explicit Invalidation: Delete org:{organizationId} + org:list:user:{userId} for every active member
+      const memberUserIds = await this.repo.findMemberUserIds(orgId);
+      await this.cacheService.invalidateOrgAndAllMembers(orgId, memberUserIds);
 
       return toOrgDTO(updated);
     });

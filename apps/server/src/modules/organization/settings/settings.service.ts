@@ -3,6 +3,7 @@ import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../../lib/db/index.js';
 import { OrgSettingsRepository } from './settings.repository.js';
+import { OrganizationCacheService } from '../organization.cache.service.js';
 import { auditService } from '../../audit/audit.service.js';
 import { NotFoundError } from '../organization.errors.js';
 import type { OrgSettingsDTO, UpdateSettingsInput } from './settings.types.js';
@@ -29,7 +30,10 @@ export function toOrgSettingsDTO(settings: OrganizationSettings): OrgSettingsDTO
 }
 
 export class OrgSettingsService {
-  constructor(private repo = new OrgSettingsRepository()) {}
+  constructor(
+    private repo = new OrgSettingsRepository(),
+    private cacheService = new OrganizationCacheService(),
+  ) {}
 
   private get db() {
     return getDb();
@@ -38,9 +42,19 @@ export class OrgSettingsService {
   async getSettings(orgId: string): Promise<OrgSettingsDTO> {
     return withSpan(tracer, 'settings.getSettings', async (span) => {
       span.setAttribute('organization.id', orgId);
+
+      // Cache-aside pattern for organization settings (org:settings:{organizationId}, 10-15 min TTL jittered ±60s)
+      const cached = await this.cacheService.getOrgSettings(orgId);
+      if (cached) {
+        return cached;
+      }
+
       const settings = await this.repo.findByOrgId(orgId);
       if (!settings) throw new NotFoundError('Organization settings not found');
-      return toOrgSettingsDTO(settings);
+
+      const dto = toOrgSettingsDTO(settings);
+      await this.cacheService.setOrgSettings(orgId, dto, 600);
+      return dto;
     });
   }
 
@@ -75,6 +89,9 @@ export class OrgSettingsService {
 
         return result;
       });
+
+      // Explicit Invalidation: Immediately delete org:settings:{organizationId} after DB update
+      await this.cacheService.invalidateOrgSettings(orgId);
 
       return toOrgSettingsDTO(updated);
     });

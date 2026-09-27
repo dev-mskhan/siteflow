@@ -4,6 +4,7 @@ import { withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../lib/db/index.js';
 import { MembershipRepository, type MemberWithDetails } from './membership.repository.js';
 import { rbacCacheService } from '../rbac/rbac.cache.service.js';
+import { OrganizationCacheService } from '../organization/organization.cache.service.js';
 import { auditService } from '../audit/audit.service.js';
 import { NotFoundError, ForbiddenError, ValidationError } from './membership.errors.js';
 import type { MemberDTO, UpdateMemberInput } from './membership.types.js';
@@ -142,6 +143,7 @@ export class MembershipService {
 
       // Synchronous cache invalidation AFTER transaction commit
       await rbacCacheService.invalidate(orgId, existing.userId);
+      await new OrganizationCacheService().invalidateUserOrgList(existing.userId);
 
       const refreshed = await this.repo.findMemberWithDetails(memberId, orgId);
       return toMemberDTO(refreshed ?? updated);
@@ -182,6 +184,7 @@ export class MembershipService {
 
       // Synchronous cache invalidation AFTER transaction commit
       await rbacCacheService.invalidate(orgId, existing.userId);
+      await new OrganizationCacheService().invalidateUserOrgList(existing.userId);
     });
   }
 }

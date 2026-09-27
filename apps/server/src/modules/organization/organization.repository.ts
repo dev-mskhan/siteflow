@@ -81,4 +81,17 @@ export class OrganizationRepository {
       .returning();
     return result[0];
   }
+
+  async findMemberUserIds(orgId: string): Promise<string[]> {
+    const result = await this.db
+      .select({ userId: organizationMemberships.userId })
+      .from(organizationMemberships)
+      .where(
+        and(
+          eq(organizationMemberships.organizationId, orgId),
+          ne(organizationMemberships.status, 'REMOVED'),
+        ),
+      );
+    return result.map((r) => r.userId);
+  }
 }
