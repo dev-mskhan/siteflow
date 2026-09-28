@@ -111,9 +111,24 @@ describe('AuthService (Unit)', () => {
 
     mockCacheService = {
       getLoginAttempts: vi.fn().mockResolvedValue(0),
-      incrementLoginAttempts: vi.fn(),
-      resetLoginAttempts: vi.fn(),
+      incrementLoginAttempts: vi.fn().mockResolvedValue(1),
+      resetLoginAttempts: vi.fn().mockResolvedValue(undefined),
+      incrementRateLimit: vi.fn().mockResolvedValue(1),
+      getUserByEmail: vi.fn().mockResolvedValue(null),
+      setUserByEmail: vi.fn().mockResolvedValue(undefined),
+      invalidateUserByEmail: vi.fn().mockResolvedValue(undefined),
+      getUserProfile: vi.fn().mockResolvedValue(null),
+      setUserProfile: vi.fn().mockResolvedValue(undefined),
+      invalidateUserProfile: vi.fn().mockResolvedValue(undefined),
+      getSession: vi.fn().mockResolvedValue(null),
+      setSession: vi.fn().mockResolvedValue(undefined),
+      invalidateSession: vi.fn().mockResolvedValue(undefined),
+      getUserSessions: vi.fn().mockResolvedValue(null),
+      setUserSessions: vi.fn().mockResolvedValue(undefined),
+      invalidateUserSessions: vi.fn().mockResolvedValue(undefined),
+      invalidateAllUserCaches: vi.fn().mockResolvedValue(undefined),
     };
+
 
     mockJobs = {
       enqueueEmailVerification: vi.fn(),

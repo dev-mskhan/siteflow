@@ -102,14 +102,16 @@ describe('Task 2: Member Invitation, Outbox Queue & Acceptance Flow', () => {
       await db.select().from(outboxEvents).where(eq(outboxEvents.id, targetEvent.id))
     )[0];
 
-    if (updatedEvent?.status === 'PENDING') {
+    for (let attempt = 0; attempt < 5 && updatedEvent?.status === 'PENDING'; attempt++) {
       await outboxService.publishPendingEvents();
+      await new Promise((resolve) => setTimeout(resolve, 150));
       updatedEvent = (
         await db.select().from(outboxEvents).where(eq(outboxEvents.id, targetEvent.id))
       )[0];
     }
 
     expect(updatedEvent?.status).toBe('PROCESSED');
+
   });
 
   it('2.2 should accept invitation and create active membership for authenticated user', async () => {

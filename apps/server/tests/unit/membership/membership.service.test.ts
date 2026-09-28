@@ -49,7 +49,16 @@ describe('MembershipService (Unit)', () => {
       roleId: 'admin-role',
       status: 'ACTIVE',
     });
+    mockRepo.findMemberWithDetails.mockResolvedValue({
+      id: 'admin-mem-1',
+      organizationId: 'org-A',
+      userId: 'admin-user',
+      roleId: 'admin-role',
+      roleName: 'Organization Admin',
+      status: 'ACTIVE',
+    });
     mockRepo.countActiveAdmins.mockResolvedValue(1);
+
 
     const actorCtx = {
       organizationId: 'org-A',

@@ -27,6 +27,14 @@ import {
   type ProjectMemberRemovedPayload,
 } from '../../modules/project/core/project.jobs.js';
 
+import {
+  SCHEDULE_QUEUES,
+  type ScheduleRecalculateJobPayload,
+  type ScheduleRecalculatedEventPayload,
+  type ScheduleBaselineActivatedPayload,
+  type FieldLogLockedPayload,
+} from '../../modules/project/engine/schedule.jobs.js';
+
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {
   EMAIL_SEND: 'email:send',
@@ -34,6 +42,7 @@ export const QUEUES = {
   ...AUTH_QUEUES,
   ...ORG_QUEUES,
   ...PROJECT_QUEUES,
+  ...SCHEDULE_QUEUES,
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -70,6 +79,10 @@ export type JobPayloads = {
   [PROJECT_QUEUES.PROJECT_MEMBER_ADDED]: ProjectMemberAddedPayload;
   [PROJECT_QUEUES.PROJECT_MEMBER_ROLE_CHANGED]: ProjectMemberRoleChangedPayload;
   [PROJECT_QUEUES.PROJECT_MEMBER_REMOVED]: ProjectMemberRemovedPayload;
+  [SCHEDULE_QUEUES.SCHEDULE_RECALCULATE]: ScheduleRecalculateJobPayload;
+  [SCHEDULE_QUEUES.SCHEDULE_RECALCULATED_EVENT]: ScheduleRecalculatedEventPayload;
+  [SCHEDULE_QUEUES.SCHEDULE_BASELINE_ACTIVATED]: ScheduleBaselineActivatedPayload;
+  [SCHEDULE_QUEUES.FIELD_LOG_LOCKED]: FieldLogLockedPayload;
 };
 
 let _bossInstance: PgBoss | undefined;
