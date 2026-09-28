@@ -68,6 +68,11 @@ import {
   handleLockFieldLog,
 } from './field-log/field-log.handler.js';
 import {
+  handleCreateAmendment,
+  handleListAmendments,
+  handleGetAmendment,
+} from './field-log/field-log-amendment.handler.js';
+import {
   handleCreateIssue,
   handleGetIssue,
   handleListIssues,
@@ -412,6 +417,23 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/field-logs/:logId/lock',
       { preHandler: [requireProjectPermission('project.field-log.lock')] },
       handleLockFieldLog,
+    );
+
+    // ── Field Log Amendment routes ─────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/field-logs/:logId/amendments',
+      { preHandler: [requireProjectPermission('project.field-log.read')] },
+      handleListAmendments,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/field-logs/:logId/amendments',
+      { preHandler: [requireProjectPermission('project.field-log.lock')] },
+      handleCreateAmendment,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/field-logs/:logId/amendments/:amendmentId',
+      { preHandler: [requireProjectPermission('project.field-log.read')] },
+      handleGetAmendment,
     );
 
     // ── Issue routes ──────────────────────────────────────────────────────────

@@ -43,14 +43,20 @@ export class ScheduleMetricsService {
     return withSpan(tracer, 'schedule-metrics.get', async (span) => {
       span.setAttributes({ organizationId, projectId });
 
-      // Get current project revision
+      // Get current project revision — scoped to organization for tenant isolation
       const projectRows = await this.db
         .select({ scheduleRevision: projects.scheduleRevision })
         .from(projects)
-        .where(eq(projects.id, projectId));
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId),
+          ),
+        );
       const currentRevision = projectRows[0]?.scheduleRevision ?? 0;
 
-      const cacheKey = `siteflow:v1:schedule:metrics:${projectId}:${currentRevision}`;
+      // Cache key includes orgId to guarantee per-tenant isolation
+      const cacheKey = `siteflow:v1:schedule:metrics:${organizationId}:${projectId}:${currentRevision}`;
 
       // 1. Try Redis cache
       try {
@@ -134,7 +140,7 @@ export class ScheduleMetricsService {
       });
 
       const dto = toDTO(upserted);
-      const cacheKey = `siteflow:v1:schedule:metrics:${projectId}:${scheduleRevision}`;
+      const cacheKey = `siteflow:v1:schedule:metrics:${organizationId}:${projectId}:${scheduleRevision}`;
       this.cacheInRedis(cacheKey, dto);
 
       return dto;

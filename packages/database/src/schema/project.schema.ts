@@ -552,6 +552,41 @@ export const fieldLogTaskEntries = appSchema.table(
   ],
 );
 
+// ── Field Log Amendments (Correction trail for LOCKED logs) ─────────────────
+// A LOCKED log row is strictly immutable. An amendment creates a correction
+// record alongside it. Aggregation queries must apply amendments on top of
+// the base locked values.
+
+export const fieldLogAmendments = appSchema.table(
+  'field_log_amendments',
+  {
+    id: text('id').primaryKey(),
+    logId: text('log_id')
+      .notNull()
+      .references(() => dailyFieldLogs.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    requestedBy: text('requested_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    approvedBy: text('approved_by').references(() => users.id, { onDelete: 'set null' }),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    reason: text('reason').notNull(),
+    // Structured correction delta — e.g. { taskId, oldPct, newPct, oldQty, newQty }
+    correction: jsonb('correction').$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('field_log_amendments_log_idx').on(t.logId),
+    index('field_log_amendments_org_project_idx').on(t.organizationId, t.projectId),
+    index('field_log_amendments_requested_by_idx').on(t.requestedBy),
+  ],
+);
+
 // ── Issues (Exceptions & Business Impact Reporting - Chunk 3.7) ───────────────
 
 export const issues = appSchema.table(
@@ -682,6 +717,9 @@ export type NewDailyFieldLog = typeof dailyFieldLogs.$inferInsert;
 
 export type FieldLogTaskEntry = typeof fieldLogTaskEntries.$inferSelect;
 export type NewFieldLogTaskEntry = typeof fieldLogTaskEntries.$inferInsert;
+
+export type FieldLogAmendment = typeof fieldLogAmendments.$inferSelect;
+export type NewFieldLogAmendment = typeof fieldLogAmendments.$inferInsert;
 
 export type Issue = typeof issues.$inferSelect;
 export type NewIssue = typeof issues.$inferInsert;

@@ -15,11 +15,13 @@ import {
 } from './schedule.jobs.js';
 import { ScheduleService } from './schedule.service.js';
 import { ScheduleRevisionConflictError, ScheduleValidationError } from './schedule.errors.js';
+import { ScheduleMetricsService } from '../schedule-metrics/schedule-metrics.service.js';
 
 const logger = createLogger({ name: 'schedule-worker' });
 const tracer = trace.getTracer('schedule-worker');
 
 const scheduleService = new ScheduleService();
+const metricsService = new ScheduleMetricsService();
 
 /**
  * Marks the project scheduleStatus as FAILED so the UI can surface the error
@@ -132,6 +134,42 @@ export async function registerScheduleWorkers(boss: PgBoss): Promise<void> {
           await markScheduleFailed(organizationId, projectId);
           throw err;
         }
+      });
+    },
+  );
+
+  // ── SCHEDULE_RECALCULATED_EVENT consumer ────────────────────────────────────
+  // Materializes the projectScheduleMetrics read model and populates the
+  // revision-tied Redis cache after a successful large-project recalculation.
+  // This closes the loop: async worker → event → metrics read model refresh.
+  await registerWorker<ScheduleRecalculatedEventPayload>(
+    boss,
+    {
+      queue: SCHEDULE_QUEUES.SCHEDULE_RECALCULATED_EVENT,
+      concurrency: 5,
+      timeoutSecs: 60,
+      tenantIdExtractor: (data) => data.organizationId,
+    },
+    async (job) => {
+      const { organizationId, projectId, newRevision, correlationId } = job.data;
+
+      return withSpan(tracer, 'worker.schedule.metrics_refresh', async (span) => {
+        span.setAttribute('organization.id', organizationId);
+        span.setAttribute('project.id', projectId);
+        span.setAttribute('schedule.new_revision', newRevision);
+        span.setAttribute('schedule.correlation_id', correlationId);
+
+        logger.info(
+          { organizationId, projectId, newRevision, correlationId },
+          'Materializing schedule metrics after async recalculation',
+        );
+
+        await metricsService.materializeMetrics(organizationId, projectId, newRevision);
+
+        logger.info(
+          { organizationId, projectId, newRevision },
+          'Schedule metrics materialized and cached',
+        );
       });
     },
   );

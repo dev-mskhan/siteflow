@@ -59,6 +59,15 @@ export async function handleListTasks(
   reply.send(createSuccessResponse(result.items, { nextCursor: result.nextCursor, totalCount: result.totalCount }));
 }
 
+// Fields that cannot be set directly on a SUMMARY task — they are always
+// derived from child tasks by reevaluateSummaryTask().
+const SUMMARY_FORBIDDEN_FIELDS = [
+  'currentStartDate',
+  'currentFinishDate',
+  'currentDurationDays',
+  'progressPercent',
+] as const;
+
 export async function handleUpdateTask(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -70,6 +79,26 @@ export async function handleUpdateTask(
   };
   const actorUserId = request.user!.sub;
   const input = updateTaskSchema.parse(request.body);
+
+  // Reject derived-only fields on SUMMARY tasks at the API boundary so the
+  // client gets a 422 validation error rather than a generic service error.
+  const existing = await taskService.getTask(organizationId, projectId, taskId);
+  if (existing.taskType === 'SUMMARY') {
+    const forbidden = SUMMARY_FORBIDDEN_FIELDS.filter(
+      (f) => (input as Record<string, unknown>)[f] !== undefined,
+    );
+    if (forbidden.length > 0) {
+      reply.status(422).send({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: `SUMMARY task fields [${forbidden.join(', ')}] are derived from child tasks and cannot be set directly.`,
+          fields: forbidden,
+        },
+      });
+      return;
+    }
+  }
 
   const result = await taskService.updateTask(
     actorUserId,
