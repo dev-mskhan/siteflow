@@ -92,6 +92,13 @@
       "when": 1790519334543,
       "tag": "0012_pink_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790603349310,
+      "tag": "0013_public_maverick",
+      "breakpoints": true
     }
   ]
 }

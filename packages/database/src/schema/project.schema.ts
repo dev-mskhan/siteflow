@@ -28,6 +28,12 @@ export const projectStatusEnum = appSchema.enum('project_status', [
   'ARCHIVED',
 ]);
 
+export const scheduleStatusEnum = appSchema.enum('schedule_status', [
+  'IDLE',
+  'CALCULATING',
+  'FAILED',
+]);
+
 export const projectTypeEnum = appSchema.enum('project_type', [
   'COMMERCIAL',
   'RESIDENTIAL',
@@ -127,6 +133,7 @@ export const projects = appSchema.table(
     actualEndDate: date('actual_end_date'),
     version: integer('version').notNull().default(1),
     scheduleRevision: integer('schedule_revision').notNull().default(1),
+    scheduleStatus: scheduleStatusEnum('schedule_status').notNull().default('IDLE'),
     createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -688,6 +695,7 @@ export type NewProjectScheduleMetrics = typeof projectScheduleMetrics.$inferInse
 // ── Enum value types ──────────────────────────────────────────────────────────
 
 export type ProjectStatus = 'DRAFT' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
+export type ScheduleStatus = 'IDLE' | 'CALCULATING' | 'FAILED';
 export type ProjectType = 'COMMERCIAL' | 'RESIDENTIAL' | 'INDUSTRIAL' | 'INFRASTRUCTURE' | 'OTHER';
 export type ProjectRole = 'PROJECT_MANAGER' | 'SITE_SUPERVISOR' | 'PROJECT_MEMBER' | 'FINANCE' | 'PROCUREMENT' | 'SUBCONTRACTOR' | 'CLIENT';
 export type ProjectMemberStatus = 'ACTIVE' | 'REMOVED';
