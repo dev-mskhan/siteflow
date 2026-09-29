@@ -3,3 +3,4 @@ export * from './auth.schema.js';
 export * from './outbox.schema.js';
 export * from './org.schema.js';
 export * from './project.schema.js';
+export * from './procurement.schema.js';

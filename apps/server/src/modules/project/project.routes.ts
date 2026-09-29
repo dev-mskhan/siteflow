@@ -79,8 +79,84 @@ import {
   handleUpdateIssue,
   handleTransitionIssue,
 } from './issue/issue.handler.js';
+import {
+  handleListProjectSubcontractors,
+  handleAssignSubcontractorToProject,
+  handleGetProjectSubcontractor,
+  handleUpdateProjectSubcontractor,
+  handleCreateContact,
+  handleUpdateContact,
+  handleAssignTask,
+  handleRemoveTaskAssignment,
+} from './subcontractor/subcontractor.handler.js';
+import {
+  handleListMaterialRequests,
+  handleCreateMaterialRequest,
+  handleGetMaterialRequest,
+  handleUpdateMaterialRequest,
+  handleSubmitMaterialRequest,
+  handleCancelMaterialRequest,
+} from './material-request/material-request.handler.js';
+import {
+  handleListQuotes,
+  handleCreateQuote,
+  handleGetQuote,
+  handleUpdateQuote,
+  handleSubmitQuote,
+  handleAcceptQuote,
+  handleRejectQuote,
+} from './quote/quote.handler.js';
+import {
+  handleListPurchaseOrders,
+  handleCreatePurchaseOrder,
+  handleGetPurchaseOrder,
+  handleUpdatePurchaseOrder,
+  handleSubmitPurchaseOrder,
+  handleApprovePurchaseOrder,
+  handleSendPurchaseOrder,
+  handleCancelPurchaseOrder,
+} from './purchase-order/purchase-order.handler.js';
+import { setCommittedCostHooks } from './purchase-order/purchase-order.service.js';
+import { committedCostService } from './committed-cost/committed-cost.service.js';
+import {
+  handleListCommittedCosts,
+  handleGetCommittedCost,
+} from './committed-cost/committed-cost.handler.js';
+import {
+  handleListApprovals,
+  handleCreateApproval,
+  handleGetApproval,
+  handleApproveApproval,
+  handleRejectApproval,
+  handleCancelApproval,
+} from './procurement-approval/procurement-approval.handler.js';
 import { handleListScheduleHistory } from './schedule-history/schedule-history.handler.js';
 import { handleGetScheduleMetrics } from './schedule-metrics/schedule-metrics.handler.js';
+import {
+  handleListDeliveries,
+  handleCreateDelivery,
+  handleGetDelivery,
+  handleUpdateDelivery,
+  handleListReceipts,
+  handleCreateReceipt,
+  handleGetReceipt,
+  handlePostReceipt,
+  handleVoidReceipt,
+} from './delivery/delivery.handler.js';
+import { setDeliveryHooks } from './delivery/delivery.service.js';
+import {
+  handleListInventory,
+  handleGetInventoryBalance,
+  handleListInventoryTransactions,
+  handleAdjustInventory,
+  handleTransferInventory,
+} from './inventory/inventory.handler.js';
+import { inventoryService } from './inventory/inventory.service.js';
+import {
+  handleGetSupplierPerformance,
+  handleGetSubcontractorPerformance,
+} from './performance/performance.handler.js';
+import { partnerPerformanceService } from './performance/performance.service.js';
 
 import {
   createProjectSchemaDoc,
@@ -106,6 +182,19 @@ import {
   getScheduleHistorySchemaDoc,
   getScheduleMetricsSchemaDoc,
 } from './docs/schedule.api.schemas.js';
+
+// Wire committed-cost hooks into the PO service (avoids circular imports at module level)
+setCommittedCostHooks(
+  (tx, po) => committedCostService.createFromPO(tx, po),
+  (tx, poId, organizationId) => committedCostService.cancelFromPO(tx, poId, organizationId),
+);
+
+// Wire delivery hooks into the delivery service (avoids circular imports at module level)
+setDeliveryHooks(
+  (tx, args) => inventoryService.recordReceipt(tx, args),
+  (tx, receiptId, orgId, projectId) => inventoryService.reverseReceipt(tx, receiptId, orgId, projectId),
+  (tx, args) => partnerPerformanceService.recordEvent(tx, args),
+);
 
 export const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // ── Shared auth + org-context hooks ────────────────────────────────────────
@@ -475,6 +564,291 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/schedule/metrics',
       { schema: getScheduleMetricsSchemaDoc, preHandler: [requireProjectPermission('project:read')] },
       handleGetScheduleMetrics,
+    );
+
+    // ── Subcontractor routes ──────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/subcontractors',
+      { preHandler: [requireProjectPermission('project.subcontractor.read')] },
+      handleListProjectSubcontractors,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/subcontractors',
+      { preHandler: [requireProjectPermission('project.subcontractor.create')] },
+      handleAssignSubcontractorToProject,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId',
+      { preHandler: [requireProjectPermission('project.subcontractor.read')] },
+      handleGetProjectSubcontractor,
+    );
+    projectScoped.patch(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId',
+      { preHandler: [requireProjectPermission('project.subcontractor.update')] },
+      handleUpdateProjectSubcontractor,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId/contacts',
+      { preHandler: [requireProjectPermission('project.subcontractor.update')] },
+      handleCreateContact,
+    );
+    projectScoped.patch(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId/contacts/:contactId',
+      { preHandler: [requireProjectPermission('project.subcontractor.update')] },
+      handleUpdateContact,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId/task-assignments',
+      { preHandler: [requireProjectPermission('project.subcontractor.assign')] },
+      handleAssignTask,
+    );
+    projectScoped.delete(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId/task-assignments/:taskId',
+      { preHandler: [requireProjectPermission('project.subcontractor.assign')] },
+      handleRemoveTaskAssignment,
+    );
+
+    // ── Material Request routes ───────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/material-requests',
+      { preHandler: [requireProjectPermission('project.material_request.read')] },
+      handleListMaterialRequests,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/material-requests',
+      { preHandler: [requireProjectPermission('project.material_request.create')] },
+      handleCreateMaterialRequest,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/material-requests/:requestId',
+      { preHandler: [requireProjectPermission('project.material_request.read')] },
+      handleGetMaterialRequest,
+    );
+    projectScoped.patch(
+      '/:organizationId/projects/:projectId/material-requests/:requestId',
+      { preHandler: [requireProjectPermission('project.material_request.update')] },
+      handleUpdateMaterialRequest,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/material-requests/:requestId/submit',
+      { preHandler: [requireProjectPermission('project.material_request.submit')] },
+      handleSubmitMaterialRequest,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/material-requests/:requestId/cancel',
+      { preHandler: [requireProjectPermission('project.material_request.cancel')] },
+      handleCancelMaterialRequest,
+    );
+
+    // ── Quote routes ──────────────────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/quotes',
+      { preHandler: [requireProjectPermission('project.quote.read')] },
+      handleListQuotes,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/quotes',
+      { preHandler: [requireProjectPermission('project.quote.create')] },
+      handleCreateQuote,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/quotes/:quoteId',
+      { preHandler: [requireProjectPermission('project.quote.read')] },
+      handleGetQuote,
+    );
+    projectScoped.patch(
+      '/:organizationId/projects/:projectId/quotes/:quoteId',
+      { preHandler: [requireProjectPermission('project.quote.update')] },
+      handleUpdateQuote,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/quotes/:quoteId/submit',
+      { preHandler: [requireProjectPermission('project.quote.submit')] },
+      handleSubmitQuote,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/quotes/:quoteId/accept',
+      { preHandler: [requireProjectPermission('project.quote.accept')] },
+      handleAcceptQuote,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/quotes/:quoteId/reject',
+      { preHandler: [requireProjectPermission('project.quote.reject')] },
+      handleRejectQuote,
+    );
+
+    // ── Procurement Approval routes ───────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/procurement-approvals',
+      { preHandler: [requireProjectPermission('project.procurement_approval.read')] },
+      handleListApprovals,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/procurement-approvals',
+      { preHandler: [requireProjectPermission('project.procurement_approval.create')] },
+      handleCreateApproval,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/procurement-approvals/:approvalId',
+      { preHandler: [requireProjectPermission('project.procurement_approval.read')] },
+      handleGetApproval,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/procurement-approvals/:approvalId/approve',
+      { preHandler: [requireProjectPermission('project.procurement_approval.approve')] },
+      handleApproveApproval,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/procurement-approvals/:approvalId/reject',
+      { preHandler: [requireProjectPermission('project.procurement_approval.reject')] },
+      handleRejectApproval,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/procurement-approvals/:approvalId/cancel',
+      { preHandler: [requireProjectPermission('project.procurement_approval.create')] },
+      handleCancelApproval,
+    );
+
+    // ── Purchase Order routes ─────────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/purchase-orders',
+      { preHandler: [requireProjectPermission('project.purchase_order.read')] },
+      handleListPurchaseOrders,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/purchase-orders',
+      { preHandler: [requireProjectPermission('project.purchase_order.create')] },
+      handleCreatePurchaseOrder,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/purchase-orders/:poId',
+      { preHandler: [requireProjectPermission('project.purchase_order.read')] },
+      handleGetPurchaseOrder,
+    );
+    projectScoped.patch(
+      '/:organizationId/projects/:projectId/purchase-orders/:poId',
+      { preHandler: [requireProjectPermission('project.purchase_order.update')] },
+      handleUpdatePurchaseOrder,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/purchase-orders/:poId/submit',
+      { preHandler: [requireProjectPermission('project.purchase_order.submit')] },
+      handleSubmitPurchaseOrder,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/purchase-orders/:poId/approve',
+      { preHandler: [requireProjectPermission('project.purchase_order.approve')] },
+      handleApprovePurchaseOrder,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/purchase-orders/:poId/send',
+      { preHandler: [requireProjectPermission('project.purchase_order.send')] },
+      handleSendPurchaseOrder,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/purchase-orders/:poId/cancel',
+      { preHandler: [requireProjectPermission('project.purchase_order.cancel')] },
+      handleCancelPurchaseOrder,
+    );
+
+    // ── Committed Cost routes (read-only) ─────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/committed-costs',
+      { preHandler: [requireProjectPermission('project.committed_cost.read')] },
+      handleListCommittedCosts,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/committed-costs/:committedCostId',
+      { preHandler: [requireProjectPermission('project.committed_cost.read')] },
+      handleGetCommittedCost,
+    );
+
+    // ── Delivery routes ───────────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/deliveries',
+      { preHandler: [requireProjectPermission('project.delivery.read')] },
+      handleListDeliveries,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/deliveries',
+      { preHandler: [requireProjectPermission('project.delivery.create')] },
+      handleCreateDelivery,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/deliveries/:deliveryId',
+      { preHandler: [requireProjectPermission('project.delivery.read')] },
+      handleGetDelivery,
+    );
+    projectScoped.patch(
+      '/:organizationId/projects/:projectId/deliveries/:deliveryId',
+      { preHandler: [requireProjectPermission('project.delivery.update')] },
+      handleUpdateDelivery,
+    );
+
+    // ── Receipt routes ────────────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/receipts',
+      { preHandler: [requireProjectPermission('project.receipt.read')] },
+      handleListReceipts,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/receipts',
+      { preHandler: [requireProjectPermission('project.receipt.create')] },
+      handleCreateReceipt,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/receipts/:receiptId',
+      { preHandler: [requireProjectPermission('project.receipt.read')] },
+      handleGetReceipt,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/receipts/:receiptId/post',
+      { preHandler: [requireProjectPermission('project.receipt.post')] },
+      handlePostReceipt,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/receipts/:receiptId/void',
+      { preHandler: [requireProjectPermission('project.receipt.void')] },
+      handleVoidReceipt,
+    );
+
+    // ── Inventory routes ──────────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/inventory',
+      { preHandler: [requireProjectPermission('project.inventory.read')] },
+      handleListInventory,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/inventory/:materialId',
+      { preHandler: [requireProjectPermission('project.inventory.read')] },
+      handleGetInventoryBalance,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/inventory/:materialId/transactions',
+      { preHandler: [requireProjectPermission('project.inventory.read')] },
+      handleListInventoryTransactions,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/inventory/adjustments',
+      { preHandler: [requireProjectPermission('project.inventory.adjust')] },
+      handleAdjustInventory,
+    );
+    projectScoped.post(
+      '/:organizationId/projects/:projectId/inventory/transfers',
+      { preHandler: [requireProjectPermission('project.inventory.adjust')] },
+      handleTransferInventory,
+    );
+
+    // ── Performance routes ────────────────────────────────────────────────────
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/performance/suppliers/:supplierId',
+      { preHandler: [requireProjectPermission('project.performance.read')] },
+      handleGetSupplierPerformance,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/performance/subcontractors/:subcontractorId',
+      { preHandler: [requireProjectPermission('project.performance.read')] },
+      handleGetSubcontractorPerformance,
     );
   });
 };
