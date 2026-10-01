@@ -7,6 +7,12 @@ import {
   handleGetMaterial,
   handleUpdateMaterial,
 } from './material.handler.js';
+import {
+  listMaterialsSchemaDoc,
+  createMaterialSchemaDoc,
+  getMaterialSchemaDoc,
+  updateMaterialSchemaDoc,
+} from './docs/material.api.schemas.js';
 
 export const materialRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authenticate);
@@ -14,22 +20,22 @@ export const materialRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     '/:organizationId/materials',
-    { preHandler: [requirePermission('material:read')] },
+    { schema: listMaterialsSchemaDoc, preHandler: [requirePermission('material:read')] },
     handleListMaterials,
   );
   fastify.post(
     '/:organizationId/materials',
-    { preHandler: [requirePermission('material:create')] },
+    { schema: createMaterialSchemaDoc, preHandler: [requirePermission('material:create')] },
     handleCreateMaterial,
   );
   fastify.get(
     '/:organizationId/materials/:materialId',
-    { preHandler: [requirePermission('material:read')] },
+    { schema: getMaterialSchemaDoc, preHandler: [requirePermission('material:read')] },
     handleGetMaterial,
   );
   fastify.patch(
     '/:organizationId/materials/:materialId',
-    { preHandler: [requirePermission('material:update')] },
+    { schema: updateMaterialSchemaDoc, preHandler: [requirePermission('material:update')] },
     handleUpdateMaterial,
   );
 };

@@ -9,6 +9,14 @@ import {
   handleCreateSupplierContact,
   handleUpdateSupplierContact,
 } from './supplier.handler.js';
+import {
+  listSuppliersSchemaDoc,
+  createSupplierSchemaDoc,
+  getSupplierSchemaDoc,
+  updateSupplierSchemaDoc,
+  createSupplierContactSchemaDoc,
+  updateSupplierContactSchemaDoc,
+} from './docs/supplier.api.schemas.js';
 
 export const supplierRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authenticate);
@@ -16,32 +24,32 @@ export const supplierRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get(
     '/:organizationId/suppliers',
-    { preHandler: [requirePermission('supplier:read')] },
+    { schema: listSuppliersSchemaDoc, preHandler: [requirePermission('supplier:read')] },
     handleListSuppliers,
   );
   fastify.post(
     '/:organizationId/suppliers',
-    { preHandler: [requirePermission('supplier:create')] },
+    { schema: createSupplierSchemaDoc, preHandler: [requirePermission('supplier:create')] },
     handleCreateSupplier,
   );
   fastify.get(
     '/:organizationId/suppliers/:supplierId',
-    { preHandler: [requirePermission('supplier:read')] },
+    { schema: getSupplierSchemaDoc, preHandler: [requirePermission('supplier:read')] },
     handleGetSupplier,
   );
   fastify.patch(
     '/:organizationId/suppliers/:supplierId',
-    { preHandler: [requirePermission('supplier:update')] },
+    { schema: updateSupplierSchemaDoc, preHandler: [requirePermission('supplier:update')] },
     handleUpdateSupplier,
   );
   fastify.post(
     '/:organizationId/suppliers/:supplierId/contacts',
-    { preHandler: [requirePermission('supplier:update')] },
+    { schema: createSupplierContactSchemaDoc, preHandler: [requirePermission('supplier:update')] },
     handleCreateSupplierContact,
   );
   fastify.patch(
     '/:organizationId/suppliers/:supplierId/contacts/:contactId',
-    { preHandler: [requirePermission('supplier:update')] },
+    { schema: updateSupplierContactSchemaDoc, preHandler: [requirePermission('supplier:update')] },
     handleUpdateSupplierContact,
   );
 };
