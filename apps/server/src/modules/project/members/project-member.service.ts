@@ -8,14 +8,14 @@ import { auditService } from '../../audit/audit.service.js';
 import { rbacCacheService } from '../../rbac/rbac.cache.service.js';
 import { RbacRepository } from '../../rbac/rbac.repository.js';
 import { ProjectMemberRepository } from './project-member.repository.js';
-import {
-  ProjectMemberConflictError,
+import { ProjectMemberConflictError,
   ProjectMemberNotFoundError,
   ProjectLastManagerError,
 } from '../core/project.errors.js';
 import { ValidationError } from '../../auth/auth.errors.js';
 import { toProjectMemberDTO } from '../core/project.mapper.js';
 import { PROJECT_QUEUES } from '../core/project.jobs.js';
+import { invalidateProjectContextCache } from '../core/project.middleware.js';
 import type { ProjectMemberDTO } from './project-member.types.js';
 import type { ProjectRole } from '../core/project.types.js';
 
@@ -115,6 +115,8 @@ export class ProjectMemberService {
 
       // 3. Invalidate RBAC cache after commit
       await rbacCacheService.invalidate(orgId, targetUserId);
+      // 4. Invalidate project context cache so next request re-fetches from DB
+      await invalidateProjectContextCache(orgId, projectId, targetUserId);
 
       const withUser = await this.memberRepo.findActiveMembers(orgId, projectId);
       const added = withUser.find((m) => m.userId === targetUserId);
@@ -177,6 +179,7 @@ export class ProjectMemberService {
       });
 
       await rbacCacheService.invalidate(orgId, targetUserId);
+      await invalidateProjectContextCache(orgId, projectId, targetUserId);
 
       const updated = await this.memberRepo.findActiveMembers(orgId, projectId);
       const member = updated.find((m) => m.userId === targetUserId);
@@ -234,6 +237,7 @@ export class ProjectMemberService {
       });
 
       await rbacCacheService.invalidate(orgId, targetUserId);
+      await invalidateProjectContextCache(orgId, projectId, targetUserId);
       logger.info({ orgId, projectId, targetUserId, actorUserId }, 'Project member removed');
     });
   }

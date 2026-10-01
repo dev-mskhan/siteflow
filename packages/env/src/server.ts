@@ -6,11 +6,7 @@ import { z } from 'zod';
 // Pre-load dotenv from process.cwd() and monorepo root parent directories
 const cwd = process.cwd();
 dotenv.config({
-  path: [
-    path.resolve(cwd, '.env'),
-    path.resolve(cwd, '../../.env'),
-    path.resolve(cwd, '../.env'),
-  ],
+  path: [path.resolve(cwd, '.env'), path.resolve(cwd, '../../.env'), path.resolve(cwd, '../.env')],
 });
 
 /**
@@ -25,6 +21,10 @@ export const serverEnv = createEnv({
 
     // Database (PostgreSQL)
     DATABASE_URL: z.string().url().default('postgres://siteflow:siteflow@localhost:5434/siteflow'),
+    DB_POOL_MAX: z.coerce.number().default(20),
+    DB_POOL_IDLE_TIMEOUT_MS: z.coerce.number().default(30000),
+    DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce.number().default(5000),
+    DB_STATEMENT_TIMEOUT_MS: z.coerce.number().default(20000),
 
     // Redis
     REDIS_URL: z.string().url().default('redis://localhost:6379'),
@@ -45,9 +45,15 @@ export const serverEnv = createEnv({
     OTEL_SERVICE_NAME: z.string().default('siteflow-server'),
 
     // Auth / JWT
-    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').default('change-me-please-at-least-32-chars-long!!'),
+    JWT_SECRET: z
+      .string()
+      .min(32, 'JWT_SECRET must be at least 32 characters')
+      .default('change-me-please-at-least-32-chars-long!!'),
     JWT_EXPIRY: z.string().default('15m'),
-    COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters').default('change-me-cookie-secret-32-chars!!'),
+    COOKIE_SECRET: z
+      .string()
+      .min(32, 'COOKIE_SECRET must be at least 32 characters')
+      .default('change-me-cookie-secret-32-chars!!'),
     REFRESH_TOKEN_EXPIRY_DAYS: z.coerce.number().int().positive().default(30),
 
     // SMTP / Email
@@ -62,6 +68,12 @@ export const serverEnv = createEnv({
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     GOOGLE_CALLBACK_URL: z.string().default('http://localhost:3000/api/v1/auth/google/callback'),
     FRONTEND_URL: z.string().url().optional(),
+
+    // CORS
+    CORS_ORIGIN: z.string().default('http://localhost:5173'),
+
+    // Request timeout (ms)
+    REQUEST_TIMEOUT_MS: z.coerce.number().default(25000),
 
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),

@@ -5,6 +5,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import sensible from '@fastify/sensible';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 
@@ -46,14 +47,33 @@ export async function buildApp(): Promise<FastifyInstance> {
         strict: false,
       },
     },
+    // Gap 6: hard limit on how long a request can stay alive
+    connectionTimeout: 30000,
+    requestTimeout: serverEnv.REQUEST_TIMEOUT_MS,
   });
 
   // ─── Core plugins ───────────────────────────────────────────────────────────
   await app.register(helmet, { global: true });
+
+  // Gap 4: parse CORS_ORIGIN (comma-separated) into an array so production
+  // clients get proper CORS headers instead of origin: false blocking them.
+  const allowedOrigins = serverEnv.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
   await app.register(cors, {
-    origin: serverEnv.NODE_ENV === 'production' ? false : true,
+    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     credentials: true,
   });
+
+  // Gap 5: global rate limit — 300 req/min per authenticated user (falls back to IP)
+  await app.register(rateLimit, {
+    global: true,
+    max: 300,
+    timeWindow: '1 minute',
+    keyGenerator: (req) => {
+      const ctx = (req as any).orgContext;
+      return ctx?.userId ?? req.ip;
+    },
+  });
+
   await app.register(sensible);
   const cookieSigner = {
     sign: (value: string) => `s:${cookie.sign(value, serverEnv.COOKIE_SECRET)}`,
@@ -116,7 +136,20 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // ─── Route modules ──────────────────────────────────────────────────────────
   await app.register(healthRoutes, { prefix: '/health' });
-  await app.register(authRoutes, { prefix: '/api/v1/auth' });
+
+  // Gap 5: auth routes get a stricter rate limit — 10 req per 15 min per IP
+  await app.register(
+    async (authScope) => {
+      await authScope.register(rateLimit, {
+        max: 10,
+        timeWindow: '15 minutes',
+        keyGenerator: (req) => req.ip,
+      });
+      await authScope.register(authRoutes);
+    },
+    { prefix: '/api/v1/auth' },
+  );
+
   await app.register(organizationRoutes, { prefix: '/api/v1/organizations' });
   await app.register(profileRoutes, { prefix: '/api/v1/organizations' });
   await app.register(settingsRoutes, { prefix: '/api/v1/organizations' });

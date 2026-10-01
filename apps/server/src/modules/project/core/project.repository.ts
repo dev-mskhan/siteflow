@@ -1,7 +1,7 @@
 // apps/server/src/modules/project/core/project.repository.ts
 import { eq, and, desc, or, lt, sql } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
-import { projects, type Project, type NewProject } from '@siteflow/database/schema';
+import { projects, projectMembers, type Project, type NewProject } from '@siteflow/database/schema';
 import { DocumentSequenceRepository } from '../../organization/sequences/sequences.repository.js';
 import { ProjectNotFoundError, ProjectModifiedError } from './project.errors.js';
 import type { ListProjectsFilter, ProjectStatus } from './project.types.js';
@@ -27,6 +27,48 @@ export class ProjectRepository {
       .where(and(eq(projects.id, projectId), eq(projects.organizationId, orgId)))
       .limit(1);
     return result[0] ?? null;
+  }
+
+  /**
+   * Fetches the project and the user's active membership in a single LEFT JOIN query.
+   * Returns null if the project does not exist (or belongs to a different org).
+   * The `membership` field is null when the user is not a member (org admins bypass project membership).
+   */
+  async findByIdWithMembership(
+    orgId: string,
+    projectId: string,
+    userId: string,
+  ): Promise<{ project: Project; membership: { id: string; role: string; status: string } | null } | null> {
+    const rows = await this.db
+      .select({
+        project: projects,
+        membershipId: projectMembers.id,
+        membershipRole: projectMembers.role,
+        membershipStatus: projectMembers.status,
+      })
+      .from(projects)
+      .leftJoin(
+        projectMembers,
+        and(
+          eq(projectMembers.projectId, projects.id),
+          eq(projectMembers.organizationId, orgId),
+          eq(projectMembers.userId, userId),
+          eq(projectMembers.status, 'ACTIVE'),
+        ),
+      )
+      .where(and(eq(projects.id, projectId), eq(projects.organizationId, orgId)))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) return null;
+
+    return {
+      project: row.project,
+      membership:
+        row.membershipId != null
+          ? { id: row.membershipId, role: row.membershipRole!, status: row.membershipStatus! }
+          : null,
+    };
   }
 
   async findByIdOrThrow(orgId: string, projectId: string): Promise<Project> {

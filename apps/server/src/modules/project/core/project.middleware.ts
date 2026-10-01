@@ -3,19 +3,32 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { ForbiddenError, ValidationError } from '../../auth/auth.errors.js';
 import { ProjectNotFoundError } from './project.errors.js';
 import { projectPolicy } from './project.policy.js';
-import { ProjectMemberRepository } from '../members/project-member.repository.js';
 import { ProjectRepository } from './project.repository.js';
-import type { ProjectContext } from './project.types.js';
+import { ensureRedisConnected } from '../../../lib/redis/redis.js';
+import { createLogger } from '@siteflow/observability/server';
+import type { ProjectContext, ProjectMembershipRef, ProjectRole } from './project.types.js';
 
+const logger = createLogger({ name: 'project-middleware' });
 const projectRepo = new ProjectRepository();
-const memberRepo = new ProjectMemberRepository();
+
+const PROJECT_CTX_CACHE_TTL_SECONDS = 120;
+
+function projectCtxCacheKey(orgId: string, projectId: string, userId: string): string {
+  return `siteflow:v1:proj-ctx:${orgId}:${projectId}:${userId}`;
+}
+
+interface CachedProjectCtxEntry {
+  projectOrgId: string;
+  membership: { id: string; role: string; status: string } | null;
+}
 
 /**
  * Fastify preHandler — establishes ProjectContext on request.projectCtx.
  *
  * Prerequisites: authenticate → organizationContext must have run first.
- * Reads :projectId from route params, loads the project (scoped to orgContext.organizationId),
- * loads the user's project membership (may be null for org admins), and sets request.projectCtx.
+ * Reads :projectId from route params, loads the project + membership in a
+ * single LEFT JOIN query (merged from two sequential calls), caches the result
+ * in Redis for 120s keyed siteflow:v1:proj-ctx:{orgId}:{projectId}:{userId}.
  *
  * IDOR safety: wrong-org projectId returns 404, not 403.
  */
@@ -35,41 +48,98 @@ export async function projectContext(
   }
 
   const orgId = request.orgContext.organizationId;
+  const userId = request.orgContext.userId;
+  const cacheKey = projectCtxCacheKey(orgId, projectId, userId);
 
-  // Load project — scoped to org; returns null for wrong-org IDs
-  const project = await projectRepo.findById(orgId, projectId);
-  if (!project) {
-    // Never 403 here — do not leak existence to wrong-org callers
-    throw new ProjectNotFoundError();
+  // ── Try Redis cache first ────────────────────────────────────────────────
+  let projectOrgId: string | undefined;
+  let membership: ProjectMembershipRef | null = null;
+
+  try {
+    const redis = await ensureRedisConnected();
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const entry = JSON.parse(cached) as CachedProjectCtxEntry;
+      // Belt-and-suspenders org boundary check on cached data
+      if (entry.projectOrgId !== orgId) {
+        throw new ProjectNotFoundError();
+      }
+      projectOrgId = entry.projectOrgId;
+      membership = entry.membership
+        ? { id: entry.membership.id, role: entry.membership.role as ProjectRole, status: entry.membership.status as 'ACTIVE' | 'REMOVED' }
+        : null;
+    }
+  } catch (err) {
+    if (err instanceof ProjectNotFoundError) throw err;
+    logger.warn({ err, projectId, userId }, 'Redis project context cache read failed — falling back to DB');
   }
 
-  // Belt-and-suspenders: explicit org boundary check (findById already scopes by orgId)
-  if (project.organizationId !== orgId) {
-    throw new ProjectNotFoundError();
-  }
+  // ── Cache miss: single DB query (LEFT JOIN project + membership) ─────────
+  if (!projectOrgId) {
+    const result = await projectRepo.findByIdWithMembership(orgId, projectId, userId);
 
-  // Load project membership — may be null (org admins bypass project membership)
-  const projectMembership = await memberRepo.findActiveByProjectAndUser(
-    orgId,
-    projectId,
-    request.orgContext.userId,
-  );
+    if (!result) {
+      // Never 403 here — do not leak existence to wrong-org callers
+      throw new ProjectNotFoundError();
+    }
+
+    // Belt-and-suspenders: explicit org boundary check
+    if (result.project.organizationId !== orgId) {
+      throw new ProjectNotFoundError();
+    }
+
+    projectOrgId = result.project.organizationId;
+    membership = result.membership
+      ? {
+          id: result.membership.id,
+          role: result.membership.role as ProjectRole,
+          status: result.membership.status as 'ACTIVE' | 'REMOVED',
+        }
+      : null;
+
+    // ── Populate cache (fail-open) ─────────────────────────────────────────
+    try {
+      const redis = await ensureRedisConnected();
+      const entry: CachedProjectCtxEntry = {
+        projectOrgId,
+        membership: membership ? { id: membership.id, role: membership.role, status: membership.status } : null,
+      };
+      await redis.set(cacheKey, JSON.stringify(entry), 'EX', PROJECT_CTX_CACHE_TTL_SECONDS);
+    } catch (err) {
+      logger.warn({ err, projectId, userId }, 'Redis project context cache write failed');
+    }
+  }
 
   const ctx: ProjectContext = {
     organizationId: orgId,
     projectId,
-    userId: request.orgContext.userId,
+    userId,
     organizationMembership: {
       id: request.orgContext.membershipId,
       roleId: request.orgContext.roleId,
       permissions: request.orgContext.permissions,
     },
-    projectMembership: projectMembership
-      ? { id: projectMembership.id, role: projectMembership.role, status: projectMembership.status }
-      : null,
+    projectMembership: membership,
   };
 
   request.projectCtx = ctx;
+}
+
+/**
+ * Invalidates the project context cache for a specific user+project combination.
+ * Call after membership add/remove/role update so the next request re-fetches from DB.
+ */
+export async function invalidateProjectContextCache(
+  orgId: string,
+  projectId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const redis = await ensureRedisConnected();
+    await redis.del(projectCtxCacheKey(orgId, projectId, userId));
+  } catch (err) {
+    logger.warn({ err, orgId, projectId, userId }, 'Failed to invalidate project context cache');
+  }
 }
 
 /**

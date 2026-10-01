@@ -8,6 +8,10 @@ import {
   permissions,
   type Membership,
 } from '@siteflow/database/schema';
+import { rbacCacheService } from './rbac.cache.service.js';
+import { createLogger } from '@siteflow/observability/server';
+
+const logger = createLogger({ name: 'rbac-repository' });
 
 export class RbacRepository {
   private get db() {
@@ -50,13 +54,25 @@ export class RbacRepository {
   }
 
   async getPermissionsForRole(roleId: string): Promise<string[]> {
+    // Check Redis cache first — role permissions change extremely rarely
+    const cached = await rbacCacheService.getRolePermissions(roleId);
+    if (cached !== null) {
+      logger.debug({ roleId }, 'RBAC role permissions cache hit');
+      return cached;
+    }
+
     const rows = await this.db
       .select({ key: permissions.key })
       .from(rolePermissions)
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
       .where(eq(rolePermissions.roleId, roleId));
 
-    return rows.map((r) => r.key);
+    const perms = rows.map((r) => r.key);
+
+    // Cache the result — fail-open if Redis is unavailable
+    await rbacCacheService.setRolePermissions(roleId, perms);
+
+    return perms;
   }
 
   async getPermissionsForMembership(membershipId: string): Promise<string[]> {
