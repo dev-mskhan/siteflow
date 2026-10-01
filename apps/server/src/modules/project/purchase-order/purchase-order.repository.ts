@@ -4,7 +4,7 @@ import {
   type PurchaseOrder,
   type PurchaseOrderItem,
 } from '@siteflow/database/schema';
-import { eq, and, desc, lt, or, sql } from 'drizzle-orm';
+import { eq, and, desc, lt, or, sql, inArray } from 'drizzle-orm';
 
 export class PurchaseOrderRepository {
   async findById(db: any, id: string): Promise<PurchaseOrder | undefined> {
@@ -108,5 +108,13 @@ export class PurchaseOrderRepository {
       .select()
       .from(purchaseOrderItems)
       .where(eq(purchaseOrderItems.purchaseOrderId, purchaseOrderId));
+  }
+
+  async findItemsByPoIds(db: any, purchaseOrderIds: string[]): Promise<PurchaseOrderItem[]> {
+    if (purchaseOrderIds.length === 0) return [];
+    return db
+      .select()
+      .from(purchaseOrderItems)
+      .where(inArray(purchaseOrderItems.purchaseOrderId, purchaseOrderIds));
   }
 }

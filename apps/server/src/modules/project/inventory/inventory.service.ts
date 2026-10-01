@@ -296,7 +296,7 @@ export class InventoryService {
   }
 
   async getBalance(
-    _organizationId: string,
+    organizationId: string,
     projectId: string,
     materialId: string,
     location = 'default',
@@ -306,6 +306,7 @@ export class InventoryService {
       .from(projectInventoryItems)
       .where(
         and(
+          eq(projectInventoryItems.organizationId, organizationId),
           eq(projectInventoryItems.projectId, projectId),
           eq(projectInventoryItems.materialId, materialId),
           eq(projectInventoryItems.location, location),
@@ -317,7 +318,7 @@ export class InventoryService {
   }
 
   async listTransactions(
-    _organizationId: string,
+    organizationId: string,
     projectId: string,
     materialId: string,
   ): Promise<any[]> {
@@ -325,7 +326,7 @@ export class InventoryService {
       sql`SELECT id, transaction_type, quantity, unit_code, source_type, source_id,
                  occurred_at, created_at
           FROM app.inventory_transactions
-          WHERE project_id = ${projectId} AND material_id = ${materialId}
+          WHERE organization_id = ${organizationId} AND project_id = ${projectId} AND material_id = ${materialId}
           ORDER BY occurred_at DESC, id DESC LIMIT 100`,
     ) as any;
     return (rows.rows ?? rows).map((r: any) => ({

@@ -9,12 +9,21 @@ import {
   type ProjectSubcontractor,
   type SubcontractorTaskAssignment,
 } from '@siteflow/database/schema';
-import { eq, and, lt, or, desc } from 'drizzle-orm';
+import { eq, and, lt, or, desc, inArray } from 'drizzle-orm';
 
 export class SubcontractorRepository {
   async findById(db: any, id: string): Promise<Subcontractor | undefined> {
     const rows = await db.select().from(subcontractors).where(eq(subcontractors.id, id));
     return rows[0];
+  }
+
+  async findByIds(db: any, ids: string[]): Promise<Map<string, Subcontractor>> {
+    if (ids.length === 0) return new Map();
+    const rows = await db
+      .select()
+      .from(subcontractors)
+      .where(inArray(subcontractors.id, ids));
+    return new Map(rows.map((r: Subcontractor) => [r.id, r]));
   }
 
   async create(

@@ -167,11 +167,19 @@ export class DeliveryService {
         const last = data[data.length - 1]!;
         nextCursor = Buffer.from(JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id })).toString('base64');
       }
-      const result: DeliveryDTO[] = [];
-      for (const row of data) {
-        const items = await this.repo.findDeliveryItemsByDeliveryId(this.db, row.id);
-        result.push(toDeliveryDTO(row, items));
+      const allItems = await this.repo.findDeliveryItemsByDeliveryIds(
+        this.db,
+        data.map((r) => r.id),
+      );
+      const itemsByDeliveryId = new Map<string, DeliveryItem[]>();
+      for (const item of allItems) {
+        const arr = itemsByDeliveryId.get(item.deliveryId) ?? [];
+        arr.push(item);
+        itemsByDeliveryId.set(item.deliveryId, arr);
       }
+      const result: DeliveryDTO[] = data.map((row) =>
+        toDeliveryDTO(row, itemsByDeliveryId.get(row.id) ?? []),
+      );
       return { data: result, nextCursor };
     });
   }
@@ -263,11 +271,19 @@ export class DeliveryService {
         const last = data[data.length - 1]!;
         nextCursor = Buffer.from(JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id })).toString('base64');
       }
-      const result: ReceiptDTO[] = [];
-      for (const row of data) {
-        const items = await this.repo.findReceiptItemsByReceiptId(this.db, row.id);
-        result.push(toReceiptDTO(row, items));
+      const allItems = await this.repo.findReceiptItemsByReceiptIds(
+        this.db,
+        data.map((r) => r.id),
+      );
+      const itemsByReceiptId = new Map<string, ReceiptItem[]>();
+      for (const item of allItems) {
+        const arr = itemsByReceiptId.get(item.receiptId) ?? [];
+        arr.push(item);
+        itemsByReceiptId.set(item.receiptId, arr);
       }
+      const result: ReceiptDTO[] = data.map((row) =>
+        toReceiptDTO(row, itemsByReceiptId.get(row.id) ?? []),
+      );
       return { data: result, nextCursor };
     });
   }
@@ -318,6 +334,12 @@ export class DeliveryService {
         const updated = await this.repo.updateReceipt(tx as any, receiptId, { status: 'VOIDED' });
         const items = await this.repo.findReceiptItemsByReceiptId(tx as any, receiptId);
         await _reverseReceiptInventory(tx, receiptId, organizationId, projectId);
+        await writeOutboxEvent(
+          tx,
+          'procurement.receipt.voided',
+          { organizationId, projectId, receiptId },
+          organizationId,
+        );
         await auditService.log({ organizationId, actorUserId, action: 'receipt.voided', resourceType: 'Receipt', resourceId: receiptId, metadata: { projectId } }, tx);
         return toReceiptDTO(updated, items);
       });

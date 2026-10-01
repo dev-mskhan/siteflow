@@ -226,11 +226,17 @@ export class QuoteService {
           JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id }),
         ).toString('base64');
       }
-      const result = [];
-      for (const row of data) {
-        const items = await this.repo.findItemsByQuoteId(this.db, row.id);
-        result.push(toDTO(row, items));
+      const allItems = await this.repo.findItemsByQuoteIds(
+        this.db,
+        data.map((r) => r.id),
+      );
+      const itemsByQuoteId = new Map<string, QuoteItem[]>();
+      for (const item of allItems) {
+        const arr = itemsByQuoteId.get(item.quoteId) ?? [];
+        arr.push(item);
+        itemsByQuoteId.set(item.quoteId, arr);
       }
+      const result = data.map((row) => toDTO(row, itemsByQuoteId.get(row.id) ?? []));
       return { data: result, nextCursor };
     });
   }
@@ -279,7 +285,7 @@ export class QuoteService {
     return withSpan(tracer, 'quote.submit', async (span) => {
       span.setAttributes({ organizationId, projectId, quoteId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, quoteId);
+        const row = await this.repo.findByIdForUpdate(tx, quoteId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) {
           throw new QuoteNotFoundError(quoteId);
         }
@@ -291,6 +297,12 @@ export class QuoteService {
           submittedAt: new Date(),
         });
         const items = await this.repo.findItemsByQuoteId(tx as any, quoteId);
+        await writeOutboxEvent(
+          tx,
+          'procurement.quote.submitted',
+          { organizationId, projectId, quoteId },
+          organizationId,
+        );
         await auditService.log(
           {
             organizationId,
@@ -316,7 +328,7 @@ export class QuoteService {
     return withSpan(tracer, 'quote.accept', async (span) => {
       span.setAttributes({ organizationId, projectId, quoteId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, quoteId);
+        const row = await this.repo.findByIdForUpdate(tx, quoteId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) {
           throw new QuoteNotFoundError(quoteId);
         }
@@ -374,7 +386,7 @@ export class QuoteService {
     return withSpan(tracer, 'quote.reject', async (span) => {
       span.setAttributes({ organizationId, projectId, quoteId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, quoteId);
+        const row = await this.repo.findByIdForUpdate(tx, quoteId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) {
           throw new QuoteNotFoundError(quoteId);
         }

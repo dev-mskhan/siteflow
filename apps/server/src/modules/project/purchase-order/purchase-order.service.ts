@@ -258,11 +258,17 @@ export class PurchaseOrderService {
           JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id }),
         ).toString('base64');
       }
-      const result: PurchaseOrderDTO[] = [];
-      for (const row of data) {
-        const items = await this.repo.findItemsByPoId(this.db, row.id);
-        result.push(toDTO(row, items));
+      const allItems = await this.repo.findItemsByPoIds(
+        this.db,
+        data.map((r) => r.id),
+      );
+      const itemsByPoId = new Map<string, PurchaseOrderItem[]>();
+      for (const item of allItems) {
+        const arr = itemsByPoId.get(item.purchaseOrderId) ?? [];
+        arr.push(item);
+        itemsByPoId.set(item.purchaseOrderId, arr);
       }
+      const result: PurchaseOrderDTO[] = data.map((row) => toDTO(row, itemsByPoId.get(row.id) ?? []));
       return { data: result, nextCursor };
     });
   }

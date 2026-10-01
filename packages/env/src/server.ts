@@ -74,6 +74,7 @@ export const serverEnv = createEnv({
 
     // Request timeout (ms)
     REQUEST_TIMEOUT_MS: z.coerce.number().default(25000),
+    BODY_LIMIT_BYTES: z.coerce.number().default(1048576),
 
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),

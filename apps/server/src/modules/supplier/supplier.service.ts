@@ -40,6 +40,15 @@ function hashQuery(query: ListSuppliersQuery): string {
   return crypto.createHash('md5').update(JSON.stringify(query)).digest('hex');
 }
 
+async function scanAndDelete(redis: any, pattern: string): Promise<void> {
+  let cursor = '0';
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+    cursor = nextCursor;
+    if (keys.length > 0) await redis.del(...keys);
+  } while (cursor !== '0');
+}
+
 function toSupplierDTO(row: Supplier): SupplierDTO {
   return {
     id: row.id,
@@ -118,8 +127,7 @@ export class SupplierService {
     try {
       const redis = getRedis();
       const pattern = `siteflow:v1:org:${orgId}:supplier:list:*`;
-      const keys = await redis.keys(pattern);
-      if (keys.length > 0) await redis.del(...keys);
+      await scanAndDelete(redis, pattern);
     } catch {
       // cache failure must not break the service
     }

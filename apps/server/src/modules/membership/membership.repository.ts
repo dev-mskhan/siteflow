@@ -136,6 +136,26 @@ export class MembershipRepository {
     return result[0]!;
   }
 
+  async findByIdForUpdate(tx: any, memberId: string, orgId: string): Promise<Membership | undefined> {
+    const rows = await tx.execute(
+      sql`SELECT id, organization_id, user_id, role_id, status, joined_at, created_at, updated_at
+          FROM app.organization_memberships 
+          WHERE id = ${memberId} AND organization_id = ${orgId} FOR UPDATE`,
+    ) as any;
+    const row = (rows.rows ?? rows)[0];
+    if (!row) return undefined;
+    return {
+      id: row.id,
+      organizationId: row.organization_id,
+      userId: row.user_id,
+      roleId: row.role_id,
+      status: row.status,
+      joinedAt: row.joined_at ?? null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    } as Membership;
+  }
+
   async softRemove(id: string, tx?: any): Promise<void> {
     const client = tx ?? this.db;
     await client

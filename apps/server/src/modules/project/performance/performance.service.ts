@@ -63,26 +63,56 @@ export class PartnerPerformanceService {
     organizationId: string,
     projectId: string,
     supplierId: string,
-  ): Promise<any[]> {
+    opts: { cursor?: string; limit?: number } = {},
+  ): Promise<{ data: any[]; nextCursor: string | null }> {
     return withSpan(tracer, 'performance.list-supplier', async () => {
+      const limit = Math.min(opts.limit ?? 50, 100);
+      const fetchLimit = limit + 1;
+
+      let cursorFilter = sql``;
+      if (opts.cursor) {
+        try {
+          const { occurredAt, id } = JSON.parse(Buffer.from(opts.cursor, 'base64').toString());
+          cursorFilter = sql` AND (occurred_at < ${occurredAt} OR (occurred_at = ${occurredAt} AND id < ${id}))`;
+        } catch {
+          // ignore invalid cursor
+        }
+      }
+
       const rows = await this.db.execute(
         sql`SELECT id, event_type, source_type, source_id, occurred_at, metric_value, unit, notes
             FROM app.partner_performance_events
             WHERE organization_id = ${organizationId}
               AND project_id = ${projectId}
               AND supplier_id = ${supplierId}
-            ORDER BY occurred_at DESC LIMIT 200`,
+              ${cursorFilter}
+            ORDER BY occurred_at DESC, id DESC LIMIT ${fetchLimit}`,
       ) as any;
-      return (rows.rows ?? rows).map((r: any) => ({
-        id: r.id,
-        eventType: r.event_type,
-        sourceType: r.source_type,
-        sourceId: r.source_id,
-        occurredAt: r.occurred_at,
-        metricValue: r.metric_value,
-        unit: r.unit,
-        notes: r.notes,
-      }));
+
+      const raw: any[] = rows.rows ?? rows;
+      const hasMore = raw.length > limit;
+      const data = hasMore ? raw.slice(0, limit) : raw;
+      const last = data[data.length - 1];
+      const nextCursor: string | null =
+        hasMore && last
+          ? Buffer.from(
+              JSON.stringify({ occurredAt: last.occurred_at, id: last.id }),
+            ).toString('base64')
+          : null;
+
+      return {
+        data: data.map((r: any) => ({
+          id: r.id,
+          eventType: r.event_type,
+          sourceType: r.source_type,
+          sourceId: r.source_id,
+          occurredAt: r.occurred_at,
+          metricValue: r.metric_value,
+          unit: r.unit,
+          notes: r.notes,
+        })),
+        nextCursor,
+      };
     });
   }
 
@@ -90,26 +120,56 @@ export class PartnerPerformanceService {
     organizationId: string,
     projectId: string,
     subcontractorId: string,
-  ): Promise<any[]> {
+    opts: { cursor?: string; limit?: number } = {},
+  ): Promise<{ data: any[]; nextCursor: string | null }> {
     return withSpan(tracer, 'performance.list-subcontractor', async () => {
+      const limit = Math.min(opts.limit ?? 50, 100);
+      const fetchLimit = limit + 1;
+
+      let cursorFilter = sql``;
+      if (opts.cursor) {
+        try {
+          const { occurredAt, id } = JSON.parse(Buffer.from(opts.cursor, 'base64').toString());
+          cursorFilter = sql` AND (occurred_at < ${occurredAt} OR (occurred_at = ${occurredAt} AND id < ${id}))`;
+        } catch {
+          // ignore invalid cursor
+        }
+      }
+
       const rows = await this.db.execute(
         sql`SELECT id, event_type, source_type, source_id, occurred_at, metric_value, unit, notes
             FROM app.partner_performance_events
             WHERE organization_id = ${organizationId}
               AND project_id = ${projectId}
               AND subcontractor_id = ${subcontractorId}
-            ORDER BY occurred_at DESC LIMIT 200`,
+              ${cursorFilter}
+            ORDER BY occurred_at DESC, id DESC LIMIT ${fetchLimit}`,
       ) as any;
-      return (rows.rows ?? rows).map((r: any) => ({
-        id: r.id,
-        eventType: r.event_type,
-        sourceType: r.source_type,
-        sourceId: r.source_id,
-        occurredAt: r.occurred_at,
-        metricValue: r.metric_value,
-        unit: r.unit,
-        notes: r.notes,
-      }));
+
+      const raw: any[] = rows.rows ?? rows;
+      const hasMore = raw.length > limit;
+      const data = hasMore ? raw.slice(0, limit) : raw;
+      const last = data[data.length - 1];
+      const nextCursor: string | null =
+        hasMore && last
+          ? Buffer.from(
+              JSON.stringify({ occurredAt: last.occurred_at, id: last.id }),
+            ).toString('base64')
+          : null;
+
+      return {
+        data: data.map((r: any) => ({
+          id: r.id,
+          eventType: r.event_type,
+          sourceType: r.source_type,
+          sourceId: r.source_id,
+          occurredAt: r.occurred_at,
+          metricValue: r.metric_value,
+          unit: r.unit,
+          notes: r.notes,
+        })),
+        nextCursor,
+      };
     });
   }
 }

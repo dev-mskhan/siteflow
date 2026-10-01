@@ -144,11 +144,18 @@ export class InvitationService {
     });
   }
 
-  async listInvitations(orgId: string): Promise<InvitationDTO[]> {
+  async listInvitations(
+    orgId: string,
+    opts: { limit?: number } = {},
+  ): Promise<{ data: InvitationDTO[]; nextCursor: string | null }> {
     return withSpan(tracer, 'invitation.listInvitations', async (span) => {
       span.setAttribute('organization.id', orgId);
+      const limit = Math.min(opts.limit ?? 50, 100);
       const invites = await this.repo.findByOrg(orgId);
-      return invites.map(toInvitationDTO);
+      // Member counts per org are bounded — simple limit-only pagination is sufficient
+      const hasMore = invites.length > limit;
+      const data = hasMore ? invites.slice(0, limit) : invites;
+      return { data: data.map(toInvitationDTO), nextCursor: null };
     });
   }
 

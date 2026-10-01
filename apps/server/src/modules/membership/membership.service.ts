@@ -55,11 +55,18 @@ export class MembershipService {
     }
   }
 
-  async listMembers(orgId: string): Promise<MemberDTO[]> {
+  async listMembers(
+    orgId: string,
+    opts: { limit?: number } = {},
+  ): Promise<{ data: MemberDTO[]; nextCursor: string | null }> {
     return withSpan(tracer, 'membership.listMembers', async (span) => {
       span.setAttribute('organization.id', orgId);
+      const limit = Math.min(opts.limit ?? 50, 100);
       const members = await this.repo.findByOrg(orgId);
-      return members.map(toMemberDTO);
+      // Member counts per org are bounded — simple limit-only pagination is sufficient
+      const hasMore = members.length > limit;
+      const data = hasMore ? members.slice(0, limit) : members;
+      return { data: data.map(toMemberDTO), nextCursor: null };
     });
   }
 
@@ -87,11 +94,6 @@ export class MembershipService {
       span.setAttribute('membership.id', memberId);
       span.setAttribute('user.id', actorCtx.userId);
 
-      const existing = await this.repo.findById(memberId, orgId);
-      if (!existing || existing.status === 'REMOVED') {
-        throw new NotFoundError('Member not found');
-      }
-
       if (input.roleId) {
         const targetRole = await this.db
           .select()
@@ -108,11 +110,21 @@ export class MembershipService {
       if (input.roleId || input.status === 'SUSPENDED') {
         const currentMember = await this.repo.findMemberWithDetails(memberId, orgId);
         if (currentMember?.roleName === 'Organization Admin') {
-          await this.assertNotLastAdmin(orgId, existing);
+          // Use a temporary membership stub for assertNotLastAdmin (only needs id/orgId)
+          const stub = { id: memberId, organizationId: orgId } as Membership;
+          await this.assertNotLastAdmin(orgId, stub);
         }
       }
 
+      let targetUserId: string | undefined;
       const updated = await this.db.transaction(async (tx) => {
+        // Locked read inside transaction — prevents concurrent updates on the same row
+        const locked = await this.repo.findByIdForUpdate(tx, memberId, orgId);
+        if (!locked || locked.status === 'REMOVED') {
+          throw new NotFoundError('Member not found');
+        }
+        targetUserId = locked.userId;
+
         const result = await this.repo.update(memberId, input, tx);
 
         // Determine specific audit action based on what changed
@@ -142,8 +154,8 @@ export class MembershipService {
       });
 
       // Synchronous cache invalidation AFTER transaction commit
-      await rbacCacheService.invalidate(orgId, existing.userId);
-      await new OrganizationCacheService().invalidateUserOrgList(existing.userId);
+      await rbacCacheService.invalidate(orgId, targetUserId!);
+      await new OrganizationCacheService().invalidateUserOrgList(targetUserId!);
 
       const refreshed = await this.repo.findMemberWithDetails(memberId, orgId);
       return toMemberDTO(refreshed ?? updated);

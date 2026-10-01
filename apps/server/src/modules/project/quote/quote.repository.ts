@@ -1,10 +1,15 @@
 import { quotes, quoteItems, type Quote, type QuoteItem } from '@siteflow/database/schema';
-import { eq, and, desc, lt, or } from 'drizzle-orm';
+import { eq, and, desc, lt, or, inArray, sql } from 'drizzle-orm';
 
 export class QuoteRepository {
   async findById(db: any, id: string): Promise<Quote | undefined> {
     const rows = await db.select().from(quotes).where(eq(quotes.id, id));
     return rows[0];
+  }
+
+  async findByIdForUpdate(db: any, id: string): Promise<Quote | undefined> {
+    await db.execute(sql`SELECT id FROM app.quotes WHERE id = ${id} FOR UPDATE`);
+    return this.findById(db, id);
   }
 
   async create(db: any, data: any): Promise<Quote> {
@@ -71,5 +76,13 @@ export class QuoteRepository {
 
   async findItemsByQuoteId(db: any, quoteId: string): Promise<QuoteItem[]> {
     return db.select().from(quoteItems).where(eq(quoteItems.quoteId, quoteId));
+  }
+
+  async findItemsByQuoteIds(db: any, quoteIds: string[]): Promise<QuoteItem[]> {
+    if (quoteIds.length === 0) return [];
+    return db
+      .select()
+      .from(quoteItems)
+      .where(inArray(quoteItems.quoteId, quoteIds));
   }
 }

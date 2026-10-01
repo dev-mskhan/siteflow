@@ -4,12 +4,17 @@ import {
   type MaterialRequest,
   type MaterialRequestItem,
 } from '@siteflow/database/schema';
-import { eq, and, desc, lt, or } from 'drizzle-orm';
+import { eq, and, desc, lt, or, inArray, sql } from 'drizzle-orm';
 
 export class MaterialRequestRepository {
   async findById(db: any, id: string): Promise<MaterialRequest | undefined> {
     const rows = await db.select().from(materialRequests).where(eq(materialRequests.id, id));
     return rows[0];
+  }
+
+  async findByIdForUpdate(db: any, id: string): Promise<MaterialRequest | undefined> {
+    await db.execute(sql`SELECT id FROM app.material_requests WHERE id = ${id} FOR UPDATE`);
+    return this.findById(db, id);
   }
 
   async create(db: any, data: any): Promise<MaterialRequest> {
@@ -74,5 +79,13 @@ export class MaterialRequestRepository {
       .select()
       .from(materialRequestItems)
       .where(eq(materialRequestItems.materialRequestId, materialRequestId));
+  }
+
+  async findItemsByRequestIds(db: any, requestIds: string[]): Promise<MaterialRequestItem[]> {
+    if (requestIds.length === 0) return [];
+    return db
+      .select()
+      .from(materialRequestItems)
+      .where(inArray(materialRequestItems.materialRequestId, requestIds));
   }
 }

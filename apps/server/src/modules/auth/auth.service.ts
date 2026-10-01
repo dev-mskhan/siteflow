@@ -1,6 +1,8 @@
 // apps/server/src/modules/auth/auth.service.ts
+import { eq } from 'drizzle-orm';
 import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
+import { users } from '@siteflow/database/schema';
 import { AuthRepository } from './auth.repository.js';
 import { hashPassword, verifyPassword } from './password.service.js';
 import { createAccessToken, generateOneTimeToken } from './token.service.js';
@@ -152,9 +154,6 @@ export class AuthService {
       // Reset login attempt count on success
       await this.cacheService.resetLoginAttempts(attemptsKey);
 
-      // Update last login timestamp
-      await this.repo.updateLastLogin(user.id);
-
       // Invalidate active user sessions list cache so GET /sessions reflects the new login
       await this.cacheService.invalidateUserSessions(user.id);
 
@@ -167,12 +166,18 @@ export class AuthService {
         sessionId: session.id,
       });
 
-      // Write new-login notification to outbox
-      await writeOutboxEvent(
-        getDb(),
-        AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION,
-        { userId: user.id, email: user.email, ipAddress, userAgent },
-      );
+      // Atomically update last login timestamp and write new-login notification to outbox
+      await getDb().transaction(async (tx) => {
+        await tx
+          .update(users)
+          .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+          .where(eq(users.id, user.id));
+        await writeOutboxEvent(
+          tx,
+          AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION,
+          { userId: user.id, email: user.email, ipAddress, userAgent },
+        );
+      });
 
       logger.info({ userId: user.id }, 'User logged in successfully');
       return {
@@ -229,9 +234,6 @@ export class AuthService {
         throw new ForbiddenError('Account is suspended');
       }
 
-      // Update last login timestamp
-      await this.repo.updateLastLogin(user.id);
-
       // Invalidate caches on login/signup write
       await this.cacheService.invalidateUserProfile(user.id);
       await this.cacheService.invalidateUserSessions(user.id);
@@ -246,12 +248,18 @@ export class AuthService {
         sessionId: session.id,
       });
 
-      // Write new-login notification to outbox
-      await writeOutboxEvent(
-        getDb(),
-        AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION,
-        { userId: user.id, email: user.email, ipAddress, userAgent },
-      );
+      // Atomically update last login timestamp and write new-login notification to outbox
+      await getDb().transaction(async (tx) => {
+        await tx
+          .update(users)
+          .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+          .where(eq(users.id, user.id));
+        await writeOutboxEvent(
+          tx,
+          AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION,
+          { userId: user.id, email: user.email, ipAddress, userAgent },
+        );
+      });
 
       logger.info({ userId: user.id, provider: 'GOOGLE' }, 'User authenticated successfully via Google OAuth');
       return {
@@ -390,21 +398,23 @@ export class AuthService {
     });
   }
 
-  async getUserSessions(userId: string, currentSessionId?: string): Promise<SessionDTO[]> {
+  async getUserSessions(userId: string, currentSessionId?: string): Promise<{ data: SessionDTO[]; nextCursor: string | null }> {
     return withSpan(tracer, 'auth.getUserSessions', async () => {
       // Cache-aside pattern for active sessions list (auth:sessions:{userId})
+      // Cache still stores raw SessionDTO[] — unwrap after cache hit
       const cachedSessions = await this.cacheService.getUserSessions(userId);
       if (cachedSessions) {
-        return cachedSessions.map((s) => ({
+        const sessions = cachedSessions.map((s) => ({
           ...s,
           isCurrent: s.id === currentSessionId,
         }));
+        return { data: sessions, nextCursor: null };
       }
 
       const sessions = await this.sessionService.getUserSessions(userId, currentSessionId);
-      // Cache user session list for 45 seconds
+      // Cache the raw array (without the wrapper) for 45 seconds
       await this.cacheService.setUserSessions(userId, sessions, 45);
-      return sessions;
+      return { data: sessions, nextCursor: null };
     });
   }
 

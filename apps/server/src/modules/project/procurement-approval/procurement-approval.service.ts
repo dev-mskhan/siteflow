@@ -384,6 +384,12 @@ export class ProcurementApprovalService {
         const updated = await this.repo.update(tx as any, approvalId, {
           status: 'CANCELLED',
         });
+        await writeOutboxEvent(
+          tx,
+          'procurement.approval.cancelled',
+          { organizationId, projectId, approvalId },
+          organizationId,
+        );
         await auditService.log(
           {
             organizationId,

@@ -4,7 +4,7 @@ import {
 import type {
   Delivery, DeliveryItem, Receipt, ReceiptItem, PurchaseOrderItem,
 } from '@siteflow/database/schema';
-import { eq, and, desc, lt, or, sql } from 'drizzle-orm';
+import { eq, and, desc, lt, or, sql, inArray } from 'drizzle-orm';
 
 export class DeliveryRepository {
   async findDeliveryById(db: any, id: string): Promise<Delivery | undefined> {
@@ -22,6 +22,10 @@ export class DeliveryRepository {
   }
   async findDeliveryItemsByDeliveryId(db: any, deliveryId: string): Promise<DeliveryItem[]> {
     return db.select().from(deliveryItems).where(eq(deliveryItems.deliveryId, deliveryId));
+  }
+  async findDeliveryItemsByDeliveryIds(db: any, deliveryIds: string[]): Promise<DeliveryItem[]> {
+    if (deliveryIds.length === 0) return [];
+    return db.select().from(deliveryItems).where(inArray(deliveryItems.deliveryId, deliveryIds));
   }
   async listDeliveries(db: any, organizationId: string, projectId: string, opts: { cursor?: string; limit: number }): Promise<Delivery[]> {
     const conds: any[] = [eq(deliveries.organizationId, organizationId), eq(deliveries.projectId, projectId)];
@@ -49,6 +53,10 @@ export class DeliveryRepository {
   }
   async findReceiptItemsByReceiptId(db: any, receiptId: string): Promise<ReceiptItem[]> {
     return db.select().from(receiptItems).where(eq(receiptItems.receiptId, receiptId));
+  }
+  async findReceiptItemsByReceiptIds(db: any, receiptIds: string[]): Promise<ReceiptItem[]> {
+    if (receiptIds.length === 0) return [];
+    return db.select().from(receiptItems).where(inArray(receiptItems.receiptId, receiptIds));
   }
   async listReceipts(db: any, organizationId: string, projectId: string, opts: { cursor?: string; limit: number }): Promise<Receipt[]> {
     const conds: any[] = [eq(receipts.organizationId, organizationId), eq(receipts.projectId, projectId)];

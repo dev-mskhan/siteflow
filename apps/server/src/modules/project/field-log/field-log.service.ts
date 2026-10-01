@@ -226,7 +226,7 @@ export class FieldLogService {
       span.setAttributes({ organizationId, projectId, logId });
 
       return this.db.transaction(async (tx) => {
-        const log = await this.repo.findById(tx as any, logId);
+        const log = await this.repo.findByIdForUpdate(tx, logId);
         if (!log || log.organizationId !== organizationId || log.projectId !== projectId) {
           throw new FieldLogNotFoundError(logId);
         }
@@ -267,7 +267,7 @@ export class FieldLogService {
       span.setAttributes({ organizationId, projectId, logId });
 
       return this.db.transaction(async (tx) => {
-        const log = await this.repo.findById(tx as any, logId);
+        const log = await this.repo.findByIdForUpdate(tx, logId);
         if (!log || log.organizationId !== organizationId || log.projectId !== projectId) {
           throw new FieldLogNotFoundError(logId);
         }

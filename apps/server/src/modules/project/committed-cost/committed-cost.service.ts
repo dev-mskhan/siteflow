@@ -107,6 +107,23 @@ export class CommittedCostService {
       const existing = await this.repo.findBySource(tx, organizationId, 'PURCHASE_ORDER', poId);
       if (!existing || existing.status !== 'ACTIVE') return;
       await this.repo.update(tx, existing.id, { status: 'CANCELLED', releasedAt: new Date() });
+      await writeOutboxEvent(
+        tx,
+        'procurement.committed_cost.cancelled',
+        { organizationId, poId, committedCostId: existing.id },
+        organizationId,
+      );
+      await auditService.log(
+        {
+          organizationId,
+          actorUserId: 'system',
+          action: 'committed_cost.cancelled',
+          resourceType: 'CommittedCost',
+          resourceId: existing.id,
+          metadata: { poId },
+        },
+        tx,
+      );
     });
   }
 

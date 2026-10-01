@@ -380,11 +380,13 @@ export class SubcontractorService {
       span.setAttributes({ organizationId, projectId });
 
       const rows = await this.repo.listProjectSubcontractors(this.db, organizationId, projectId);
-      const result: ProjectSubcontractorDTO[] = [];
-      for (const row of rows) {
-        const sub = await this.repo.findById(this.db, row.subcontractorId);
-        if (sub) result.push(toProjectSubcontractorDTO(row, sub));
-      }
+      const subcontractorIds = rows
+        .map((r) => r.subcontractorId)
+        .filter((id): id is string => Boolean(id));
+      const subcontractorMap = await this.repo.findByIds(this.db, subcontractorIds);
+      const result: ProjectSubcontractorDTO[] = rows
+        .filter((row) => subcontractorMap.has(row.subcontractorId))
+        .map((row) => toProjectSubcontractorDTO(row, subcontractorMap.get(row.subcontractorId)!));
       return result;
     });
   }

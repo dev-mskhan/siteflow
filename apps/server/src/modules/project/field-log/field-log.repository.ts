@@ -1,11 +1,16 @@
 // apps/server/src/modules/project/field-log/field-log.repository.ts
 import { dailyFieldLogs, fieldLogTaskEntries, type DailyFieldLog, type FieldLogTaskEntry } from '@siteflow/database/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 export class FieldLogRepository {
   async findById(db: any, id: string): Promise<DailyFieldLog | undefined> {
     const rows = await db.select().from(dailyFieldLogs).where(eq(dailyFieldLogs.id, id));
     return rows[0];
+  }
+
+  async findByIdForUpdate(db: any, id: string): Promise<DailyFieldLog | undefined> {
+    await db.execute(sql`SELECT id FROM app.daily_field_logs WHERE id = ${id} FOR UPDATE`);
+    return this.findById(db, id);
   }
 
   async findByProjectAndDate(

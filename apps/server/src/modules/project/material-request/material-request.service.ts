@@ -237,11 +237,17 @@ export class MaterialRequestService {
           JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id }),
         ).toString('base64');
       }
-      const result = [];
-      for (const row of data) {
-        const items = await this.repo.findItemsByRequestId(this.db, row.id);
-        result.push(toDTO(row, items));
+      const allItems = await this.repo.findItemsByRequestIds(
+        this.db,
+        data.map((r) => r.id),
+      );
+      const itemsByRequestId = new Map<string, MaterialRequestItem[]>();
+      for (const item of allItems) {
+        const arr = itemsByRequestId.get(item.materialRequestId) ?? [];
+        arr.push(item);
+        itemsByRequestId.set(item.materialRequestId, arr);
       }
+      const result = data.map((row) => toDTO(row, itemsByRequestId.get(row.id) ?? []));
       return { data: result, nextCursor };
     });
   }
@@ -290,7 +296,7 @@ export class MaterialRequestService {
     return withSpan(tracer, 'material-request.submit', async (span) => {
       span.setAttributes({ organizationId, projectId, requestId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, requestId);
+        const row = await this.repo.findByIdForUpdate(tx, requestId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) {
           throw new MaterialRequestNotFoundError(requestId);
         }
@@ -334,7 +340,7 @@ export class MaterialRequestService {
     return withSpan(tracer, 'material-request.cancel', async (span) => {
       span.setAttributes({ organizationId, projectId, requestId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, requestId);
+        const row = await this.repo.findByIdForUpdate(tx, requestId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) {
           throw new MaterialRequestNotFoundError(requestId);
         }

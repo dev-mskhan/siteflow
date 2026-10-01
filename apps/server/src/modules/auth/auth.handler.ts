@@ -261,9 +261,9 @@ export async function handleGetMe(request: FastifyRequest, reply: FastifyReply) 
 export async function handleGetSessions(request: FastifyRequest, reply: FastifyReply) {
   const userId = request.user!.sub;
   const currentSessionId = request.sessionId;
-  const sessions = await authService.getUserSessions(userId, currentSessionId);
+  const result = await authService.getUserSessions(userId, currentSessionId);
 
-  return reply.send(createSuccessResponse({ sessions }));
+  return reply.send(createSuccessResponse({ data: result.data, nextCursor: result.nextCursor }));
 }
 
 export async function handleDeleteSession(request: FastifyRequest, reply: FastifyReply) {
