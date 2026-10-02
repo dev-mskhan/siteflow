@@ -1,5 +1,6 @@
 // apps/server/src/modules/project/project.handler.ts
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { createSuccessResponse } from '../../shared/response.js';
 import { projectService } from './core/project.service.js';
 import { projectLifecycleService } from './core/project.lifecycle.service.js';
@@ -21,15 +22,27 @@ import {
   createPhaseSchema,
   updatePhaseSchema,
   reorderPhasesSchema,
+  listPhasesQuerySchema,
 } from './phases/project-phase.schemas.js';
 
 import { projectCostCodeService } from './cost-codes/project-cost-code.service.js';
 import {
   createCostCodeSchema,
   updateCostCodeSchema,
+  listCostCodesQuerySchema,
 } from './cost-codes/project-cost-code.schemas.js';
 
 import { projectAuditRepository } from './audit/project-audit.repository.js';
+
+const projectAuditQuerySchema = z.object({
+  resourceType: z.string().optional(),
+  actorUserId: z.string().optional(),
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  action: z.string().optional(),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+});
 
 // ── CRUD Handlers ─────────────────────────────────────────────────────────────
 
@@ -251,8 +264,7 @@ export async function handleListPhases(
   reply: FastifyReply,
 ): Promise<void> {
   const { organizationId, projectId } = request.params as { organizationId: string; projectId: string };
-  const query = request.query as { includeArchived?: string };
-  const includeArchived = query.includeArchived === 'true';
+  const { includeArchived } = listPhasesQuerySchema.parse(request.query);
   const phases = await projectPhaseService.listPhases(organizationId, projectId, includeArchived);
   return reply.send(createSuccessResponse({ phases }));
 }
@@ -307,11 +319,11 @@ export async function handleListCostCodes(
   reply: FastifyReply,
 ): Promise<void> {
   const { organizationId, projectId } = request.params as { organizationId: string; projectId: string };
-  const query = request.query as { includeInactive?: string };
+  const { includeInactive } = listCostCodesQuerySchema.parse(request.query);
   const codes = await projectCostCodeService.listCostCodes(
     organizationId,
     projectId,
-    query.includeInactive === 'true',
+    includeInactive,
   );
   return reply.send(createSuccessResponse({ costCodes: codes }));
 }
@@ -377,16 +389,7 @@ export async function handleListProjectAudit(
     organizationId: string;
     projectId: string;
   };
-  const q = request.query as {
-    resourceType?: string;
-    actorUserId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    action?: string;
-    cursor?: string;
-    limit?: string;
-  };
-  const limit = Math.min(parseInt(q.limit ?? '20', 10), 100);
+  const q = projectAuditQuerySchema.parse(request.query);
   const result = await projectAuditRepository.findByProject(
     organizationId,
     projectId,
@@ -398,7 +401,7 @@ export async function handleListProjectAudit(
       action: q.action,
     },
     q.cursor ?? null,
-    limit,
+    q.limit,
   );
   return reply.send(createSuccessResponse({ auditLogs: result.rows, nextCursor: result.nextCursor }));
 }

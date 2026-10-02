@@ -1,7 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { createSuccessResponse } from '../../../shared/response.js';
 import { DeliveryService } from './delivery.service.js';
-import { createDeliverySchema, updateDeliverySchema, createReceiptSchema, listQuerySchema } from './delivery.schemas.js';
+import { createDeliverySchema, updateDeliverySchema, createReceiptSchema, listDeliveryQuerySchema as listQuerySchema } from './delivery.schemas.js';
 
 const svc = new DeliveryService();
 

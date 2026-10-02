@@ -3,32 +3,9 @@ import { createSuccessResponse } from '../../../shared/response.js';
 import { InventoryService } from './inventory.service.js';
 import { getDb } from '../../../lib/db/index.js';
 import { sql } from 'drizzle-orm';
-import { z } from 'zod';
+import { adjustInventorySchema, transferInventorySchema } from '@siteflow/shared';
 
 const svc = new InventoryService();
-
-const adjustSchema = z.object({
-  materialId: z.string().min(1),
-  location: z.string().min(1).default('default'),
-  quantity: z
-    .string()
-    .regex(/^\d+(\.\d{1,3})?$/)
-    .refine((v) => parseFloat(v) > 0, 'quantity must be > 0'),
-  unitCode: z.string().trim().min(1).max(20).toUpperCase(),
-  direction: z.enum(['IN', 'OUT']),
-  reason: z.string().trim().min(1).max(2000),
-});
-
-const transferSchema = z.object({
-  materialId: z.string().min(1),
-  quantity: z
-    .string()
-    .regex(/^\d+(\.\d{1,3})?$/)
-    .refine((v) => parseFloat(v) > 0, 'quantity must be > 0'),
-  unitCode: z.string().trim().min(1).max(20).toUpperCase(),
-  fromLocation: z.string().min(1),
-  toLocation: z.string().min(1),
-});
 
 export async function handleListInventory(req: FastifyRequest, reply: FastifyReply) {
   const { organizationId, projectId } = req.params as any;
@@ -64,7 +41,7 @@ export async function handleListInventoryTransactions(req: FastifyRequest, reply
 export async function handleAdjustInventory(req: FastifyRequest, reply: FastifyReply) {
   const { organizationId, projectId } = req.params as any;
   const actorUserId = (req as any).user!.sub;
-  const input = adjustSchema.parse(req.body);
+  const input = adjustInventorySchema.parse(req.body);
   const db = getDb();
   await db.transaction(async (tx) => {
     await svc.adjust(actorUserId, tx, { organizationId, projectId, ...input });
@@ -75,7 +52,7 @@ export async function handleAdjustInventory(req: FastifyRequest, reply: FastifyR
 export async function handleTransferInventory(req: FastifyRequest, reply: FastifyReply) {
   const { organizationId, projectId } = req.params as any;
   const actorUserId = (req as any).user!.sub;
-  const input = transferSchema.parse(req.body);
+  const input = transferInventorySchema.parse(req.body);
   const db = getDb();
   await db.transaction(async (tx) => {
     await svc.transfer(actorUserId, tx, { organizationId, projectId, ...input });

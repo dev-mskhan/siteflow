@@ -2,7 +2,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { createSuccessResponse } from '../../../shared/response.js';
 import { DependencyService } from './dependency.service.js';
-import { createDependencySchema } from './dependency.schemas.js';
+import { createDependencySchema, listDependenciesQuerySchema } from './dependency.schemas.js';
 
 const dependencyService = new DependencyService();
 
@@ -51,7 +51,7 @@ export async function handleListDependencies(
     organizationId: string;
     projectId: string;
   };
-  const query = request.query as { taskId?: string };
+  const query = listDependenciesQuerySchema.parse(request.query);
 
   const result = await dependencyService.listDependencies(organizationId, {
     projectId,
