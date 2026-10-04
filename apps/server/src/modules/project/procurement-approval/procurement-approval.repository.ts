@@ -15,6 +15,15 @@ export class ProcurementApprovalRepository {
     return rows[0];
   }
 
+  async findByIdForUpdate(db: any, id: string): Promise<ProcurementApproval | undefined> {
+    const rows = await db
+      .select()
+      .from(procurementApprovals)
+      .where(eq(procurementApprovals.id, id))
+      .for('update');
+    return rows[0];
+  }
+
   async findPendingForResource(
     db: any,
     resourceType: string,

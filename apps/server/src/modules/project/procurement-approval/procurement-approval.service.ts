@@ -1,11 +1,12 @@
 import { withSpan } from '@siteflow/observability/server';
 import { trace } from '@opentelemetry/api';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { generateId } from '../../../lib/id.js';
 import { auditService } from '../../audit/audit.service.js';
 import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { ProcurementApprovalRepository } from './procurement-approval.repository.js';
+import { purchaseOrders } from '@siteflow/database/schema';
 import {
   ProcurementApprovalNotFoundError,
   ProcurementApprovalInvalidStateError,
@@ -60,16 +61,14 @@ export class ProcurementApprovalService {
     } else if (resourceType === 'QUOTE') {
       resource = await this.repo.loadQuote(tx, resourceId);
     } else if (resourceType === 'PURCHASE_ORDER') {
-      const rows = await tx.execute(
-        sql`SELECT id, organization_id, project_id FROM app.purchase_orders WHERE id = ${resourceId}`,
-      );
-      const raw = (rows.rows ?? rows)[0];
-      if (raw) {
-        resource = {
-          organizationId: raw.organization_id,
-          projectId: raw.project_id,
-        };
-      }
+      const rows = await tx
+        .select({
+          organizationId: purchaseOrders.organizationId,
+          projectId: purchaseOrders.projectId,
+        })
+        .from(purchaseOrders)
+        .where(eq(purchaseOrders.id, resourceId));
+      resource = rows[0];
     }
     if (
       !resource ||
@@ -241,7 +240,7 @@ export class ProcurementApprovalService {
     return withSpan(tracer, 'procurement-approval.approve', async (span) => {
       span.setAttributes({ organizationId, projectId, approvalId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, approvalId);
+        const row = await this.repo.findByIdForUpdate(tx as any, approvalId);
         if (
           !row ||
           row.organizationId !== organizationId ||
@@ -307,7 +306,7 @@ export class ProcurementApprovalService {
     return withSpan(tracer, 'procurement-approval.reject', async (span) => {
       span.setAttributes({ organizationId, projectId, approvalId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, approvalId);
+        const row = await this.repo.findByIdForUpdate(tx as any, approvalId);
         if (
           !row ||
           row.organizationId !== organizationId ||
@@ -370,7 +369,7 @@ export class ProcurementApprovalService {
     return withSpan(tracer, 'procurement-approval.cancel', async (span) => {
       span.setAttributes({ organizationId, projectId, approvalId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findById(tx as any, approvalId);
+        const row = await this.repo.findByIdForUpdate(tx as any, approvalId);
         if (
           !row ||
           row.organizationId !== organizationId ||

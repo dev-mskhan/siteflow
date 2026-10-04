@@ -11,7 +11,7 @@ import {
   createOrgWithAdmin,
   addMemberDirectly,
   getInvitationTokenFromOutbox,
-  countOutboxEvents,
+  countOutboxEventsByPayload,
 } from '../helpers/fixtures.js';
 import type { ApiSuccessResponse, ApiErrorResponse } from '../../src/shared/response.js';
 import type { InvitationDTO } from '../../src/modules/invitation/invitation.types.js';
@@ -369,7 +369,7 @@ describe('Invitations Routes — comprehensive integration', () => {
 
       it('exactly 1 outbox event org:send-invitation-email queued per invite', async () => {
         const freshEmail = `inv_outbox_fresh_${runId}@test.dev`;
-        const before = await countOutboxEvents('org:send-invitation-email', {
+        const before = await countOutboxEventsByPayload('org:send-invitation-email', {
           email: freshEmail,
         });
 
@@ -383,7 +383,7 @@ describe('Invitations Routes — comprehensive integration', () => {
           },
         });
 
-        const after = await countOutboxEvents('org:send-invitation-email', {
+        const after = await countOutboxEventsByPayload('org:send-invitation-email', {
           email: freshEmail,
         });
         expect(after - before).toBe(1);

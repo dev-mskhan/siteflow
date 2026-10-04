@@ -10,7 +10,9 @@ export async function handleListMembers(request: FastifyRequest, reply: FastifyR
   const { organizationId } = request.params as { organizationId: string };
   const result = await membershipService.listMembers(organizationId);
 
-  return reply.send(createSuccessResponse({ data: result.data, nextCursor: result.nextCursor }));
+  return reply.send(
+    createSuccessResponse({ members: result.data, nextCursor: result.nextCursor }),
+  );
 }
 
 export async function handleGetMember(request: FastifyRequest, reply: FastifyReply) {

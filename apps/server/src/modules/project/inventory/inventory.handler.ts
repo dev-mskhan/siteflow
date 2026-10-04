@@ -28,7 +28,8 @@ export async function handleListInventory(req: FastifyRequest, reply: FastifyRep
 
 export async function handleGetInventoryBalance(req: FastifyRequest, reply: FastifyReply) {
   const { organizationId, projectId, materialId } = req.params as any;
-  const balance = await svc.getBalance(organizationId, projectId, materialId);
+  const { location } = req.query as { location?: string };
+  const balance = await svc.getBalance(organizationId, projectId, materialId, location);
   return reply.send(createSuccessResponse({ materialId, balance }));
 }
 

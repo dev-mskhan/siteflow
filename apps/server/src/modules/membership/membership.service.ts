@@ -116,15 +116,12 @@ export class MembershipService {
         }
       }
 
-      let targetUserId: string | undefined;
       const updated = await this.db.transaction(async (tx) => {
         // Locked read inside transaction — prevents concurrent updates on the same row
         const locked = await this.repo.findByIdForUpdate(tx, memberId, orgId);
         if (!locked || locked.status === 'REMOVED') {
           throw new NotFoundError('Member not found');
         }
-        targetUserId = locked.userId;
-
         const result = await this.repo.update(memberId, input, tx);
 
         // Determine specific audit action based on what changed
@@ -154,8 +151,8 @@ export class MembershipService {
       });
 
       // Synchronous cache invalidation AFTER transaction commit
-      await rbacCacheService.invalidate(orgId, targetUserId!);
-      await new OrganizationCacheService().invalidateUserOrgList(targetUserId!);
+      await rbacCacheService.invalidate(orgId, updated.userId);
+      await new OrganizationCacheService().invalidateUserOrgList(updated.userId);
 
       const refreshed = await this.repo.findMemberWithDetails(memberId, orgId);
       return toMemberDTO(refreshed ?? updated);

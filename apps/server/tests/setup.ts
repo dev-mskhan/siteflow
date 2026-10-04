@@ -1,5 +1,7 @@
 // apps/server/tests/setup.ts
 // Global Vitest setup file for server tests
+import { shutdownTelemetry } from '@siteflow/observability/server';
+import '@siteflow/observability/server/register';
 import { beforeAll, afterAll } from 'vitest';
 
 beforeAll(async () => {
@@ -8,5 +10,5 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Global cleanup logic
+  await shutdownTelemetry();
 });

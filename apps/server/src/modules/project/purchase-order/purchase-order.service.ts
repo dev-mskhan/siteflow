@@ -118,7 +118,12 @@ function toDTO(row: PurchaseOrder, items: PurchaseOrderItem[]): PurchaseOrderDTO
 
 // Forward declaration stubs — replaced at module init with real committed-cost calls
 let notifyCommittedCostCreated: (tx: any, po: PurchaseOrder) => Promise<any> = async () => {};
-let notifyCommittedCostCancelled: (tx: any, poId: string, organizationId: string) => Promise<void> = async () => {};
+let notifyCommittedCostCancelled: (
+  tx: any,
+  poId: string,
+  organizationId: string,
+  actorUserId: string,
+) => Promise<void> = async () => {};
 
 /**
  * Called after module load to wire in the real committed-cost functions,
@@ -126,7 +131,12 @@ let notifyCommittedCostCancelled: (tx: any, poId: string, organizationId: string
  */
 export function setCommittedCostHooks(
   createFn: (tx: any, po: PurchaseOrder) => Promise<any>,
-  cancelFn: (tx: any, poId: string, organizationId: string) => Promise<void>,
+  cancelFn: (
+    tx: any,
+    poId: string,
+    organizationId: string,
+    actorUserId: string,
+  ) => Promise<void>,
 ): void {
   notifyCommittedCostCreated = createFn;
   notifyCommittedCostCancelled = cancelFn;
@@ -468,7 +478,7 @@ export class PurchaseOrderService {
           cancelledAt: new Date(),
         });
         if (wasApprovedOrSent) {
-          await notifyCommittedCostCancelled(tx, poId, organizationId);
+          await notifyCommittedCostCancelled(tx, poId, organizationId, actorUserId);
         }
         const items = await this.repo.findItemsByPoId(tx as any, poId);
         await writeOutboxEvent(

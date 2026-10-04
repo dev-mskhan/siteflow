@@ -9,7 +9,8 @@ import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { documentNumberService } from '../../procurement/document-number/document-number.service.js';
 import { DeliveryRepository } from './delivery.repository.js';
 import {
-  DeliveryNotFoundError, ReceiptNotFoundError, ReceiptInvalidStateError,
+  DeliveryNotFoundError, DeliveryInvalidStateError, DeliveryResourceOwnershipError,
+  ReceiptNotFoundError, ReceiptInvalidStateError, ReceiptQuantityExceedsPoError,
   DeliveryQuantityExceedsPoError, ReceiptQuantityInvariantError,
 } from './delivery.errors.js';
 import type {
@@ -114,10 +115,27 @@ export class DeliveryService {
     return withSpan(tracer, 'delivery.create', async (span) => {
       span.setAttributes({ organizationId, projectId });
       return this.db.transaction(async (tx) => {
+        const purchaseOrder = await this.repo.findPurchaseOrderById(tx as any, input.purchaseOrderId);
+        if (
+          !purchaseOrder ||
+          purchaseOrder.organizationId !== organizationId ||
+          purchaseOrder.projectId !== projectId
+        ) {
+          throw new DeliveryResourceOwnershipError();
+        }
+        if (purchaseOrder.status !== 'SENT' && purchaseOrder.status !== 'ACKNOWLEDGED') {
+          throw new DeliveryInvalidStateError(purchaseOrder.status, 'schedule');
+        }
         const deliveryNumber = await documentNumberService.allocateDocumentNumber(tx, organizationId, projectId, 'DL', yyyymm());
         for (const item of input.items) {
           const poItem = await this.repo.findPoItemById(tx as any, item.purchaseOrderItemId);
-          if (!poItem) throw new Error(`PO item not found: ${item.purchaseOrderItemId}`);
+          if (
+            !poItem ||
+            poItem.organizationId !== organizationId ||
+            poItem.purchaseOrderId !== input.purchaseOrderId
+          ) {
+            throw new DeliveryResourceOwnershipError();
+          }
           const alreadyDelivered = await this.repo.sumDeliveredQty(tx as any, item.purchaseOrderItemId);
           if (new Decimal(alreadyDelivered).plus(item.quantity).gt(poItem.quantity)) throw new DeliveryQuantityExceedsPoError();
         }
@@ -190,6 +208,9 @@ export class DeliveryService {
       return this.db.transaction(async (tx) => {
         const row = await this.repo.findDeliveryById(tx as any, deliveryId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) throw new DeliveryNotFoundError(deliveryId);
+        if (row.status === 'CANCELLED' && input.status === 'DELIVERED') {
+          throw new DeliveryInvalidStateError(row.status, 'mark as delivered');
+        }
         const wasDelivered = row.status === 'DELIVERED';
         const updated = await this.repo.updateDelivery(tx as any, deliveryId, input);
         const items = await this.repo.findDeliveryItemsByDeliveryId(tx as any, deliveryId);
@@ -216,8 +237,24 @@ export class DeliveryService {
       span.setAttributes({ organizationId, projectId });
       return this.db.transaction(async (tx) => {
         await tx.execute(sql`SELECT id FROM app.purchase_orders WHERE id=${input.purchaseOrderId} FOR UPDATE`);
+        const purchaseOrder = await this.repo.findPurchaseOrderById(tx as any, input.purchaseOrderId);
+        if (
+          !purchaseOrder ||
+          purchaseOrder.organizationId !== organizationId ||
+          purchaseOrder.projectId !== projectId
+        ) {
+          throw new DeliveryResourceOwnershipError();
+        }
         const receiptNumber = await documentNumberService.allocateDocumentNumber(tx, organizationId, projectId, 'RC', yyyymm());
         for (const item of input.items) {
+          const poItem = await this.repo.findPoItemById(tx as any, item.purchaseOrderItemId);
+          if (
+            !poItem ||
+            poItem.organizationId !== organizationId ||
+            poItem.purchaseOrderId !== input.purchaseOrderId
+          ) {
+            throw new DeliveryResourceOwnershipError();
+          }
           const qd = new Decimal(item.quantityDelivered);
           const qa = new Decimal(item.quantityAccepted);
           const qr = new Decimal(item.quantityRejected ?? '0');
@@ -292,11 +329,33 @@ export class DeliveryService {
     return withSpan(tracer, 'receipt.post', async (span) => {
       span.setAttributes({ organizationId, projectId, receiptId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findReceiptById(tx as any, receiptId);
+        const row = await this.repo.findReceiptByIdForUpdate(tx as any, receiptId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) throw new ReceiptNotFoundError(receiptId);
         if (row.status !== 'DRAFT') throw new ReceiptInvalidStateError(row.status, 'post');
         await tx.execute(sql`SELECT id FROM app.purchase_orders WHERE id=${row.purchaseOrderId} FOR UPDATE`);
         const items = await this.repo.findReceiptItemsByReceiptId(tx as any, receiptId);
+        const purchaseOrder = await this.repo.findPurchaseOrderById(tx as any, row.purchaseOrderId);
+        if (
+          !purchaseOrder ||
+          purchaseOrder.organizationId !== organizationId ||
+          purchaseOrder.projectId !== projectId
+        ) {
+          throw new DeliveryResourceOwnershipError();
+        }
+        for (const item of items) {
+          const poItem = await this.repo.findPoItemById(tx as any, item.purchaseOrderItemId);
+          if (
+            !poItem ||
+            poItem.organizationId !== organizationId ||
+            poItem.purchaseOrderId !== row.purchaseOrderId
+          ) {
+            throw new DeliveryResourceOwnershipError();
+          }
+          const previousDelivered = await this.repo.sumPostedReceivedQty(tx as any, item.purchaseOrderItemId, receiptId);
+          if (new Decimal(previousDelivered).plus(item.quantityDelivered).gt(poItem.quantity)) {
+            throw new ReceiptQuantityExceedsPoError();
+          }
+        }
         const updated = await this.repo.updateReceipt(tx as any, receiptId, { status: 'POSTED' });
         for (const item of items) {
           const poItem = await this.repo.findPoItemById(tx as any, item.purchaseOrderItemId);
@@ -328,7 +387,7 @@ export class DeliveryService {
     return withSpan(tracer, 'receipt.void', async (span) => {
       span.setAttributes({ organizationId, projectId, receiptId });
       return this.db.transaction(async (tx) => {
-        const row = await this.repo.findReceiptById(tx as any, receiptId);
+        const row = await this.repo.findReceiptByIdForUpdate(tx as any, receiptId);
         if (!row || row.organizationId !== organizationId || row.projectId !== projectId) throw new ReceiptNotFoundError(receiptId);
         if (row.status !== 'POSTED') throw new ReceiptInvalidStateError(row.status, 'void');
         const updated = await this.repo.updateReceipt(tx as any, receiptId, { status: 'VOIDED' });

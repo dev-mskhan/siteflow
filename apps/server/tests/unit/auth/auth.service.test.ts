@@ -24,6 +24,7 @@ vi.mock('../../../src/lib/db/index.js', () => ({
 import { AuthService } from '../../../src/modules/auth/auth.service.js';
 import { ConflictError, UnauthorizedError } from '../../../src/modules/auth/auth.errors.js';
 import { googleOAuthService } from '../../../src/modules/auth/google-oauth.service.js';
+import { getDb } from '../../../src/lib/db/index.js';
 import type { User, Session, OAuthAccount } from '@siteflow/database/schema';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -220,6 +221,14 @@ describe('AuthService (Unit)', () => {
         ...mockOAuthAccount,
         user: mockUser,
       });
+      const updateWhere = vi.fn().mockResolvedValue([]);
+      const updateSet = vi.fn(() => ({ where: updateWhere }));
+      const update = vi.fn(() => ({ set: updateSet }));
+      const transaction = vi.fn(
+        async (callback: (tx: { update: typeof update }) => Promise<unknown>) =>
+          callback({ update }),
+      );
+      vi.mocked(getDb).mockReturnValue({ transaction } as ReturnType<typeof getDb>);
 
       const result = await authService.loginWithGoogle('valid_google_code');
 
@@ -227,7 +236,12 @@ describe('AuthService (Unit)', () => {
       expect(result.user.email).toBe(mockUser.email);
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBe('raw_refresh_token');
-      expect(mockRepo.updateLastLogin).toHaveBeenCalledWith(mockUser.id);
+      expect(transaction).toHaveBeenCalledOnce();
+      expect(updateSet).toHaveBeenCalledWith({
+        lastLoginAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      });
+      expect(updateWhere).toHaveBeenCalledOnce();
     });
 
     it('should create new User + OAuthAccount if no account exists', async () => {

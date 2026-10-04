@@ -5,10 +5,12 @@ import { sql, eq, and } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { generateId } from '../../../lib/id.js';
 import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
+import { auditService } from '../../audit/audit.service.js';
 import {
   projectInventoryItems,
   inventoryTransactions,
   inventoryTransfers,
+  materials,
 } from '@siteflow/database/schema';
 
 const tracer = trace.getTracer('inventory-service');
@@ -40,9 +42,11 @@ async function upsertInventoryItem(
 }
 
 async function lockItem(tx: any, itemId: string): Promise<void> {
-  await tx.execute(
-    sql`SELECT id FROM app.project_inventory_items WHERE id = ${itemId} FOR UPDATE`,
-  );
+  await tx
+    .select({ id: projectInventoryItems.id })
+    .from(projectInventoryItems)
+    .where(eq(projectInventoryItems.id, itemId))
+    .for('update');
 }
 
 async function computeBalance(tx: any, itemId: string): Promise<Decimal> {
@@ -128,21 +132,30 @@ export class InventoryService {
     projectId: string,
   ): Promise<void> {
     return withSpan(tracer, 'inventory.reverse-receipt', async () => {
-      const rows = await tx.execute(
-        sql`SELECT id, inventory_item_id, material_id, quantity, unit_code
-            FROM app.inventory_transactions
-            WHERE source_type = 'RECEIPT' AND source_id = ${receiptId} AND transaction_type = 'RECEIPT'`,
-      ) as any;
-      for (const r of rows.rows ?? rows) {
-        await lockItem(tx, r.inventory_item_id);
+      const rows = await tx
+        .select({
+          id: inventoryTransactions.id,
+          inventoryItemId: inventoryTransactions.inventoryItemId,
+          materialId: inventoryTransactions.materialId,
+          quantity: inventoryTransactions.quantity,
+          unitCode: inventoryTransactions.unitCode,
+        })
+        .from(inventoryTransactions)
+        .where(and(
+          eq(inventoryTransactions.sourceType, 'RECEIPT'),
+          eq(inventoryTransactions.sourceId, receiptId),
+          eq(inventoryTransactions.transactionType, 'RECEIPT'),
+        ));
+      for (const r of rows) {
+        await lockItem(tx, r.inventoryItemId);
         await writeTx(tx, {
           organizationId,
           projectId,
-          inventoryItemId: r.inventory_item_id,
-          materialId: r.material_id,
+          inventoryItemId: r.inventoryItemId,
+          materialId: r.materialId,
           transactionType: 'ADJUSTMENT_OUT',
           quantity: r.quantity,
-          unitCode: r.unit_code,
+          unitCode: r.unitCode,
           sourceType: 'RECEIPT',
           sourceId: receiptId,
           reversalOfTransactionId: r.id,
@@ -154,7 +167,7 @@ export class InventoryService {
 
   /** Called from inventory adjust endpoint. */
   async adjust(
-    _actorUserId: string,
+    actorUserId: string,
     tx: any,
     args: {
       organizationId: string;
@@ -168,6 +181,16 @@ export class InventoryService {
     },
   ): Promise<void> {
     return withSpan(tracer, 'inventory.adjust', async () => {
+      const materialRows = await tx
+        .select({ id: materials.id })
+        .from(materials)
+        .where(and(eq(materials.id, args.materialId), eq(materials.organizationId, args.organizationId)));
+      if (!materialRows[0]) {
+        throw Object.assign(new Error('Material not found'), {
+          statusCode: 404,
+          code: 'MATERIAL_NOT_FOUND',
+        });
+      }
       const itemId = await upsertInventoryItem(
         tx,
         args.organizationId,
@@ -186,6 +209,7 @@ export class InventoryService {
         }
       }
       const txType = args.direction === 'IN' ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT';
+      const sourceId = generateId();
       await writeTx(tx, {
         organizationId: args.organizationId,
         projectId: args.projectId,
@@ -195,7 +219,7 @@ export class InventoryService {
         quantity: args.quantity,
         unitCode: args.unitCode,
         sourceType: 'ADJUSTMENT',
-        sourceId: generateId(),
+        sourceId,
         occurredAt: new Date(),
         notes: args.reason,
       });
@@ -210,6 +234,23 @@ export class InventoryService {
           quantity: args.quantity,
         },
         args.organizationId,
+      );
+      await auditService.log(
+        {
+          organizationId: args.organizationId,
+          actorUserId,
+          action: 'inventory.adjusted',
+          resourceType: 'Inventory',
+          resourceId: sourceId,
+          metadata: {
+            projectId: args.projectId,
+            materialId: args.materialId,
+            direction: args.direction,
+            quantity: args.quantity,
+            reason: args.reason,
+          },
+        },
+        tx,
       );
     });
   }
@@ -229,6 +270,16 @@ export class InventoryService {
     },
   ): Promise<void> {
     return withSpan(tracer, 'inventory.transfer', async () => {
+      const materialRows = await tx
+        .select({ id: materials.id })
+        .from(materials)
+        .where(and(eq(materials.id, args.materialId), eq(materials.organizationId, args.organizationId)));
+      if (!materialRows[0]) {
+        throw Object.assign(new Error('Material not found'), {
+          statusCode: 404,
+          code: 'MATERIAL_NOT_FOUND',
+        });
+      }
       const fromId = await upsertInventoryItem(
         tx,
         args.organizationId,
@@ -323,7 +374,7 @@ export class InventoryService {
     materialId: string,
   ): Promise<any[]> {
     const rows = await this.db.execute(
-      sql`SELECT id, transaction_type, quantity, unit_code, source_type, source_id,
+      sql`SELECT id, material_id, transaction_type, quantity, unit_code, source_type, source_id,
                  occurred_at, created_at
           FROM app.inventory_transactions
           WHERE organization_id = ${organizationId} AND project_id = ${projectId} AND material_id = ${materialId}
@@ -331,13 +382,14 @@ export class InventoryService {
     ) as any;
     return (rows.rows ?? rows).map((r: any) => ({
       id: r.id,
-      transactionType: r.transaction_type,
+      materialId: r.materialId,
+      transactionType: r.transactionType,
       quantity: r.quantity,
-      unitCode: r.unit_code,
-      sourceType: r.source_type,
-      sourceId: r.source_id,
-      occurredAt: r.occurred_at,
-      createdAt: r.created_at,
+      unitCode: r.unitCode,
+      sourceType: r.sourceType,
+      sourceId: r.sourceId,
+      occurredAt: r.occurredAt,
+      createdAt: r.createdAt,
     }));
   }
 }

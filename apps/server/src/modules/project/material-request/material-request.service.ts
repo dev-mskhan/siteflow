@@ -12,6 +12,7 @@ import {
   MaterialRequestInvalidStateError,
   MaterialRequestNoItemsError,
   MaterialRequestUnitMismatchError,
+  MaterialRequestReferenceNotFoundError,
 } from './material-request.errors.js';
 import { tasks, projectPhases, projectCostCodes } from '@siteflow/database/schema';
 import { eq, and } from 'drizzle-orm';
@@ -123,7 +124,7 @@ export class MaterialRequestService {
                   eq(tasks.organizationId, organizationId),
                 ),
               );
-            if (!rows[0]) throw new Error(`Task ${item.taskId} does not belong to project ${projectId}`);
+            if (!rows[0]) throw new MaterialRequestReferenceNotFoundError();
           }
           if (item.phaseId) {
             const rows = await (tx as any)
@@ -135,7 +136,7 @@ export class MaterialRequestService {
                   eq(projectPhases.projectId, projectId),
                 ),
               );
-            if (!rows[0]) throw new Error(`Phase ${item.phaseId} does not belong to project ${projectId}`);
+            if (!rows[0]) throw new MaterialRequestReferenceNotFoundError();
           }
           if (item.costCodeId) {
             const rows = await (tx as any)
@@ -147,7 +148,7 @@ export class MaterialRequestService {
                   eq(projectCostCodes.projectId, projectId),
                 ),
               );
-            if (!rows[0]) throw new Error(`CostCode ${item.costCodeId} does not belong to project ${projectId}`);
+            if (!rows[0]) throw new MaterialRequestReferenceNotFoundError();
           }
           itemValues.push({
             id: generateId(),

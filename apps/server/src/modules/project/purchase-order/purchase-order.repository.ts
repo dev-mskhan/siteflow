@@ -4,7 +4,7 @@ import {
   type PurchaseOrder,
   type PurchaseOrderItem,
 } from '@siteflow/database/schema';
-import { eq, and, desc, lt, or, sql, inArray } from 'drizzle-orm';
+import { eq, and, desc, lt, or, inArray } from 'drizzle-orm';
 
 export class PurchaseOrderRepository {
   async findById(db: any, id: string): Promise<PurchaseOrder | undefined> {
@@ -16,38 +16,12 @@ export class PurchaseOrderRepository {
   }
 
   async findByIdForUpdate(db: any, id: string): Promise<PurchaseOrder | undefined> {
-    const rows = await db.execute(
-      sql`SELECT * FROM app.purchase_orders WHERE id = ${id} FOR UPDATE`,
-    );
-    const row = (rows.rows ?? rows)[0];
-    if (!row) return undefined;
-    // Map snake_case to camelCase
-    return {
-      id: row.id,
-      organizationId: row.organization_id,
-      projectId: row.project_id,
-      poNumber: row.po_number,
-      supplierId: row.supplier_id,
-      materialRequestId: row.material_request_id ?? null,
-      sourceQuoteId: row.source_quote_id ?? null,
-      status: row.status,
-      orderDate: row.order_date,
-      expectedDeliveryDate: row.expected_delivery_date ?? null,
-      deliveryLocation: row.delivery_location ?? null,
-      currencyCode: row.currency_code,
-      subtotal: row.subtotal,
-      discountAmount: row.discount_amount,
-      taxAmount: row.tax_amount,
-      totalAmount: row.total_amount,
-      notes: row.notes ?? null,
-      createdByMemberId: row.created_by_member_id ?? null,
-      approvedAt: row.approved_at ?? null,
-      approvedBy: row.approved_by ?? null,
-      sentAt: row.sent_at ?? null,
-      cancelledAt: row.cancelled_at ?? null,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    } as any;
+    const rows = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.id, id))
+      .for('update');
+    return rows[0];
   }
 
   async create(db: any, data: any): Promise<PurchaseOrder> {

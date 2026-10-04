@@ -73,7 +73,7 @@ export class CommittedCostService {
         await auditService.log(
           {
             organizationId: po.organizationId,
-            actorUserId: 'system',
+            actorUserId: po.approvedBy!,
             action: 'committed_cost.created',
             resourceType: 'CommittedCost',
             resourceId: id,
@@ -101,7 +101,12 @@ export class CommittedCostService {
   /**
    * Called inside the PO cancel transaction. Cancels the committed cost if active.
    */
-  async cancelFromPO(tx: any, poId: string, organizationId: string): Promise<void> {
+  async cancelFromPO(
+    tx: any,
+    poId: string,
+    organizationId: string,
+    actorUserId: string,
+  ): Promise<void> {
     return withSpan(tracer, 'committed-cost.cancel-from-po', async (span) => {
       span.setAttributes({ poId });
       const existing = await this.repo.findBySource(tx, organizationId, 'PURCHASE_ORDER', poId);
@@ -116,7 +121,7 @@ export class CommittedCostService {
       await auditService.log(
         {
           organizationId,
-          actorUserId: 'system',
+          actorUserId,
           action: 'committed_cost.cancelled',
           resourceType: 'CommittedCost',
           resourceId: existing.id,

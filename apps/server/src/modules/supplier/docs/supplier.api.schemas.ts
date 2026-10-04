@@ -108,10 +108,10 @@ const supplierSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: supplierDTOSchema,
+    meta: {
       type: 'object',
-      properties: { supplier: supplierDTOSchema },
-      required: ['supplier'],
+      properties: { timestamp: { type: 'string' } },
     },
   },
   required: ['success', 'data'],
@@ -121,13 +121,13 @@ const supplierListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: supplierDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: supplierDTOSchema },
+        timestamp: { type: 'string' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -137,10 +137,10 @@ const supplierContactSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: supplierContactDTOSchema,
+    meta: {
       type: 'object',
-      properties: { contact: supplierContactDTOSchema },
-      required: ['contact'],
+      properties: { timestamp: { type: 'string' } },
     },
   },
   required: ['success', 'data'],

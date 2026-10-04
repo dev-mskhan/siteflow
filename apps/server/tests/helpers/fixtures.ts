@@ -7,9 +7,12 @@ import {
   roles,
   organizationMemberships,
   outboxEvents,
+  permissions,
+  rolePermissions,
 } from '@siteflow/database/schema';
-import { eq, and } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { createAccessToken } from '../../src/modules/auth/token.service.js';
+import { rbacCacheService } from '../../src/modules/rbac/rbac.cache.service.js';
 import type { FastifyInstance } from 'fastify';
 import type { ApiSuccessResponse } from '../../src/shared/response.js';
 import type { OrgDTO } from '../../src/modules/organization/organization.types.js';
@@ -141,6 +144,30 @@ export async function addMemberDirectly(
   return inserted[0]!;
 }
 
+export async function grantPermissionsToRole(
+  organizationId: string,
+  roleId: string,
+  permissionKeys: string[],
+): Promise<void> {
+  const db = getDb();
+  await db
+    .insert(permissions)
+    .values(permissionKeys.map((key) => ({ id: crypto.randomUUID(), key })))
+    .onConflictDoNothing({ target: permissions.key });
+
+  const permissionRows = await db
+    .select({ id: permissions.id })
+    .from(permissions)
+    .where(inArray(permissions.key, permissionKeys));
+  await db
+    .insert(rolePermissions)
+    .values(permissionRows.map(({ id }) => ({ roleId, permissionId: id })))
+    .onConflictDoNothing();
+
+  await rbacCacheService.invalidateRolePermissions(roleId);
+  await rbacCacheService.invalidateOrg(organizationId);
+}
+
 /**
  * Logs in via the API, returns the raw signed access_token cookie value
  * and the raw refresh_token cookie value for use in subsequent cookie-auth requests.
@@ -253,16 +280,86 @@ export async function getPasswordResetTokenFromOutbox(
  */
 export async function countOutboxEvents(
   eventType: string,
-  matchPayload?: Record<string, string>,
+  organizationId: string,
 ): Promise<number> {
   const db = getDb();
   const events = await db
     .select()
     .from(outboxEvents)
-    .where(eq(outboxEvents.eventType, eventType));
-  if (!matchPayload) return events.length;
-  return events.filter((e) => {
-    const p = e.payload as Record<string, string>;
-    return Object.entries(matchPayload).every(([k, v]) => p[k] === v);
-  }).length;
+    .where(
+      and(
+        eq(outboxEvents.eventType, eventType),
+        or(
+          eq(outboxEvents.organizationId, organizationId),
+          sql`${outboxEvents.payload} ->> 'organizationId' = ${organizationId}`,
+        ),
+      ),
+    );
+  return events.length;
+}
+
+export async function countOutboxEventsByPayload(
+  eventType: string,
+  matchPayload: Record<string, string>,
+): Promise<number> {
+  if (Object.keys(matchPayload).length === 0) {
+    throw new Error('countOutboxEventsByPayload requires a non-empty scope');
+  }
+  const db = getDb();
+  const events = await db
+    .select({ id: outboxEvents.id })
+    .from(outboxEvents)
+    .where(
+      and(
+        eq(outboxEvents.eventType, eventType),
+        ...Object.entries(matchPayload).map(
+          ([key, value]) =>
+            sql`${outboxEvents.payload} ->> ${key} = ${value}`,
+        ),
+      ),
+    );
+  return events.length;
+}
+
+/**
+ * Finds the most recent outbox event matching eventType and a resource ID.
+ */
+export async function getOutboxEvent(
+  eventType: string,
+  resourceId: string,
+): Promise<{ found: boolean; payload: Record<string, unknown> }> {
+  const db = getDb();
+  const resourceFields = [
+    'resourceId',
+    'supplierId',
+    'materialId',
+    'quoteId',
+    'purchaseOrderId',
+    'materialRequestId',
+    'receiptId',
+    'approvalId',
+    'committedCostId',
+    'subcontractorId',
+  ];
+  const events = await db
+    .select()
+    .from(outboxEvents)
+    .where(
+      and(
+        eq(outboxEvents.eventType, eventType),
+        or(
+          ...resourceFields.map(
+            (field) =>
+              sql`${outboxEvents.payload} ->> ${field} = ${resourceId}`,
+          ),
+        ),
+      ),
+    )
+    .orderBy(desc(outboxEvents.createdAt))
+    .limit(1);
+  const match = events[0];
+  return {
+    found: match !== undefined,
+    payload: (match?.payload as Record<string, unknown>) ?? {},
+  };
 }

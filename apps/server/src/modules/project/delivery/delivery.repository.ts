@@ -1,8 +1,8 @@
 import {
-  deliveries, deliveryItems, receipts, receiptItems, purchaseOrderItems,
+  deliveries, deliveryItems, receipts, receiptItems, purchaseOrderItems, purchaseOrders,
 } from '@siteflow/database/schema';
 import type {
-  Delivery, DeliveryItem, Receipt, ReceiptItem, PurchaseOrderItem,
+  Delivery, DeliveryItem, Receipt, ReceiptItem, PurchaseOrderItem, PurchaseOrder,
 } from '@siteflow/database/schema';
 import { eq, and, desc, lt, or, sql, inArray } from 'drizzle-orm';
 
@@ -41,6 +41,10 @@ export class DeliveryRepository {
   async findReceiptById(db: any, id: string): Promise<Receipt | undefined> {
     return (await db.select().from(receipts).where(eq(receipts.id, id)))[0];
   }
+  async findReceiptByIdForUpdate(db: any, id: string): Promise<Receipt | undefined> {
+    await db.execute(sql`SELECT id FROM app.receipts WHERE id = ${id} FOR UPDATE`);
+    return this.findReceiptById(db, id);
+  }
   async createReceipt(db: any, data: any): Promise<Receipt> {
     return (await db.insert(receipts).values(data).returning())[0]!;
   }
@@ -71,9 +75,27 @@ export class DeliveryRepository {
   async findPoItemById(db: any, id: string): Promise<PurchaseOrderItem | undefined> {
     return (await db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.id, id)))[0];
   }
+  async findPurchaseOrderById(db: any, id: string): Promise<PurchaseOrder | undefined> {
+    return (await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id)))[0];
+  }
   async sumDeliveredQty(db: any, purchaseOrderItemId: string): Promise<number> {
     const result = await db.execute(
       sql`SELECT COALESCE(SUM(di.quantity),0) AS total FROM app.delivery_items di JOIN app.deliveries d ON d.id=di.delivery_id WHERE di.purchase_order_item_id=${purchaseOrderItemId} AND d.status!='CANCELLED'`
+    );
+    return parseFloat((result.rows ?? result)[0]?.total ?? '0');
+  }
+  async sumPostedReceivedQty(
+    db: any,
+    purchaseOrderItemId: string,
+    excludingReceiptId: string,
+  ): Promise<number> {
+    const result = await db.execute(
+      sql`SELECT COALESCE(SUM(ri.quantity_delivered), 0) AS total
+          FROM app.receipt_items ri
+          JOIN app.receipts r ON r.id = ri.receipt_id
+          WHERE ri.purchase_order_item_id = ${purchaseOrderItemId}
+            AND r.status = 'POSTED'
+            AND r.id <> ${excludingReceiptId}`,
     );
     return parseFloat((result.rows ?? result)[0]?.total ?? '0');
   }

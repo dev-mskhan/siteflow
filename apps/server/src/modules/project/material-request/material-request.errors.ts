@@ -26,3 +26,10 @@ export class MaterialRequestUnitMismatchError extends Error {
     super(`Material ${materialId} requires unit ${expected}, got ${got}`);
   }
 }
+export class MaterialRequestReferenceNotFoundError extends Error {
+  statusCode = 422;
+  code = 'MATERIAL_REQUEST_REFERENCE_INVALID';
+  constructor() {
+    super('Referenced task, phase, or cost code does not belong to this project');
+  }
+}

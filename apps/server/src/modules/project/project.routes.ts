@@ -241,7 +241,8 @@ import {
 // Wire committed-cost hooks into the PO service (avoids circular imports at module level)
 setCommittedCostHooks(
   (tx, po) => committedCostService.createFromPO(tx, po),
-  (tx, poId, organizationId) => committedCostService.cancelFromPO(tx, poId, organizationId),
+  (tx, poId, organizationId, actorUserId) =>
+    committedCostService.cancelFromPO(tx, poId, organizationId, actorUserId),
 );
 
 // Wire delivery hooks into the delivery service (avoids circular imports at module level)

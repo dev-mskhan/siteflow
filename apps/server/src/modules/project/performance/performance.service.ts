@@ -80,7 +80,9 @@ export class PartnerPerformanceService {
       }
 
       const rows = await this.db.execute(
-        sql`SELECT id, event_type, source_type, source_id, occurred_at, metric_value, unit, notes
+        sql`SELECT id, organization_id, project_id, partner_type, supplier_id,
+                   subcontractor_id, event_type, source_type, source_id, occurred_at,
+                   metric_value, unit, notes, created_at
             FROM app.partner_performance_events
             WHERE organization_id = ${organizationId}
               AND project_id = ${projectId}
@@ -96,20 +98,26 @@ export class PartnerPerformanceService {
       const nextCursor: string | null =
         hasMore && last
           ? Buffer.from(
-              JSON.stringify({ occurredAt: last.occurred_at, id: last.id }),
+              JSON.stringify({ occurredAt: last.occurredAt, id: last.id }),
             ).toString('base64')
           : null;
 
       return {
         data: data.map((r: any) => ({
           id: r.id,
-          eventType: r.event_type,
-          sourceType: r.source_type,
-          sourceId: r.source_id,
-          occurredAt: r.occurred_at,
-          metricValue: r.metric_value,
+          organizationId: r.organizationId,
+          projectId: r.projectId,
+          partnerType: r.partnerType,
+          supplierId: r.supplierId,
+          subcontractorId: r.subcontractorId,
+          eventType: r.eventType,
+          sourceType: r.sourceType,
+          sourceId: r.sourceId,
+          occurredAt: r.occurredAt,
+          metricValue: r.metricValue === null ? null : Number(r.metricValue),
           unit: r.unit,
           notes: r.notes,
+          createdAt: r.createdAt,
         })),
         nextCursor,
       };
@@ -137,7 +145,9 @@ export class PartnerPerformanceService {
       }
 
       const rows = await this.db.execute(
-        sql`SELECT id, event_type, source_type, source_id, occurred_at, metric_value, unit, notes
+        sql`SELECT id, organization_id, project_id, partner_type, supplier_id,
+                   subcontractor_id, event_type, source_type, source_id, occurred_at,
+                   metric_value, unit, notes, created_at
             FROM app.partner_performance_events
             WHERE organization_id = ${organizationId}
               AND project_id = ${projectId}
@@ -153,20 +163,26 @@ export class PartnerPerformanceService {
       const nextCursor: string | null =
         hasMore && last
           ? Buffer.from(
-              JSON.stringify({ occurredAt: last.occurred_at, id: last.id }),
+              JSON.stringify({ occurredAt: last.occurredAt, id: last.id }),
             ).toString('base64')
           : null;
 
       return {
         data: data.map((r: any) => ({
           id: r.id,
-          eventType: r.event_type,
-          sourceType: r.source_type,
-          sourceId: r.source_id,
-          occurredAt: r.occurred_at,
-          metricValue: r.metric_value,
+          organizationId: r.organizationId,
+          projectId: r.projectId,
+          partnerType: r.partnerType,
+          supplierId: r.supplierId,
+          subcontractorId: r.subcontractorId,
+          eventType: r.eventType,
+          sourceType: r.sourceType,
+          sourceId: r.sourceId,
+          occurredAt: r.occurredAt,
+          metricValue: r.metricValue === null ? null : Number(r.metricValue),
           unit: r.unit,
           notes: r.notes,
+          createdAt: r.createdAt,
         })),
         nextCursor,
       };

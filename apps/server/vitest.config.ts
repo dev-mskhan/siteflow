@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    testTimeout: 30000,
     setupFiles: ['./tests/setup.ts'],
     // All tests live under tests/ — never co-located inside src/
     include: ['tests/**/*.{test,spec}.ts'],
@@ -20,7 +21,9 @@ export default defineConfig({
     },
     env: {
       NODE_ENV: 'test',
-      DATABASE_URL: 'postgres://siteflow:siteflow@localhost:5434/siteflow',
+      OTEL_ENABLE_IN_TEST: 'true',
+      OTEL_SERVICE_NAME: 'siteflow-server-test',
+      DATABASE_URL: 'postgres://siteflow:siteflow@localhost:5434/siteflow_test',
       REDIS_URL: 'redis://localhost:6379',
       MINIO_ENDPOINT: 'localhost',
       MINIO_PORT: '9000',

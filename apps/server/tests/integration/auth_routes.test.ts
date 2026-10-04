@@ -12,7 +12,7 @@ import {
   loginAndGetCookies,
   getEmailVerificationTokenFromOutbox,
   getPasswordResetTokenFromOutbox,
-  countOutboxEvents,
+  countOutboxEventsByPayload,
 } from '../helpers/fixtures.js';
 import type { ApiSuccessResponse, ApiErrorResponse } from '../../src/shared/response.js';
 
@@ -232,7 +232,10 @@ describe('Auth API Routes — comprehensive integration', () => {
 
     it('exactly 1 outbox event auth:send-email-verification queued after registration', async () => {
       const email = `reg_outbox_${runId}@test.dev`;
-      const before = await countOutboxEvents('auth:send-email-verification', { email });
+      const before = await countOutboxEventsByPayload(
+        'auth:send-email-verification',
+        { email },
+      );
 
       await app.inject({
         method: 'POST',
@@ -240,7 +243,10 @@ describe('Auth API Routes — comprehensive integration', () => {
         payload: { email, password: 'password123', firstName: 'Outbox' },
       });
 
-      const after = await countOutboxEvents('auth:send-email-verification', { email });
+      const after = await countOutboxEventsByPayload(
+        'auth:send-email-verification',
+        { email },
+      );
       expect(after - before).toBe(1);
     });
   });
@@ -603,7 +609,10 @@ describe('Auth API Routes — comprehensive integration', () => {
     it('known email → 200, exactly 1 outbox event auth:send-password-reset queued', async () => {
       const email = `forgot_ok_${runId}@test.dev`;
       await createVerifiedUser({ email });
-      const before = await countOutboxEvents('auth:send-password-reset', { email });
+      const before = await countOutboxEventsByPayload(
+        'auth:send-password-reset',
+        { email },
+      );
 
       const res = await app.inject({
         method: 'POST',
@@ -612,7 +621,10 @@ describe('Auth API Routes — comprehensive integration', () => {
       });
       expect(res.statusCode).toBe(200);
 
-      const after = await countOutboxEvents('auth:send-password-reset', { email });
+      const after = await countOutboxEventsByPayload(
+        'auth:send-password-reset',
+        { email },
+      );
       expect(after - before).toBe(1);
     });
   });

@@ -76,10 +76,10 @@ const materialSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: materialDTOSchema,
+    meta: {
       type: 'object',
-      properties: { material: materialDTOSchema },
-      required: ['material'],
+      properties: { timestamp: { type: 'string' } },
     },
   },
   required: ['success', 'data'],
@@ -89,13 +89,13 @@ const materialListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: materialDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: materialDTOSchema },
+        timestamp: { type: 'string' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],

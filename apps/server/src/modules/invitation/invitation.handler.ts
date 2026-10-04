@@ -27,7 +27,12 @@ export async function handleListInvitations(request: FastifyRequest, reply: Fast
   });
   const query = querySchema.parse(request.query);
   const result = await invitationService.listInvitations(organizationId, query);
-  return reply.send(createSuccessResponse({ data: result.data, nextCursor: result.nextCursor }));
+  return reply.send(
+    createSuccessResponse({
+      invitations: result.data,
+      nextCursor: result.nextCursor,
+    }),
+  );
 }
 
 export async function handleCancelInvitation(request: FastifyRequest, reply: FastifyReply) {

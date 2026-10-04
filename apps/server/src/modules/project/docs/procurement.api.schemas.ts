@@ -43,6 +43,31 @@ const orgProjectParams = {
 // SUBCONTRACTORS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+const subcontractorDTOSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    organizationId: { type: 'string' },
+    legalName: { type: 'string' },
+    displayName: { type: 'string' },
+    trade: { type: ['string', 'null'] },
+    registrationReference: { type: ['string', 'null'] },
+    taxReference: { type: ['string', 'null'] },
+    status: { type: 'string', enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'] },
+    primaryEmail: { type: ['string', 'null'] },
+    primaryPhone: { type: ['string', 'null'] },
+    address: { type: ['string', 'null'] },
+    notes: { type: ['string', 'null'] },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  },
+  required: [
+    'id', 'organizationId', 'legalName', 'displayName', 'trade',
+    'registrationReference', 'taxReference', 'status', 'primaryEmail',
+    'primaryPhone', 'address', 'notes', 'createdAt', 'updatedAt',
+  ],
+} as const;
+
 const projectSubcontractorDTOSchema = {
   type: 'object',
   properties: {
@@ -56,10 +81,15 @@ const projectSubcontractorDTOSchema = {
     currencyCode: { type: ['string', 'null'] },
     startDate: { type: ['string', 'null'] },
     endDate: { type: ['string', 'null'] },
+    subcontractor: subcontractorDTOSchema,
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'organizationId', 'projectId', 'subcontractorId', 'status', 'createdAt', 'updatedAt'],
+  required: [
+    'id', 'organizationId', 'projectId', 'subcontractorId', 'status',
+    'scopeDescription', 'contractValue', 'currencyCode', 'startDate',
+    'endDate', 'subcontractor', 'createdAt', 'updatedAt',
+  ],
 } as const;
 
 const subcontractorContactDTOSchema = {
@@ -84,11 +114,7 @@ const subcontractorSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { subcontractor: projectSubcontractorDTOSchema },
-      required: ['subcontractor'],
-    },
+    data: projectSubcontractorDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -97,14 +123,7 @@ const subcontractorListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: {
-        items: { type: 'array', items: projectSubcontractorDTOSchema },
-        nextCursor: { type: ['string', 'null'] },
-      },
-      required: ['items', 'nextCursor'],
-    },
+    data: { type: 'array', items: projectSubcontractorDTOSchema },
   },
   required: ['success', 'data'],
 } as const;
@@ -113,11 +132,7 @@ const subcontractorContactSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { contact: subcontractorContactDTOSchema },
-      required: ['contact'],
-    },
+    data: subcontractorContactDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -355,7 +370,7 @@ const materialRequestDTOSchema = {
     organizationId: { type: 'string' },
     projectId: { type: 'string' },
     requestNumber: { type: 'string' },
-    requestedByMemberId: { type: 'string' },
+    requestedByMemberId: { type: ['string', 'null'] },
     status: {
       type: 'string',
       enum: ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'PARTIALLY_ORDERED', 'ORDERED', 'FULFILLED', 'CANCELLED', 'REJECTED'],
@@ -378,11 +393,7 @@ const materialRequestSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { materialRequest: materialRequestDTOSchema },
-      required: ['materialRequest'],
-    },
+    data: materialRequestDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -391,13 +402,13 @@ const materialRequestListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: materialRequestDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: materialRequestDTOSchema },
+        timestamp: { type: 'string', format: 'date-time' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -571,6 +582,7 @@ const quoteItemDTOSchema = {
     unitPrice: { type: 'string' },
     discountAmount: { type: ['string', 'null'] },
     taxAmount: { type: ['string', 'null'] },
+    lineSubtotal: { type: 'string' },
     lineTotal: { type: 'string' },
     expectedDeliveryDate: { type: ['string', 'null'] },
   },
@@ -609,11 +621,7 @@ const quoteSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { quote: quoteDTOSchema },
-      required: ['quote'],
-    },
+    data: quoteDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -622,13 +630,13 @@ const quoteListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: quoteDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: quoteDTOSchema },
+        timestamp: { type: 'string', format: 'date-time' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -831,11 +839,7 @@ const approvalSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { approval: procurementApprovalDTOSchema },
-      required: ['approval'],
-    },
+    data: procurementApprovalDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -844,13 +848,13 @@ const approvalListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: procurementApprovalDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: procurementApprovalDTOSchema },
+        timestamp: { type: 'string', format: 'date-time' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -999,6 +1003,7 @@ const poItemDTOSchema = {
     quantity: { type: 'string' },
     unitCode: { type: 'string' },
     unitPrice: { type: 'string' },
+    lineSubtotal: { type: 'string' },
     discountAmount: { type: ['string', 'null'] },
     taxAmount: { type: ['string', 'null'] },
     lineTotal: { type: 'string' },
@@ -1036,7 +1041,7 @@ const purchaseOrderDTOSchema = {
     taxAmount: { type: 'string' },
     totalAmount: { type: 'string' },
     notes: { type: ['string', 'null'] },
-    createdByMemberId: { type: 'string' },
+    createdByMemberId: { type: ['string', 'null'] },
     approvedAt: { type: ['string', 'null'], format: 'date-time' },
     approvedBy: { type: ['string', 'null'] },
     sentAt: { type: ['string', 'null'], format: 'date-time' },
@@ -1052,11 +1057,7 @@ const purchaseOrderSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { purchaseOrder: purchaseOrderDTOSchema },
-      required: ['purchaseOrder'],
-    },
+    data: purchaseOrderDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -1065,13 +1066,13 @@ const purchaseOrderListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: purchaseOrderDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: purchaseOrderDTOSchema },
+        timestamp: { type: 'string', format: 'date-time' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -1308,11 +1309,7 @@ const committedCostSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { committedCost: committedCostDTOSchema },
-      required: ['committedCost'],
-    },
+    data: committedCostDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -1321,13 +1318,13 @@ const committedCostListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: committedCostDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: committedCostDTOSchema },
+        timestamp: { type: 'string', format: 'date-time' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -1379,12 +1376,14 @@ const deliveryItemDTOSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' },
+    organizationId: { type: 'string' },
+    deliveryId: { type: 'string' },
     purchaseOrderItemId: { type: 'string' },
     quantity: { type: 'string' },
     unitCode: { type: 'string' },
     notes: { type: ['string', 'null'] },
   },
-  required: ['id', 'purchaseOrderItemId', 'quantity', 'unitCode'],
+  required: ['id', 'organizationId', 'deliveryId', 'purchaseOrderItemId', 'quantity', 'unitCode'],
 } as const;
 
 const deliveryDTOSchema = {
@@ -1413,11 +1412,7 @@ const deliverySuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { delivery: deliveryDTOSchema },
-      required: ['delivery'],
-    },
+    data: deliveryDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -1426,13 +1421,13 @@ const deliveryListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: deliveryDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: deliveryDTOSchema },
+        timestamp: { type: 'string', format: 'date-time' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -1553,6 +1548,8 @@ const receiptItemDTOSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' },
+    organizationId: { type: 'string' },
+    receiptId: { type: 'string' },
     purchaseOrderItemId: { type: 'string' },
     quantityDelivered: { type: 'string' },
     quantityAccepted: { type: 'string' },
@@ -1562,7 +1559,7 @@ const receiptItemDTOSchema = {
     condition: { type: ['string', 'null'] },
     notes: { type: ['string', 'null'] },
   },
-  required: ['id', 'purchaseOrderItemId', 'quantityDelivered', 'quantityAccepted', 'unitCode'],
+  required: ['id', 'organizationId', 'receiptId', 'purchaseOrderItemId', 'quantityDelivered', 'quantityAccepted', 'unitCode'],
 } as const;
 
 const receiptDTOSchema = {
@@ -1576,7 +1573,7 @@ const receiptDTOSchema = {
     receiptNumber: { type: 'string' },
     status: { type: 'string', enum: ['DRAFT', 'POSTED', 'VOIDED'] },
     receivedAt: { type: 'string', format: 'date-time' },
-    receivedByMemberId: { type: 'string' },
+    receivedByMemberId: { type: ['string', 'null'] },
     notes: { type: ['string', 'null'] },
     createdAt: { type: 'string', format: 'date-time' },
     items: { type: 'array', items: receiptItemDTOSchema },
@@ -1588,11 +1585,7 @@ const receiptSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
-      type: 'object',
-      properties: { receipt: receiptDTOSchema },
-      required: ['receipt'],
-    },
+    data: receiptDTOSchema,
   },
   required: ['success', 'data'],
 } as const;
@@ -1601,13 +1594,13 @@ const receiptListSuccessResponse = {
   type: 'object',
   properties: {
     success: { type: 'boolean', enum: [true] },
-    data: {
+    data: { type: 'array', items: receiptDTOSchema },
+    meta: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: receiptDTOSchema },
+        timestamp: { type: 'string', format: 'date-time' },
         nextCursor: { type: ['string', 'null'] },
       },
-      required: ['items', 'nextCursor'],
     },
   },
   required: ['success', 'data'],
@@ -1738,16 +1731,10 @@ const inventoryBalanceDTOSchema = {
   type: 'object',
   properties: {
     materialId: { type: 'string' },
-    materialCode: { type: 'string' },
-    materialName: { type: 'string' },
-    unitCode: { type: 'string' },
-    quantityOnHand: { type: 'string' },
-    quantityReserved: { type: 'string' },
-    quantityAvailable: { type: 'string' },
-    location: { type: ['string', 'null'] },
-    lastUpdatedAt: { type: 'string', format: 'date-time' },
+    location: { type: 'string' },
+    balance: { type: 'string' },
   },
-  required: ['materialId', 'unitCode', 'quantityOnHand', 'quantityReserved', 'quantityAvailable'],
+  required: ['materialId', 'location', 'balance'],
 } as const;
 
 const inventoryTransactionDTOSchema = {
@@ -1755,17 +1742,15 @@ const inventoryTransactionDTOSchema = {
   properties: {
     id: { type: 'string' },
     materialId: { type: 'string' },
-    direction: { type: 'string', enum: ['IN', 'OUT'] },
+    transactionType: { type: 'string' },
     quantity: { type: 'string' },
     unitCode: { type: 'string' },
     sourceType: { type: ['string', 'null'] },
     sourceId: { type: ['string', 'null'] },
-    location: { type: ['string', 'null'] },
-    reason: { type: ['string', 'null'] },
     occurredAt: { type: 'string', format: 'date-time' },
     createdAt: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'materialId', 'direction', 'quantity', 'unitCode', 'occurredAt', 'createdAt'],
+  required: ['id', 'materialId', 'transactionType', 'quantity', 'unitCode', 'occurredAt', 'createdAt'],
 } as const;
 
 export const listInventorySchemaDoc = {
@@ -1778,13 +1763,7 @@ export const listInventorySchemaDoc = {
       type: 'object',
       properties: {
         success: { type: 'boolean', enum: [true] },
-        data: {
-          type: 'object',
-          properties: {
-            items: { type: 'array', items: inventoryBalanceDTOSchema },
-          },
-          required: ['items'],
-        },
+        data: { type: 'array', items: inventoryBalanceDTOSchema },
       },
       required: ['success', 'data'],
     },
@@ -1804,6 +1783,10 @@ export const getInventoryBalanceSchemaDoc = {
       projectId: { type: 'string' },
       materialId: { type: 'string' },
     },
+    querystring: {
+      type: 'object',
+      properties: { location: { type: 'string', minLength: 1 } },
+    },
   },
   response: {
     200: {
@@ -1812,8 +1795,11 @@ export const getInventoryBalanceSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { balance: inventoryBalanceDTOSchema },
-          required: ['balance'],
+          properties: {
+            materialId: { type: 'string' },
+            balance: { type: 'string' },
+          },
+          required: ['materialId', 'balance'],
         },
       },
       required: ['success', 'data'],
@@ -1847,14 +1833,7 @@ export const listInventoryTransactionsSchemaDoc = {
       type: 'object',
       properties: {
         success: { type: 'boolean', enum: [true] },
-        data: {
-          type: 'object',
-          properties: {
-            items: { type: 'array', items: inventoryTransactionDTOSchema },
-            nextCursor: { type: ['string', 'null'] },
-          },
-          required: ['items', 'nextCursor'],
-        },
+        data: { type: 'array', items: inventoryTransactionDTOSchema },
       },
       required: ['success', 'data'],
     },
@@ -1886,8 +1865,8 @@ export const adjustInventorySchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { transaction: inventoryTransactionDTOSchema },
-          required: ['transaction'],
+          properties: { message: { type: 'string' } },
+          required: ['message'],
         },
       },
       required: ['success', 'data'],
@@ -1920,10 +1899,8 @@ export const transferInventorySchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: {
-            transactions: { type: 'array', items: inventoryTransactionDTOSchema },
-          },
-          required: ['transactions'],
+          properties: { message: { type: 'string' } },
+          required: ['message'],
         },
       },
       required: ['success', 'data'],

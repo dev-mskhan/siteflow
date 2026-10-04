@@ -179,7 +179,7 @@ services:
       dockerfile: apps/server/Dockerfile
     container_name: siteflow-worker
     # Same image, different entrypoint — runs only the pg-boss consumer.
-    command: ['node', 'dist/worker.js']
+    command: ['node', 'apps/server/dist/worker.js']
     environment:
       NODE_ENV: development
       DATABASE_URL: postgres://siteflow:siteflow@postgres:5432/siteflow

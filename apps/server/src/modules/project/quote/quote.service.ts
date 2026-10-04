@@ -1,6 +1,7 @@
 import { withSpan } from '@siteflow/observability/server';
 import { trace } from '@opentelemetry/api';
 import { Decimal } from 'decimal.js';
+import { eq } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { generateId } from '../../../lib/id.js';
 import { auditService } from '../../audit/audit.service.js';
@@ -8,6 +9,7 @@ import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { documentNumberService } from '../../procurement/document-number/document-number.service.js';
 import { SupplierService } from '../../supplier/supplier.service.js';
 import { QuoteRepository } from './quote.repository.js';
+import { materialRequests } from '@siteflow/database/schema';
 import {
   QuoteNotFoundError,
   QuoteInvalidStateError,
@@ -347,6 +349,11 @@ export class QuoteService {
         }
         // At-most-one-accepted invariant per material request
         if (row.materialRequestId) {
+          await tx
+            .select({ id: materialRequests.id })
+            .from(materialRequests)
+            .where(eq(materialRequests.id, row.materialRequestId))
+            .for('update');
           const existing = await this.repo.findAcceptedForRequest(tx as any, row.materialRequestId);
           if (existing && existing.id !== quoteId) throw new QuoteAlreadyAcceptedForRequestError();
         }

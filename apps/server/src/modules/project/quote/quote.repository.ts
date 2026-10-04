@@ -1,5 +1,5 @@
 import { quotes, quoteItems, type Quote, type QuoteItem } from '@siteflow/database/schema';
-import { eq, and, desc, lt, or, inArray, sql } from 'drizzle-orm';
+import { eq, and, desc, lt, or, inArray } from 'drizzle-orm';
 
 export class QuoteRepository {
   async findById(db: any, id: string): Promise<Quote | undefined> {
@@ -8,8 +8,8 @@ export class QuoteRepository {
   }
 
   async findByIdForUpdate(db: any, id: string): Promise<Quote | undefined> {
-    await db.execute(sql`SELECT id FROM app.quotes WHERE id = ${id} FOR UPDATE`);
-    return this.findById(db, id);
+    const rows = await db.select().from(quotes).where(eq(quotes.id, id)).for('update');
+    return rows[0];
   }
 
   async create(db: any, data: any): Promise<Quote> {

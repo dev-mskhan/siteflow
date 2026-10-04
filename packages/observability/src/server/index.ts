@@ -32,8 +32,10 @@ let sdk: NodeSDK | undefined;
  */
 export function initTelemetry(config: TelemetryConfig): void {
   const { serviceName, serviceVersion = '0.0.0', otlpEndpoint, enabled = true } = config;
+  const isTest = process.env.NODE_ENV === 'test';
+  const enableInTest = process.env.OTEL_ENABLE_IN_TEST === 'true';
 
-  if (!enabled || process.env.NODE_ENV === 'test') {
+  if (!enabled || (isTest && !enableInTest)) {
     return;
   }
 
@@ -102,6 +104,12 @@ export function initTelemetry(config: TelemetryConfig): void {
       .then(() => console.warn('[otel] SDK shut down successfully'))
       .catch((err) => console.error('[otel] SDK shutdown error', err));
   });
+}
+
+export async function shutdownTelemetry(): Promise<void> {
+  const activeSdk = sdk;
+  sdk = undefined;
+  await activeSdk?.shutdown();
 }
 
 export { NodeSDK };
