@@ -13,6 +13,4 @@ export interface SendInvitationEmailPayload {
   token: string;
 }
 
-export interface ExpireInvitationsPayload extends Record<string, unknown> {
-  // Cron job — no payload fields needed
-}
+export type ExpireInvitationsPayload = Record<string, unknown>;

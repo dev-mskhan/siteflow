@@ -129,7 +129,7 @@ services:
       /bin/sh -c "
       mc alias set myminio http://minio:9000 minioadmin minioadmin;
       mc mb myminio/siteflow-documents --ignore-existing;
-      mc anonymous set download myminio/siteflow-documents;
+      mc anonymous set none myminio/siteflow-documents;
       exit 0;
       "
 
@@ -170,6 +170,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      minio-create-buckets:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   worker:
@@ -200,6 +202,43 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      minio-create-buckets:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  document-worker:
+    profiles: ['app']
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: siteflow-document-worker
+    command: ['node', 'apps/server/dist/document-worker.js']
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://siteflow:siteflow@postgres:5432/siteflow
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET_DOCUMENTS: siteflow-documents
+      STORAGE_PRESIGN_EXPIRY_SECONDS: 3600
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: siteflow-document-worker
+    cpus: 1.0
+    mem_limit: 1g
+    networks:
+      - siteflow-net
+      - signoz-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-create-buckets:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   # ─────────────────────────────────────────────────────────────────────────────

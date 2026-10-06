@@ -342,6 +342,7 @@ export const documentNumberAllocators = appSchema.table(
   },
   (t) => [
     index('doc_num_allocator_org_series_idx').on(t.organizationId, t.series, t.period),
+    index('doc_num_allocator_project_idx').on(t.projectId),
   ],
 );
 

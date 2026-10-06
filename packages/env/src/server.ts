@@ -39,6 +39,8 @@ export const serverEnv = createEnv({
       .string()
       .transform((v) => v === 'true')
       .default('false'),
+    STORAGE_PRESIGN_EXPIRY_SECONDS: z.coerce.number().int().min(1).max(604800).default(3600),
+    EXPIRY_SCAN_DAYS_AHEAD: z.coerce.number().int().min(1).max(90).default(30),
 
     // OTEL
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().default('http://localhost:4318'),

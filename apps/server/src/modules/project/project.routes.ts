@@ -51,6 +51,12 @@ import {
   handleListDependencies,
 } from './dependency/dependency.handler.js';
 import { handleRecalculateSchedule } from './engine/schedule.handler.js';
+import { documentRoutes } from './documents/document.routes.js';
+import { complianceRoutes } from './compliance/compliance.routes.js';
+import { rfiRoutes } from './rfi/rfi.routes.js';
+import { submittalRoutes } from './submittal/submittal.routes.js';
+import { qualityRoutes } from './quality/quality.routes.js';
+import { safetyRoutes } from './safety/safety.routes.js';
 import {
   handleCreateBaseline,
   handleActivateBaseline,
@@ -279,6 +285,12 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // ── Item routes (projectId in path — projectContext required) ───────────────
   fastify.register(async (projectScoped) => {
     projectScoped.addHook('preHandler', projectContext);
+    projectScoped.register(documentRoutes);
+    projectScoped.register(complianceRoutes);
+    projectScoped.register(rfiRoutes);
+    projectScoped.register(submittalRoutes);
+    projectScoped.register(qualityRoutes);
+    projectScoped.register(safetyRoutes);
 
     projectScoped.get(
       '/:organizationId/projects/:projectId',

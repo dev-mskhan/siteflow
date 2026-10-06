@@ -336,26 +336,6 @@ export const tasks = appSchema.table(
   ],
 );
 
-// ── Task Document Links ───────────────────────────────────────────────────────
-
-export const taskDocumentLinks = appSchema.table(
-  'task_document_links',
-  {
-    id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull(),
-    projectId: text('project_id').notNull(),
-    taskId: text('task_id')
-      .notNull()
-      .references(() => tasks.id, { onDelete: 'cascade' }),
-    documentId: text('document_id').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [
-    uniqueIndex('task_doc_unique').on(t.taskId, t.documentId),
-    index('task_doc_links_task_idx').on(t.taskId),
-  ],
-);
-
 // ── Project Calendars ─────────────────────────────────────────────────────────
 
 export type WorkDaysConfig = {
@@ -694,9 +674,6 @@ export type NewProjectCostCode = typeof projectCostCodes.$inferInsert;
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 
-export type TaskDocumentLink = typeof taskDocumentLinks.$inferSelect;
-export type NewTaskDocumentLink = typeof taskDocumentLinks.$inferInsert;
-
 export type ProjectCalendar = typeof projectCalendars.$inferSelect;
 export type NewProjectCalendar = typeof projectCalendars.$inferInsert;
 
@@ -748,7 +725,6 @@ export type BaselineStatus = 'DRAFT' | 'ACTIVE' | 'SUPERSEDED';
 export type FieldLogStatus = 'DRAFT' | 'SUBMITTED' | 'LOCKED';
 export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type ScheduleSourceType = 'USER' | 'ISSUE' | 'RFI' | 'CHANGE_ORDER' | 'MATERIAL_DELAY' | 'WEATHER' | 'SYSTEM_CALCULATION';
-
 
 
 

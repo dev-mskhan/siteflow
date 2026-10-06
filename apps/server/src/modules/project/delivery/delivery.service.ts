@@ -4,6 +4,7 @@ import { Decimal } from 'decimal.js';
 import { sql } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { generateId } from '../../../lib/id.js';
+import { yyyymm } from '../../../lib/date.js';
 import { auditService } from '../../audit/audit.service.js';
 import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { documentNumberService } from '../../procurement/document-number/document-number.service.js';
@@ -35,11 +36,6 @@ export function setDeliveryHooks(r: RecordReceiptFn, v: ReverseReceiptFn, p: Rec
   _recordReceiptInventory = r;
   _reverseReceiptInventory = v;
   _recordPerformanceEvent = p;
-}
-
-function yyyymm() {
-  const d = new Date();
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function toDeliveryItemDTO(r: DeliveryItem): DeliveryItemDTO {

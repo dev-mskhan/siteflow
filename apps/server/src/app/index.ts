@@ -137,6 +137,8 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'receipts', description: 'Goods receipts' },
         { name: 'inventory', description: 'Project inventory ledger' },
         { name: 'performance', description: 'Supplier and subcontractor performance' },
+        { name: 'documents', description: 'Project document management and evidence' },
+        { name: 'compliance', description: 'Project permits, inspections, and compliance records' },
       ],
     },
   });

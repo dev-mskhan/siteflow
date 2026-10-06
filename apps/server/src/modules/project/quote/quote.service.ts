@@ -4,6 +4,7 @@ import { Decimal } from 'decimal.js';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { generateId } from '../../../lib/id.js';
+import { yyyymm } from '../../../lib/date.js';
 import { auditService } from '../../audit/audit.service.js';
 import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { documentNumberService } from '../../procurement/document-number/document-number.service.js';
@@ -28,11 +29,6 @@ import type { Quote, QuoteItem } from '@siteflow/database/schema';
 
 const tracer = trace.getTracer('quote-service');
 const supplierService = new SupplierService();
-
-function currentYYYYMM(): string {
-  const d = new Date();
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
 
 function computeLineTotals(item: QuoteItemInput): { lineSubtotal: string; lineTotal: string } {
   const qty = new Decimal(item.quantity);
@@ -135,7 +131,7 @@ export class QuoteService {
           organizationId,
           projectId,
           'QT',
-          currentYYYYMM(),
+          yyyymm(),
         );
 
         // Compute line and document totals (server always calculates)

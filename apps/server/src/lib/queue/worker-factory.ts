@@ -1,7 +1,7 @@
 // apps/server/src/lib/queue/worker-factory.ts
 import type PgBoss from 'pg-boss';
 import { createLogger } from '@siteflow/observability/server';
-import { canStartJob, incrementJobCount } from './tenantJobLimit.js';
+import { acquireTenantJobLease, releaseTenantJobLease } from './tenantJobLimit.js';
 
 const logger = createLogger({ name: 'worker-factory' });
 
@@ -14,6 +14,10 @@ export interface WorkerOptions {
   timeoutSecs?: number;
   /** used to enforce per-tenant quotas */
   tenantIdExtractor?: (data: any) => string | undefined;
+  /** maximum simultaneous jobs for the same tenant on this queue */
+  tenantConcurrencyLimit?: number;
+  /** share tenant concurrency across related queue names */
+  tenantLeaseGroup?: string;
 }
 
 /**
@@ -29,7 +33,14 @@ export async function registerWorker<T extends object>(
   opts: WorkerOptions,
   handler: (job: PgBoss.Job<T>) => Promise<void>,
 ): Promise<void> {
-  const { queue, concurrency = 5, timeoutSecs = 60, tenantIdExtractor } = opts;
+  const {
+    queue,
+    concurrency = 5,
+    timeoutSecs = 60,
+    tenantIdExtractor,
+    tenantConcurrencyLimit = 50,
+    tenantLeaseGroup = queue,
+  } = opts;
 
   await boss.work<T>(
     queue,
@@ -46,21 +57,28 @@ export async function registerWorker<T extends object>(
       const tenantId = tenantIdExtractor?.(job.data);
       logger.info({ queue, jobId, tenantId, attempt: job.retryCount }, 'Job started');
 
+      let tenantLease: { key: string; token: string } | undefined;
       try {
-        // Tenant quota enforcement
         if (tenantId) {
-          if (!(await canStartJob(tenantId))) {
-            logger.warn({ queue, jobId, tenantId }, 'Tenant quota exceeded — deferring job');
-            throw new Error(`Tenant quota exceeded for ${tenantId}`);
+          while (!tenantLease) {
+            tenantLease = await acquireTenantJobLease(
+              tenantLeaseGroup,
+              tenantId,
+              tenantConcurrencyLimit,
+              (timeoutSecs + 60) * 1000,
+            ) ?? undefined;
+            if (!tenantLease) {
+              await new Promise((resolve) => setTimeout(resolve, 250));
+            }
           }
-          await incrementJobCount(tenantId);
         }
-
         await handler(job);
         logger.info({ queue, jobId, tenantId }, 'Job completed');
       } catch (err) {
         logger.error({ queue, jobId, tenantId, err }, 'Job failed');
         throw err; // re-throw so pg-boss handles retry / dead-letter
+      } finally {
+        if (tenantLease) await releaseTenantJobLease(tenantLease);
       }
     },
   );

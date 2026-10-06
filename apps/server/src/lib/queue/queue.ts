@@ -34,6 +34,8 @@ import {
   type ScheduleBaselineActivatedPayload,
   type FieldLogLockedPayload,
 } from '../../modules/project/engine/schedule.jobs.js';
+import { DOCUMENT_QUEUES, type DocumentUploadedPayload } from '../../modules/project/documents/document.jobs.js';
+import { COMPLIANCE_QUEUES, type ExpiryScanJobPayload } from '../../modules/project/compliance/compliance.jobs.js';
 
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {
@@ -43,6 +45,8 @@ export const QUEUES = {
   ...ORG_QUEUES,
   ...PROJECT_QUEUES,
   ...SCHEDULE_QUEUES,
+  ...DOCUMENT_QUEUES,
+  ...COMPLIANCE_QUEUES,
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -83,6 +87,9 @@ export type JobPayloads = {
   [SCHEDULE_QUEUES.SCHEDULE_RECALCULATED_EVENT]: ScheduleRecalculatedEventPayload;
   [SCHEDULE_QUEUES.SCHEDULE_BASELINE_ACTIVATED]: ScheduleBaselineActivatedPayload;
   [SCHEDULE_QUEUES.FIELD_LOG_LOCKED]: FieldLogLockedPayload;
+  [DOCUMENT_QUEUES.UPLOADED]: DocumentUploadedPayload;
+  [DOCUMENT_QUEUES.VERSION_CREATED]: DocumentUploadedPayload;
+  [COMPLIANCE_QUEUES.SCAN_EXPIRY]: ExpiryScanJobPayload;
 };
 
 let _bossInstance: PgBoss | undefined;
@@ -121,7 +128,7 @@ export async function startQueue(): Promise<PgBoss> {
       .then(async () => {
         logger.info('PgBoss queue started successfully in schema "pgboss"');
         // Pre-create all registered queues with retry/backoff defaults
-        for (const queueName of Object.values(QUEUES)) {
+        for (const queueName of Object.values(QUEUES) as QueueName[]) {
           try {
             await boss.createQueue(queueName);
           } catch (err) {
@@ -166,4 +173,3 @@ export async function sendJob<N extends keyof JobPayloads | (string & {})>(
     ? boss.send(name as string, data as object, options)
     : boss.send(name as string, data as object);
 }
-

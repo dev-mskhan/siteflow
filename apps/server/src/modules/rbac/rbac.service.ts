@@ -2,7 +2,7 @@
 import { trace } from '@opentelemetry/api';
 import { withSpan } from '@siteflow/observability/server';
 import { RbacRepository } from './rbac.repository.js';
-import { rbacCacheService, RbacCacheService } from './rbac.cache.service.js';
+import { rbacCacheService, type RbacCacheService } from './rbac.cache.service.js';
 import type { OrganizationContext } from './rbac.types.js';
 import { ForbiddenError } from '../auth/auth.errors.js';
 

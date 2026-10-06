@@ -33,7 +33,9 @@ export class DeliveryRepository {
       try {
         const { createdAt, id } = JSON.parse(Buffer.from(opts.cursor, 'base64').toString()) as any;
         conds.push(or(lt(deliveries.createdAt, new Date(createdAt)), and(eq(deliveries.createdAt, new Date(createdAt)), lt(deliveries.id, id))));
-      } catch {}
+      } catch {
+        // Invalid cursors are ignored for compatibility with existing list endpoints.
+      }
     }
     return db.select().from(deliveries).where(and(...conds)).orderBy(desc(deliveries.createdAt), desc(deliveries.id)).limit(opts.limit);
   }
@@ -68,7 +70,9 @@ export class DeliveryRepository {
       try {
         const { createdAt, id } = JSON.parse(Buffer.from(opts.cursor, 'base64').toString()) as any;
         conds.push(or(lt(receipts.createdAt, new Date(createdAt)), and(eq(receipts.createdAt, new Date(createdAt)), lt(receipts.id, id))));
-      } catch {}
+      } catch {
+        // Invalid cursors are ignored for compatibility with existing list endpoints.
+      }
     }
     return db.select().from(receipts).where(and(...conds)).orderBy(desc(receipts.createdAt), desc(receipts.id)).limit(opts.limit);
   }

@@ -229,7 +229,9 @@ export class OutboxService {
     if (this.listenerClient) {
       try {
         await this.listenerClient.end();
-      } catch {}
+      } catch (err) {
+        logger.warn({ err }, 'Failed to close outbox LISTEN connection');
+      }
       this.listenerClient = null;
     }
 

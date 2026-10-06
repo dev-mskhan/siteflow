@@ -11,6 +11,7 @@ import { registerAuthWorkers } from './modules/auth/auth.worker.js';
 import { registerOrgWorkers } from './modules/invitation/invitation.worker.js';
 import { registerProjectWorkers } from './modules/project/core/project.worker.js';
 import { registerScheduleWorkers } from './modules/project/engine/schedule.worker.js';
+import { registerComplianceWorkers } from './modules/project/compliance/expiry-scanner.worker.js';
 
 import { outboxService } from './lib/outbox/outbox.service.js';
 
@@ -30,6 +31,9 @@ async function runWorker() {
 
   // ─── Register Schedule workers ───────────────────────────────────────────────
   await registerScheduleWorkers(boss);
+
+  // ─── Register compliance workers ────────────────────────────────────────────
+  await registerComplianceWorkers(boss);
 
   // ─── Schedule cleanup jobs ───────────────────────────────────────────────────
   // Sessions: daily at 02:00 UTC

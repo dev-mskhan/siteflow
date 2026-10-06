@@ -53,7 +53,7 @@ export class CalendarService {
     workDays: WorkDaysConfig,
     exceptionsMap: Map<string, boolean>,
   ): string {
-    let curr = new Date(`${dateStr}T00:00:00Z`);
+    const curr = new Date(`${dateStr}T00:00:00Z`);
     while (true) {
       const iso = curr.toISOString().split('T')[0]!;
       if (this.isWorkingDay(iso, workDays, exceptionsMap)) {
@@ -71,7 +71,7 @@ export class CalendarService {
     workDays: WorkDaysConfig,
     exceptionsMap: Map<string, boolean>,
   ): string {
-    let curr = new Date(`${dateStr}T00:00:00Z`);
+    const curr = new Date(`${dateStr}T00:00:00Z`);
     while (true) {
       const iso = curr.toISOString().split('T')[0]!;
       if (this.isWorkingDay(iso, workDays, exceptionsMap)) {

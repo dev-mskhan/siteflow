@@ -206,7 +206,7 @@ export class AuthService {
 
       logger.info({ sub: googleUser.sub, email: googleUser.email }, 'Processing Google OAuth login/signup');
 
-      let oauthMatch = await this.repo.findOAuthAccount('GOOGLE', googleUser.sub);
+      const oauthMatch = await this.repo.findOAuthAccount('GOOGLE', googleUser.sub);
       let user: User;
 
       if (oauthMatch) {
