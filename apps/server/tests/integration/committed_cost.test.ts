@@ -123,6 +123,8 @@ describe('Committed costs (integration)', () => {
     expect(listed.statusCode).toBe(200);
     const match = listed.json().data.find((entry: { sourceId: string }) => entry.sourceId === po.id);
     expect(match?.status).toBe('ACTIVE');
+    expect(match?.lifecycleStatus).toBe('APPROVED');
+    expect(match?.purchaseOrderStatus).toBe('APPROVED');
     expect(match?.committedAmount).toBe(po.totalAmount);
 
     const [persisted] = await getDb().select().from(committedCosts).where(and(
@@ -146,6 +148,8 @@ describe('Committed costs (integration)', () => {
     expect(cancelled.statusCode).toBe(200);
     const entry = cancelled.json().data.find((cost: { sourceId: string }) => cost.sourceId === po.id);
     expect(entry?.status).toBe('CANCELLED');
+    expect(entry?.lifecycleStatus).toBe('CANCELLED');
+    expect(entry?.purchaseOrderStatus).toBe('CANCELLED');
     expect(entry?.committedAmount).toBe(po.totalAmount);
 
     const active = await app.inject({

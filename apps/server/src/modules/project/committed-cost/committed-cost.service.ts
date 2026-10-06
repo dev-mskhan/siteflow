@@ -10,7 +10,13 @@ import type { CommittedCost, PurchaseOrder } from '@siteflow/database/schema';
 
 const tracer = trace.getTracer('committed-cost-service');
 
-function toDTO(row: CommittedCost): CommittedCostDTO {
+function toDTO(row: CommittedCost, purchaseOrderStatus: string | null = null): CommittedCostDTO {
+  const lifecycleStatus =
+    row.status === 'CANCELLED'
+      ? 'CANCELLED'
+      : row.status === 'RELEASED' || purchaseOrderStatus === 'CLOSED'
+        ? 'CLOSED'
+        : 'APPROVED';
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -25,6 +31,8 @@ function toDTO(row: CommittedCost): CommittedCostDTO {
     currencyCode: row.currencyCode,
     committedAmount: row.committedAmount,
     status: row.status as CommittedCostDTO['status'],
+    lifecycleStatus,
+    purchaseOrderStatus,
     committedAt: row.committedAt.toISOString(),
     releasedAt: row.releasedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
@@ -81,7 +89,7 @@ export class CommittedCostService {
           },
           tx,
         );
-        return toDTO(row);
+        return toDTO(row, 'APPROVED');
       } catch (err: any) {
         // Unique constraint violation = already exists, return existing
         if (err?.code === '23505' || err?.message?.includes('unique')) {
@@ -91,7 +99,7 @@ export class CommittedCostService {
             'PURCHASE_ORDER',
             po.id,
           );
-          if (existing) return toDTO(existing);
+          if (existing) return toDTO(existing, 'APPROVED');
         }
         throw err;
       }
@@ -150,7 +158,11 @@ export class CommittedCostService {
         err.code = 'COMMITTED_COST_NOT_FOUND';
         throw err;
       }
-      return toDTO(row);
+      const [purchaseOrder] = await this.repo.findPurchaseOrderStatuses(
+        this.db,
+        row.purchaseOrderId ? [row.purchaseOrderId] : [],
+      );
+      return toDTO(row, purchaseOrder?.status ?? null);
     });
   }
 
@@ -176,7 +188,22 @@ export class CommittedCostService {
           JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id }),
         ).toString('base64');
       }
-      return { data: data.map(toDTO), nextCursor };
+      const purchaseOrderStatuses = await this.repo.findPurchaseOrderStatuses(
+        this.db,
+        data.flatMap((row) => (row.purchaseOrderId ? [row.purchaseOrderId] : [])),
+      );
+      const statusById = new Map<string, string>(
+        purchaseOrderStatuses.map((purchaseOrder: { id: string; status: string }) => [
+          purchaseOrder.id,
+          purchaseOrder.status,
+        ]),
+      );
+      return {
+        data: data.map((row) =>
+          toDTO(row, row.purchaseOrderId ? statusById.get(row.purchaseOrderId) ?? null : null),
+        ),
+        nextCursor,
+      };
     });
   }
 }

@@ -1297,12 +1297,17 @@ const committedCostDTOSchema = {
     currencyCode: { type: 'string' },
     committedAmount: { type: 'string' },
     status: { type: 'string', enum: ['ACTIVE', 'RELEASED', 'CANCELLED'] },
+    lifecycleStatus: {
+      type: 'string',
+      enum: ['APPROVED', 'PARTIALLY_INVOICED', 'FULLY_INVOICED', 'CLOSED', 'CANCELLED'],
+    },
+    purchaseOrderStatus: { type: ['string', 'null'] },
     committedAt: { type: 'string', format: 'date-time' },
     releasedAt: { type: ['string', 'null'], format: 'date-time' },
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'organizationId', 'projectId', 'sourceType', 'sourceId', 'currencyCode', 'committedAmount', 'status', 'committedAt', 'createdAt', 'updatedAt'],
+  required: ['id', 'organizationId', 'projectId', 'sourceType', 'sourceId', 'currencyCode', 'committedAmount', 'status', 'lifecycleStatus', 'purchaseOrderStatus', 'committedAt', 'createdAt', 'updatedAt'],
 } as const;
 
 const committedCostSuccessResponse = {

@@ -165,6 +165,7 @@ import {
 import { partnerPerformanceService } from './performance/performance.service.js';
 import { projectBudgetRoutes } from './budget/budget.routes.js';
 import { costTransactionRoutes } from './cost-transaction/cost-transaction.routes.js';
+import { commercialSummaryRoutes } from './commercial-summary/commercial-summary.routes.js';
 
 import {
   createProjectSchemaDoc,
@@ -295,6 +296,7 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     projectScoped.register(safetyRoutes);
     projectScoped.register(projectBudgetRoutes);
     projectScoped.register(costTransactionRoutes);
+    projectScoped.register(commercialSummaryRoutes);
 
     projectScoped.get(
       '/:organizationId/projects/:projectId',

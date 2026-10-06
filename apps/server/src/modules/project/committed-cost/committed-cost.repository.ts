@@ -1,7 +1,15 @@
-import { committedCosts, type CommittedCost } from '@siteflow/database/schema';
-import { eq, and, desc, lt, or } from 'drizzle-orm';
+import { committedCosts, purchaseOrders, type CommittedCost } from '@siteflow/database/schema';
+import { eq, and, desc, inArray, lt, or } from 'drizzle-orm';
 
 export class CommittedCostRepository {
+  async findPurchaseOrderStatuses(db: any, purchaseOrderIds: string[]) {
+    if (purchaseOrderIds.length === 0) return [];
+    return db
+      .select({ id: purchaseOrders.id, status: purchaseOrders.status })
+      .from(purchaseOrders)
+      .where(inArray(purchaseOrders.id, purchaseOrderIds));
+  }
+
   async findById(db: any, id: string): Promise<CommittedCost | undefined> {
     const rows = await db
       .select()

@@ -1,4 +1,10 @@
 export type CommittedCostStatus = 'ACTIVE' | 'RELEASED' | 'CANCELLED';
+export type CommitmentLifecycleStatus =
+  | 'APPROVED'
+  | 'PARTIALLY_INVOICED'
+  | 'FULLY_INVOICED'
+  | 'CLOSED'
+  | 'CANCELLED';
 
 export interface CommittedCostDTO {
   id: string;
@@ -14,6 +20,8 @@ export interface CommittedCostDTO {
   currencyCode: string;
   committedAmount: string;
   status: CommittedCostStatus;
+  lifecycleStatus: CommitmentLifecycleStatus;
+  purchaseOrderStatus: string | null;
   committedAt: string;
   releasedAt: string | null;
   createdAt: string;
