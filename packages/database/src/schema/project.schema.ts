@@ -727,5 +727,3 @@ export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type ScheduleSourceType = 'USER' | 'ISSUE' | 'RFI' | 'CHANGE_ORDER' | 'MATERIAL_DELAY' | 'WEATHER' | 'SYSTEM_CALCULATION';
 
 
-
-

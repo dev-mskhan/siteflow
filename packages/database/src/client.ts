@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from './schema/index.js';
 
 export type DatabaseClient = ReturnType<typeof createDatabaseClient>;
+export type DatabaseTransaction = Parameters<Parameters<DatabaseClient['transaction']>[0]>[0];
 
 export interface DatabasePoolOptions {
   max?: number;
