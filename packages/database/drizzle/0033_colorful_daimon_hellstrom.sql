@@ -1,0 +1,4 @@
+ALTER TABLE "app"."change_orders" DROP CONSTRAINT "change_orders_client_approval_metadata_check";--> statement-breakpoint
+ALTER TABLE "app"."change_orders" DROP CONSTRAINT "change_orders_effect_metadata_check";--> statement-breakpoint
+ALTER TABLE "app"."change_orders" ADD CONSTRAINT "change_orders_client_approval_metadata_check" CHECK ("app"."change_orders"."status" NOT IN ('CLIENT_APPROVED', 'EFFECTED') OR NOT "app"."change_orders"."client_approval_required" OR ("app"."change_orders"."client_approved_by" IS NOT NULL AND "app"."change_orders"."client_approved_at" IS NOT NULL));--> statement-breakpoint
+ALTER TABLE "app"."change_orders" ADD CONSTRAINT "change_orders_effect_metadata_check" CHECK ("app"."change_orders"."status" <> 'EFFECTED' OR ("app"."change_orders"."effected_by" IS NOT NULL AND "app"."change_orders"."effected_at" IS NOT NULL AND "app"."change_orders"."effected_budget_revision_id" IS NOT NULL));

@@ -13,3 +13,4 @@ export * from './safety.schema.js';
 export * from './commercial.schema.js';
 export * from './budget.schema.js';
 export * from './cost-transaction.schema.js';
+export * from './change-order.schema.js';

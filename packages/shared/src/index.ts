@@ -29,6 +29,7 @@ export * from './modules/project/phase.schema.js';
 export * from './modules/project/cost-code.schema.js';
 export * from './modules/project/budget.schema.js';
 export * from './modules/project/cost-transaction.schema.js';
+export * from './modules/project/change-order.schema.js';
 export * from './modules/project/document.schema.js';
 export * from './modules/project/compliance.schema.js';
 export * from './modules/project/rfi.schema.js';
