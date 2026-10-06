@@ -239,6 +239,13 @@
       "when": 1791299006031,
       "tag": "0033_colorful_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791302329029,
+      "tag": "0034_secret_bug",
+      "breakpoints": true
     }
   ]
 }
