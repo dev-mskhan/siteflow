@@ -25,14 +25,13 @@
 ## Current Direction
 
 - GSD begins tracking implementation from SiteFlow Phase F; completed Phases 1–7 are recorded as history and will not be reimplemented.
-- Phase F is provisionally reporting-only: project and organization portfolio views, backend APIs, web report/download surfaces, and PDF/XLSX/CSV exports.
-- Large exports should use existing PgBoss infrastructure; no platform usage, payment, or subscription models are in scope now.
-- Metric formulas, filters, role visibility, portfolio semantics, report layouts, and export retention remain for the user to clarify before executable Phase F plans.
+- Phase 8 / Phase F is planned as the expanded F.0–F.18 sequence: event backbone, notifications/channels, scheduled automation, project and portfolio reporting, APIs/web surfaces, CSV downloads, and hardening.
+- CSV is the only planned download format; PDF/XLSX are deferred. Large exports use existing PgBoss; no platform usage, payment, or subscription models are in scope.
+- Metric sources, filters, role visibility, portfolio rules, tenant boundaries, and implementation/testing constraints are recorded in `.planning/phases/08-phase-f-reporting-and-downloads/08-CONTEXT.md`.
 
 ## Recommended Next Step
 
-- User provides the promised Phase F context, then run `/gsd-discuss-phase 8` (or `/gsd-plan-phase 8` if the scope is already fully clarified).
-- `/gsd-manager`
+- Phase 8 planning is complete and verified. Run `/gsd-execute-phase 8` to begin implementation.
 
 ---
 *Onboarding summary created: 2026-10-07*

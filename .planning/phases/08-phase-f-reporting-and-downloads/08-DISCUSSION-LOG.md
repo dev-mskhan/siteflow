@@ -9,6 +9,8 @@ The discussion initially recorded reporting-only scope: project and organization
 
 The user also requires the original quality gate to be applied chunk by chunk, the phase split into small independently verifiable units, and no missing capabilities from the supplied dependency graph, event vocabulary, or report/export scope.
 
+Latest planning clarification: Phase 8 delivers CSV only; PDF/XLSX are deferred. Realtime must be planned autonomously for unattended execution, preferring the smallest one-way transport compatible with verified infrastructure and existing authorization. Export artifacts default to 24-hour retention and signed URLs to five minutes, configurable and overridden only when verified deployment policy requires it.
+
 ## User-confirmed decisions
 
 ### Metric definitions
@@ -33,15 +35,13 @@ The user also requires the original quality gate to be applied chunk by chunk, t
 - Project report sections inherit the existing source-module read permissions; hide restricted sections and independently authorize drill-downs.
 - Reuse existing project membership and organization-level cross-project authority; do not widen access through the reporting layer.
 
-## Agent-discretion defaults (not user-confirmed)
+## Planning defaults and confirmed lifecycle
 
-The session changed to autopilot before downloads were discussed. To finish the selected area without adding another decision round, the following planning defaults were applied and recorded as assumptions in `08-CONTEXT.md`:
-
-- Make every approved report family available in PDF, XLSX, and CSV, each with format-appropriate presentation from the same server-generated data contract.
-- Keep fast bounded exports synchronous; use existing PgBoss for work expected/measured above approximately 100 ms under load; use module-owned job/worker code registered in the existing worker.
-- Persist export lifecycle/scope metadata; use existing MinIO storage and issue authorized short-lived signed URLs.
-- Working defaults: 24-hour artifact retention and five-minute URL expiry. These are operational assumptions for planning, not confirmed business policy; verify existing deployment configuration before implementation.
-- Audit export requests and download authorization/URL issuance without logging report content.
+- The later explicit scope choice supersedes the initial PDF/XLSX/CSV discussion: Phase 8 implements CSV only; PDF/XLSX are deferred and must not appear as conditional deliverables.
+- Realtime must be deliverable unattended. F.0 checks for a compatible existing runtime; otherwise F.6 plans native Fastify SSE as the minimal one-way fallback, with current authorization on subscribe and send and no unnecessary transport dependency.
+- Keep fast bounded exports synchronous; route work expected/measured above approximately 100 ms under load through the existing PgBoss worker and module-owned handlers.
+- Persist only the bounded tenant-scoped export lifecycle needed, reuse MinIO, reauthorize each download, and audit safe metadata without report contents.
+- The user confirmed configurable defaults of 24-hour artifact retention and five-minute signed URL expiry. Honor a different value only when verified deployment policy requires it.
 
 ## Required planning references
 

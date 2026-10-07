@@ -32,7 +32,7 @@ Deliver the Phase F event backbone, notification/communication and scheduled aut
 - **F.14 Procurement metrics:** report source-backed procurement status and material-to-task schedule impact where supported.
 - **F.15 Subcontractor metrics:** use subcontractor and linked operational/commercial sources without invented commitments or performance scores.
 - **F.16 Executive/reporting APIs:** expose project and organization-portfolio reports with the agreed access, filters, and bounded project pagination.
-- **F.17 Report export/download service:** make each approved report family downloadable in PDF, XLSX, and CSV from the same server-produced values and filter contract.
+- **F.17 Report export/download service:** make each approved report family downloadable in CSV from the same server-produced values and filter contract; PDF/XLSX are deferred.
 - **F.18 Phase hardening:** run the phase-level regression, security, performance, export, communication, and operational quality gates.
 
 ### Domain-event contract and reliability
@@ -44,7 +44,7 @@ Deliver the Phase F event backbone, notification/communication and scheduled aut
 ### Notification, channels, realtime, jobs, and preferences
 - Keep a notification domain separate from email/realtime/WhatsApp providers, with enough recipient, event, channel, rendered content, priority, status/timestamp, attempt, failure, retry, and correlation data to audit lifecycle without overbuilding a parallel event store.
 - Email uses a replaceable provider abstraction with templates, subject, HTML/text, retry/failure tracking, idempotency, and delivery status. Never accidentally include access tokens, passwords, or sensitive financial details.
-- Realtime delivery follows the configured Socket.IO/runtime pattern if present. Project/organization/user rooms may follow existing authorization conventions, but authentication, tenant context, membership, and permission must be checked server-side; a known project ID never authorizes subscription or receipt.
+- Realtime delivery follows an existing runtime if present. If none exists, use a minimal one-way transport compatible with the checked-in Fastify/PostgreSQL stack (prefer SSE with the existing event-notification path over adding a bidirectional protocol). Authentication, tenant context, membership, and permission must be checked server-side on subscribe and delivery; a known project ID never authorizes subscription or receipt.
 - WhatsApp remains a provider-neutral channel abstraction; do not add a concrete vendor dependency unless configured and supported by existing deployment policy.
 - Scheduled reminders/monitoring cover the supplied examples where their source workflows exist: RFI approaching due date, payment overdue, document expiring, submittal overdue, task approaching deadline, and material delivery approaching. The scheduler enqueues idempotent work to existing infrastructure; jobs call domain services and emit events/notification intents, not direct provider sends.
 - Preferences may follow organization defaults → project defaults → user settings only where existing settings contracts support that hierarchy. Preferences decide delivery channels, never whether the underlying domain event exists.
@@ -73,30 +73,33 @@ Deliver the Phase F event backbone, notification/communication and scheduled aut
 - All report queries, export records/jobs, stored objects, and download authorization preserve `organizationId` and applicable `projectId`. Wrong-tenant resources return the repository-standard non-leaking response. Exports contain no more data than the requesting user can view.
 
 ### Report families and downloadable formats
-- Provide project health, schedule, cost/commercial, procurement, subcontractor, and executive/project-summary reports, plus the organization-portfolio perspective. Make every approved report family available as PDF, XLSX, and CSV.
-- PDF is a management-ready summary with report scope, filters, effective timezone, “as of”/period labels, key tables, units/currency, and coverage/limitations.
-- XLSX is an analysis workbook with clearly named report sections/sheets and detailed tabular data. Values originate in the server report service; spreadsheet formulas must not become a competing source of truth.
+- Provide project health, schedule, cost/commercial, procurement, subcontractor, and executive/project-summary reports, plus the organization-portfolio perspective. Make every approved report family available as CSV. PDF and XLSX are deferred; do not add renderer dependencies or plan their implementation in Phase 8.
 - CSV is a flat, machine-readable representation of the selected report dataset with stable column names and explicit date, unit, and currency conventions; it does not attempt to reproduce PDF layout.
-- All formats carry the same metric definitions, selected filters, date semantics, authorization scope, and report values as the corresponding API/view. Do not implement separate calculations per format.
+- CSV carries the same metric definitions, selected filters, date semantics, authorization scope, and report values as the corresponding API/view. Do not implement separate calculations for exports.
 
 ### Export lifecycle, jobs, storage, and audit
 - Keep small, bounded exports synchronous. An export expected or measured to exceed approximately 100 ms under load is handled by existing PgBoss. Measure representative report/export cost during planning rather than treating every export as asynchronous.
 - Keep export job definitions and handling with the reporting module, following existing module `.jobs.ts` / `.worker.ts` patterns, and register its handler in `apps/server/src/worker.ts`. Reuse the existing PgBoss instance; do not introduce another queue or a separate worker process unless profiling later demonstrates isolation is necessary.
 - Persist a bounded export record with owner, organization/project scope, report type, normalized filter snapshot, format, status, and expiry. Use a small state lifecycle sufficient for pending/processing/ready/failed/expired. Jobs are idempotent and carry `organizationId`; payloads contain identifiers and validated filters, not report result rows.
 - Use existing MinIO storage for generated artifacts and existing signed-download patterns. Store objects under server-generated tenant/project-scoped keys; never accept or reveal raw object keys. Re-check authorization when issuing a download URL. Audit export requests and download authorization/URL issuance with actor, scope, format, filters, and outcome, but do not log report contents or sensitive financial values.
-- Working lifecycle defaults for planning: generated artifact retention of 24 hours and signed URL lifetime of 5 minutes, configurable and checked against deployment policy. Expiration removes access and schedules object cleanup; users can request a fresh export.
+- User-confirmed lifecycle defaults: generated artifact retention of 24 hours and signed URL lifetime of 5 minutes, configurable; use a verified deployment policy instead if it requires different values. Expiration removes access and schedules object cleanup; users can request a fresh export.
 - UI/API must represent pending, ready, failed, and expired exports with clear retry/regenerate behavior. A failed job must not expose a partial or success-shaped artifact.
 
 ### Future platform capability boundary
 - Do not add platform payment, usage-metering, subscription, invoice, or plan models in Phase 8. Keep organization/project reporting boundaries separate so a future platform-operator reporting perspective can be added with its own explicit scope and authorization; do not query across tenants in this phase.
+- **User-confirmed scope update:** realtime transport may be selected autonomously for the unattended phase execution; prefer the smallest one-way transport that fits the verified runtime and current authorization model, and do not add a dependency if the existing stack suffices. CSV is the only Phase 8 download format; PDF/XLSX are deferred to a later product decision. Use 24-hour artifact retention and 5-minute signed URL expiry unless verified deployment policy requires different values.
+- **D-01 — CSV-only exports:** Phase 8 implements and tests CSV only. PDF/XLSX rendering and related package selection/installation are deferred.
+- **D-02 — Autonomous authorized realtime:** F.0 inventories existing realtime and notification/outbox paths. If a compatible existing runtime is verified, reuse it; otherwise implement the smallest viable one-way Fastify-compatible transport (SSE preferred), reuse the existing outbox/notification path if sound, and enforce current tenant, membership, and permission checks. No human transport decision blocks execution.
+- **D-03 — Export lifecycle defaults:** Use configurable 24-hour artifact retention and 5-minute signed URL expiry; override only when verified deployment policy requires it.
 - Do not introduce a second database, queue, worker process, storage system, event store, speculative reporting projection, or speculative Redis cache. Add a projection/cache only if codebase investigation and profiling prove it necessary and its data lifecycle, tenant scoping, invalidation, TTL, fallback, and tests are defined.
 </decisions>
 
 <specifics>
-- The user selected the report families, project and organization-portfolio perspectives, backend APIs plus web views, and PDF/XLSX/CSV exports in prior Phase 8 scope decisions.
+- The user selected the report families, project and organization-portfolio perspectives, backend APIs plus web views, and CSV exports in prior Phase 8 scope decisions. PDF/XLSX were later explicitly deferred.
 - User-confirmed discussion choices: transparent indicators; explicit unavailable/coverage semantics; links to existing records; on-demand freshness; metric-appropriate date semantics; historical reporting only when supported by authoritative history; project/organization timezone with UTC fallback; report-specific date presets; authorized non-archived portfolio projects; currency grouping without invented conversion; visible partial coverage; portfolio totals and project rows; source-capability visibility; and reuse of existing project/organization authorization.
-- Export layout/lifecycle specifics above are agent-discretion defaults adopted under autopilot to finish the requested discussion. They are planning defaults, not user-confirmed business policy; research/planning should verify existing config and storage lifecycle conventions and call out any retention or format constraints before implementation.
+- Export lifecycle defaults above are user-confirmed. Verify deployment configuration before implementation and honor any deployment policy that requires different values; PDF/XLSX are deferred rather than an unresolved renderer choice.
 - The user's “finished, compact, industry-standard” direction means prefer established codebase patterns, stable event/report contracts, and only the minimum additional persistence/job lifecycle needed.
+- The user directed that the realtime transport be selected autonomously for unattended execution; prefer the smallest one-way transport compatible with verified existing infrastructure and avoid a new dependency where possible.
 - Latest planning instruction asks that every Phase F capability from the supplied F.0–F.18 proposal be represented as a chunk; retain each named capability while splitting it into small, independently verifiable implementation plans.
 </specifics>
 
@@ -135,4 +138,5 @@ Deliver the Phase F event backbone, notification/communication and scheduled aut
 <deferred>
 - Platform-operator usage, payments, subscriptions, billing, and cross-tenant platform reporting — future phase after separate product/security requirements.
 - Any report metric without an authoritative source or approved definition — defer that metric rather than fabricate it.
+- PDF and XLSX report rendering and related dependencies/tests — explicitly deferred; Phase 8 delivers CSV only.
 </deferred>

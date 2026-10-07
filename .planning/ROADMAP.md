@@ -30,7 +30,7 @@ Phase F includes a versioned domain-event backbone, notification and communicati
 
 ### Phase 8: Phase F Reporting and Downloads
 
-**Goal:** SiteFlow reliably publishes tenant-scoped domain events, delivers configurable notifications through authorized channels and scheduled jobs, and provides trustworthy project and organization-portfolio reporting through consistent APIs, web views, and PDF/XLSX/CSV downloads without compromising tenant isolation.
+**Goal:** SiteFlow reliably publishes tenant-scoped domain events, delivers configurable notifications through authorized channels and scheduled jobs, and provides trustworthy project and organization-portfolio reporting through consistent APIs, web views, and CSV downloads without compromising tenant isolation.
 **Depends on:** Completed SiteFlow Phases 1–7 (recorded as historical evidence; not replanned here)
 **Requirements:** EVT-01–EVT-03, NTF-01–NTF-03, COM-01, SCH-01, PREF-01, RPT-01–RPT-15, EXT-01
 **Success Criteria** (what must be TRUE):
@@ -39,13 +39,67 @@ Phase F includes a versioned domain-event backbone, notification and communicati
   3. Realtime subscriptions and every notification/job delivery enforce current organization, project-membership, and permission boundaries; identifiers alone never grant access.
   4. Authorized project users can view agreed project health, schedule, cost, procurement, subcontractor, and executive summary reports whose values come from authoritative backend sources.
   5. Authorized organization users can view a portfolio report containing only projects permitted by the agreed portfolio and role rules.
-  6. A metric shown in the API and web UI matches its PDF, XLSX, or CSV export for the same filters and date range.
+  6. A metric shown in the API and web UI matches its CSV export for the same filters and date range; PDF/XLSX are deferred.
   7. Cross-tenant event, notification, report, export, job, storage, and download paths cannot expose another organization's or project's data.
   8. Costly exports and scheduled work use the existing background-job infrastructure with observable status, safe retries, and authorized, expiring downloads where applicable.
-**Plans:** TBD (pending Phase 8 research and planning)
-**Entry gate:** Audit existing outbox, worker, tenant/RBAC, audit, communication, metric-source, export, and storage contracts; verify metric definitions and sources, event and notification boundaries, report filters/date semantics, portfolio rules, role visibility, report layouts, and export lifecycle/retention before implementation.
 
-**Status:** Context captured; ready for research and executable planning.
+**Plans:** 0/22 plans executed
+Plans:
+**Wave 1**
+- [ ] 08-01-PLAN.md — F.0 repository and contract audit
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 08-02-PLAN.md — F.1 versioned event contract
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 08-03-PLAN.md — F.2 transactional event publishing
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 08-04-PLAN.md — F.3 reliable event dispatcher and consumers
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 08-05-PLAN.md — F.4 notification intent and lifecycle
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 08-06-PLAN.md — F.5 safe replaceable email delivery
+- [ ] 08-07-PLAN.md — F.6 authorized realtime delivery via verified runtime or Fastify SSE
+- [ ] 08-08-PLAN.md — F.7 provider-neutral WhatsApp channel contract
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [ ] 08-09-PLAN.md — F.8 scheduled operational reminders
+- [ ] 08-10-PLAN.md — F.9 preferences wired into delivery
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [ ] 08-11-PLAN.md — F.10 reporting foundation and tenant-safe sources
+
+**Wave 9** *(blocked on Wave 8 completion)*
+- [ ] 08-12-PLAN.md — F.11 source-backed health report
+- [ ] 08-13-PLAN.md — F.12 schedule report
+- [ ] 08-14-PLAN.md — F.13 cost and commercial report
+- [ ] 08-15-PLAN.md — F.14 procurement report
+- [ ] 08-16-PLAN.md — F.15 subcontractor report
+
+**Wave 10** *(blocked on Wave 9 completion)*
+- [ ] 08-17-PLAN.md — F.16 authorized report APIs and portfolio
+
+**Wave 11** *(blocked on Wave 10 completion)*
+- [ ] 08-18-PLAN.md — F.16 project and portfolio web views
+
+**Wave 12** *(blocked on Wave 11 completion)*
+- [ ] 08-19-PLAN.md — F.17 canonical CSV rendering and parity
+
+**Wave 13** *(blocked on Wave 12 completion)*
+- [ ] 08-20-PLAN.md — F.17 scoped CSV export lifecycle, PgBoss, and MinIO
+
+**Wave 14** *(blocked on Wave 13 completion)*
+- [ ] 08-21-PLAN.md — F.17 CSV-only web export lifecycle
+
+**Wave 15** *(blocked on Wave 14 completion)*
+- [ ] 08-22-PLAN.md — F.18 Tier 2 evidence and phase-wide hardening
+
+**Entry gate:** Audit existing outbox, worker, tenant/RBAC, audit, communication, metric-source, export, and storage contracts; verify metric definitions and sources, event and notification boundaries, report filters/date semantics, portfolio rules, role visibility, CSV output, and export lifecycle/retention before implementation. Select realtime autonomously: verify an existing runtime, otherwise plan the minimal Fastify-compatible one-way route (SSE preferred) with current-authorization checks; no human transport decision blocks execution.
+
+**Status:** Planning verification passed; implementation validation remains pending execution.
 
 Deliver the event/communication foundation and reporting capabilities for project and organization-portfolio perspectives using existing multi-tenant API, domain services, database, queue, storage, cache, and web architecture.
 
@@ -60,8 +114,8 @@ Expected capability areas:
 7. **F.10 Reporting foundation** — expose authoritative source data through minimum-necessary backend report services/read models; avoid unsupported or speculative projections.
 8. **F.11–F.15 Project report families** — health, schedule, cost/commercial, procurement, subcontractor, executive and portfolio metrics with explicit source coverage and permission rules.
 9. **F.16 Reporting APIs** — expose consistent project and organization-portfolio report contracts and bounded pagination.
-10. **F.17 Report export/download service** — produce PDF, XLSX, and CSV from the same authorized server report results; use synchronous execution or existing PgBoss/MinIO lifecycle according to measured cost.
-11. **F.18 Phase hardening** — verify multi-tenant isolation, permissions, concurrency, API contracts, cache behavior only if introduced, worker retry/idempotency, channel delivery security, export integrity, and required quality gates.
+10. **F.17 Report export/download service** — produce CSV only from the same authorized server report results; use synchronous execution or existing PgBoss/MinIO lifecycle according to measured cost. PDF/XLSX are explicitly deferred.
+11. **F.18 Phase hardening** — verify multi-tenant isolation, permissions, concurrency, API contracts, cache behavior only if introduced, worker retry/idempotency, channel delivery security, CSV integrity, configurable 24-hour artifact retention and 5-minute signed URL expiry (unless verified deployment policy overrides), and required quality gates.
 
 **Entry gate:** Use the decisions in `08-CONTEXT.md`; planning research must verify existing contracts and trace each metric and job to authoritative code before implementation.
 

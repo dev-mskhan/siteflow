@@ -24,10 +24,11 @@ Construction teams can coordinate project delivery and understand operational an
 - Existing capabilities cover authentication and organizations, project core, schedule execution, partners/procurement, production hardening, documents/compliance/operations, and commercial control.
 - Phase D and Phase E records report completion. Phase F is the next planned delivery area.
 - Reporting must reuse authoritative backend services/read models so API, dashboard, and exports agree. Frontend code must not independently calculate business metrics.
-- The Phase F scope selected so far is project and organization-portfolio reporting, with backend reporting APIs and web report views/download controls.
-- Download formats selected are PDF, XLSX, and CSV. Keep small exports synchronous and use existing PgBoss infrastructure for exports expected or measured to exceed the existing ~100 ms-under-load threshold.
+- Phase 8 / Phase F includes the full user-approved F.0–F.18 event, notification, communication, scheduled automation, project/portfolio reporting, API, web, CSV export, and hardening scope recorded in `.planning/phases/08-phase-f-reporting-and-downloads/08-CONTEXT.md`. The latest confirmed export scope is CSV only; PDF and XLSX are deferred.
+- CSV is the only Phase 8 download format; PDF and XLSX are deferred by the user's latest scope decision. Keep small exports synchronous and use existing PgBoss infrastructure for exports expected or measured to exceed the existing ~100 ms-under-load threshold. Use 24-hour artifact retention and 5-minute signed URL expiry, configurable and overridden only when verified deployment policy requires it.
+- Realtime delivery must be implementable unattended: use a compatible existing runtime if F.0 verifies one; otherwise use the smallest viable one-way Fastify transport (SSE preferred), reusing the existing outbox/notification path when sound and rechecking current tenant and permission scope.
 - Platform payment, usage-metering, and subscription models are not part of Phase F. Keep future platform billing possible through clean domain boundaries without implementing speculative models.
-- Detailed metric definitions, filters, role visibility, portfolio rollups, and report layouts remain to be clarified before Phase F execution planning.
+- Detailed metric definitions, filters, role visibility, portfolio rollups, and report layouts are constrained by the Phase 8 context and must use repository evidence; unsupported values remain unavailable rather than being invented.
 
 ## Requirements
 
@@ -45,7 +46,7 @@ Construction teams can coordinate project delivery and understand operational an
 
 - [ ] Provide consistent project and organization-portfolio reporting based on authoritative server-side calculations.
 - [ ] Make project health, schedule, cost, procurement, subcontractor, and executive/project summary reports available through agreed APIs and web surfaces.
-- [ ] Allow authorized users to download reports as PDF, XLSX, and CSV, with consistent filters and metric definitions across the UI, API, and files.
+- [ ] Allow authorized users to download CSV reports with consistent filters and metric definitions across the UI, API, and files. PDF/XLSX are deferred.
 - [ ] Preserve tenant isolation and project/organization permissions across report queries, exports, background jobs, stored files, and downloads.
 - [ ] Preserve extension points for possible future platform usage, payment, and subscription capabilities without adding those models to Phase F.
 
@@ -53,7 +54,7 @@ Construction teams can coordinate project delivery and understand operational an
 
 - Implementing platform subscription, usage-metering, or platform payment models in Phase F — explicitly deferred for a future decision.
 - Rebuilding completed Phase 1/2/3/C/D/E product capabilities as part of GSD setup.
-- Implementing notification, email, WhatsApp, or realtime communications as part of the currently selected reporting-only Phase F scope.
+- Cross-tenant platform reporting in Phase F.
 - Inventing unapproved metric formulas, health scores, forecast rules, or role visibility rules before domain definitions are agreed.
 - Adding a new queue, cache, object store, or reporting framework without a demonstrated requirement and repository evidence.
 
@@ -62,10 +63,12 @@ Construction teams can coordinate project delivery and understand operational an
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Begin GSD tracking from the next phase while recording existing capabilities as history | The repository contains completed phase task records; planning should continue rather than recreate delivered work | Accepted |
-| Phase F currently targets reporting, metrics, APIs, and exports only | User selected reporting-only scope rather than the broader notification/realtime proposal | Accepted; details to clarify before phase plan |
+| Phase F includes the user-approved F.0–F.18 event, notification, realtime, scheduled automation, reporting, and export capabilities | Latest user-approved Phase 8 scope retains all capability identities | Accepted |
 | Include backend APIs and web report/download surfaces | User selected an end-to-end product surface | Accepted |
 | Include project and organization-portfolio perspectives | User selected both perspectives; other audiences await explicit authorization/requirements | Accepted |
-| Provide PDF, XLSX, and CSV exports | User explicitly requested downloadable reports in these formats | Accepted |
+| Provide CSV exports only in Phase 8 | User explicitly deferred PDF/XLSX | Accepted |
+| Realtime transport must be autonomous and deliverable; use the simplest viable one-way transport with current authorization checks | Unattended/autopilot execution cannot depend on an unresolved transport decision | Accepted |
+| Use 24-hour artifact retention and 5-minute signed URL expiry unless verified deployment policy requires otherwise | User confirmed configurable lifecycle defaults | Accepted |
 | Use PgBoss for expensive exports; retain synchronous small-export path | Existing queue is the established job infrastructure; checklist uses an approximately 100 ms under-load threshold | Accepted as a planning constraint; benchmark during design |
 | Defer platform usage/payments/subscriptions as models | Future extensibility is desired, but user selected no billing models in Phase F | Accepted |
 | Treat existing `.planning` task documents and codebase map as brownfield evidence | No project-wide GSD artifacts existed; avoid discarding existing plans | Accepted |
