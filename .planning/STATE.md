@@ -2,11 +2,11 @@
 gsd_state_version: "1.0"
 current_phase: Phase 8 — Phase F Reporting and Downloads (GSD tracking begins here)
 status: unknown
-stopped_at: Phase 8 context gathered
-last_updated: "2026-10-07T19:03:27.813Z"
-last_activity: 2026-10-07
-last_activity_desc: brownfield codebase mapping and GSD project initialization.
-state_head: 83848721b546c61f370b6258f2845d2d8194d58e
+stopped_at: Phase 8 context gathered; ready for planning
+last_updated: "2026-10-07T19:17:42.305Z"
+last_activity: 2026-10-08
+last_activity_desc: Phase 8 discussion decisions captured.
+state_head: d6f9724665e44b5ad071df73bc264d7ce321a056
 progress:
   total_phases: 1
   completed_phases: 0
@@ -20,9 +20,9 @@ progress:
 ## Current Position
 
 **Current phase:** Phase 8 — Phase F Reporting and Downloads (GSD tracking begins here)
-**Phase status:** Context gathering; not ready for executable plan until the user supplies the promised Phase F context and outstanding metric/product decisions are resolved.
-**Last activity:** 2026-10-07 — brownfield codebase mapping and GSD project initialization.
-**Next action:** User provides Phase F context; then run `/gsd-discuss-phase 8` or `/gsd-plan-phase 8` after confirming metric requirements.
+**Phase status:** Context captured; ready for research and planning.
+**Last activity:** 2026-10-08 — Phase 8 discussion decisions captured.
+**Next action:** Run /gsd-plan-phase 8 to create the Phase F execution plans.
 
 ## Project Snapshot
 
@@ -42,22 +42,24 @@ progress:
 - Avoid speculative reporting projection tables and Redis caches; establish evidence first.
 - Read `.planning/checklist_when_to_apply.md` and `.planning/siteflow_testing_context.md` before planning or executing Phase F.
 
-## Open Questions for Phase F
+## Planning Investigations for Phase F
 
-- Exact formulas, definitions, source fields, and “unavailable” semantics for each metric.
-- Report filters, date/time-zone behavior, pagination, and historical/as-of semantics.
-- Organization portfolio eligibility, project selection, aggregation, currencies, and partial-failure behavior.
-- Role/capability visibility across project and organization reports.
-- Dashboard page layouts and downloadable report presentation/content.
-- Export size/runtime thresholds, asynchronous status model, retention, expiration, and audit events.
-- Which report families must be available in each export format.
+These are research and implementation-planning tasks, not unresolved user decisions:
+
+- Trace each report metric to an authoritative source and reuse existing definitions; leave unsupported metrics unavailable rather than inventing formulas.
+- Verify API/UI/export filter contracts, pagination, date semantics, timezones, and source history against existing modules.
+- Map report visibility to existing project and organization permissions, including tenant-isolation tests.
+- Profile representative exports to determine which need PgBoss; verify existing MinIO, signed-URL, retention, cleanup, and audit conventions before adopting the recorded lifecycle defaults.
+- Trace each report family into PDF, XLSX, and CSV from the same server-produced result, and identify the minimum web surfaces required.
+- Read `.planning/checklist_when_to_apply.md` and `.planning/siteflow_testing_context.md` before planning; account for the schedule-metrics organization-scope gap before reuse.
 
 ## Session Continuity
 
-**Last session:** 2026-10-07T19:03:27.741Z
-**Stopped at:** Phase 8 context gathered
+**Last session:** Phase 8 context and discussion reconciled; ready for planning.
+**Stopped at:** Phase 8 context complete; run `/gsd-plan-phase 8` when ready.
 **Resume file:** .planning/phases/08-phase-f-reporting-and-downloads/08-CONTEXT.md
 
-- The user said they will provide Phase F context again after project-wide GSD setup.
+- Phase 8 scope and decisions are recorded in `08-CONTEXT.md`; the discussion log distinguishes user-confirmed choices from planning assumptions.
+- No Phase 8 research or plans exist yet; planning should verify the assumptions and codebase findings before producing executable tasks.
 - Existing task documents remain historical references; no Phase 1–7 plans were generated or rewritten.
-- Existing unrelated worktree changes must remain untouched.
+- Preserve unrelated worktree changes.
