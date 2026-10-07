@@ -12,6 +12,10 @@ The current Phase F boundary is reporting-only: project/portfolio metrics, APIs,
 
 ## Phases
 
+### Current GSD Tracking
+
+- [ ] **Phase 8: Phase F Reporting and Downloads** - Build approved project and organization-portfolio reporting, web views, and downloadable reports.
+
 ### Completed History
 
 | GSD Phase | SiteFlow Phase / Work | Status | Evidence |
@@ -24,7 +28,19 @@ The current Phase F boundary is reporting-only: project/portfolio metrics, APIs,
 | 6 | Phase D documents, compliance, and operations | Complete | `.planning/tasks_phase_d.md` |
 | 7 | Phase E commercial control | Complete | `.planning/tasks_phase_e.md` |
 
-### Phase 8 — Phase F Reporting and Downloads
+### Phase 8: Phase F Reporting and Downloads
+
+**Goal:** Authorized users can access trustworthy project and organization-portfolio reporting through consistent backend APIs, web views, and PDF/XLSX/CSV downloads without compromising tenant isolation.
+**Depends on:** Completed SiteFlow Phases 1–7 (recorded as historical evidence; not replanned here)
+**Requirements:** RPT-01–RPT-15, EXT-01
+**Success Criteria** (what must be TRUE):
+  1. Authorized project users can view agreed project health, schedule, cost, procurement, subcontractor, and executive summary reports whose values come from authoritative backend sources.
+  2. Authorized organization users can view a portfolio report containing only projects permitted by the agreed portfolio and role rules.
+  3. A metric shown in the API and web UI matches its PDF, XLSX, or CSV export for the same filters and date range.
+  4. Cross-tenant report access and export/download attempts cannot expose another organization's or project's data.
+  5. Costly exports complete through the existing background-job infrastructure with observable status and authorized, expiring downloads.
+**Plans:** TBD (pending user decisions and phase discussion)
+**Entry gate:** Resolve metric definitions and sources, report filters/date semantics, portfolio rules, role visibility, report layouts, and export lifecycle/retention before creating executable plans.
 
 **Status:** Planned; detailed scope/metric decisions still need user context before executable plans.
 
