@@ -12,11 +12,7 @@ import {
   projects,
 } from '@siteflow/database/schema';
 import { getDb } from '../../src/lib/db/index.js';
-import {
-  addMemberDirectly,
-  createOrgWithAdmin,
-  createVerifiedUser,
-} from '../helpers/fixtures.js';
+import { addMemberDirectly, createOrgWithAdmin, createVerifiedUser } from '../helpers/fixtures.js';
 import { createTestApp } from '../helpers/test-app.js';
 
 const runId = crypto.randomUUID().replaceAll('-', '').slice(0, 12);
@@ -68,49 +64,55 @@ describe('change orders (integration)', () => {
   async function setupProject(prefix: string) {
     const projectId = crypto.randomUUID();
     const costCodeId = crypto.randomUUID();
-    await getDb().insert(projects).values({
-      id: projectId,
-      organizationId,
-      projectNumber: `CO-${prefix}-${runId}`,
-      name: `Change order project ${prefix} ${runId}`,
-      currency: 'USD',
-    });
-    await getDb().insert(projectCostCodes).values({
-      id: costCodeId,
-      organizationId,
-      projectId,
-      code: `CO-${prefix}-${runId}`,
-      createdBy: ownerId,
-    });
-    await getDb().insert(projectMembers).values([
-      {
-        id: crypto.randomUUID(),
+    await getDb()
+      .insert(projects)
+      .values({
+        id: projectId,
+        organizationId,
+        projectNumber: `CO-${prefix}-${runId}`,
+        name: `Change order project ${prefix} ${runId}`,
+        currency: 'USD',
+      });
+    await getDb()
+      .insert(projectCostCodes)
+      .values({
+        id: costCodeId,
         organizationId,
         projectId,
-        userId: ownerId,
-        role: 'PROJECT_MANAGER',
-        status: 'ACTIVE',
-        addedBy: ownerId,
-      },
-      {
-        id: crypto.randomUUID(),
-        organizationId,
-        projectId,
-        userId: reviewerId,
-        role: 'FINANCE',
-        status: 'ACTIVE',
-        addedBy: ownerId,
-      },
-      {
-        id: crypto.randomUUID(),
-        organizationId,
-        projectId,
-        userId: clientId,
-        role: 'CLIENT',
-        status: 'ACTIVE',
-        addedBy: ownerId,
-      },
-    ]);
+        code: `CO-${prefix}-${runId}`,
+        createdBy: ownerId,
+      });
+    await getDb()
+      .insert(projectMembers)
+      .values([
+        {
+          id: crypto.randomUUID(),
+          organizationId,
+          projectId,
+          userId: ownerId,
+          role: 'PROJECT_MANAGER',
+          status: 'ACTIVE',
+          addedBy: ownerId,
+        },
+        {
+          id: crypto.randomUUID(),
+          organizationId,
+          projectId,
+          userId: reviewerId,
+          role: 'FINANCE',
+          status: 'ACTIVE',
+          addedBy: ownerId,
+        },
+        {
+          id: crypto.randomUUID(),
+          organizationId,
+          projectId,
+          userId: clientId,
+          role: 'CLIENT',
+          status: 'ACTIVE',
+          addedBy: ownerId,
+        },
+      ]);
     return { projectId, costCodeId };
   }
 
@@ -148,10 +150,18 @@ describe('change orders (integration)', () => {
       headers: authHeaders(ownerToken),
     });
     expect(response.statusCode).toBe(200);
-    return response.json().data.summary as { original: string; approvedChanges: string; revised: string };
+    return response.json().data.summary as {
+      original: string;
+      approvedChanges: string;
+      revised: string;
+    };
   }
 
-  async function createOrder(projectId: string, costCodeId: string, clientApprovalRequired = false) {
+  async function createOrder(
+    projectId: string,
+    costCodeId: string,
+    clientApprovalRequired = false,
+  ) {
     const response = await app.inject({
       method: 'POST',
       url: `/api/v1/organizations/${organizationId}/projects/${projectId}/change-orders`,
@@ -162,12 +172,14 @@ describe('change orders (integration)', () => {
         currencyCode: 'USD',
         clientApprovalRequired,
         scheduleDeltaDays: 4,
-        lines: [{
-          description: 'Additional scope',
-          costCodeId,
-          costDelta: '20.00',
-          revenueDelta: '30.00',
-        }],
+        lines: [
+          {
+            description: 'Additional scope',
+            costCodeId,
+            costDelta: '20.00',
+            revenueDelta: '30.00',
+          },
+        ],
       },
     });
     expect(response.statusCode).toBe(201);
@@ -213,12 +225,14 @@ describe('change orders (integration)', () => {
         currencyCode: 'USD',
         clientApprovalRequired: false,
         scheduleDeltaDays: 6,
-        lines: [{
-          description: 'Revised additional scope',
-          costCodeId,
-          costDelta: '25.00',
-          revenueDelta: '35.00',
-        }],
+        lines: [
+          {
+            description: 'Revised additional scope',
+            costCodeId,
+            costDelta: '25.00',
+            revenueDelta: '35.00',
+          },
+        ],
       },
     });
     expect(updated.statusCode).toBe(200);
@@ -227,10 +241,12 @@ describe('change orders (integration)', () => {
     const submitted = await action(projectId, order.id, 'submit', ownerToken, updateVersion);
     expect(submitted.statusCode).toBe(200);
     const submitVersion = submitted.json().data.changeOrder.version as number;
-    expect((await action(projectId, order.id, 'approve', ownerToken, submitVersion)).statusCode).toBe(403);
-    const rejected = await action(
-      projectId, order.id, 'reject', reviewerToken, submitVersion, { reason: 'Scope not accepted' },
-    );
+    expect(
+      (await action(projectId, order.id, 'approve', ownerToken, submitVersion)).statusCode,
+    ).toBe(403);
+    const rejected = await action(projectId, order.id, 'reject', reviewerToken, submitVersion, {
+      reason: 'Scope not accepted',
+    });
     expect(rejected.statusCode).toBe(200);
     expect(rejected.json().data.changeOrder.status).toBe('REJECTED');
     expect(await summary(projectId, budgetBase, budgetId)).toMatchObject({
@@ -239,91 +255,248 @@ describe('change orders (integration)', () => {
       revised: '100.00',
     });
 
-    const [persisted] = await getDb().select().from(changeOrders).where(eq(changeOrders.id, order.id));
-    const persistedLines = await getDb().select().from(changeOrderLines)
+    const [persisted] = await getDb()
+      .select()
+      .from(changeOrders)
+      .where(eq(changeOrders.id, order.id));
+    const persistedLines = await getDb()
+      .select()
+      .from(changeOrderLines)
       .where(eq(changeOrderLines.changeOrderId, order.id));
-    const audit = await getDb().select({ action: financialAuditEvents.action })
+    const audit = await getDb()
+      .select({ action: financialAuditEvents.action })
       .from(financialAuditEvents)
-      .where(and(
-        eq(financialAuditEvents.organizationId, organizationId),
-        eq(financialAuditEvents.projectId, projectId),
-        eq(financialAuditEvents.entityId, order.id),
-      ));
+      .where(
+        and(
+          eq(financialAuditEvents.organizationId, organizationId),
+          eq(financialAuditEvents.projectId, projectId),
+          eq(financialAuditEvents.entityId, order.id),
+        ),
+      );
     expect(persisted?.status).toBe('REJECTED');
     expect(persisted?.rejectionReason).toBe('Scope not accepted');
     expect(persistedLines[0]?.costDelta).toBe('25.00');
-    expect(audit.map(({ action: auditAction }) => auditAction)).toEqual(expect.arrayContaining([
-      'CHANGE_ORDER_CREATED',
-      'CHANGE_ORDER_UPDATED',
-      'CHANGE_ORDER_SUBMITTED',
-      'CHANGE_ORDER_REJECTED',
-    ]));
+    expect(audit.map(({ action: auditAction }) => auditAction)).toEqual(
+      expect.arrayContaining([
+        'CHANGE_ORDER_CREATED',
+        'CHANGE_ORDER_UPDATED',
+        'CHANGE_ORDER_SUBMITTED',
+        'CHANGE_ORDER_REJECTED',
+      ]),
+    );
   });
 
   it('records client approval then effects the budget atomically and exactly once', async () => {
     const { projectId, costCodeId } = await setupProject('EFFECT');
     const { budgetBase, budgetId } = await createBudget(projectId, costCodeId);
+    const sovBase = `/api/v1/organizations/${organizationId}/projects/${projectId}/schedule-of-values`;
+    const sovCreated = await app.inject({
+      method: 'POST',
+      url: sovBase,
+      headers: authHeaders(ownerToken),
+      payload: {
+        contractValue: '100.00',
+        currencyCode: 'USD',
+        lines: [
+          {
+            description: 'Base contract scope',
+            costCodeId,
+            scheduledValue: '100.00',
+          },
+        ],
+      },
+    });
+    expect(sovCreated.statusCode).toBe(201);
+    const sov = sovCreated.json().data.scheduleOfValues;
+    const sovSubmitted = await app.inject({
+      method: 'POST',
+      url: `${sovBase}/${sov.id}/submit`,
+      headers: authHeaders(ownerToken),
+      payload: { expectedVersion: sov.version },
+    });
+    const sovPending = sovSubmitted.json().data.scheduleOfValues;
+    const sovApproved = await app.inject({
+      method: 'POST',
+      url: `${sovBase}/${sov.id}/approve`,
+      headers: authHeaders(reviewerToken),
+      payload: { expectedVersion: sovPending.version },
+    });
+    expect(sovApproved.statusCode).toBe(200);
     const order = await createOrder(projectId, costCodeId, true);
     const submitted = await action(projectId, order.id, 'submit', ownerToken, order.version);
     const submitVersion = submitted.json().data.changeOrder.version as number;
 
     const internallyApproved = await action(
-      projectId, order.id, 'approve', reviewerToken, submitVersion,
+      projectId,
+      order.id,
+      'approve',
+      reviewerToken,
+      submitVersion,
     );
     expect(internallyApproved.statusCode).toBe(200);
     expect(internallyApproved.json().data.changeOrder.status).toBe('PENDING_CLIENT_APPROVAL');
     const approvalVersion = internallyApproved.json().data.changeOrder.version as number;
-    expect((await action(projectId, order.id, 'effect', reviewerToken, approvalVersion, {}, {
-      'idempotency-key': `early-${runId}`,
-    })).statusCode).toBe(409);
+    expect(
+      (
+        await action(
+          projectId,
+          order.id,
+          'effect',
+          reviewerToken,
+          approvalVersion,
+          {},
+          {
+            'idempotency-key': `early-${runId}`,
+          },
+        )
+      ).statusCode,
+    ).toBe(409);
     expect(await summary(projectId, budgetBase, budgetId)).toMatchObject({ revised: '100.00' });
 
     const clientApproved = await action(
-      projectId, order.id, 'client-approve', clientToken, approvalVersion,
+      projectId,
+      order.id,
+      'client-approve',
+      clientToken,
+      approvalVersion,
     );
     expect(clientApproved.statusCode).toBe(200);
     expect(clientApproved.json().data.changeOrder.status).toBe('CLIENT_APPROVED');
     const clientVersion = clientApproved.json().data.changeOrder.version as number;
 
-    const effected = await action(projectId, order.id, 'effect', reviewerToken, clientVersion, {}, {
-      'idempotency-key': `effect-${runId}`,
-    });
+    const effected = await action(
+      projectId,
+      order.id,
+      'effect',
+      reviewerToken,
+      clientVersion,
+      {},
+      {
+        'idempotency-key': `effect-${runId}`,
+      },
+    );
     expect(effected.statusCode).toBe(200);
     const effectedOrder = effected.json().data.changeOrder as ChangeOrderResponse['changeOrder'];
     expect(effectedOrder.status).toBe('EFFECTED');
     expect(effectedOrder.effectedBudgetRevisionId).toBeTruthy();
+    const scheduleAfterEffect = await app.inject({
+      method: 'GET',
+      url: `${sovBase}/${sov.id}`,
+      headers: authHeaders(ownerToken),
+    });
+    expect(scheduleAfterEffect.statusCode).toBe(200);
+    expect(scheduleAfterEffect.json().data.scheduleOfValues).toMatchObject({
+      baseContractValue: '100.00',
+      effectiveChangeOrderRevenue: '30.00',
+      currentContractValue: '130.00',
+    });
+    const paymentBase = `/api/v1/organizations/${organizationId}/projects/${projectId}/payment-applications`;
+    const paymentCreated = await app.inject({
+      method: 'POST',
+      url: paymentBase,
+      headers: authHeaders(ownerToken),
+      payload: {
+        billingPeriodStart: '2026-01-01',
+        billingPeriodEnd: '2026-01-31',
+        lines: [
+          {
+            scheduleOfValueLineId: sov.lines[0].id,
+            currentWork: '110.00',
+            storedMaterials: '0.00',
+          },
+        ],
+      },
+    });
+    expect(paymentCreated.statusCode).toBe(201);
+    const paymentApplication = paymentCreated.json().data.paymentApplication;
+    expect(paymentApplication.eligibleChangeOrders).toEqual([
+      {
+        changeOrderId: order.id,
+        changeOrderNumber: order.changeOrderNumber,
+        revenueDelta: '30.00',
+      },
+    ]);
+    const paymentSubmitted = await app.inject({
+      method: 'POST',
+      url: `${paymentBase}/${paymentApplication.id}/submit`,
+      headers: authHeaders(ownerToken),
+      payload: { expectedVersion: paymentApplication.version },
+    });
+    const paymentPending = paymentSubmitted.json().data.paymentApplication;
+    const paymentReview = await app.inject({
+      method: 'POST',
+      url: `${paymentBase}/${paymentApplication.id}/under-review`,
+      headers: authHeaders(reviewerToken),
+      payload: { expectedVersion: paymentPending.version },
+    });
+    const paymentUnderReview = paymentReview.json().data.paymentApplication;
+    const paymentApproved = await app.inject({
+      method: 'POST',
+      url: `${paymentBase}/${paymentApplication.id}/approve`,
+      headers: authHeaders(reviewerToken),
+      payload: {
+        expectedVersion: paymentUnderReview.version,
+        lines: [
+          {
+            scheduleOfValueLineId: sov.lines[0].id,
+            approvedCurrentWork: '110.00',
+            approvedStoredMaterials: '0.00',
+          },
+        ],
+      },
+    });
+    expect(paymentApproved.statusCode).toBe(200);
+    expect(paymentApproved.json().data.paymentApplication.approvedAmount).toBe('110.00');
     expect(await summary(projectId, budgetBase, budgetId)).toMatchObject({
       original: '100.00',
       approvedChanges: '20.00',
       revised: '120.00',
     });
 
-    const replay = await action(projectId, order.id, 'effect', reviewerToken, clientVersion, {}, {
-      'idempotency-key': `effect-${runId}`,
-    });
+    const replay = await action(
+      projectId,
+      order.id,
+      'effect',
+      reviewerToken,
+      clientVersion,
+      {},
+      {
+        'idempotency-key': `effect-${runId}`,
+      },
+    );
     expect(replay.statusCode).toBe(200);
-    expect(replay.json().data.changeOrder.effectedBudgetRevisionId)
-      .toBe(effectedOrder.effectedBudgetRevisionId);
+    expect(replay.json().data.changeOrder.effectedBudgetRevisionId).toBe(
+      effectedOrder.effectedBudgetRevisionId,
+    );
     expect(await summary(projectId, budgetBase, budgetId)).toMatchObject({ revised: '120.00' });
 
-    const [budgetRevision] = await getDb().select({ status: projectBudgetRevisions.status })
+    const [budgetRevision] = await getDb()
+      .select({ status: projectBudgetRevisions.status })
       .from(projectBudgetRevisions)
       .where(eq(projectBudgetRevisions.id, effectedOrder.effectedBudgetRevisionId!));
     expect(budgetRevision?.status).toBe('APPROVED');
-    const auditEvents = await getDb().select({ action: financialAuditEvents.action })
+    const auditEvents = await getDb()
+      .select({ action: financialAuditEvents.action })
       .from(financialAuditEvents)
-      .where(and(
-        eq(financialAuditEvents.organizationId, organizationId),
-        eq(financialAuditEvents.projectId, projectId),
-        eq(financialAuditEvents.entityId, order.id),
-      ));
-    expect(auditEvents.map(({ action: auditAction }) => auditAction)).toContain('CHANGE_ORDER_EFFECTIVE');
-    const outbox = await getDb().select({ eventType: outboxEvents.eventType })
+      .where(
+        and(
+          eq(financialAuditEvents.organizationId, organizationId),
+          eq(financialAuditEvents.projectId, projectId),
+          eq(financialAuditEvents.entityId, order.id),
+        ),
+      );
+    expect(auditEvents.map(({ action: auditAction }) => auditAction)).toContain(
+      'CHANGE_ORDER_EFFECTIVE',
+    );
+    const outbox = await getDb()
+      .select({ eventType: outboxEvents.eventType })
       .from(outboxEvents)
-      .where(and(
-        eq(outboxEvents.organizationId, organizationId),
-        eq(outboxEvents.eventType, 'commercial.change_order.effected'),
-      ));
+      .where(
+        and(
+          eq(outboxEvents.organizationId, organizationId),
+          eq(outboxEvents.eventType, 'commercial.change_order.effected'),
+        ),
+      );
     expect(outbox.length).toBeGreaterThan(0);
   });
 
@@ -344,12 +517,14 @@ describe('change orders (integration)', () => {
         title: 'Bad reference',
         reason: 'Reject foreign cost code',
         currencyCode: 'USD',
-        lines: [{
-          description: 'Invalid code',
-          costCodeId: otherProjectCostCodeId,
-          costDelta: '1.00',
-          revenueDelta: '0.00',
-        }],
+        lines: [
+          {
+            description: 'Invalid code',
+            costCodeId: otherProjectCostCodeId,
+            costDelta: '1.00',
+            revenueDelta: '0.00',
+          },
+        ],
       },
     });
     expect(invalid.statusCode).toBe(422);
@@ -362,13 +537,15 @@ describe('change orders (integration)', () => {
         title: 'Unsupported BOQ link',
         reason: 'There is no authoritative BOQ source to validate.',
         currencyCode: 'USD',
-        lines: [{
-          description: 'Unverified BOQ line',
-          costCodeId,
-          boqLineId: crypto.randomUUID(),
-          costDelta: '1.00',
-          revenueDelta: '0.00',
-        }],
+        lines: [
+          {
+            description: 'Unverified BOQ line',
+            costCodeId,
+            boqLineId: crypto.randomUUID(),
+            costDelta: '1.00',
+            revenueDelta: '0.00',
+          },
+        ],
       },
     });
     expect(unsupportedBoqReference.statusCode).toBe(422);
@@ -386,9 +563,9 @@ describe('change orders (integration)', () => {
       headers: authHeaders(ownerToken),
     });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().data).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: order.id, status: 'DRAFT' }),
-    ]));
+    expect(listed.json().data).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: order.id, status: 'DRAFT' })]),
+    );
 
     const fetched = await app.inject({
       method: 'GET',
@@ -415,19 +592,27 @@ describe('change orders (integration)', () => {
         currencyCode: 'USD',
         clientApprovalRequired: false,
         scheduleDeltaDays: 2,
-        lines: [{
-          description: 'Adjusted scope',
-          costCodeId,
-          costDelta: '10.00',
-          revenueDelta: '15.00',
-        }],
+        lines: [
+          {
+            description: 'Adjusted scope',
+            costCodeId,
+            costDelta: '10.00',
+            revenueDelta: '15.00',
+          },
+        ],
       },
     });
     expect(updated.statusCode).toBe(200);
-    expect((await action(projectId, order.id, 'submit', ownerToken, order.version)).statusCode).toBe(409);
+    expect(
+      (await action(projectId, order.id, 'submit', ownerToken, order.version)).statusCode,
+    ).toBe(409);
 
     const voided = await action(
-      projectId, order.id, 'void', ownerToken, updated.json().data.changeOrder.version as number,
+      projectId,
+      order.id,
+      'void',
+      ownerToken,
+      updated.json().data.changeOrder.version as number,
     );
     expect(voided.statusCode).toBe(200);
     expect(voided.json().data.changeOrder.status).toBe('VOIDED');
@@ -451,12 +636,28 @@ describe('change orders (integration)', () => {
     const approvedVersion = approved.json().data.changeOrder.version as number;
 
     const effects = await Promise.all([
-      action(projectId, order.id, 'effect', reviewerToken, approvedVersion, {}, {
-        'idempotency-key': `parallel-effect-a-${runId}`,
-      }),
-      action(projectId, order.id, 'effect', reviewerToken, approvedVersion, {}, {
-        'idempotency-key': `parallel-effect-b-${runId}`,
-      }),
+      action(
+        projectId,
+        order.id,
+        'effect',
+        reviewerToken,
+        approvedVersion,
+        {},
+        {
+          'idempotency-key': `parallel-effect-a-${runId}`,
+        },
+      ),
+      action(
+        projectId,
+        order.id,
+        'effect',
+        reviewerToken,
+        approvedVersion,
+        {},
+        {
+          'idempotency-key': `parallel-effect-b-${runId}`,
+        },
+      ),
     ]);
     expect(effects.map(({ statusCode }) => statusCode).sort()).toEqual([200, 409]);
     expect(await summary(projectId, budgetBase, budgetId)).toMatchObject({
@@ -477,28 +678,44 @@ describe('change orders (integration)', () => {
         currencyCode: 'USD',
         clientApprovalRequired: false,
         scheduleDeltaDays: 0,
-        lines: [{
-          description: 'Budget reduction beyond remaining allocation',
-          costCodeId,
-          costDelta: '-200.00',
-          revenueDelta: '0.00',
-        }],
+        lines: [
+          {
+            description: 'Budget reduction beyond remaining allocation',
+            costCodeId,
+            costDelta: '-200.00',
+            revenueDelta: '0.00',
+          },
+        ],
       },
     });
     expect(changed.statusCode).toBe(200);
     const negativeSubmitted = await action(
-      projectId, negativeOrder.id, 'submit', ownerToken,
+      projectId,
+      negativeOrder.id,
+      'submit',
+      ownerToken,
       changed.json().data.changeOrder.version as number,
     );
     const negativeApproved = await action(
-      projectId, negativeOrder.id, 'approve', reviewerToken,
+      projectId,
+      negativeOrder.id,
+      'approve',
+      reviewerToken,
       negativeSubmitted.json().data.changeOrder.version as number,
     );
     expect(negativeApproved.statusCode).toBe(200);
     const negativeVersion = negativeApproved.json().data.changeOrder.version as number;
-    const failedEffect = await action(projectId, negativeOrder.id, 'effect', reviewerToken, negativeVersion, {}, {
-      'idempotency-key': `negative-effect-${runId}`,
-    });
+    const failedEffect = await action(
+      projectId,
+      negativeOrder.id,
+      'effect',
+      reviewerToken,
+      negativeVersion,
+      {},
+      {
+        'idempotency-key': `negative-effect-${runId}`,
+      },
+    );
     expect(failedEffect.statusCode).toBe(409);
     expect(failedEffect.json().error.code).toBe('CONFLICT');
     expect(await summary(projectId, budgetBase, budgetId)).toMatchObject({
@@ -506,30 +723,42 @@ describe('change orders (integration)', () => {
       approvedChanges: '20.00',
       revised: '120.00',
     });
-    const [stillApproved] = await getDb().select().from(changeOrders)
+    const [stillApproved] = await getDb()
+      .select()
+      .from(changeOrders)
       .where(eq(changeOrders.id, negativeOrder.id));
     expect(stillApproved?.status).toBe('APPROVED');
     expect(stillApproved?.effectedBudgetRevisionId).toBeNull();
-    const negativeOrderAudits = await getDb().select({ action: financialAuditEvents.action })
+    const negativeOrderAudits = await getDb()
+      .select({ action: financialAuditEvents.action })
       .from(financialAuditEvents)
-      .where(and(
-        eq(financialAuditEvents.organizationId, organizationId),
-        eq(financialAuditEvents.projectId, projectId),
-        eq(financialAuditEvents.entityId, negativeOrder.id),
-      ));
-    expect(negativeOrderAudits.map(({ action: auditAction }) => auditAction))
-      .not.toContain('CHANGE_ORDER_EFFECTIVE');
-    const negativeOrderEvents = await getDb().select({ payload: outboxEvents.payload })
+      .where(
+        and(
+          eq(financialAuditEvents.organizationId, organizationId),
+          eq(financialAuditEvents.projectId, projectId),
+          eq(financialAuditEvents.entityId, negativeOrder.id),
+        ),
+      );
+    expect(negativeOrderAudits.map(({ action: auditAction }) => auditAction)).not.toContain(
+      'CHANGE_ORDER_EFFECTIVE',
+    );
+    const negativeOrderEvents = await getDb()
+      .select({ payload: outboxEvents.payload })
       .from(outboxEvents)
-      .where(and(
-        eq(outboxEvents.organizationId, organizationId),
-        eq(outboxEvents.eventType, 'commercial.change_order.effected'),
-      ));
-    expect(negativeOrderEvents.some(({ payload }) =>
-      typeof payload === 'object' &&
-      payload !== null &&
-      !Array.isArray(payload) &&
-      payload.changeOrderId === negativeOrder.id,
-    )).toBe(false);
+      .where(
+        and(
+          eq(outboxEvents.organizationId, organizationId),
+          eq(outboxEvents.eventType, 'commercial.change_order.effected'),
+        ),
+      );
+    expect(
+      negativeOrderEvents.some(
+        ({ payload }) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          !Array.isArray(payload) &&
+          payload.changeOrderId === negativeOrder.id,
+      ),
+    ).toBe(false);
   });
 });

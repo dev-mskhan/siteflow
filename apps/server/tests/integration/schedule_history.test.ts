@@ -14,7 +14,7 @@ describe('Chunk 3.8 — Schedule History', () => {
     const email = `schedhistory_${Date.now()}_${Math.random().toString(36).slice(2, 6)}@test.com`;
     const user = await createVerifiedUser({ email });
     token = user.token;
-    const org = await createOrgWithAdmin(app, token, 'SchedHistory Org');
+    const org = await createOrgWithAdmin(app, token, `SchedHistory Org ${crypto.randomUUID()}`);
     organizationId = org.orgId;
 
     const res = await app.inject({

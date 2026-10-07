@@ -14,7 +14,7 @@ describe('Chunk 3.9 — Schedule Metrics & Revision-Tied Caching', () => {
     const email = `schedmetrics_${Date.now()}_${Math.random().toString(36).slice(2, 6)}@test.com`;
     const user = await createVerifiedUser({ email });
     token = user.token;
-    const org = await createOrgWithAdmin(app, token, 'SchedMetrics Org');
+    const org = await createOrgWithAdmin(app, token, `SchedMetrics Org ${crypto.randomUUID()}`);
     organizationId = org.orgId;
 
     const res = await app.inject({

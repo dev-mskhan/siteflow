@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "payment_applications_project_created_id_idx" ON "app"."payment_applications" USING btree ("organization_id","project_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);

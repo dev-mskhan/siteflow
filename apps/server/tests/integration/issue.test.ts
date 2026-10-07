@@ -14,7 +14,7 @@ describe('Chunk 3.7 — Issues & Impact Reporting', () => {
     const email = `issue_${Date.now()}_${Math.random().toString(36).slice(2, 6)}@test.com`;
     const user = await createVerifiedUser({ email });
     token = user.token;
-    const org = await createOrgWithAdmin(app, token, 'Issue Org');
+    const org = await createOrgWithAdmin(app, token, `Issue Org ${crypto.randomUUID()}`);
     organizationId = org.orgId;
 
     const res = await app.inject({

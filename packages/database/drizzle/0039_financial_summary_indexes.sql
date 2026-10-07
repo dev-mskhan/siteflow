@@ -1,0 +1,3 @@
+CREATE INDEX IF NOT EXISTS "payments_project_financial_summary_idx" ON "app"."payments" USING btree ("organization_id","project_id","status","currency_code","direction");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "committed_costs_project_summary_idx" ON "app"."committed_costs" USING btree ("organization_id","project_id","source_type","status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "retainage_records_project_currency_idx" ON "app"."retainage_records" USING btree ("organization_id","project_id","currency_code");

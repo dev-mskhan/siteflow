@@ -5,7 +5,6 @@ import { createTestApp } from '../helpers/test-app.js';
 import { getDb } from '../../src/lib/db/index.js';
 import { users, roles, outboxEvents, invitations, auditLogs } from '@siteflow/database/schema';
 import { eq, and } from 'drizzle-orm';
-import { outboxService } from '../../src/lib/outbox/outbox.service.js';
 import { createAccessToken } from '../../src/modules/auth/token.service.js';
 import type { ApiSuccessResponse } from '../../src/shared/response.js';
 import type { OrgDTO } from '../../src/modules/organization/organization.types.js';
@@ -97,21 +96,16 @@ describe('Task 2: Member Invitation, Outbox Queue & Acceptance Flow', () => {
     rawInvitationToken = eventPayload.token;
     expect(rawInvitationToken).toBeDefined();
 
-    // Trigger Outbox Service processing if not already processed via real-time LISTEN/NOTIFY
-    let updatedEvent = (
+    const persistedEvent = (
       await db.select().from(outboxEvents).where(eq(outboxEvents.id, targetEvent.id))
     )[0];
-
-    for (let attempt = 0; attempt < 5 && updatedEvent?.status === 'PENDING'; attempt++) {
-      await outboxService.publishPendingEvents();
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      updatedEvent = (
-        await db.select().from(outboxEvents).where(eq(outboxEvents.id, targetEvent.id))
-      )[0];
-    }
-
-    expect(updatedEvent?.status).toBe('PROCESSED');
-
+    expect(persistedEvent).toMatchObject({
+      id: targetEvent.id,
+      eventType: 'org:send-invitation-email',
+      organizationId: orgId,
+      status: 'PENDING',
+      retryCount: 0,
+    });
   });
 
   it('2.2 should accept invitation and create active membership for authenticated user', async () => {

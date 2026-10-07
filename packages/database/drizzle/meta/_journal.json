@@ -246,6 +246,41 @@
       "when": 1791302329029,
       "tag": "0034_secret_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791303738453,
+      "tag": "0035_handy_blockbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791306679459,
+      "tag": "0036_aspiring_kate_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791308968191,
+      "tag": "0037_mean_lady_vermin",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791310776097,
+      "tag": "0038_tired_felicia_hardy",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791378609415,
+      "tag": "0039_financial_summary_indexes",
+      "breakpoints": true
     }
   ]
 }

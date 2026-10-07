@@ -8,6 +8,7 @@ import {
   projectCostCodes,
   projects,
   purchaseOrderItems,
+  purchaseOrders,
 } from '@siteflow/database/schema';
 import type { getDb } from '../../../lib/db/index.js';
 
@@ -30,7 +31,11 @@ export class CommercialSummaryRepository {
     costCodeId: string,
   ) {
     const [costCode] = await db
-      .select({ id: projectCostCodes.id, code: projectCostCodes.code, description: projectCostCodes.description })
+      .select({
+        id: projectCostCodes.id,
+        code: projectCostCodes.code,
+        description: projectCostCodes.description,
+      })
       .from(projectCostCodes)
       .where(
         and(
@@ -88,21 +93,27 @@ export class CommercialSummaryRepository {
       );
   }
 
-  async findProjectCommitments(
-    db: CommercialDatabase,
-    organizationId: string,
-    projectId: string,
-  ) {
+  async findProjectCommitments(db: CommercialDatabase, organizationId: string, projectId: string) {
     return db
       .select({
         currencyCode: committedCosts.currencyCode,
         total: sum(committedCosts.committedAmount),
       })
       .from(committedCosts)
+      .innerJoin(
+        purchaseOrders,
+        and(
+          eq(purchaseOrders.id, committedCosts.purchaseOrderId),
+          eq(purchaseOrders.organizationId, committedCosts.organizationId),
+          eq(purchaseOrders.projectId, committedCosts.projectId),
+          eq(purchaseOrders.status, 'APPROVED'),
+        ),
+      )
       .where(
         and(
           eq(committedCosts.organizationId, organizationId),
           eq(committedCosts.projectId, projectId),
+          eq(committedCosts.sourceType, 'PURCHASE_ORDER'),
           eq(committedCosts.status, 'ACTIVE'),
         ),
       )
@@ -121,6 +132,15 @@ export class CommercialSummaryRepository {
         total: sum(purchaseOrderItems.lineTotal),
       })
       .from(committedCosts)
+      .innerJoin(
+        purchaseOrders,
+        and(
+          eq(purchaseOrders.id, committedCosts.purchaseOrderId),
+          eq(purchaseOrders.organizationId, committedCosts.organizationId),
+          eq(purchaseOrders.projectId, committedCosts.projectId),
+          eq(purchaseOrders.status, 'APPROVED'),
+        ),
+      )
       .innerJoin(
         purchaseOrderItems,
         and(

@@ -1,9 +1,11 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import {
   changeOrders,
+  paymentApplications,
   projectCostCodes,
   projectPhases,
   scheduleOfValueLines,
+  scheduleOfValueProgress,
   scheduleOfValueRevisions,
   scheduleOfValues,
   projects,
@@ -15,16 +17,17 @@ import type { getDb } from '../../../lib/db/index.js';
 type ScheduleDatabase = DatabaseTransaction | ReturnType<typeof getDb>;
 
 export class ScheduleOfValuesRepository {
-  async findHeader(
-    db: ScheduleDatabase,
-    organizationId: string,
-    projectId: string,
-    lock = false,
-  ) {
-    const query = db.select().from(scheduleOfValues).where(and(
-      eq(scheduleOfValues.organizationId, organizationId),
-      eq(scheduleOfValues.projectId, projectId),
-    )).limit(1);
+  async findHeader(db: ScheduleDatabase, organizationId: string, projectId: string, lock = false) {
+    const query = db
+      .select()
+      .from(scheduleOfValues)
+      .where(
+        and(
+          eq(scheduleOfValues.organizationId, organizationId),
+          eq(scheduleOfValues.projectId, projectId),
+        ),
+      )
+      .limit(1);
     return lock ? query.for('update') : query;
   }
 
@@ -34,10 +37,17 @@ export class ScheduleOfValuesRepository {
     projectId: string,
     limit: number,
   ) {
-    return db.select().from(scheduleOfValues).where(and(
-      eq(scheduleOfValues.organizationId, organizationId),
-      eq(scheduleOfValues.projectId, projectId),
-    )).orderBy(desc(scheduleOfValues.updatedAt)).limit(limit);
+    return db
+      .select()
+      .from(scheduleOfValues)
+      .where(
+        and(
+          eq(scheduleOfValues.organizationId, organizationId),
+          eq(scheduleOfValues.projectId, projectId),
+        ),
+      )
+      .orderBy(desc(scheduleOfValues.updatedAt))
+      .limit(limit);
   }
 
   async findRevision(
@@ -48,12 +58,18 @@ export class ScheduleOfValuesRepository {
     revisionNumber: number,
     lock = false,
   ) {
-    const query = db.select().from(scheduleOfValueRevisions).where(and(
-      eq(scheduleOfValueRevisions.organizationId, organizationId),
-      eq(scheduleOfValueRevisions.projectId, projectId),
-      eq(scheduleOfValueRevisions.scheduleOfValuesId, scheduleOfValuesId),
-      eq(scheduleOfValueRevisions.revisionNumber, revisionNumber),
-    )).limit(1);
+    const query = db
+      .select()
+      .from(scheduleOfValueRevisions)
+      .where(
+        and(
+          eq(scheduleOfValueRevisions.organizationId, organizationId),
+          eq(scheduleOfValueRevisions.projectId, projectId),
+          eq(scheduleOfValueRevisions.scheduleOfValuesId, scheduleOfValuesId),
+          eq(scheduleOfValueRevisions.revisionNumber, revisionNumber),
+        ),
+      )
+      .limit(1);
     return lock ? query.for('update') : query;
   }
 
@@ -63,11 +79,44 @@ export class ScheduleOfValuesRepository {
     projectId: string,
     revisionId: string,
   ) {
-    return db.select().from(scheduleOfValueLines).where(and(
-      eq(scheduleOfValueLines.organizationId, organizationId),
-      eq(scheduleOfValueLines.projectId, projectId),
-      eq(scheduleOfValueLines.revisionId, revisionId),
-    )).orderBy(scheduleOfValueLines.lineNumber);
+    return db
+      .select()
+      .from(scheduleOfValueLines)
+      .where(
+        and(
+          eq(scheduleOfValueLines.organizationId, organizationId),
+          eq(scheduleOfValueLines.projectId, projectId),
+          eq(scheduleOfValueLines.revisionId, revisionId),
+        ),
+      )
+      .orderBy(scheduleOfValueLines.lineNumber);
+  }
+
+  async findProgress(
+    db: ScheduleDatabase,
+    organizationId: string,
+    projectId: string,
+    lineIds: string[],
+  ) {
+    if (lineIds.length === 0) return [];
+    return db
+      .select()
+      .from(scheduleOfValueProgress)
+      .where(
+        and(
+          eq(scheduleOfValueProgress.organizationId, organizationId),
+          eq(scheduleOfValueProgress.projectId, projectId),
+          inArray(scheduleOfValueProgress.scheduleOfValueLineId, lineIds),
+        ),
+      );
+  }
+
+  async initializeProgress(
+    tx: DatabaseTransaction,
+    values: (typeof scheduleOfValueProgress.$inferInsert)[],
+  ) {
+    if (values.length === 0) return [];
+    return tx.insert(scheduleOfValueProgress).values(values).returning();
   }
 
   async createHeader(tx: DatabaseTransaction, values: typeof scheduleOfValues.$inferInsert) {
@@ -83,15 +132,21 @@ export class ScheduleOfValuesRepository {
     expectedVersion: number,
     values: Partial<typeof scheduleOfValues.$inferInsert>,
   ) {
-    const [row] = await tx.update(scheduleOfValues).set({
-      ...values,
-      updatedAt: new Date(),
-    }).where(and(
-      eq(scheduleOfValues.id, scheduleOfValuesId),
-      eq(scheduleOfValues.organizationId, organizationId),
-      eq(scheduleOfValues.projectId, projectId),
-      eq(scheduleOfValues.version, expectedVersion),
-    )).returning();
+    const [row] = await tx
+      .update(scheduleOfValues)
+      .set({
+        ...values,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(scheduleOfValues.id, scheduleOfValuesId),
+          eq(scheduleOfValues.organizationId, organizationId),
+          eq(scheduleOfValues.projectId, projectId),
+          eq(scheduleOfValues.version, expectedVersion),
+        ),
+      )
+      .returning();
     return row ?? null;
   }
 
@@ -110,11 +165,17 @@ export class ScheduleOfValuesRepository {
     revisionId: string,
     values: Partial<typeof scheduleOfValueRevisions.$inferInsert>,
   ) {
-    const [row] = await tx.update(scheduleOfValueRevisions).set(values).where(and(
-      eq(scheduleOfValueRevisions.id, revisionId),
-      eq(scheduleOfValueRevisions.organizationId, organizationId),
-      eq(scheduleOfValueRevisions.projectId, projectId),
-    )).returning();
+    const [row] = await tx
+      .update(scheduleOfValueRevisions)
+      .set(values)
+      .where(
+        and(
+          eq(scheduleOfValueRevisions.id, revisionId),
+          eq(scheduleOfValueRevisions.organizationId, organizationId),
+          eq(scheduleOfValueRevisions.projectId, projectId),
+        ),
+      )
+      .returning();
     return row ?? null;
   }
 
@@ -130,11 +191,15 @@ export class ScheduleOfValuesRepository {
     revisionId: string,
     values: NewScheduleOfValueLine[],
   ) {
-    await tx.delete(scheduleOfValueLines).where(and(
-      eq(scheduleOfValueLines.organizationId, organizationId),
-      eq(scheduleOfValueLines.projectId, projectId),
-      eq(scheduleOfValueLines.revisionId, revisionId),
-    ));
+    await tx
+      .delete(scheduleOfValueLines)
+      .where(
+        and(
+          eq(scheduleOfValueLines.organizationId, organizationId),
+          eq(scheduleOfValueLines.projectId, projectId),
+          eq(scheduleOfValueLines.revisionId, revisionId),
+        ),
+      );
     return this.insertLines(tx, values);
   }
 
@@ -148,31 +213,42 @@ export class ScheduleOfValuesRepository {
   ) {
     if (hasBoqReference) return false;
     const [codes, phases] = await Promise.all([
-      costCodeIds.length === 0 ? [] : tx.select({ id: projectCostCodes.id })
-        .from(projectCostCodes)
-        .where(and(
-          eq(projectCostCodes.organizationId, organizationId),
-          eq(projectCostCodes.projectId, projectId),
-          eq(projectCostCodes.isActive, true),
-          inArray(projectCostCodes.id, costCodeIds),
-        )),
-      phaseIds.length === 0 ? [] : tx.select({ id: projectPhases.id })
-        .from(projectPhases)
-        .where(and(
-          eq(projectPhases.organizationId, organizationId),
-          eq(projectPhases.projectId, projectId),
-          eq(projectPhases.status, 'ACTIVE'),
-          inArray(projectPhases.id, phaseIds),
-        )),
+      costCodeIds.length === 0
+        ? []
+        : tx
+            .select({ id: projectCostCodes.id })
+            .from(projectCostCodes)
+            .where(
+              and(
+                eq(projectCostCodes.organizationId, organizationId),
+                eq(projectCostCodes.projectId, projectId),
+                eq(projectCostCodes.isActive, true),
+                inArray(projectCostCodes.id, costCodeIds),
+              ),
+            ),
+      phaseIds.length === 0
+        ? []
+        : tx
+            .select({ id: projectPhases.id })
+            .from(projectPhases)
+            .where(
+              and(
+                eq(projectPhases.organizationId, organizationId),
+                eq(projectPhases.projectId, projectId),
+                eq(projectPhases.status, 'ACTIVE'),
+                inArray(projectPhases.id, phaseIds),
+              ),
+            ),
     ]);
     return codes.length === costCodeIds.length && phases.length === phaseIds.length;
   }
 
   async findProjectCurrency(tx: DatabaseTransaction, organizationId: string, projectId: string) {
-    const [project] = await tx.select({ currency: projects.currency }).from(projects).where(and(
-      eq(projects.id, projectId),
-      eq(projects.organizationId, organizationId),
-    )).limit(1);
+    const [project] = await tx
+      .select({ currency: projects.currency })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.organizationId, organizationId)))
+      .limit(1);
     return project?.currency ?? null;
   }
 
@@ -182,14 +258,38 @@ export class ScheduleOfValuesRepository {
     projectId: string,
     currencyCode: string,
   ) {
-    return db.select({ revenueDelta: changeOrders.revenueDelta })
+    return db
+      .select({ revenueDelta: changeOrders.revenueDelta })
       .from(changeOrders)
-      .where(and(
-        eq(changeOrders.organizationId, organizationId),
-        eq(changeOrders.projectId, projectId),
-        eq(changeOrders.currencyCode, currencyCode),
-        eq(changeOrders.status, 'EFFECTED'),
-      ));
+      .where(
+        and(
+          eq(changeOrders.organizationId, organizationId),
+          eq(changeOrders.projectId, projectId),
+          eq(changeOrders.currencyCode, currencyCode),
+          eq(changeOrders.status, 'EFFECTED'),
+        ),
+      );
+  }
+
+  async hasApprovedPaymentApplications(
+    db: ScheduleDatabase,
+    organizationId: string,
+    projectId: string,
+    revisionId: string,
+  ) {
+    const [row] = await db
+      .select({ id: paymentApplications.id })
+      .from(paymentApplications)
+      .where(
+        and(
+          eq(paymentApplications.organizationId, organizationId),
+          eq(paymentApplications.projectId, projectId),
+          eq(paymentApplications.revisionId, revisionId),
+          inArray(paymentApplications.status, ['APPROVED', 'PARTIALLY_APPROVED']),
+        ),
+      )
+      .limit(1);
+    return row !== undefined;
   }
 }
 

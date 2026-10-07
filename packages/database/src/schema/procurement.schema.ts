@@ -225,6 +225,7 @@ export const suppliers = appSchema.table(
   },
   (t) => [
     uniqueIndex('suppliers_org_code_unique').on(t.organizationId, t.supplierCode),
+    uniqueIndex('suppliers_id_org_unique').on(t.id, t.organizationId),
     index('suppliers_org_idx').on(t.organizationId),
     index('suppliers_org_status_idx').on(t.organizationId, t.status),
   ],
@@ -257,15 +258,14 @@ export const supplierContacts = appSchema.table(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (t) => [
-    index('supplier_contacts_supplier_idx').on(t.supplierId),
-  ],
+  (t) => [index('supplier_contacts_supplier_idx').on(t.supplierId)],
 );
 
 export type Supplier = typeof suppliers.$inferSelect;
 export type SupplierContact = typeof supplierContacts.$inferSelect;
 export type SupplierStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-export type SupplierType = 'MATERIAL_SUPPLIER' | 'SERVICE_PROVIDER' | 'EQUIPMENT_SUPPLIER' | 'GENERAL_SUPPLIER';
+export type SupplierType =
+  'MATERIAL_SUPPLIER' | 'SERVICE_PROVIDER' | 'EQUIPMENT_SUPPLIER' | 'GENERAL_SUPPLIER';
 
 // ── Material Enums ────────────────────────────────────────────────────────────
 
@@ -425,7 +425,9 @@ export const materialRequestItems = appSchema.table(
     requiredByDate: date('required_by_date'),
     taskId: text('task_id').references(() => tasks.id, { onDelete: 'set null' }),
     phaseId: text('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }),
-    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, { onDelete: 'set null' }),
+    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, {
+      onDelete: 'set null',
+    }),
     boqLineId: text('boq_line_id'),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -444,13 +446,24 @@ export const materialRequestItems = appSchema.table(
 export type MaterialRequest = typeof materialRequests.$inferSelect;
 export type MaterialRequestItem = typeof materialRequestItems.$inferSelect;
 export type MaterialRequestStatus =
-  | 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED'
-  | 'PARTIALLY_ORDERED' | 'ORDERED' | 'FULFILLED' | 'CANCELLED' | 'REJECTED';
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'PARTIALLY_ORDERED'
+  | 'ORDERED'
+  | 'FULFILLED'
+  | 'CANCELLED'
+  | 'REJECTED';
 
 // ── Quote Enums ───────────────────────────────────────────────────────────────
 
 export const quoteStatusEnum = appSchema.enum('quote_status', [
-  'DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'EXPIRED',
+  'DRAFT',
+  'SUBMITTED',
+  'ACCEPTED',
+  'REJECTED',
+  'EXPIRED',
 ]);
 
 // ── Quotes ────────────────────────────────────────────────────────────────────
@@ -459,11 +472,19 @@ export const quotes = appSchema.table(
   'quotes',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     quoteNumber: text('quote_number').notNull(),
-    supplierId: text('supplier_id').notNull().references(() => suppliers.id, { onDelete: 'restrict' }),
-    materialRequestId: text('material_request_id').references(() => materialRequests.id, { onDelete: 'set null' }),
+    supplierId: text('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'restrict' }),
+    materialRequestId: text('material_request_id').references(() => materialRequests.id, {
+      onDelete: 'set null',
+    }),
     status: quoteStatusEnum('status').notNull().default('DRAFT'),
     quoteDate: date('quote_date').notNull(),
     validUntil: date('valid_until'),
@@ -477,13 +498,19 @@ export const quotes = appSchema.table(
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
     rejectedAt: timestamp('rejected_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     uniqueIndex('quotes_num_unique').on(t.projectId, t.quoteNumber),
     index('quotes_project_status_idx').on(t.projectId, t.status),
     index('quotes_supplier_idx').on(t.supplierId),
-    check('quotes_amounts_gte_0', sql`${t.subtotal} >= 0 AND ${t.taxAmount} >= 0 AND ${t.discountAmount} >= 0 AND ${t.totalAmount} >= 0`),
+    check(
+      'quotes_amounts_gte_0',
+      sql`${t.subtotal} >= 0 AND ${t.taxAmount} >= 0 AND ${t.discountAmount} >= 0 AND ${t.totalAmount} >= 0`,
+    ),
     check('quotes_valid_until', sql`${t.validUntil} IS NULL OR ${t.validUntil} >= ${t.quoteDate}`),
   ],
 );
@@ -492,10 +519,19 @@ export const quoteItems = appSchema.table(
   'quote_items',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    quoteId: text('quote_id').notNull().references(() => quotes.id, { onDelete: 'cascade' }),
-    materialRequestItemId: text('material_request_item_id').references(() => materialRequestItems.id, { onDelete: 'set null' }),
-    materialId: text('material_id').notNull().references(() => materials.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    quoteId: text('quote_id')
+      .notNull()
+      .references(() => quotes.id, { onDelete: 'cascade' }),
+    materialRequestItemId: text('material_request_item_id').references(
+      () => materialRequestItems.id,
+      { onDelete: 'set null' },
+    ),
+    materialId: text('material_id')
+      .notNull()
+      .references(() => materials.id, { onDelete: 'restrict' }),
     description: text('description'),
     quantity: numeric('quantity', { precision: 15, scale: 3 }).notNull(),
     unitCode: text('unit_code').notNull(),
@@ -506,7 +542,10 @@ export const quoteItems = appSchema.table(
     lineTotal: numeric('line_total', { precision: 15, scale: 2 }).notNull(),
     expectedDeliveryDate: date('expected_delivery_date'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     index('quote_items_quote_idx').on(t.quoteId),
@@ -595,11 +634,19 @@ export const purchaseOrders = appSchema.table(
   'purchase_orders',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     poNumber: text('po_number').notNull(),
-    supplierId: text('supplier_id').notNull().references(() => suppliers.id, { onDelete: 'restrict' }),
-    materialRequestId: text('material_request_id').references(() => materialRequests.id, { onDelete: 'set null' }),
+    supplierId: text('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'restrict' }),
+    materialRequestId: text('material_request_id').references(() => materialRequests.id, {
+      onDelete: 'set null',
+    }),
     sourceQuoteId: text('source_quote_id').references(() => quotes.id, { onDelete: 'set null' }),
     status: purchaseOrderStatusEnum('status').notNull().default('DRAFT'),
     orderDate: date('order_date').notNull(),
@@ -611,21 +658,33 @@ export const purchaseOrders = appSchema.table(
     taxAmount: numeric('tax_amount', { precision: 15, scale: 2 }).notNull().default('0'),
     totalAmount: numeric('total_amount', { precision: 15, scale: 2 }).notNull().default('0'),
     notes: text('notes'),
-    createdByMemberId: text('created_by_member_id').references(() => projectMembers.id, { onDelete: 'set null' }),
+    createdByMemberId: text('created_by_member_id').references(() => projectMembers.id, {
+      onDelete: 'set null',
+    }),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     approvedBy: text('approved_by').references(() => users.id, { onDelete: 'set null' }),
     sentAt: timestamp('sent_at', { withTimezone: true }),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     uniqueIndex('purchase_orders_num_unique').on(t.projectId, t.poNumber),
+    uniqueIndex('purchase_orders_id_scope_unique').on(t.id, t.organizationId, t.projectId),
     index('purchase_orders_project_status_created_idx').on(t.projectId, t.status, t.createdAt),
     index('purchase_orders_supplier_idx').on(t.supplierId),
     index('purchase_orders_org_project_idx').on(t.organizationId, t.projectId),
-    check('purchase_orders_amounts_gte_0', sql`${t.subtotal} >= 0 AND ${t.taxAmount} >= 0 AND ${t.discountAmount} >= 0 AND ${t.totalAmount} >= 0`),
-    check('purchase_orders_delivery_date', sql`${t.expectedDeliveryDate} IS NULL OR ${t.expectedDeliveryDate} >= ${t.orderDate}`),
+    check(
+      'purchase_orders_amounts_gte_0',
+      sql`${t.subtotal} >= 0 AND ${t.taxAmount} >= 0 AND ${t.discountAmount} >= 0 AND ${t.totalAmount} >= 0`,
+    ),
+    check(
+      'purchase_orders_delivery_date',
+      sql`${t.expectedDeliveryDate} IS NULL OR ${t.expectedDeliveryDate} >= ${t.orderDate}`,
+    ),
   ],
 );
 
@@ -633,9 +692,15 @@ export const purchaseOrderItems = appSchema.table(
   'purchase_order_items',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    purchaseOrderId: text('purchase_order_id').notNull().references(() => purchaseOrders.id, { onDelete: 'cascade' }),
-    materialId: text('material_id').notNull().references(() => materials.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    purchaseOrderId: text('purchase_order_id')
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: 'cascade' }),
+    materialId: text('material_id')
+      .notNull()
+      .references(() => materials.id, { onDelete: 'restrict' }),
     description: text('description'),
     quantity: numeric('quantity', { precision: 15, scale: 3 }).notNull(),
     unitCode: text('unit_code').notNull(),
@@ -644,15 +709,25 @@ export const purchaseOrderItems = appSchema.table(
     taxAmount: numeric('tax_amount', { precision: 15, scale: 2 }).notNull().default('0'),
     lineSubtotal: numeric('line_subtotal', { precision: 15, scale: 2 }).notNull(),
     lineTotal: numeric('line_total', { precision: 15, scale: 2 }).notNull(),
-    materialRequestItemId: text('material_request_item_id').references(() => materialRequestItems.id, { onDelete: 'set null' }),
-    sourceQuoteItemId: text('source_quote_item_id').references(() => quoteItems.id, { onDelete: 'set null' }),
+    materialRequestItemId: text('material_request_item_id').references(
+      () => materialRequestItems.id,
+      { onDelete: 'set null' },
+    ),
+    sourceQuoteItemId: text('source_quote_item_id').references(() => quoteItems.id, {
+      onDelete: 'set null',
+    }),
     taskId: text('task_id').references(() => tasks.id, { onDelete: 'set null' }),
     phaseId: text('phase_id').references(() => projectPhases.id, { onDelete: 'set null' }),
-    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, { onDelete: 'set null' }),
+    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, {
+      onDelete: 'set null',
+    }),
     boqLineId: text('boq_line_id'),
     expectedDeliveryDate: date('expected_delivery_date'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     index('po_items_po_idx').on(t.purchaseOrderId),
@@ -665,12 +740,23 @@ export const purchaseOrderItems = appSchema.table(
 
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
-export type PurchaseOrderStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT' | 'ACKNOWLEDGED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED' | 'CLOSED';
+export type PurchaseOrderStatus =
+  | 'DRAFT'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'SENT'
+  | 'ACKNOWLEDGED'
+  | 'PARTIALLY_RECEIVED'
+  | 'RECEIVED'
+  | 'CANCELLED'
+  | 'CLOSED';
 
 // ── Committed Cost Enums ──────────────────────────────────────────────────────
 
 export const committedCostStatusEnum = appSchema.enum('committed_cost_status', [
-  'ACTIVE', 'RELEASED', 'CANCELLED',
+  'ACTIVE',
+  'RELEASED',
+  'CANCELLED',
 ]);
 
 export const committedCostSourceTypeEnum = appSchema.enum('committed_cost_source_type', [
@@ -683,13 +769,21 @@ export const committedCosts = appSchema.table(
   'committed_costs',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     sourceType: committedCostSourceTypeEnum('source_type').notNull(),
     sourceId: text('source_id').notNull(),
     supplierId: text('supplier_id').references(() => suppliers.id, { onDelete: 'set null' }),
-    purchaseOrderId: text('purchase_order_id').references(() => purchaseOrders.id, { onDelete: 'set null' }),
-    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, { onDelete: 'set null' }),
+    purchaseOrderId: text('purchase_order_id').references(() => purchaseOrders.id, {
+      onDelete: 'set null',
+    }),
+    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, {
+      onDelete: 'set null',
+    }),
     taskId: text('task_id').references(() => tasks.id, { onDelete: 'set null' }),
     boqLineId: text('boq_line_id'),
     currencyCode: text('currency_code').notNull(),
@@ -698,12 +792,21 @@ export const committedCosts = appSchema.table(
     committedAt: timestamp('committed_at', { withTimezone: true }).notNull(),
     releasedAt: timestamp('released_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     uniqueIndex('committed_costs_source_unique').on(t.organizationId, t.sourceType, t.sourceId),
     index('committed_costs_project_idx').on(t.projectId),
     index('committed_costs_org_project_idx').on(t.organizationId, t.projectId),
+    index('committed_costs_project_summary_idx').on(
+      t.organizationId,
+      t.projectId,
+      t.sourceType,
+      t.status,
+    ),
   ],
 );
 
@@ -714,12 +817,13 @@ export type CommittedCostSourceType = 'PURCHASE_ORDER';
 // ── Delivery & Receipt Enums ──────────────────────────────────────────────────
 
 export const deliveryStatusEnum = appSchema.enum('delivery_status', [
-  'SCHEDULED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED',
+  'SCHEDULED',
+  'IN_TRANSIT',
+  'DELIVERED',
+  'CANCELLED',
 ]);
 
-export const receiptStatusEnum = appSchema.enum('receipt_status', [
-  'DRAFT', 'POSTED', 'VOIDED',
-]);
+export const receiptStatusEnum = appSchema.enum('receipt_status', ['DRAFT', 'POSTED', 'VOIDED']);
 
 // ── Deliveries ────────────────────────────────────────────────────────────────
 
@@ -727,9 +831,15 @@ export const deliveries = appSchema.table(
   'deliveries',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-    purchaseOrderId: text('purchase_order_id').notNull().references(() => purchaseOrders.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    purchaseOrderId: text('purchase_order_id')
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: 'restrict' }),
     deliveryNumber: text('delivery_number').notNull(),
     status: deliveryStatusEnum('status').notNull().default('SCHEDULED'),
     scheduledDate: date('scheduled_date'),
@@ -739,7 +849,10 @@ export const deliveries = appSchema.table(
     trackingReference: text('tracking_reference'),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     uniqueIndex('deliveries_num_unique').on(t.projectId, t.deliveryNumber),
@@ -752,9 +865,15 @@ export const deliveryItems = appSchema.table(
   'delivery_items',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    deliveryId: text('delivery_id').notNull().references(() => deliveries.id, { onDelete: 'cascade' }),
-    purchaseOrderItemId: text('purchase_order_item_id').notNull().references(() => purchaseOrderItems.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    deliveryId: text('delivery_id')
+      .notNull()
+      .references(() => deliveries.id, { onDelete: 'cascade' }),
+    purchaseOrderItemId: text('purchase_order_item_id')
+      .notNull()
+      .references(() => purchaseOrderItems.id, { onDelete: 'restrict' }),
     quantity: numeric('quantity', { precision: 15, scale: 3 }).notNull(),
     unitCode: text('unit_code').notNull(),
     notes: text('notes'),
@@ -771,14 +890,22 @@ export const receipts = appSchema.table(
   'receipts',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-    purchaseOrderId: text('purchase_order_id').notNull().references(() => purchaseOrders.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    purchaseOrderId: text('purchase_order_id')
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: 'restrict' }),
     deliveryId: text('delivery_id').references(() => deliveries.id, { onDelete: 'set null' }),
     receiptNumber: text('receipt_number').notNull(),
     status: receiptStatusEnum('status').notNull().default('DRAFT'),
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
-    receivedByMemberId: text('received_by_member_id').references(() => projectMembers.id, { onDelete: 'set null' }),
+    receivedByMemberId: text('received_by_member_id').references(() => projectMembers.id, {
+      onDelete: 'set null',
+    }),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -793,12 +920,20 @@ export const receiptItems = appSchema.table(
   'receipt_items',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    receiptId: text('receipt_id').notNull().references(() => receipts.id, { onDelete: 'cascade' }),
-    purchaseOrderItemId: text('purchase_order_item_id').notNull().references(() => purchaseOrderItems.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    receiptId: text('receipt_id')
+      .notNull()
+      .references(() => receipts.id, { onDelete: 'cascade' }),
+    purchaseOrderItemId: text('purchase_order_item_id')
+      .notNull()
+      .references(() => purchaseOrderItems.id, { onDelete: 'restrict' }),
     quantityDelivered: numeric('quantity_delivered', { precision: 15, scale: 3 }).notNull(),
     quantityAccepted: numeric('quantity_accepted', { precision: 15, scale: 3 }).notNull(),
-    quantityRejected: numeric('quantity_rejected', { precision: 15, scale: 3 }).notNull().default('0'),
+    quantityRejected: numeric('quantity_rejected', { precision: 15, scale: 3 })
+      .notNull()
+      .default('0'),
     unitCode: text('unit_code').notNull(),
     rejectionReason: text('rejection_reason'),
     condition: text('condition'),
@@ -810,7 +945,10 @@ export const receiptItems = appSchema.table(
     check('receipt_items_qty_delivered_gte_0', sql`${t.quantityDelivered} >= 0`),
     check('receipt_items_qty_accepted_gte_0', sql`${t.quantityAccepted} >= 0`),
     check('receipt_items_qty_rejected_gte_0', sql`${t.quantityRejected} >= 0`),
-    check('receipt_items_accepted_plus_rejected', sql`${t.quantityAccepted} + ${t.quantityRejected} <= ${t.quantityDelivered}`),
+    check(
+      'receipt_items_accepted_plus_rejected',
+      sql`${t.quantityAccepted} + ${t.quantityRejected} <= ${t.quantityDelivered}`,
+    ),
   ],
 );
 
@@ -824,8 +962,14 @@ export type ReceiptStatus = 'DRAFT' | 'POSTED' | 'VOIDED';
 // ── Inventory Enums ───────────────────────────────────────────────────────────
 
 export const inventoryTransactionTypeEnum = appSchema.enum('inventory_transaction_type', [
-  'RECEIPT', 'ISSUE', 'CONSUMPTION', 'RETURN',
-  'ADJUSTMENT_IN', 'ADJUSTMENT_OUT', 'TRANSFER_IN', 'TRANSFER_OUT',
+  'RECEIPT',
+  'ISSUE',
+  'CONSUMPTION',
+  'RETURN',
+  'ADJUSTMENT_IN',
+  'ADJUSTMENT_OUT',
+  'TRANSFER_IN',
+  'TRANSFER_OUT',
 ]);
 
 export const inventoryTransactionSourceTypeEnum = appSchema.enum(
@@ -839,12 +983,21 @@ export const projectInventoryItems = appSchema.table(
   'project_inventory_items',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-    materialId: text('material_id').notNull().references(() => materials.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    materialId: text('material_id')
+      .notNull()
+      .references(() => materials.id, { onDelete: 'restrict' }),
     location: text('location').notNull().default('default'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().$onUpdate(() => new Date()).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     uniqueIndex('project_inventory_items_unique').on(t.projectId, t.materialId, t.location),
@@ -858,15 +1011,23 @@ export const inventoryTransfers = appSchema.table(
   'inventory_transfers',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-    materialId: text('material_id').notNull().references(() => materials.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    materialId: text('material_id')
+      .notNull()
+      .references(() => materials.id, { onDelete: 'restrict' }),
     quantity: numeric('quantity', { precision: 15, scale: 3 }).notNull(),
     unitCode: text('unit_code').notNull(),
     fromLocation: text('from_location').notNull(),
     toLocation: text('to_location').notNull(),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
-    createdByMemberId: text('created_by_member_id').references(() => projectMembers.id, { onDelete: 'set null' }),
+    createdByMemberId: text('created_by_member_id').references(() => projectMembers.id, {
+      onDelete: 'set null',
+    }),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -883,21 +1044,35 @@ export const inventoryTransactions = appSchema.table(
   'inventory_transactions',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-    inventoryItemId: text('inventory_item_id').notNull().references(() => projectInventoryItems.id, { onDelete: 'restrict' }),
-    materialId: text('material_id').notNull().references(() => materials.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    inventoryItemId: text('inventory_item_id')
+      .notNull()
+      .references(() => projectInventoryItems.id, { onDelete: 'restrict' }),
+    materialId: text('material_id')
+      .notNull()
+      .references(() => materials.id, { onDelete: 'restrict' }),
     transactionType: inventoryTransactionTypeEnum('transaction_type').notNull(),
     quantity: numeric('quantity', { precision: 15, scale: 3 }).notNull(),
     unitCode: text('unit_code').notNull(),
     sourceType: inventoryTransactionSourceTypeEnum('source_type').notNull(),
     sourceId: text('source_id').notNull(),
-    transferId: text('transfer_id').references(() => inventoryTransfers.id, { onDelete: 'set null' }),
+    transferId: text('transfer_id').references(() => inventoryTransfers.id, {
+      onDelete: 'set null',
+    }),
     reversalOfTransactionId: text('reversal_of_transaction_id'),
     taskId: text('task_id').references(() => tasks.id, { onDelete: 'set null' }),
-    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, { onDelete: 'set null' }),
+    costCodeId: text('cost_code_id').references(() => projectCostCodes.id, {
+      onDelete: 'set null',
+    }),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
-    createdByMemberId: text('created_by_member_id').references(() => projectMembers.id, { onDelete: 'set null' }),
+    createdByMemberId: text('created_by_member_id').references(() => projectMembers.id, {
+      onDelete: 'set null',
+    }),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -914,17 +1089,35 @@ export const inventoryTransactions = appSchema.table(
 export type ProjectInventoryItem = typeof projectInventoryItems.$inferSelect;
 export type InventoryTransfer = typeof inventoryTransfers.$inferSelect;
 export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
-export type InventoryTransactionType = 'RECEIPT' | 'ISSUE' | 'CONSUMPTION' | 'RETURN' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'TRANSFER_IN' | 'TRANSFER_OUT';
-export type InventoryTransactionSourceType = 'RECEIPT' | 'FIELD_LOG' | 'ADJUSTMENT' | 'TRANSFER' | 'MANUAL';
+export type InventoryTransactionType =
+  | 'RECEIPT'
+  | 'ISSUE'
+  | 'CONSUMPTION'
+  | 'RETURN'
+  | 'ADJUSTMENT_IN'
+  | 'ADJUSTMENT_OUT'
+  | 'TRANSFER_IN'
+  | 'TRANSFER_OUT';
+export type InventoryTransactionSourceType =
+  'RECEIPT' | 'FIELD_LOG' | 'ADJUSTMENT' | 'TRANSFER' | 'MANUAL';
 
 // ── Partner Performance Enums ─────────────────────────────────────────────────
 
 export const partnerTypeEnum = appSchema.enum('partner_type', ['SUPPLIER', 'SUBCONTRACTOR']);
 
 export const partnerPerformanceEventTypeEnum = appSchema.enum('partner_performance_event_type', [
-  'DELIVERY_ON_TIME', 'DELIVERY_LATE', 'DELIVERY_PARTIAL', 'DELIVERY_CANCELLED',
-  'RECEIPT_REJECTION', 'RECEIPT_DISCREPANCY', 'PO_CANCELLED',
-  'WORK_COMPLETED', 'WORK_COMPLETED_LATE', 'WORK_DELAYED', 'SCOPE_CHANGE', 'QUALITY_ISSUE',
+  'DELIVERY_ON_TIME',
+  'DELIVERY_LATE',
+  'DELIVERY_PARTIAL',
+  'DELIVERY_CANCELLED',
+  'RECEIPT_REJECTION',
+  'RECEIPT_DISCREPANCY',
+  'PO_CANCELLED',
+  'WORK_COMPLETED',
+  'WORK_COMPLETED_LATE',
+  'WORK_DELAYED',
+  'SCOPE_CHANGE',
+  'QUALITY_ISSUE',
 ]);
 
 // ── Partner Performance Events (append-only facts) ────────────────────────────
@@ -933,11 +1126,15 @@ export const partnerPerformanceEvents = appSchema.table(
   'partner_performance_events',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'restrict' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
     projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
     partnerType: partnerTypeEnum('partner_type').notNull(),
     supplierId: text('supplier_id').references(() => suppliers.id, { onDelete: 'set null' }),
-    subcontractorId: text('subcontractor_id').references(() => subcontractors.id, { onDelete: 'set null' }),
+    subcontractorId: text('subcontractor_id').references(() => subcontractors.id, {
+      onDelete: 'set null',
+    }),
     sourceType: text('source_type').notNull(),
     sourceId: text('source_id').notNull(),
     eventType: partnerPerformanceEventTypeEnum('event_type').notNull(),
@@ -948,7 +1145,13 @@ export const partnerPerformanceEvents = appSchema.table(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
-    uniqueIndex('partner_perf_events_source_unique').on(t.sourceType, t.sourceId, t.eventType, t.supplierId, t.subcontractorId),
+    uniqueIndex('partner_perf_events_source_unique').on(
+      t.sourceType,
+      t.sourceId,
+      t.eventType,
+      t.supplierId,
+      t.subcontractorId,
+    ),
     index('partner_perf_events_supplier_idx').on(t.supplierId),
     index('partner_perf_events_sub_idx').on(t.subcontractorId),
     index('partner_perf_events_project_idx').on(t.projectId),
@@ -959,6 +1162,15 @@ export const partnerPerformanceEvents = appSchema.table(
 export type PartnerPerformanceEvent = typeof partnerPerformanceEvents.$inferSelect;
 export type PartnerType = 'SUPPLIER' | 'SUBCONTRACTOR';
 export type PartnerPerformanceEventType =
-  | 'DELIVERY_ON_TIME' | 'DELIVERY_LATE' | 'DELIVERY_PARTIAL' | 'DELIVERY_CANCELLED'
-  | 'RECEIPT_REJECTION' | 'RECEIPT_DISCREPANCY' | 'PO_CANCELLED'
-  | 'WORK_COMPLETED' | 'WORK_COMPLETED_LATE' | 'WORK_DELAYED' | 'SCOPE_CHANGE' | 'QUALITY_ISSUE';
+  | 'DELIVERY_ON_TIME'
+  | 'DELIVERY_LATE'
+  | 'DELIVERY_PARTIAL'
+  | 'DELIVERY_CANCELLED'
+  | 'RECEIPT_REJECTION'
+  | 'RECEIPT_DISCREPANCY'
+  | 'PO_CANCELLED'
+  | 'WORK_COMPLETED'
+  | 'WORK_COMPLETED_LATE'
+  | 'WORK_DELAYED'
+  | 'SCOPE_CHANGE'
+  | 'QUALITY_ISSUE';

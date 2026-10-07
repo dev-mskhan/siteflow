@@ -1,7 +1,7 @@
 // packages/shared/src/modules/project/cost-code.schema.ts
 import { z } from 'zod';
 
-const CODE_REGEX = /^[A-Z0-9\-]{1,50}$/;
+const CODE_REGEX = /^[A-Z0-9-]{1,50}$/;
 
 export const createCostCodeSchema = z.object({
   code: z
@@ -25,7 +25,10 @@ export const updateCostCodeSchema = z.object({
 });
 
 export const listCostCodesQuerySchema = z.object({
-  includeInactive: z.preprocess((v) => v === 'true' || v === true, z.boolean()).optional().default(false),
+  includeInactive: z
+    .preprocess((v) => v === 'true' || v === true, z.boolean())
+    .optional()
+    .default(false),
 });
 
 export type CreateCostCodeInput = z.infer<typeof createCostCodeSchema>;

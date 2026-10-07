@@ -17,16 +17,20 @@ export const scheduleOfValues = appSchema.table(
   'schedule_of_values',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id').notNull()
+    organizationId: text('organization_id')
+      .notNull()
       .references(() => organizations.id, { onDelete: 'restrict' }),
     projectId: text('project_id').notNull(),
     currentRevisionNumber: integer('current_revision_number').notNull().default(1),
     version: integer('version').notNull().default(1),
-    createdBy: text('created_by').notNull()
+    createdBy: text('created_by')
+      .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow().$onUpdate(() => new Date()).notNull(),
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (t) => [
     uniqueIndex('schedule_of_values_project_unique').on(t.projectId),
@@ -36,7 +40,11 @@ export const scheduleOfValues = appSchema.table(
       columns: [t.projectId, t.organizationId],
       foreignColumns: [projects.id, projects.organizationId],
     }).onDelete('restrict'),
-    index('schedule_of_values_org_project_idx').on(t.organizationId, t.projectId, t.updatedAt.desc()),
+    index('schedule_of_values_org_project_idx').on(
+      t.organizationId,
+      t.projectId,
+      t.updatedAt.desc(),
+    ),
     check('schedule_of_values_revision_positive', sql`${t.currentRevisionNumber} > 0`),
     check('schedule_of_values_version_positive', sql`${t.version} > 0`),
   ],
@@ -53,7 +61,9 @@ export const scheduleOfValueRevisions = appSchema.table(
     contractValue: numeric('contract_value', { precision: 15, scale: 2 }).notNull(),
     currencyCode: text('currency_code').notNull(),
     status: text('status').notNull().default('DRAFT'),
-    createdBy: text('created_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
     submittedBy: text('submitted_by').references(() => users.id, { onDelete: 'restrict' }),
     submittedAt: timestamp('submitted_at', { withTimezone: true }),
     approvedBy: text('approved_by').references(() => users.id, { onDelete: 'restrict' }),
@@ -64,13 +74,27 @@ export const scheduleOfValueRevisions = appSchema.table(
     foreignKey({
       name: 'schedule_of_value_revisions_parent_scope_fk',
       columns: [t.scheduleOfValuesId, t.organizationId, t.projectId],
-      foreignColumns: [scheduleOfValues.id, scheduleOfValues.organizationId, scheduleOfValues.projectId],
+      foreignColumns: [
+        scheduleOfValues.id,
+        scheduleOfValues.organizationId,
+        scheduleOfValues.projectId,
+      ],
     }).onDelete('restrict'),
-    uniqueIndex('schedule_of_value_revisions_number_unique')
-      .on(t.scheduleOfValuesId, t.revisionNumber),
-    uniqueIndex('schedule_of_value_revisions_id_scope_unique').on(t.id, t.organizationId, t.projectId),
-    index('schedule_of_value_revisions_status_idx')
-      .on(t.organizationId, t.projectId, t.status, t.revisionNumber),
+    uniqueIndex('schedule_of_value_revisions_number_unique').on(
+      t.scheduleOfValuesId,
+      t.revisionNumber,
+    ),
+    uniqueIndex('schedule_of_value_revisions_id_scope_unique').on(
+      t.id,
+      t.organizationId,
+      t.projectId,
+    ),
+    index('schedule_of_value_revisions_status_idx').on(
+      t.organizationId,
+      t.projectId,
+      t.status,
+      t.revisionNumber,
+    ),
     check(
       'schedule_of_value_revisions_status_check',
       sql`${t.status} IN ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'SUPERSEDED')`,
@@ -98,14 +122,15 @@ export const scheduleOfValueLines = appSchema.table(
     projectId: text('project_id').notNull(),
     lineNumber: integer('line_number').notNull(),
     description: text('description').notNull(),
-    costCodeId: text('cost_code_id').notNull()
+    costCodeId: text('cost_code_id')
+      .notNull()
       .references(() => projectCostCodes.id, { onDelete: 'restrict' }),
     phaseId: text('phase_id').references(() => projectPhases.id, { onDelete: 'restrict' }),
     boqLineId: text('boq_line_id'),
     scheduledValue: numeric('scheduled_value', { precision: 15, scale: 2 }).notNull(),
-    completedToDate: numeric('completed_to_date', { precision: 15, scale: 2 }).notNull().default('0.00'),
-    storedMaterials: numeric('stored_materials', { precision: 15, scale: 2 }).notNull().default('0.00'),
-    retainagePercent: numeric('retainage_percent', { precision: 5, scale: 2 }).notNull().default('0.00'),
+    retainagePercent: numeric('retainage_percent', { precision: 5, scale: 2 })
+      .notNull()
+      .default('0.00'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -119,18 +144,60 @@ export const scheduleOfValueLines = appSchema.table(
       ],
     }).onDelete('restrict'),
     uniqueIndex('schedule_of_value_lines_number_unique').on(t.revisionId, t.lineNumber),
-    index('schedule_of_value_lines_project_code_idx')
-      .on(t.organizationId, t.projectId, t.costCodeId),
-    index('schedule_of_value_lines_project_phase_idx')
-      .on(t.organizationId, t.projectId, t.phaseId),
-    check('schedule_of_value_lines_number_positive', sql`${t.lineNumber} > 0`),
-    check('schedule_of_value_lines_description_length', sql`char_length(${t.description}) BETWEEN 1 AND 1000`),
-    check('schedule_of_value_lines_value_nonnegative', sql`${t.scheduledValue} > 0`),
-    check(
-      'schedule_of_value_lines_progress_nonnegative',
-      sql`${t.completedToDate} >= 0 AND ${t.storedMaterials} >= 0 AND ${t.completedToDate} + ${t.storedMaterials} <= ${t.scheduledValue}`,
+    uniqueIndex('schedule_of_value_lines_id_scope_unique').on(t.id, t.organizationId, t.projectId),
+    index('schedule_of_value_lines_project_code_idx').on(
+      t.organizationId,
+      t.projectId,
+      t.costCodeId,
     ),
+    index('schedule_of_value_lines_project_phase_idx').on(t.organizationId, t.projectId, t.phaseId),
+    check('schedule_of_value_lines_number_positive', sql`${t.lineNumber} > 0`),
+    check(
+      'schedule_of_value_lines_description_length',
+      sql`char_length(${t.description}) BETWEEN 1 AND 1000`,
+    ),
+    check('schedule_of_value_lines_value_nonnegative', sql`${t.scheduledValue} > 0`),
     check('schedule_of_value_lines_retainage_range', sql`${t.retainagePercent} BETWEEN 0 AND 100`),
+  ],
+);
+
+export const scheduleOfValueProgress = appSchema.table(
+  'schedule_of_value_progress',
+  {
+    id: text('id').primaryKey(),
+    scheduleOfValueLineId: text('schedule_of_value_line_id').notNull(),
+    organizationId: text('organization_id').notNull(),
+    projectId: text('project_id').notNull(),
+    completedToDate: numeric('completed_to_date', { precision: 15, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    storedMaterials: numeric('stored_materials', { precision: 15, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    retainageAccrued: numeric('retainage_accrued', { precision: 15, scale: 2 })
+      .notNull()
+      .default('0.00'),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'schedule_of_value_progress_line_scope_fk',
+      columns: [t.scheduleOfValueLineId, t.organizationId, t.projectId],
+      foreignColumns: [
+        scheduleOfValueLines.id,
+        scheduleOfValueLines.organizationId,
+        scheduleOfValueLines.projectId,
+      ],
+    }).onDelete('restrict'),
+    uniqueIndex('schedule_of_value_progress_line_unique').on(t.scheduleOfValueLineId),
+    index('schedule_of_value_progress_scope_idx').on(t.organizationId, t.projectId),
+    check(
+      'schedule_of_value_progress_nonnegative',
+      sql`${t.completedToDate} >= 0 AND ${t.storedMaterials} >= 0 AND ${t.retainageAccrued} >= 0`,
+    ),
   ],
 );
 
@@ -138,3 +205,4 @@ export type ScheduleOfValues = typeof scheduleOfValues.$inferSelect;
 export type ScheduleOfValueRevision = typeof scheduleOfValueRevisions.$inferSelect;
 export type ScheduleOfValueLine = typeof scheduleOfValueLines.$inferSelect;
 export type NewScheduleOfValueLine = typeof scheduleOfValueLines.$inferInsert;
+export type ScheduleOfValueProgress = typeof scheduleOfValueProgress.$inferSelect;

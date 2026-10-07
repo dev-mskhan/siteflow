@@ -15,3 +15,6 @@ export * from './budget.schema.js';
 export * from './cost-transaction.schema.js';
 export * from './change-order.schema.js';
 export * from './schedule-of-values.schema.js';
+export * from './payment-application.schema.js';
+export * from './invoice-payment.schema.js';
+export * from './retainage.schema.js';

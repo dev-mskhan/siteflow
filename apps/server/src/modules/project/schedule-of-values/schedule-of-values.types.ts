@@ -6,6 +6,9 @@ import type {
 
 export type ScheduleOfValueLineDTO = Omit<ScheduleOfValueLine, 'createdAt'> & {
   createdAt: string;
+  completedToDate: string;
+  storedMaterials: string;
+  retainageAccrued: string;
   remainingValue: string;
   retainageAmount: string;
 };

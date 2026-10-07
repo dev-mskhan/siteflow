@@ -14,7 +14,7 @@ describe('Chunk 3.6 — Field Execution & Daily Logs', () => {
     const email = `fieldlog_${Date.now()}_${Math.random().toString(36).slice(2, 6)}@test.com`;
     const user = await createVerifiedUser({ email });
     token = user.token;
-    const org = await createOrgWithAdmin(app, token, 'FieldLog Org');
+    const org = await createOrgWithAdmin(app, token, `FieldLog Org ${crypto.randomUUID()}`);
     organizationId = org.orgId;
 
     // Create project
