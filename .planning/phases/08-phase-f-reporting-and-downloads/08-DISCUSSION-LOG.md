@@ -3,9 +3,11 @@
 **Date:** 2026-10-07
 **Phase:** 8
 
-## Scope carried into discussion
+## Scope decisions and later planning instruction
 
-The user had already selected reporting-only scope: project and organization-portfolio perspectives, backend APIs and web views, PDF/XLSX/CSV downloads, and no platform billing models. Communications/realtime remain out of scope. The user selected all open decision areas and requested a compact, industry-standard result that keeps the production-readiness checklist in view.
+The discussion initially recorded reporting-only scope: project and organization-portfolio perspectives, backend APIs and web views, PDF/XLSX/CSV downloads, and no platform billing models. In the subsequent `/gsd-plan-phase 8` request, the user explicitly asked that every capability in the supplied F.0–F.18 proposal be represented in the chunks, including event backbone, notifications, email, realtime, WhatsApp abstraction, scheduled jobs, and preferences. The Phase 8 plan therefore reflects the expanded scope; the roadmap, requirements, and context were reconciled before planning. Platform billing remains out of scope.
+
+The user also requires the original quality gate to be applied chunk by chunk, the phase split into small independently verifiable units, and no missing capabilities from the supplied dependency graph, event vocabulary, or report/export scope.
 
 ## User-confirmed decisions
 
@@ -62,5 +64,4 @@ The session changed to autopilot before downloads were discussed. To finish the 
 ## Deferred
 
 - Platform billing/usage/subscription and cross-tenant platform reports.
-- Notifications, email/WhatsApp, realtime, and a general event backbone.
 - Unsupported metrics without authoritative source data or approved definitions.

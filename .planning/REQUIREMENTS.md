@@ -24,6 +24,18 @@
 
 ## Active Requirements
 
+### Domain Events and Communication
+
+- [ ] EVT-01: Domain events use a versioned, immutable, uniquely identifiable envelope with organization scope, optional project scope, actor where applicable, entity identity, timestamps, and trace/correlation fields consistent with repository conventions.
+- [ ] EVT-02: A business mutation and its outbox event are persisted in the same database transaction; event payloads are validated and safe to serialize, retry, and deduplicate.
+- [ ] EVT-03: Event consumers are registered independently of source modules and provide handler isolation, idempotency, retry/failure state, correlation-aware logging, and observable processing without duplicate event systems.
+- [ ] NTF-01: Notification intent, recipient, template/content, channel delivery, attempt, status, timestamps, failure reason, retry information, and source event/correlation are represented independently of provider-specific delivery.
+- [ ] NTF-02: Email delivery uses a replaceable provider abstraction, templates, text/HTML content, retry/failure tracking, idempotency, and delivery status; sensitive credentials and financial data are not inadvertently included.
+- [ ] NTF-03: Realtime delivery is authorized against current organization context, project membership, and required permission before a connection subscribes or receives scoped events; identifiers alone never grant access.
+- [ ] COM-01: WhatsApp is represented by a provider-neutral channel contract and does not require a concrete vendor unless one is configured.
+- [ ] SCH-01: Scheduled operational checks use the existing background-job infrastructure and domain services to detect due-date/overdue/expiring conditions; schedulers do not send provider messages directly.
+- [ ] PREF-01: User channel/event preferences control delivery without suppressing or deleting the underlying domain event; preference hierarchy reuses existing settings conventions.
+
 ### Reporting Foundation
 
 - [ ] RPT-01: Reporting services use authoritative server-side domain services/read models; the web client does not recalculate business metrics.
@@ -55,7 +67,7 @@
 ## Out of Scope
 
 - Platform-level usage metering, subscription plans, invoices, and payment processing — deferred until product and billing requirements are defined.
-- Notifications, WhatsApp, and realtime event delivery — not in the selected reporting-only Phase F scope.
+- Platform-operator and cross-tenant platform reporting — deferred until separate authorization and product requirements exist.
 - AI-generated analysis and metric scoring without an approved product definition.
 - Replacing existing queue, storage, database, or authorization infrastructure.
 
@@ -63,10 +75,12 @@
 
 | Requirement | Planned Phase |
 |-------------|---------------|
+| EVT-01–EVT-03 | Phase 8 — Domain Event Foundation |
+| NTF-01–NTF-03, COM-01, SCH-01, PREF-01 | Phase 8 — Notifications and Scheduled Communication |
 | RPT-01–RPT-03 | Phase 8 — Phase F Reporting Foundation and Security |
 | RPT-04–RPT-10 | Phase 8 — Project and Organization Portfolio Reports |
 | RPT-11–RPT-15 | Phase 8 — Report Exports and Web Delivery |
 | EXT-01 | Phase 8 boundary; future platform phase TBD |
 
 ---
-*Last updated: 2026-10-07*
+*Last updated: 2026-10-08*

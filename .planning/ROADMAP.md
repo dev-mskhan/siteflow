@@ -8,7 +8,7 @@
 
 This is a brownfield roadmap for continued development. Phases 1–7 below record completed SiteFlow history from existing task documents and implementation context; they are not requests to reimplement that work. GSD tracking begins with Phase 8, corresponding to product Phase F.
 
-The current Phase F boundary is reporting-only: project/portfolio metrics, APIs, web views, and downloads. Communication channels and platform billing models are deferred. The user will provide additional Phase F context before its detailed implementation plan is finalized.
+Phase F includes a versioned domain-event backbone, notification and communication capabilities, scheduled operational automation, and project/organization-portfolio reporting with APIs, web views, and downloads. Platform billing models remain deferred. Phase 8 detailed scope and decisions are recorded in `.planning/phases/08-phase-f-reporting-and-downloads/08-CONTEXT.md`.
 
 ## Phases
 
@@ -30,46 +30,52 @@ The current Phase F boundary is reporting-only: project/portfolio metrics, APIs,
 
 ### Phase 8: Phase F Reporting and Downloads
 
-**Goal:** Authorized users can access trustworthy project and organization-portfolio reporting through consistent backend APIs, web views, and PDF/XLSX/CSV downloads without compromising tenant isolation.
+**Goal:** SiteFlow reliably publishes tenant-scoped domain events, delivers configurable notifications through authorized channels and scheduled jobs, and provides trustworthy project and organization-portfolio reporting through consistent APIs, web views, and PDF/XLSX/CSV downloads without compromising tenant isolation.
 **Depends on:** Completed SiteFlow Phases 1–7 (recorded as historical evidence; not replanned here)
-**Requirements:** RPT-01–RPT-15, EXT-01
+**Requirements:** EVT-01–EVT-03, NTF-01–NTF-03, COM-01, SCH-01, PREF-01, RPT-01–RPT-15, EXT-01
 **Success Criteria** (what must be TRUE):
-  1. Authorized project users can view agreed project health, schedule, cost, procurement, subcontractor, and executive summary reports whose values come from authoritative backend sources.
-  2. Authorized organization users can view a portfolio report containing only projects permitted by the agreed portfolio and role rules.
-  3. A metric shown in the API and web UI matches its PDF, XLSX, or CSV export for the same filters and date range.
-  4. Cross-tenant report access and export/download attempts cannot expose another organization's or project's data.
-  5. Costly exports complete through the existing background-job infrastructure with observable status and authorized, expiring downloads.
-**Plans:** TBD (pending user decisions and phase discussion)
-**Entry gate:** Resolve metric definitions and sources, report filters/date semantics, portfolio rules, role visibility, report layouts, and export lifecycle/retention before creating executable plans.
+  1. Domain changes and their versioned, tenant-scoped events commit atomically; event handlers are safely retryable, idempotent, observable, and isolated from one another.
+  2. Notification delivery is represented independently of domain mutations and supports the agreed email, realtime, and replaceable WhatsApp channel contracts, scheduled triggers, and user delivery preferences.
+  3. Realtime subscriptions and every notification/job delivery enforce current organization, project-membership, and permission boundaries; identifiers alone never grant access.
+  4. Authorized project users can view agreed project health, schedule, cost, procurement, subcontractor, and executive summary reports whose values come from authoritative backend sources.
+  5. Authorized organization users can view a portfolio report containing only projects permitted by the agreed portfolio and role rules.
+  6. A metric shown in the API and web UI matches its PDF, XLSX, or CSV export for the same filters and date range.
+  7. Cross-tenant event, notification, report, export, job, storage, and download paths cannot expose another organization's or project's data.
+  8. Costly exports and scheduled work use the existing background-job infrastructure with observable status, safe retries, and authorized, expiring downloads where applicable.
+**Plans:** TBD (pending Phase 8 research and planning)
+**Entry gate:** Audit existing outbox, worker, tenant/RBAC, audit, communication, metric-source, export, and storage contracts; verify metric definitions and sources, event and notification boundaries, report filters/date semantics, portfolio rules, role visibility, report layouts, and export lifecycle/retention before implementation.
 
-**Status:** Planned; detailed scope/metric decisions still need user context before executable plans.
+**Status:** Context captured; ready for research and executable planning.
 
-Deliver reporting for project and organization-portfolio perspectives using the existing multi-tenant API, domain services, database, queue, storage, cache, and web architecture.
+Deliver the event/communication foundation and reporting capabilities for project and organization-portfolio perspectives using existing multi-tenant API, domain services, database, queue, storage, cache, and web architecture.
 
 Expected capability areas:
 
-1. **Reporting definitions and access contract** — settle metric formulas, sources, filters, date ranges, portfolio inclusion, and role permissions before implementation.
-2. **Project health and schedule reporting** — derive from existing operational and schedule truth; do not make up scores or duplicate schedule calculation.
-3. **Cost and commercial reporting** — derive from Phase E financial services and state explicit coverage/deferred-source behavior.
-4. **Procurement and subcontractor reporting** — use authoritative source modules; avoid duplicate commitments and unsupported performance scores.
-5. **Executive and portfolio reports** — compose established report services with organization-scoped project selection and totals.
-6. **Report APIs and web views** — present consistent server-produced metrics and filters.
-7. **PDF, XLSX, and CSV exports** — use one report data contract; handle large generation via PgBoss and scoped, expiring MinIO-backed downloads where justified.
-8. **Phase exit hardening** — validate multi-tenant isolation, permissions, concurrency, API contracts, cache behavior only if introduced, worker retry/idempotency, export integrity, and performance per the required planning checklist/testing context.
+1. **F.0 Repository and contract audit** — verify actual transaction, outbox, worker, queue, tenant/RBAC, audit, event, notification, and reporting sources before implementation.
+2. **F.1 Domain-event contract** — define versioned, immutable, identifiable, tenant-scoped event envelopes and the agreed event vocabulary.
+3. **F.2 Transactional event publishing** — persist business changes and outbox events atomically; ensure safe retry and deduplication.
+4. **F.3 Event dispatcher/consumers** — provide registered handlers, retries, failure isolation, idempotency, correlation, dead-letter/failure state, logging, and metrics.
+5. **F.4 Notification core** — model notification intent, recipient, template/delivery/attempt, lifecycle, status, and failure state independently of channels.
+6. **F.5–F.9 Communication and automation** — implement replaceable email delivery, authorized realtime delivery, a provider-neutral WhatsApp contract, scheduled operational reminders, and channel preferences; do not couple domain mutations directly to providers.
+7. **F.10 Reporting foundation** — expose authoritative source data through minimum-necessary backend report services/read models; avoid unsupported or speculative projections.
+8. **F.11–F.15 Project report families** — health, schedule, cost/commercial, procurement, subcontractor, executive and portfolio metrics with explicit source coverage and permission rules.
+9. **F.16 Reporting APIs** — expose consistent project and organization-portfolio report contracts and bounded pagination.
+10. **F.17 Report export/download service** — produce PDF, XLSX, and CSV from the same authorized server report results; use synchronous execution or existing PgBoss/MinIO lifecycle according to measured cost.
+11. **F.18 Phase hardening** — verify multi-tenant isolation, permissions, concurrency, API contracts, cache behavior only if introduced, worker retry/idempotency, channel delivery security, export integrity, and required quality gates.
 
-**Entry gate:** Before `/gsd-plan-phase`, gather the user's promised Phase F context and confirm formulas, role-specific visibility, portfolio semantics, report layouts, filters, export lifecycle/retention, and whether any Phase F notification scope is intentionally added. Keep the previously selected reporting-only default unless explicitly changed.
+**Entry gate:** Use the decisions in `08-CONTEXT.md`; planning research must verify existing contracts and trace each metric and job to authoritative code before implementation.
 
-**Non-goals:** Build no platform payment, usage-metering, or subscription model in this phase. Do not build email/WhatsApp/realtime systems under the current Phase F decision.
+**Non-goals:** Build no platform payment, usage-metering, or subscription model in this phase. Do not build a concrete WhatsApp vendor integration unless configured and approved; use the replaceable channel contract.
 
 ### Future Phases — Uncommitted
 
 - Platform usage, payments, and subscriptions: possible future product capability; no phase number, behavior, or schema committed.
-- Communication/notification/realtime capabilities: not part of Phase 8 under the current scope; future placement and requirements TBD.
 
 ## Coverage
 
 | Requirement | Phase |
 |-------------|-------|
+| EVT-01–EVT-03, NTF-01–NTF-03, COM-01, SCH-01, PREF-01 | Phase 8 |
 | RPT-01–RPT-15 | Phase 8 |
 | EXT-01 | Phase 8 boundary; future phase TBD |
 

@@ -4,10 +4,52 @@
 **Status:** Decisions captured; ready for research and planning.
 
 <domain>
-Deliver project and organization-portfolio reporting, backend APIs, web views, and downloadable reports. Reporting is an extension of existing SiteFlow source modules, not a new operational system. Keep Phase F reporting-only; do not add communications or platform billing.
+Deliver the Phase F event backbone, notification/communication and scheduled automation capabilities, project and organization-portfolio reporting, backend APIs, web views, and downloadable reports. Use existing SiteFlow source modules and infrastructure; avoid isolated CRUD systems and do not add platform billing.
 </domain>
 
 <decisions>
+### Phase structure and dependency order
+- Start with F.0, a repository/contract audit that identifies what existing transaction, outbox, worker, queue, Redis, audit, auth, tenant-scope, membership/permission, commercial, event-like record, notification, realtime, and email capabilities actually exist. Record transaction, payload, tenant/actor propagation, retry, and failure contracts before implementation.
+- Preserve the dependency order: existing foundation → versioned domain event contract → transactional publishing → dispatcher/consumer infrastructure → notification core → channel delivery, scheduled jobs, and preferences → reporting read models and metric families → APIs → exports → hardening.
+- Keep domain modules independent of concrete event consumers and communication providers. Reuse public module services and existing infrastructure instead of creating parallel systems.
+- Split capability areas into small, independently verifiable plans/chunks. Apply the production-readiness checklist during each chunk for build-in controls and at phase end for end-of-phase gates; do not misclassify pre-production-only load tests as per-chunk work.
+
+### Required F.0–F.18 chunk coverage
+- **F.0 Repository/contract audit:** produce the dependency and contract baseline; no new business functionality.
+- **F.1 Domain event contract:** implement the versioned common event envelope and event vocabulary.
+- **F.2 Transactional event publishing:** atomically persist domain changes and outbox events; verify rollback, retries, deduplication, and idempotency.
+- **F.3 Event dispatcher/consumers:** register independent handlers with retries, failure isolation, idempotency, logging, correlation, failure/dead-letter state, and metrics.
+- **F.4 Notification core:** create channel-independent notification, recipient, template, delivery, attempt, lifecycle, and failure state.
+- **F.5 Email delivery:** add templates and a replaceable provider abstraction with safe content, retry, idempotency, and delivery state.
+- **F.6 Realtime events:** deliver authorized project/organization/user events using the actual repository realtime stack, if one exists.
+- **F.7 WhatsApp abstraction:** define a replaceable outbound messaging channel without requiring a concrete vendor.
+- **F.8 Scheduled jobs:** generate operational due/overdue/expiring checks through the existing job and domain-service patterns.
+- **F.9 Notification preferences:** let user/channel preferences control delivery without suppressing domain events.
+- **F.10 Reporting foundation:** connect authoritative operational sources to backend report services/read models; only add projections if demonstrated necessary.
+- **F.11 Project health:** expose transparent, source-backed health indicators without an invented weighted score.
+- **F.12 Schedule metrics:** report existing authoritative schedule data without duplicating schedule calculations.
+- **F.13 Cost metrics:** report Phase E financial concepts distinctly and disclose unavailable source coverage.
+- **F.14 Procurement metrics:** report source-backed procurement status and material-to-task schedule impact where supported.
+- **F.15 Subcontractor metrics:** use subcontractor and linked operational/commercial sources without invented commitments or performance scores.
+- **F.16 Executive/reporting APIs:** expose project and organization-portfolio reports with the agreed access, filters, and bounded project pagination.
+- **F.17 Report export/download service:** make each approved report family downloadable in PDF, XLSX, and CSV from the same server-produced values and filter contract.
+- **F.18 Phase hardening:** run the phase-level regression, security, performance, export, communication, and operational quality gates.
+
+### Domain-event contract and reliability
+- Create a shared, versioned event envelope with stable identity, event type/version, occurred time, organization ID, optional project ID, actor where applicable, entity type/ID, correlation/causation identifiers where supported, and validated payload. Final field names and integration points must follow actual repository conventions.
+- Cover the supplied vocabulary where corresponding source workflows exist: `TaskCompleted`, `TaskDelayed`, `TaskDateChanged`, `MaterialOrdered`, `MaterialDelayed`, `MaterialDelivered`, `IssueCreated`, `IssueResolved`, `RfiCreated`, `RfiOverdue`, `SubmittalSubmitted`, `SubmittalRejected`, `InspectionScheduled`, `InspectionFailed`, `ChangeOrderCreated`, `ChangeOrderApproved`, `PaymentApplicationSubmitted`, `PaymentOverdue`, `DocumentExpiring`, and `SafetyIncidentCreated`. Do not invent source workflows or emit events with fabricated domain state.
+- Domain mutation and outbox event must commit atomically. Processing must tolerate retry and duplicate delivery, isolate handler failures, retain failure/dead-letter state consistent with the existing outbox, and preserve tenant/actor/correlation context.
+- Verify event validity, missing tenant, invalid payload/version, serialization/deserialization, identity, transaction rollback, retry, duplicate delivery, and idempotent consumer behavior as applicable.
+
+### Notification, channels, realtime, jobs, and preferences
+- Keep a notification domain separate from email/realtime/WhatsApp providers, with enough recipient, event, channel, rendered content, priority, status/timestamp, attempt, failure, retry, and correlation data to audit lifecycle without overbuilding a parallel event store.
+- Email uses a replaceable provider abstraction with templates, subject, HTML/text, retry/failure tracking, idempotency, and delivery status. Never accidentally include access tokens, passwords, or sensitive financial details.
+- Realtime delivery follows the configured Socket.IO/runtime pattern if present. Project/organization/user rooms may follow existing authorization conventions, but authentication, tenant context, membership, and permission must be checked server-side; a known project ID never authorizes subscription or receipt.
+- WhatsApp remains a provider-neutral channel abstraction; do not add a concrete vendor dependency unless configured and supported by existing deployment policy.
+- Scheduled reminders/monitoring cover the supplied examples where their source workflows exist: RFI approaching due date, payment overdue, document expiring, submittal overdue, task approaching deadline, and material delivery approaching. The scheduler enqueues idempotent work to existing infrastructure; jobs call domain services and emit events/notification intents, not direct provider sends.
+- Preferences may follow organization defaults → project defaults → user settings only where existing settings contracts support that hierarchy. Preferences decide delivery channels, never whether the underlying domain event exists.
+- Event and notification records must be tenant scoped, auditable where security-sensitive, retry safe, and observable; keep provider calls outside database transactions.
+
 ### Metric definitions and freshness
 - Use existing authoritative schedule, procurement, subcontractor, and Phase E commercial data/services. API, web views, and exports must consume the same server-produced report result; the browser must not calculate business metrics.
 - Show transparent domain indicators and underlying facts. Do not invent a weighted project-health score, forecast, subcontractor rating, or unsupported commitment metric. If an approved formula already exists, planning must cite its source before reusing it.
@@ -47,18 +89,19 @@ Deliver project and organization-portfolio reporting, backend APIs, web views, a
 
 ### Future platform capability boundary
 - Do not add platform payment, usage-metering, subscription, invoice, or plan models in Phase 8. Keep organization/project reporting boundaries separate so a future platform-operator reporting perspective can be added with its own explicit scope and authorization; do not query across tenants in this phase.
-- Do not build notifications, email/WhatsApp delivery, realtime infrastructure, a new event backbone, speculative reporting projections, or speculative Redis caches to support these reports.
+- Do not introduce a second database, queue, worker process, storage system, event store, speculative reporting projection, or speculative Redis cache. Add a projection/cache only if codebase investigation and profiling prove it necessary and its data lifecycle, tenant scoping, invalidation, TTL, fallback, and tests are defined.
 </decisions>
 
 <specifics>
 - The user selected the report families, project and organization-portfolio perspectives, backend APIs plus web views, and PDF/XLSX/CSV exports in prior Phase 8 scope decisions.
 - User-confirmed discussion choices: transparent indicators; explicit unavailable/coverage semantics; links to existing records; on-demand freshness; metric-appropriate date semantics; historical reporting only when supported by authoritative history; project/organization timezone with UTC fallback; report-specific date presets; authorized non-archived portfolio projects; currency grouping without invented conversion; visible partial coverage; portfolio totals and project rows; source-capability visibility; and reuse of existing project/organization authorization.
 - Export layout/lifecycle specifics above are agent-discretion defaults adopted under autopilot to finish the requested discussion. They are planning defaults, not user-confirmed business policy; research/planning should verify existing config and storage lifecycle conventions and call out any retention or format constraints before implementation.
-- The user’s “finished, compact, industry-standard” direction means prefer established codebase patterns, stable report contracts, and only the minimum additional persistence/job lifecycle needed for secure downloads.
+- The user's “finished, compact, industry-standard” direction means prefer established codebase patterns, stable event/report contracts, and only the minimum additional persistence/job lifecycle needed.
+- Latest planning instruction asks that every Phase F capability from the supplied F.0–F.18 proposal be represented as a chunk; retain each named capability while splitting it into small, independently verifiable implementation plans.
 </specifics>
 
 <code_context>
-- Architecture: TypeScript modular monolith; Fastify API, React/Vite web, Drizzle/PostgreSQL, Redis, PgBoss with transactional outbox, MinIO, and OpenTelemetry/Pino. PostgreSQL remains authoritative.
+- Architecture: TypeScript modular monolith; Fastify API, React/Vite web, Drizzle/PostgreSQL, Redis, PgBoss with transactional outbox, MinIO, and OpenTelemetry/Pino. PostgreSQL remains authoritative. Older proposal references to Prisma/BullMQ must not override actual repository tooling.
 - Existing report sources include schedule metrics and the project `commercial-summary` / `financial-summary` modules. Planning should trace each report metric to its source module/service before defining a query or projection.
 - `apps/server/src/modules/project/schedule-metrics/schedule-metrics.repository.ts` currently scopes its metric-row lookup/upsert by `projectId` alone. Fix and test organization scoping before reuse or extension.
 - `apps/server/src/lib/queue/queue.ts` only declares a generic export payload/queue: it has no `organizationId`, omits XLSX, and the mapped codebase had no producer/worker. Do not treat it as a ready report-export service.
@@ -91,6 +134,5 @@ Deliver project and organization-portfolio reporting, backend APIs, web views, a
 
 <deferred>
 - Platform-operator usage, payments, subscriptions, billing, and cross-tenant platform reporting — future phase after separate product/security requirements.
-- Notifications, email, WhatsApp, realtime delivery, and a general domain-event backbone — outside the selected reporting-only scope.
 - Any report metric without an authoritative source or approved definition — defer that metric rather than fabricate it.
 </deferred>
