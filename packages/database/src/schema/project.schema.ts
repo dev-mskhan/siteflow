@@ -638,7 +638,6 @@ export const projectScheduleMetrics = appSchema.table(
     organizationId: text('organization_id').notNull(),
     projectId: text('project_id')
       .notNull()
-      .unique()
       .references(() => projects.id, { onDelete: 'cascade' }),
     totalTasks: integer('total_tasks').notNull().default(0),
     completedTasks: integer('completed_tasks').notNull().default(0),
@@ -650,7 +649,9 @@ export const projectScheduleMetrics = appSchema.table(
       .notNull(),
   },
   (t) => [
+    uniqueIndex('project_schedule_metrics_org_project_unique').on(t.organizationId, t.projectId),
     index('project_schedule_metrics_org_idx').on(t.organizationId),
+    index('project_schedule_metrics_project_idx').on(t.projectId),
   ],
 );
 

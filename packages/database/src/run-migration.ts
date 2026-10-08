@@ -455,7 +455,7 @@ async function run() {
     CREATE TABLE IF NOT EXISTS "app"."project_schedule_metrics" (
       "id" text PRIMARY KEY NOT NULL,
       "organization_id" text NOT NULL,
-      "project_id" text NOT NULL UNIQUE REFERENCES "app"."projects"("id") ON DELETE CASCADE,
+      "project_id" text NOT NULL REFERENCES "app"."projects"("id") ON DELETE CASCADE,
       "total_tasks" integer DEFAULT 0 NOT NULL,
       "completed_tasks" integer DEFAULT 0 NOT NULL,
       "critical_task_count" integer DEFAULT 0 NOT NULL,
@@ -463,7 +463,8 @@ async function run() {
       "updated_at" timestamp with time zone DEFAULT now() NOT NULL
     );
 
-    CREATE UNIQUE INDEX IF NOT EXISTS "project_schedule_metrics_project_unique" ON "app"."project_schedule_metrics" ("project_id");
+    CREATE UNIQUE INDEX IF NOT EXISTS "project_schedule_metrics_org_project_unique" ON "app"."project_schedule_metrics" ("organization_id", "project_id");
+    CREATE INDEX IF NOT EXISTS "project_schedule_metrics_project_idx" ON "app"."project_schedule_metrics" ("project_id");
   `);
 
 

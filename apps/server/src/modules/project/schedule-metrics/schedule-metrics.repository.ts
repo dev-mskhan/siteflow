@@ -1,22 +1,28 @@
 // apps/server/src/modules/project/schedule-metrics/schedule-metrics.repository.ts
 import { projectScheduleMetrics, type ProjectScheduleMetrics } from '@siteflow/database/schema';
-import { eq } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 export class ScheduleMetricsRepository {
   async findByProject(
     db: any,
+    organizationId: string,
     projectId: string,
   ): Promise<ProjectScheduleMetrics | undefined> {
     const rows = await db
       .select()
       .from(projectScheduleMetrics)
-      .where(eq(projectScheduleMetrics.projectId, projectId));
+      .where(
+        and(
+          eq(projectScheduleMetrics.organizationId, organizationId),
+          eq(projectScheduleMetrics.projectId, projectId),
+        ),
+      )
+      .limit(1);
     return rows[0];
   }
 
   /**
-   * Upsert metrics — always overwrites for the given projectId.
+   * Upsert metrics — always overwrites for the given organization/project pair.
    * Called after every schedule recalculation.
    */
   async upsert(
@@ -35,7 +41,7 @@ export class ScheduleMetricsRepository {
       .insert(projectScheduleMetrics)
       .values(data)
       .onConflictDoUpdate({
-        target: projectScheduleMetrics.projectId,
+        target: [projectScheduleMetrics.organizationId, projectScheduleMetrics.projectId],
         set: {
           totalTasks: sql`excluded.total_tasks`,
           completedTasks: sql`excluded.completed_tasks`,

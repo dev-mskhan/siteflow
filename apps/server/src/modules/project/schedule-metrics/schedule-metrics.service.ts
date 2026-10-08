@@ -71,7 +71,7 @@ export class ScheduleMetricsService {
       }
 
       // 2. Check DB materialized metrics row matching revision
-      const existing = await this.repo.findByProject(this.db, projectId);
+      const existing = await this.repo.findByProject(this.db, organizationId, projectId);
       if (existing && existing.scheduleRevision === currentRevision) {
         const dto = toDTO(existing);
         this.cacheInRedis(cacheKey, dto);
@@ -126,7 +126,7 @@ export class ScheduleMetricsService {
       const completedTasks = Number(completedRows[0]?.cnt ?? 0);
       const criticalTaskCount = Number(criticalRows[0]?.cnt ?? 0);
 
-      const existing = await this.repo.findByProject(this.db, projectId);
+      const existing = await this.repo.findByProject(this.db, organizationId, projectId);
       const id = existing?.id ?? generateId();
 
       const upserted = await this.repo.upsert(this.db, {
