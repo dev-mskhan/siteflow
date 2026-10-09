@@ -20,5 +20,6 @@ export * from './invoice-payment.schema.js';
 export * from './retainage.schema.js';
 export * from './notification.schema.js';
 export * from './notification-preference.schema.js';
+export * from './report-export.schema.js';
 
 

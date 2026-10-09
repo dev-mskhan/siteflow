@@ -1,5 +1,5 @@
 import { pgSchema, text, timestamp, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core';
-import { notificationChannelEnum } from './notification.schema.js';
+import { notificationChannelEnum } from './notification.schema';
 
 const appSchema = pgSchema('app');
 
