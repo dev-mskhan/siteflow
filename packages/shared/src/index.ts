@@ -64,3 +64,11 @@ export * from './modules/project/committed-cost.schema.js';
 // ─── Inventory & performance ──────────────────────────────────────────────────
 export * from './modules/project/inventory.schema.js';
 export * from './modules/project/performance.schema.js';
+
+// ─── Domain Events ─────────────────────────────────────────────────────────────
+export * from './events/index.js';
+
+// ─── Reporting ─────────────────────────────────────────────────────────────────
+export * from './reporting/index.js';
+
+

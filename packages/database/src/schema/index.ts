@@ -18,3 +18,7 @@ export * from './schedule-of-values.schema.js';
 export * from './payment-application.schema.js';
 export * from './invoice-payment.schema.js';
 export * from './retainage.schema.js';
+export * from './notification.schema.js';
+export * from './notification-preference.schema.js';
+
+

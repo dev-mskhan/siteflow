@@ -177,5 +177,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(supplierRoutes, { prefix: '/api/v1/organizations' });
   await app.register(materialRoutes, { prefix: '/api/v1/organizations' });
 
+  // ─── Realtime SSE Notifications ─────────────────────────────────────────────
+  const { realtimePlugin } = await import('../modules/notification/realtime/realtime.plugin.js');
+  await app.register(realtimePlugin);
+
   return app;
 }

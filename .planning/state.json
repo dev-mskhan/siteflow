@@ -1,0 +1,18 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": null,
+  "phases": [
+    {
+      "number": "8",
+      "name": "Phase F Reporting and Downloads",
+      "status": "in_progress"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step (plan phase 8)",
+    "reason": "Phase 8 of 1 — needs a plan"
+  },
+  "updated_at": "2026-10-07T21:40:58.706Z"
+}
