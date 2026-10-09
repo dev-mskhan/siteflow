@@ -14,12 +14,22 @@ import {
   getExecutiveSummaryReportHandler,
   getPortfolioReportHandler,
 } from './report.handlers.js';
+import {
+  getHealthReportSchemaDoc,
+  getScheduleReportSchemaDoc,
+  getCostReportSchemaDoc,
+  getProcurementReportSchemaDoc,
+  getSubcontractorReportSchemaDoc,
+  getExecutiveSummaryReportSchemaDoc,
+  getPortfolioReportSchemaDoc,
+} from './docs/report.api.schemas.js';
 
 export const reportRoutes: FastifyPluginAsync = async (app) => {
   // --- Portfolio Report (Organization Level) ---
   app.get(
     '/:organizationId/reports/portfolio',
     {
+      schema: getPortfolioReportSchemaDoc,
       preHandler: [authenticate, organizationContext],
     },
     getPortfolioReportHandler,
@@ -29,6 +39,7 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     '/:organizationId/projects/:projectId/reports/health',
     {
+      schema: getHealthReportSchemaDoc,
       preHandler: [authenticate, organizationContext, projectContext],
     },
     getHealthReportHandler,
@@ -38,6 +49,7 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     '/:organizationId/projects/:projectId/reports/schedule',
     {
+      schema: getScheduleReportSchemaDoc,
       preHandler: [authenticate, organizationContext, projectContext],
     },
     getScheduleReportHandler,
@@ -47,6 +59,7 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     '/:organizationId/projects/:projectId/reports/cost',
     {
+      schema: getCostReportSchemaDoc,
       preHandler: [authenticate, organizationContext, projectContext],
     },
     getCostReportHandler,
@@ -56,6 +69,7 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     '/:organizationId/projects/:projectId/reports/procurement',
     {
+      schema: getProcurementReportSchemaDoc,
       preHandler: [authenticate, organizationContext, projectContext],
     },
     getProcurementReportHandler,
@@ -65,6 +79,7 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     '/:organizationId/projects/:projectId/reports/subcontractor',
     {
+      schema: getSubcontractorReportSchemaDoc,
       preHandler: [authenticate, organizationContext, projectContext],
     },
     getSubcontractorReportHandler,
@@ -74,6 +89,7 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     '/:organizationId/projects/:projectId/reports/executive-summary',
     {
+      schema: getExecutiveSummaryReportSchemaDoc,
       preHandler: [authenticate, organizationContext, projectContext],
     },
     getExecutiveSummaryReportHandler,

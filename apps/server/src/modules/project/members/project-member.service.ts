@@ -103,14 +103,19 @@ export class ProjectMemberService {
           tx,
         );
 
-        await writeOutboxEvent(tx, PROJECT_QUEUES.PROJECT_MEMBER_ADDED, {
-          organizationId: orgId,
-          projectId,
-          targetUserId,
-          role,
-          actorUserId,
-          correlationId: correlationId ?? generateId(),
-        });
+        await writeOutboxEvent(
+          tx,
+          PROJECT_QUEUES.PROJECT_MEMBER_ADDED,
+          {
+            organizationId: orgId,
+            projectId,
+            targetUserId,
+            role,
+            actorUserId,
+            correlationId: correlationId ?? generateId(),
+          },
+          orgId,
+        );
       });
 
       // 3. Invalidate RBAC cache after commit
@@ -167,15 +172,20 @@ export class ProjectMemberService {
           tx,
         );
 
-        await writeOutboxEvent(tx, PROJECT_QUEUES.PROJECT_MEMBER_ROLE_CHANGED, {
-          organizationId: orgId,
-          projectId,
-          targetUserId,
-          fromRole,
-          toRole: newRole,
-          actorUserId,
-          correlationId: correlationId ?? generateId(),
-        });
+        await writeOutboxEvent(
+          tx,
+          PROJECT_QUEUES.PROJECT_MEMBER_ROLE_CHANGED,
+          {
+            organizationId: orgId,
+            projectId,
+            targetUserId,
+            fromRole,
+            toRole: newRole,
+            actorUserId,
+            correlationId: correlationId ?? generateId(),
+          },
+          orgId,
+        );
       });
 
       await rbacCacheService.invalidate(orgId, targetUserId);
@@ -227,13 +237,18 @@ export class ProjectMemberService {
           tx,
         );
 
-        await writeOutboxEvent(tx, PROJECT_QUEUES.PROJECT_MEMBER_REMOVED, {
-          organizationId: orgId,
-          projectId,
-          targetUserId,
-          actorUserId,
-          correlationId: correlationId ?? generateId(),
-        });
+        await writeOutboxEvent(
+          tx,
+          PROJECT_QUEUES.PROJECT_MEMBER_REMOVED,
+          {
+            organizationId: orgId,
+            projectId,
+            targetUserId,
+            actorUserId,
+            correlationId: correlationId ?? generateId(),
+          },
+          orgId,
+        );
       });
 
       await rbacCacheService.invalidate(orgId, targetUserId);

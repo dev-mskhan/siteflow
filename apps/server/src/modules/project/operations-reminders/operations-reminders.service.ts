@@ -22,22 +22,25 @@ export class OperationsRemindersService {
     logger.info({ organizationId }, 'Scanning overdue RFIs for operational reminders');
     const now = new Date();
 
+    const dateStr = now.toISOString().split('T')[0]!;
+
     const overdueRfis = await this.db
       .select()
       .from(rfis)
-      .where(and(eq(rfis.organizationId, organizationId), eq(rfis.status, 'OPEN'), lt(rfis.dueDate, now)));
+      .where(and(eq(rfis.organizationId, organizationId), eq(rfis.status, 'OPEN'), lt(rfis.dueDate, dateStr)));
 
     let createdCount = 0;
     for (const rfi of overdueRfis) {
-      if (rfi.assignedToMemberId) {
+      const recipientId = rfi.submittedBy ?? rfi.createdBy;
+      if (recipientId) {
         await notificationService.createNotification({
           organizationId,
           projectId: rfi.projectId,
-          recipientId: rfi.assignedToMemberId,
+          recipientId,
           eventId: rfi.id,
           eventType: 'RfiOverdue',
           channel: 'IN_APP',
-          payload: { rfiId: rfi.id, subject: rfi.subject, dueDate: rfi.dueDate },
+          payload: { rfiId: rfi.id, subject: rfi.title, dueDate: rfi.dueDate },
         });
         createdCount++;
       }
@@ -56,22 +59,23 @@ export class OperationsRemindersService {
 
     logger.info({ organizationId }, 'Scanning expiring documents for operational reminders');
     const now = new Date();
+    const dateStr = now.toISOString().split('T')[0]!;
 
     const expiringDocs = await this.db
       .select()
       .from(documents)
-      .where(and(eq(documents.organizationId, organizationId), eq(documents.status, 'ACTIVE'), lt(documents.expirationDate, now)));
+      .where(and(eq(documents.organizationId, organizationId), eq(documents.status, 'ACTIVE'), lt(documents.expiryDate, dateStr)));
 
     let createdCount = 0;
     for (const doc of expiringDocs) {
       await notificationService.createNotification({
         organizationId,
         projectId: doc.projectId,
-        recipientId: doc.uploadedByMemberId ?? 'system',
+        recipientId: doc.uploadedBy ?? 'system',
         eventId: doc.id,
         eventType: 'DocumentExpiring',
         channel: 'IN_APP',
-        payload: { documentId: doc.id, name: doc.name, expirationDate: doc.expirationDate },
+        payload: { documentId: doc.id, name: doc.title, expirationDate: doc.expiryDate },
       });
       createdCount++;
     }

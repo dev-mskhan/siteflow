@@ -9,7 +9,7 @@ import {
   rfis,
   tasks,
 } from '@siteflow/database/schema';
-import { and, eq, count, sql } from 'drizzle-orm';
+import { and, eq, count } from 'drizzle-orm';
 
 export interface ProjectCoreFacts {
   id: string;
@@ -151,7 +151,7 @@ export class ProjectHealthRepository {
     for (const row of rows) {
       const n = Number(row.count);
       total += n;
-      if (row.status === 'DONE') completed += n;
+      if (row.status === 'COMPLETED') completed += n;
     }
     return { total, completed };
   }

@@ -3,8 +3,7 @@
 // Composes authoritative ScheduleMetricsService + schedule task details without duplicate formula logic.
 
 import { ScheduleMetricsService } from '../../project/schedule-metrics/schedule-metrics.service.js';
-import { ScheduleReportRepository } from './schedule-report.repository.ts';
-import { REPORT_SOURCE_CATALOG } from '../report.sources.js';
+import { ScheduleReportRepository } from './schedule-report.repository.js';
 import { normalizeReportFilters } from '../report.filters.js';
 import type { ReportResultEnvelope, MetricCoverage } from '@siteflow/shared';
 

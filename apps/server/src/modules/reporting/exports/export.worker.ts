@@ -7,11 +7,8 @@ import { EXPORT_QUEUES, type ExportGeneratePayload, type ExportCleanupPayload } 
 import { exportRepository } from './export.repository.js';
 import { reportService } from '../report.service.js';
 import { CsvReportRenderer } from './csv.renderer.js';
-import { MinioStorageService } from '../../../lib/storage/storage.service.js';
 import { exportService } from './export.service.js';
 import type { ReportResultEnvelope } from '@siteflow/shared';
-
-const storage = new MinioStorageService();
 
 async function fetchReport(
   organizationId: string,
@@ -22,7 +19,7 @@ async function fetchReport(
   const filters = filterSnapshot;
   switch (reportType) {
     case 'PROJECT_HEALTH':
-      return reportService.getHealthReport(organizationId, projectId!);
+      return reportService.getHealthReport(organizationId, projectId!) as any;
     case 'SCHEDULE_VARIANCE_PROGRESS':
       return reportService.getScheduleReport(organizationId, projectId!, filters);
     case 'COMMERCIAL_FINANCIAL_SUMMARY':

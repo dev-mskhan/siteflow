@@ -3,8 +3,8 @@
 // Scoped strictly by organizationId and projectId.
 
 import { getDb } from '../../../lib/db/index.js';
-import { tasks, projects } from '@siteflow/database/schema';
-import { and, eq, count, sql, gte, lte } from 'drizzle-orm';
+import { tasks } from '@siteflow/database/schema';
+import { and, eq, count, gte, lte } from 'drizzle-orm';
 
 export interface TasksByStatusFacts {
   notStarted: number;

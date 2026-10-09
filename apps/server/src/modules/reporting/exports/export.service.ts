@@ -7,7 +7,6 @@ import { CsvReportRenderer } from './csv.renderer.js';
 import { exportRepository } from './export.repository.js';
 import { sendJob } from '../../../lib/queue/queue.js';
 import { MinioStorageService } from '../../../lib/storage/storage.service.js';
-import { generateId } from '../../../lib/id.js';
 import type { ReportResultEnvelope } from '@siteflow/shared';
 import type { ReportExportRecord } from '@siteflow/database/schema';
 
@@ -46,7 +45,7 @@ async function fetchReport(
   const filters = filterSnapshot;
   switch (reportType) {
     case 'PROJECT_HEALTH':
-      return reportService.getHealthReport(organizationId, projectId!);
+      return reportService.getHealthReport(organizationId, projectId!) as any;
     case 'SCHEDULE_VARIANCE_PROGRESS':
       return reportService.getScheduleReport(organizationId, projectId!, filters);
     case 'COMMERCIAL_FINANCIAL_SUMMARY':
@@ -79,7 +78,6 @@ export class ExportService {
 
     // Try synchronous path — measure time
     const start = Date.now();
-    let syncResult: { content: string; filename: string } | null = null;
 
     try {
       const envelope = await fetchReport(
@@ -94,12 +92,9 @@ export class ExportService {
         // Render synchronously
         const renderer = new CsvReportRenderer();
         const rendered = renderer.render(envelope);
-        syncResult = { content: rendered.content, filename: rendered.filename };
 
         // Upload to MinIO and mark ready
         const objectKey = makeObjectKey(params.organizationId, record.id, 'csv');
-        const { Readable } = await import('node:stream');
-        const stream = Readable.from([Buffer.from(rendered.content, 'utf-8')]);
         // Use putPresignedUrl pattern — but since we're server-side writing, upload directly
         await uploadToMinio(objectKey, rendered.content);
         await exportRepository.markReady(record.id, objectKey);
@@ -118,7 +113,7 @@ export class ExportService {
       projectId: params.projectId,
       reportType: params.reportType,
       filterSnapshot: params.filterSnapshot,
-    } as ExportJobPayload);
+    } as unknown as Record<string, unknown>);
 
     return { exportId: record.id, status: 'PROCESSING', synchronous: false };
   }

@@ -6,10 +6,10 @@ import { reportService } from './report.service.js';
 import { createSuccessResponse } from '../../shared/response.js';
 
 export async function getHealthReportHandler(
-  req: FastifyRequest<{ Params: { organizationId: string; projectId: string } }>,
+  req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { organizationId, projectId } = req.params;
+  const { organizationId, projectId } = req.params as { organizationId: string; projectId: string };
   const result = await reportService.getHealthReport(organizationId, projectId);
   if (!result) {
     return reply.status(404).send({
@@ -21,10 +21,10 @@ export async function getHealthReportHandler(
 }
 
 export async function getScheduleReportHandler(
-  req: FastifyRequest<{ Params: { organizationId: string; projectId: string }; Querystring: unknown }>,
+  req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { organizationId, projectId } = req.params;
+  const { organizationId, projectId } = req.params as { organizationId: string; projectId: string };
   const result = await reportService.getScheduleReport(organizationId, projectId, req.query);
   if (!result) {
     return reply.status(404).send({
@@ -36,10 +36,10 @@ export async function getScheduleReportHandler(
 }
 
 export async function getCostReportHandler(
-  req: FastifyRequest<{ Params: { organizationId: string; projectId: string }; Querystring: unknown }>,
+  req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { organizationId, projectId } = req.params;
+  const { organizationId, projectId } = req.params as { organizationId: string; projectId: string };
   const result = await reportService.getCostReport(organizationId, projectId, req.query);
   if (!result) {
     return reply.status(404).send({
@@ -51,10 +51,10 @@ export async function getCostReportHandler(
 }
 
 export async function getProcurementReportHandler(
-  req: FastifyRequest<{ Params: { organizationId: string; projectId: string }; Querystring: unknown }>,
+  req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { organizationId, projectId } = req.params;
+  const { organizationId, projectId } = req.params as { organizationId: string; projectId: string };
   const result = await reportService.getProcurementReport(organizationId, projectId, req.query);
   if (!result) {
     return reply.status(404).send({
@@ -66,10 +66,10 @@ export async function getProcurementReportHandler(
 }
 
 export async function getSubcontractorReportHandler(
-  req: FastifyRequest<{ Params: { organizationId: string; projectId: string }; Querystring: unknown }>,
+  req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { organizationId, projectId } = req.params;
+  const { organizationId, projectId } = req.params as { organizationId: string; projectId: string };
   const result = await reportService.getSubcontractorReport(organizationId, projectId, req.query);
   if (!result) {
     return reply.status(404).send({
@@ -81,10 +81,10 @@ export async function getSubcontractorReportHandler(
 }
 
 export async function getExecutiveSummaryReportHandler(
-  req: FastifyRequest<{ Params: { organizationId: string; projectId: string }; Querystring: unknown }>,
+  req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { organizationId, projectId } = req.params;
+  const { organizationId, projectId } = req.params as { organizationId: string; projectId: string };
   const result = await reportService.getExecutiveSummaryReport(organizationId, projectId, req.query);
   if (!result) {
     return reply.status(404).send({
@@ -96,10 +96,10 @@ export async function getExecutiveSummaryReportHandler(
 }
 
 export async function getPortfolioReportHandler(
-  req: FastifyRequest<{ Params: { organizationId: string }; Querystring: unknown }>,
+  req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { organizationId } = req.params;
+  const { organizationId } = req.params as { organizationId: string };
   const result = await reportService.getPortfolioReport(organizationId, req.query);
   return reply.send(createSuccessResponse(result));
 }

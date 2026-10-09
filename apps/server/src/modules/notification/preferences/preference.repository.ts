@@ -1,4 +1,4 @@
-import { notificationPreferences, type NotificationPreference, type NewNotificationPreference } from '@siteflow/database/schema';
+import { notificationPreferences, type NotificationPreference } from '@siteflow/database/schema';
 import { eq, and } from 'drizzle-orm';
 import { generateId } from '../../../lib/id.js';
 

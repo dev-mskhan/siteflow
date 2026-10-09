@@ -68,7 +68,11 @@ export * from './modules/project/performance.schema.js';
 // ─── Domain Events ─────────────────────────────────────────────────────────────
 export * from './events/index.js';
 
-// ─── Reporting ─────────────────────────────────────────────────────────────────
+// ─── Reporting & Exports ───────────────────────────────────────────────────────
 export * from './reporting/index.js';
+
+// ─── Notifications & Preferences ──────────────────────────────────────────────
+export * from './modules/notification/notification.schema.js';
+export * from './modules/notification/notification-preference.schema.js';
 
 

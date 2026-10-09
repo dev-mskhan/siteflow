@@ -1,5 +1,5 @@
 import { defaultEmailProvider, type EmailProvider } from './email.provider.js';
-import { renderEmailTemplate } from './email.templates.ts';
+import { renderEmailTemplate } from './email.templates.js';
 import { notificationService } from '../notification.service.js';
 import { createLogger } from '@siteflow/observability/server';
 

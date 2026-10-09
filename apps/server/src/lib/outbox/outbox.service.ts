@@ -21,16 +21,13 @@ export async function writeOutboxEvent(
   tx: any,
   eventType: string,
   payload: Record<string, any>,
-  organizationId: string,
+  organizationId?: string,
 ): Promise<OutboxEvent> {
   if (!tx || typeof tx.insert !== 'function') {
     throw new Error('Transaction handle tx is required for transactional outbox publishing');
   }
 
-  const orgId = organizationId ?? (payload['organizationId'] as string | undefined);
-  if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
-    throw new Error('organizationId is required for outbox event transactional publishing');
-  }
+  const orgId = organizationId ?? (payload['organizationId'] as string | undefined) ?? null;
 
   logger.debug({ eventType, organizationId: orgId }, 'Writing outbox event to transaction');
   const result = await tx

@@ -10,7 +10,7 @@ import {
   receipts,
   projectInventoryItems,
 } from '@siteflow/database/schema';
-import { and, eq, count, sql } from 'drizzle-orm';
+import { and, eq, count } from 'drizzle-orm';
 
 export interface ProcurementFacts {
   materialRequestsByStatus: Record<string, number>;

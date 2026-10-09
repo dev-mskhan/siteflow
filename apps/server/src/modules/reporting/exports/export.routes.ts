@@ -7,6 +7,12 @@ import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext } from '../../rbac/permission.middleware.js';
 import { exportService } from './export.service.js';
 import { createSuccessResponse } from '../../../shared/response.js';
+import {
+  requestExportSchemaDoc,
+  listExportsSchemaDoc,
+  getExportStatusSchemaDoc,
+  getExportDownloadSchemaDoc,
+} from '../docs/export.api.schemas.js';
 
 const RequestExportBodySchema = z.object({
   projectId: z.string().optional().nullable(),
@@ -23,6 +29,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
   // 1. Request export
   app.post(
     '/:organizationId/exports',
+    { schema: requestExportSchemaDoc },
     async (
       req: FastifyRequest<{
         Params: { organizationId: string };
@@ -49,6 +56,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
   // 2. List user exports
   app.get(
     '/:organizationId/exports',
+    { schema: listExportsSchemaDoc },
     async (
       req: FastifyRequest<{ Params: { organizationId: string } }>,
       reply: FastifyReply,
@@ -64,6 +72,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
   // 3. Get export status
   app.get(
     '/:organizationId/exports/:exportId',
+    { schema: getExportStatusSchemaDoc },
     async (
       req: FastifyRequest<{ Params: { organizationId: string; exportId: string } }>,
       reply: FastifyReply,
@@ -99,6 +108,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
   // 4. Get fresh presigned download URL
   app.get(
     '/:organizationId/exports/:exportId/download',
+    { schema: getExportDownloadSchemaDoc },
     async (
       req: FastifyRequest<{ Params: { organizationId: string; exportId: string } }>,
       reply: FastifyReply,

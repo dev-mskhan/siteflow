@@ -141,6 +141,9 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'performance', description: 'Supplier and subcontractor performance' },
         { name: 'documents', description: 'Project document management and evidence' },
         { name: 'compliance', description: 'Project permits, inspections, and compliance records' },
+        { name: 'reporting', description: 'Project and portfolio reporting engines' },
+        { name: 'exports', description: 'Report export generation and presigned downloads' },
+        { name: 'notifications', description: 'Notifications, channels, preferences, and realtime streams' },
       ],
     },
   });

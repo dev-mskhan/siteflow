@@ -4,7 +4,7 @@
 
 import { getDb } from '../../../lib/db/index.js';
 import { projects } from '@siteflow/database/schema';
-import { and, eq, ne, inArray, count, sql } from 'drizzle-orm';
+import { and, eq, ne, count } from 'drizzle-orm';
 
 export interface PortfolioProjectItem {
   id: string;
