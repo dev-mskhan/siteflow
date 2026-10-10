@@ -1,7 +1,7 @@
 ---
 phase: 09-architecture-findings-remediation
-verified: 2026-10-10T07:52:09+05:00
-status: gaps_found
+verified: 2026-10-10T12:42:56+05:00
+status: passed
 score: 9/9 must-haves verified
 covered_files:
   - .planning/phases/09-architecture-findings-remediation/09-01-PLAN.md
@@ -50,21 +50,13 @@ covered_digest: "v3:sha256:434fe1e90924645c6d34c8cbf923a647d9e77be716ae638e80d58
 behavior_unverified: 0
 overrides_applied: 0
 gaps:
-  - truth: "Phase 9 changes are committed and pushed without architecture evidence in the remediation commit."
-    status: partial
-    reason: "Source and regression verification is complete, but no remediation commit or push has been created yet. Phase 8 also remains pending."
-    artifacts:
-      - path: ".planning/ROADMAP.md"
-        issue: "Phase 9 criterion 9 includes committed/pushed fixes; no such completion is claimed here."
-    missing:
-      - "Commit and push the verified remediation changes while excluding docs/architecture/."
 ---
 
 # Phase 9: Architecture Findings Remediation Verification Report
 
 **Phase Goal:** Close the source-verified authorization, tenant-isolation, reliability, export-contract, and date-semantics gaps recorded as H1–H9 in `docs/architecture/findings.md`, without claiming the unexecuted Phase 8 plans are complete.
-**Verified:** 2026-10-10T07:52:09+05:00
-**Status:** gaps_found
+**Verified:** 2026-10-10T12:42:56+05:00
+**Status:** passed
 **Re-verification:** Yes — export retention and signed-URL settings were moved into validated configuration and the complete Phase 9 regression set rerun.
 
 ## Goal Achievement
@@ -83,7 +75,7 @@ gaps:
 | 8 | REM-08: Public date presets and custom bounds are validated with effective timezone and UTC fallback. | ✓ VERIFIED | `report.filters.ts` implements all declared presets, validates complete/valid/ordered custom bounds, and derives calendar dates in the supplied timezone. `getReportDateOptions` resolves project settings or organization settings with UTC fallback. `report-foundation.test.ts` exercises every preset in `America/Los_Angeles`, custom-bound rejection, and UTC envelope default. |
 | 9 | REM-09: Project-worker retry/idempotency is durable across processes/replicas and cache invalidation is bounded. | ✓ VERIFIED (current handlers) | `project.worker.ts` handlers only log and trace; they perform no business mutation or cache invalidation, so repeated delivery cannot duplicate a project business effect today. Project events are persisted through the transactional outbox and sent through PgBoss with a stable singleton key. Generation-based project-list invalidation avoids Redis `KEYS`; cache tests cover generation advance and stale-fill rejection. Any future effectful project handler must add durable consumer idempotency before shipping. |
 
-**Score:** 9/9 verified. Commit/push remains the only Phase 9 completion gate.
+**Score:** 9/9 verified. Remediation was committed as `bd6f9da` (`fix: remediate architecture findings`) and pushed to `origin/development`. The commit contains no `docs/architecture/` files.
 
 ### Required Artifacts
 
@@ -170,9 +162,9 @@ The retention and signed URL expiry configuration gap is closed and verified. Cu
 
 The project-worker reliability claim is narrower than the summary's broad wording: the project handlers presently log and trace only, while event production is transactional/persisted and sent through the PgBoss singleton with a stable key. That provides durable enqueue/retry and leaves no business mutation to duplicate today; it is not evidence of durable consumer idempotency after restart/redelivery. There is no restart/retry behavior test. Do not generalize this current no-op safety to future effectful handlers.
 
-Phase 8 remains pending and unexecuted, as shown by `.planning/STATE.md` and the unchecked roadmap phase. No source code, requirements/roadmap planning state, or `docs/architecture/` evidence was edited for this verification. No staging, commit, or push was performed; the roadmap's commit/push clause therefore remains outstanding by instruction.
+Phase 8 remains pending and unexecuted; Phase 9 remediation does not claim its broader reporting and download capabilities are complete. The `bd6f9da` remediation commit was pushed to `origin/development` and contains no `docs/architecture/` files. The final Archify workflow diagram validation/browser receipt remains blocked by the interactive execution-permission gate and is outside this phase's source/test verification.
 
 ---
 
-_Verified: 2026-10-10T07:52:09+05:00_
+_Verified: 2026-10-10T12:42:56+05:00_
 _Verifier: the agent (gsd-verifier)_
