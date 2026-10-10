@@ -1,17 +1,22 @@
-import { type FastifyInstance, type FastifyRequest, type FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { authorizeRealtimeSubscription } from './realtime.authorization.js';
 import { realtimeDeliveryManager } from './realtime.delivery.js';
 import { generateId } from '../../../lib/id.js';
+import { authenticate } from '../../auth/auth.middleware.js';
+import { organizationContext } from '../../rbac/permission.middleware.js';
 
 export async function realtimePlugin(app: FastifyInstance): Promise<void> {
-  app.get(
+  app.get<{ Params: { organizationId: string } }>(
     '/api/v1/organizations/:organizationId/notifications/stream',
-    async (request: FastifyRequest<{ Params: { organizationId: string } }>, reply: FastifyReply) => {
+    {
+      preHandler: [authenticate, organizationContext],
+    },
+    async (request, reply) => {
       const { organizationId } = request.params;
-      const user = (request as any).user;
-
-      const userOrgId = user?.organizationId ?? organizationId; // Validate tenant
-      const authResult = authorizeRealtimeSubscription(userOrgId, organizationId);
+      const authResult = authorizeRealtimeSubscription(
+        request.orgContext?.organizationId ?? '',
+        organizationId,
+      );
 
       if (!authResult.authorized) {
         return reply.status(403).send({ error: authResult.reason });
@@ -21,19 +26,24 @@ export async function realtimePlugin(app: FastifyInstance): Promise<void> {
       reply.raw.setHeader('Content-Type', 'text/event-stream');
       reply.raw.setHeader('Cache-Control', 'no-cache');
       reply.raw.setHeader('Connection', 'keep-alive');
-      reply.raw.setHeader('Access-Control-Allow-Origin', '*');
       reply.raw.flushHeaders();
 
       const connectionId = generateId();
       realtimeDeliveryManager.addConnection({
         connectionId,
-        userId: user?.id ?? 'anonymous',
-        organizationId,
+        userId: request.orgContext!.userId,
+        organizationId: request.orgContext!.organizationId,
         reply,
       });
 
       // Send initial connection event
-      reply.raw.write(`data: ${JSON.stringify({ type: 'CONNECTED', connectionId, organizationId })}\n\n`);
+      reply.raw.write(
+        `data: ${JSON.stringify({
+          type: 'CONNECTED',
+          connectionId,
+          organizationId: request.orgContext!.organizationId,
+        })}\n\n`,
+      );
     },
   );
 }

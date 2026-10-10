@@ -9,12 +9,14 @@ import { reportService } from '../report.service.js';
 import { CsvReportRenderer } from './csv.renderer.js';
 import { exportService } from './export.service.js';
 import type { ReportResultEnvelope } from '@siteflow/shared';
+import { rbacService } from '../../rbac/rbac.service.js';
 
 async function fetchReport(
   organizationId: string,
   projectId: string | null,
   reportType: string,
   filterSnapshot: Record<string, unknown>,
+  portfolioActor: ExportGeneratePayload['portfolioActor'],
 ): Promise<ReportResultEnvelope | null> {
   const filters = filterSnapshot;
   switch (reportType) {
@@ -27,7 +29,10 @@ async function fetchReport(
     case 'SUBCONTRACTOR_PERFORMANCE':
       return reportService.getSubcontractorReport(organizationId, projectId!, filters);
     case 'ORGANIZATION_PORTFOLIO':
-      return reportService.getPortfolioReport(organizationId, filters);
+      if (!portfolioActor) {
+        throw new Error('Authenticated organization actor is required for portfolio exports');
+      }
+      return reportService.getPortfolioReport(organizationId, portfolioActor, filters);
     case 'PROJECT_EXECUTIVE_SUMMARY':
       return reportService.getExecutiveSummaryReport(organizationId, projectId!, filters);
     default:
@@ -65,7 +70,7 @@ export async function registerExportWorkers(boss: PgBoss): Promise<void> {
       tenantConcurrencyLimit: 5,
     },
     async (job) => {
-      const { exportId, organizationId, projectId, reportType, filterSnapshot } = job.data;
+      const { exportId, organizationId, projectId, reportType, filterSnapshot, portfolioActor } = job.data;
       
       const record = await exportRepository.findById(exportId, organizationId);
       if (!record || record.status === 'READY' || record.status === 'EXPIRED') {
@@ -73,11 +78,61 @@ export async function registerExportWorkers(boss: PgBoss): Promise<void> {
       }
 
       try {
-        await exportRepository.markProcessing(exportId);
-        const envelope = await fetchReport(organizationId, projectId, reportType, filterSnapshot);
+        if (record.requestedBy !== portfolioActor?.userId) {
+          throw new Error('Export job requester does not match the export record');
+        }
+        if (record.projectId !== projectId) {
+          throw new Error('Export job project scope does not match the export record');
+        }
+        const currentMembership = await rbacService.getOrganizationContext(
+          organizationId,
+          record.requestedBy,
+        );
+        const currentActor = {
+          userId: currentMembership.userId,
+          organizationMembership: {
+            id: currentMembership.membershipId,
+            roleId: currentMembership.roleId,
+            permissions: currentMembership.permissions,
+          },
+        };
+        if (projectId) {
+          await exportService.assertProjectRead(organizationId, projectId, currentActor);
+        } else if (reportType !== 'ORGANIZATION_PORTFOLIO') {
+          throw new Error('Project-scoped report requires a project ID');
+        }
+        await exportRepository.markProcessing(exportId, organizationId, record.projectId);
+        const envelope = await fetchReport(
+          organizationId,
+          projectId,
+          reportType,
+          filterSnapshot,
+          currentActor,
+        );
         if (!envelope) {
-          await exportRepository.markFailed(exportId, 'Report data not found or inaccessible');
+          await exportRepository.markFailed(
+            exportId,
+            organizationId,
+            record.projectId,
+            'Report data not found or inaccessible',
+          );
           return;
+        }
+
+        const completionMembership = await rbacService.getOrganizationContext(
+          organizationId,
+          record.requestedBy,
+        );
+        const completionActor = {
+          userId: completionMembership.userId,
+          organizationMembership: {
+            id: completionMembership.membershipId,
+            roleId: completionMembership.roleId,
+            permissions: completionMembership.permissions,
+          },
+        };
+        if (projectId) {
+          await exportService.assertProjectRead(organizationId, projectId, completionActor);
         }
 
         const renderer = new CsvReportRenderer();
@@ -86,9 +141,14 @@ export async function registerExportWorkers(boss: PgBoss): Promise<void> {
         const objectKey = `exports/${safeOrg}/${exportId}.csv`;
 
         await uploadToMinio(objectKey, rendered.content);
-        await exportRepository.markReady(exportId, objectKey);
+        await exportRepository.markReady(exportId, organizationId, record.projectId, objectKey);
       } catch (err: any) {
-        await exportRepository.markFailed(exportId, err?.message ?? 'Export generation failed');
+        await exportRepository.markFailed(
+          exportId,
+          organizationId,
+          record.projectId,
+          err?.message ?? 'Export generation failed',
+        );
         throw err;
       }
     },

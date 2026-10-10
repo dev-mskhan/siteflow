@@ -3,7 +3,7 @@
 // Composes Phase E financialSummaryService without duplicating arithmetic or concealing coverage limits.
 
 import { financialSummaryService } from '../../project/financial-summary/financial-summary.service.js';
-import { normalizeReportFilters } from '../report.filters.js';
+import { getReportDateOptions, normalizeReportFilters } from '../report.filters.js';
 import type { ReportResultEnvelope, MetricCoverage } from '@siteflow/shared';
 
 export class CostReportService {
@@ -19,11 +19,12 @@ export class CostReportService {
       throw new Error('organizationId and projectId are required');
     }
 
+    const dateOptions = await getReportDateOptions(organizationId, projectId);
     const filters = normalizeReportFilters({
       ...(typeof rawFilters === 'object' && rawFilters ? rawFilters : {}),
       organizationId,
       projectId,
-    });
+    }, dateOptions);
 
     let summaryData: Awaited<ReturnType<typeof financialSummaryService.getSummary>>;
     try {
@@ -45,7 +46,7 @@ export class CostReportService {
       organizationId,
       projectId,
       asOf: new Date().toISOString(),
-      effectiveTimezone: 'UTC',
+      effectiveTimezone: dateOptions.timezone ?? 'UTC',
       filters,
       coverage,
       data: {

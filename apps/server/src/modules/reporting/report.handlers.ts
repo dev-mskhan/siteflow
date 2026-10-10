@@ -99,7 +99,29 @@ export async function getPortfolioReportHandler(
   req: FastifyRequest,
   reply: FastifyReply,
 ) {
+  const portfolioQuery = req.query as { limit?: number; cursor?: string };
   const { organizationId } = req.params as { organizationId: string };
-  const result = await reportService.getPortfolioReport(organizationId, req.query);
+  const actor = req.orgContext;
+  if (!actor) {
+    return reply.status(403).send({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'Organization context required.' },
+    });
+  }
+  const result = await reportService.getPortfolioReport(
+    organizationId,
+    {
+      userId: actor.userId,
+      organizationMembership: {
+        id: actor.membershipId,
+        roleId: actor.roleId,
+        permissions: actor.permissions,
+      },
+    },
+    {
+      limit: portfolioQuery.limit,
+      cursor: portfolioQuery.cursor,
+    },
+  );
   return reply.send(createSuccessResponse(result));
 }

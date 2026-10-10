@@ -4,13 +4,132 @@ import pg from 'pg';
 import { getDb } from '../db/index.js';
 import { generateId } from '../id.js';
 import { outboxEvents, type OutboxEvent } from '@siteflow/database/schema';
-import { sendJob } from '../queue/queue.js';
+import { QUEUES, sendJob } from '../queue/queue.js';
 import { serverEnv } from '../../config/env.js';
 import { createLogger } from '@siteflow/observability/server';
+import { z } from 'zod';
+import { AUTH_QUEUES } from '../../modules/auth/auth.jobs.js';
+import { ORG_QUEUES } from '../../modules/invitation/invitation.jobs.js';
+import { DomainEventEnvelopeSchema, DomainEventNameSchema } from '@siteflow/shared';
 
 const logger = createLogger({ name: 'outbox-service' });
 
 export const MAX_OUTBOX_RETRIES = 5;
+
+export function getOutboxSendOptions(
+  eventId: string,
+  payload: Record<string, unknown>,
+): { singletonKey: string; singletonSeconds: number } {
+  const key = payload['idempotencyKey'];
+  return {
+    singletonKey: typeof key === 'string' && key.length > 0 ? key : eventId,
+    singletonSeconds: 60 * 60 * 24,
+  };
+}
+
+const EmailJobPayloadSchema = z
+  .object({
+    userId: z.string().min(1),
+    email: z.string().email(),
+    token: z.string().min(1),
+  })
+  .passthrough();
+
+const PasswordChangedPayloadSchema = z
+  .object({
+    userId: z.string().min(1),
+    email: z.string().email(),
+  })
+  .passthrough();
+
+const NewLoginPayloadSchema = PasswordChangedPayloadSchema.extend({
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+});
+
+const InvitationPayloadSchema = z
+  .object({
+    invitationId: z.string().min(1),
+    organizationId: z.string().min(1),
+    email: z.string().email(),
+    orgName: z.string().min(1),
+    inviterName: z.string().min(1),
+    token: z.string().min(1),
+  })
+  .passthrough();
+
+const TenantScopedPayloadSchema = z
+  .record(z.unknown())
+  .refine((payload) => typeof payload.organizationId === 'string' && payload.organizationId.length > 0, {
+    message: 'organizationId is required in tenant-scoped outbox payloads',
+  });
+
+const queueContracts = new Map<
+  string,
+  { schema: z.ZodType<Record<string, unknown>>; tenantScoped: boolean }
+>([
+  [AUTH_QUEUES.SEND_EMAIL_VERIFICATION, { schema: EmailJobPayloadSchema, tenantScoped: false }],
+  [AUTH_QUEUES.SEND_PASSWORD_RESET, { schema: EmailJobPayloadSchema, tenantScoped: false }],
+  [AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION, { schema: PasswordChangedPayloadSchema, tenantScoped: false }],
+  [AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION, { schema: NewLoginPayloadSchema, tenantScoped: false }],
+  [ORG_QUEUES.SEND_INVITATION_EMAIL, { schema: InvitationPayloadSchema, tenantScoped: true }],
+]);
+const supportedQueueNames = new Set<string>(Object.values(QUEUES));
+
+function validateOutboxPayload(
+  eventType: string,
+  payload: Record<string, unknown>,
+  organizationId?: string,
+): string | null {
+  const queueContract = queueContracts.get(eventType);
+  if (queueContract) {
+    const parsed = queueContract.schema.parse(payload);
+    if (queueContract.tenantScoped) {
+      const payloadOrganizationId = parsed.organizationId;
+      const orgId = organizationId ?? payloadOrganizationId;
+      if (typeof orgId !== 'string' || orgId.length === 0) {
+        throw new Error('organizationId is required for tenant-scoped outbox events');
+      }
+      if (payloadOrganizationId !== orgId) {
+        throw new Error('Outbox organizationId does not match payload organizationId');
+      }
+      return orgId;
+    }
+
+    if (organizationId && parsed.organizationId !== undefined && parsed.organizationId !== organizationId) {
+      throw new Error('Outbox organizationId does not match payload organizationId');
+    }
+    return organizationId ?? (typeof parsed.organizationId === 'string' ? parsed.organizationId : null);
+  }
+
+  if (DomainEventNameSchema.safeParse(eventType).success) {
+    const parsed = DomainEventEnvelopeSchema.parse(payload);
+    const orgId = organizationId ?? parsed.organizationId;
+    if (parsed.organizationId !== orgId) {
+      throw new Error('Outbox organizationId does not match payload organizationId');
+    }
+    return typeof orgId === 'string' ? orgId : null;
+  }
+
+  if (eventType.includes(':') && !supportedQueueNames.has(eventType)) {
+    throw new Error(`Unsupported outbox queue: ${eventType}`);
+  }
+
+  if (!/^[a-z][a-z0-9_-]*(?:[.:][a-z0-9_-]+)+$/.test(eventType)) {
+    throw new Error(`Unsupported outbox event type: ${eventType}`);
+  }
+
+  const parsed = TenantScopedPayloadSchema.parse(payload);
+  const payloadOrganizationId = parsed.organizationId;
+  if (typeof payloadOrganizationId !== 'string') {
+    throw new Error('organizationId is required for tenant-scoped outbox events');
+  }
+  const orgId = organizationId ?? payloadOrganizationId;
+  if (payloadOrganizationId !== orgId) {
+    throw new Error('Outbox organizationId does not match payload organizationId');
+  }
+  return orgId;
+}
 
 /**
  * Writes an outbox event within an existing database transaction (`tx`).
@@ -20,14 +139,13 @@ export const MAX_OUTBOX_RETRIES = 5;
 export async function writeOutboxEvent(
   tx: any,
   eventType: string,
-  payload: Record<string, any>,
+  payload: Record<string, unknown>,
   organizationId?: string,
 ): Promise<OutboxEvent> {
   if (!tx || typeof tx.insert !== 'function') {
     throw new Error('Transaction handle tx is required for transactional outbox publishing');
   }
-
-  const orgId = organizationId ?? (payload['organizationId'] as string | undefined) ?? null;
+  const orgId = validateOutboxPayload(eventType, payload, organizationId);
 
   logger.debug({ eventType, organizationId: orgId }, 'Writing outbox event to transaction');
   const result = await tx
@@ -100,8 +218,21 @@ export class OutboxService {
 
     for (const event of pendingEvents) {
       try {
+        const validatedOrganizationId = validateOutboxPayload(
+          event.eventType,
+          event.payload as Record<string, unknown>,
+          event.organizationId ?? undefined,
+        );
+        if (validatedOrganizationId !== event.organizationId) {
+          throw new Error('Outbox organizationId does not match the validated payload scope');
+        }
+
         // Dispatch outbox event payload to queue worker
-        await sendJob(event.eventType, event.payload as Record<string, unknown>);
+        await sendJob(
+          event.eventType,
+          event.payload as Record<string, unknown>,
+          getOutboxSendOptions(event.id, event.payload as Record<string, unknown>),
+        );
 
         // Mark as PROCESSED on success
         await this.db

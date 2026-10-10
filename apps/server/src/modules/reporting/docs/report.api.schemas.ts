@@ -188,7 +188,14 @@ export const getPortfolioReportSchemaDoc = {
   description: 'Aggregates multi-project health, status, and contract values grouped by currency for the organization.',
   tags: ['reporting'],
   params: orgParams,
-  querystring: reportFilterQuery,
+  querystring: {
+    ...reportFilterQuery,
+    properties: {
+      ...reportFilterQuery.properties,
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+      cursor: { type: 'string', minLength: 1, maxLength: 512 },
+    },
+  },
   response: {
     200: {
       description: 'Portfolio report retrieved successfully',

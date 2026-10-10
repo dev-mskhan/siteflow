@@ -48,6 +48,44 @@ describe('F.10 Report Foundation — Filter Normalization', () => {
     expect(result.endDate).toBe('2026-03-31');
   });
 
+  it('normalizes every declared preset in the effective timezone', () => {
+    const options = {
+      timezone: 'America/Los_Angeles',
+      weekStartsOn: 1,
+      now: new Date('2026-07-01T01:00:00.000Z'),
+    };
+    const expected: Record<string, [string, string]> = {
+      TODAY: ['2026-06-30', '2026-06-30'],
+      THIS_WEEK: ['2026-06-29', '2026-07-05'],
+      THIS_MONTH: ['2026-06-01', '2026-06-30'],
+      LAST_30_DAYS: ['2026-06-01', '2026-06-30'],
+      THIS_QUARTER: ['2026-04-01', '2026-06-30'],
+      THIS_YEAR: ['2026-01-01', '2026-12-31'],
+    };
+
+    for (const [datePreset, [startDate, endDate]] of Object.entries(expected)) {
+      const result = normalizeReportFilters(
+        { organizationId: 'org_abc', datePreset },
+        options,
+      );
+      expect([result.startDate, result.endDate]).toEqual([startDate, endDate]);
+    }
+  });
+
+  it('requires complete, ordered custom date bounds', () => {
+    expect(() =>
+      normalizeReportFilters({ organizationId: 'org_abc', datePreset: 'CUSTOM' }),
+    ).toThrow(/requires both/i);
+    expect(() =>
+      normalizeReportFilters({
+        organizationId: 'org_abc',
+        datePreset: 'CUSTOM',
+        startDate: '2026-03-02',
+        endDate: '2026-03-01',
+      }),
+    ).toThrow(/on or after/i);
+  });
+
   it('rejects missing organizationId', () => {
     expect(() =>
       normalizeReportFilters({ datePreset: 'THIS_MONTH' }),

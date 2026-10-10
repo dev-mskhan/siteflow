@@ -15,9 +15,6 @@ import {
 const logger = createLogger({ name: 'project-worker' });
 const tracer = trace.getTracer('project-worker');
 
-// Set for worker-level deduplication / idempotency
-const processedEvents = new Set<string>();
-
 export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
   // ── Project Created ─────────────────────────────────────────────────────────
   await boss.work<ProjectCreatedPayload>(
@@ -32,18 +29,12 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
         span.setAttribute('project.id', projectId);
         span.setAttribute('project.number', projectNumber);
 
-        const dedupKey = idempotencyKey ?? `project:created:${projectId}`;
-        if (processedEvents.has(dedupKey)) {
-          logger.info({ dedupKey }, 'Project created job already processed, skipping');
-          return;
-        }
-
         logger.info(
           { organizationId, projectId, projectNumber, actorUserId, correlationId },
           'Processed project created event',
         );
 
-        processedEvents.add(dedupKey);
+        span.setAttribute('job.idempotency_key', idempotencyKey);
       });
     },
   );
@@ -62,18 +53,12 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
         span.setAttribute('project.from_status', fromStatus);
         span.setAttribute('project.to_status', toStatus);
 
-        const dedupKey = idempotencyKey ?? `project:${projectId}:status:${fromStatus}:${toStatus}`;
-        if (processedEvents.has(dedupKey)) {
-          logger.info({ dedupKey }, 'Project status changed job already processed, skipping');
-          return;
-        }
-
         logger.info(
           { organizationId, projectId, fromStatus, toStatus, transition, actorUserId, correlationId },
           'Processed project status changed event',
         );
 
-        processedEvents.add(dedupKey);
+        span.setAttribute('job.idempotency_key', idempotencyKey);
       });
     },
   );

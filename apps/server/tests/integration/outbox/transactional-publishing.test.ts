@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { getDb } from '../../../src/lib/db/index.js';
-import { writeOutboxEvent } from '../../../src/lib/outbox/outbox.service.js';
+import {
+  getOutboxSendOptions,
+  writeOutboxEvent,
+} from '../../../src/lib/outbox/outbox.service.js';
 import { outboxEvents } from '@siteflow/database/schema';
 import { eq } from 'drizzle-orm';
+import { ORG_QUEUES } from '../../../src/modules/invitation/invitation.jobs.js';
+import { AUTH_QUEUES } from '../../../src/modules/auth/auth.jobs.js';
 
 describe('F.2 Transactional Event Publishing Integration', () => {
   const runId = Math.random().toString(36).substring(7);
@@ -10,22 +15,21 @@ describe('F.2 Transactional Event Publishing Integration', () => {
   const org2Id = `org2_${runId}`;
   const db = getDb();
 
-  it('atomically commits outbox event within transaction and enforces organizationId requirement', async () => {
+  it('atomically commits a validated tenant-scoped queue event', async () => {
     let eventId = '';
 
     await db.transaction(async (tx) => {
       const e = await writeOutboxEvent(
         tx,
-        'TaskCompleted',
+        ORG_QUEUES.SEND_INVITATION_EMAIL,
         {
           id: `evt_${runId}_1`,
-          name: 'TaskCompleted',
-          version: 1,
-          occurredAt: new Date().toISOString(),
           organizationId: org1Id,
-          entityType: 'Task',
-          entityId: `task_${runId}`,
-          payload: { taskId: `task_${runId}` },
+          invitationId: `invite_${runId}`,
+          email: `member_${runId}@test.dev`,
+          orgName: `Org ${runId}`,
+          inviterName: 'Test Admin',
+          token: `token_${runId}`,
         },
         org1Id,
       );
@@ -35,43 +39,113 @@ describe('F.2 Transactional Event Publishing Integration', () => {
     const [row] = await db.select().from(outboxEvents).where(eq(outboxEvents.id, eventId));
     expect(row).toBeDefined();
     expect(row.organizationId).toBe(org1Id);
-    expect(row.eventType).toBe('TaskCompleted');
+    expect(row.eventType).toBe(ORG_QUEUES.SEND_INVITATION_EMAIL);
+    expect(row.payload).toMatchObject({ organizationId: org1Id, invitationId: `invite_${runId}` });
   });
 
-  it('rejects outbox publishing without valid organizationId and rolls back transaction', async () => {
-    let caughtError: Error | null = null;
+  it('does not create a second outbox row when an event id is replayed', async () => {
+    const eventId = `evt_${runId}_duplicate`;
+    const payload = {
+      id: eventId,
+      organizationId: org1Id,
+      invitationId: `invite_${runId}_duplicate`,
+      email: `duplicate_${runId}@test.dev`,
+      orgName: `Org ${runId}`,
+      inviterName: 'Test Admin',
+      token: `token_${runId}`,
+    };
+    await db.transaction((tx) =>
+      writeOutboxEvent(tx, ORG_QUEUES.SEND_INVITATION_EMAIL, payload, org1Id),
+    );
 
-    try {
-      await db.transaction(async (tx) => {
-        // Attempt to call writeOutboxEvent without organizationId
+    await expect(
+      db.transaction((tx) =>
+        writeOutboxEvent(tx, ORG_QUEUES.SEND_INVITATION_EMAIL, payload, org1Id),
+      ),
+    ).rejects.toThrow();
+
+    const rows = await db.select().from(outboxEvents).where(eq(outboxEvents.id, eventId));
+    expect(rows).toHaveLength(1);
+  });
+
+  it('rejects a tenant-scoped event with no tenant and rolls back the transaction', async () => {
+    await expect(
+      db.transaction(async (tx) => {
         await writeOutboxEvent(
           tx,
-          'TaskCompleted',
+          ORG_QUEUES.SEND_INVITATION_EMAIL,
           {
-            id: `evt_${runId}_invalid`,
-            name: 'TaskCompleted',
-            version: 1,
-            occurredAt: new Date().toISOString(),
-            entityType: 'Task',
-            entityId: `task_${runId}`,
-            payload: {},
+            id: `evt_${runId}_missing_org`,
+            invitationId: `invite_${runId}`,
+            email: `member_${runId}@test.dev`,
+            orgName: `Org ${runId}`,
+            inviterName: 'Test Admin',
+            token: `token_${runId}`,
           },
-          '' as any,
+          undefined,
         );
-      });
-    } catch (err: any) {
-      caughtError = err;
-    }
+      }),
+    ).rejects.toThrow(/organizationId/i);
 
-    expect(caughtError).not.toBeNull();
-    expect(caughtError?.message).toContain('organizationId is required');
-
-    // Confirm no row was written
     const rows = await db
       .select()
       .from(outboxEvents)
-      .where(eq(outboxEvents.id, `evt_${runId}_invalid`));
+      .where(eq(outboxEvents.id, `evt_${runId}_missing_org`));
     expect(rows.length).toBe(0);
+  });
+
+  it('rejects malformed event names, malformed payloads, and mismatched tenant claims', async () => {
+    const tx = { insert: () => undefined };
+    await expect(
+      writeOutboxEvent(tx, 'invalid', { organizationId: org1Id }, org1Id),
+    ).rejects.toThrow(/unsupported outbox event type/i);
+
+    await expect(
+      writeOutboxEvent(
+        tx,
+        ORG_QUEUES.SEND_INVITATION_EMAIL,
+        {
+          organizationId: org1Id,
+          invitationId: `invite_${runId}`,
+          email: 'not-an-email',
+          orgName: `Org ${runId}`,
+          inviterName: 'Test Admin',
+          token: `token_${runId}`,
+        },
+        org1Id,
+      ),
+    ).rejects.toThrow();
+
+    await expect(
+      writeOutboxEvent(
+        tx,
+        ORG_QUEUES.SEND_INVITATION_EMAIL,
+        {
+          organizationId: org2Id,
+          invitationId: `invite_${runId}`,
+          email: `member_${runId}@test.dev`,
+          orgName: `Org ${runId}`,
+          inviterName: 'Test Admin',
+          token: `token_${runId}`,
+        },
+        org1Id,
+      ),
+    ).rejects.toThrow(/does not match/i);
+  });
+
+  it('retains the explicitly tenant-neutral auth queue contract', async () => {
+    const eventId = `evt_${runId}_auth`;
+    await db.transaction(async (tx) => {
+      await writeOutboxEvent(tx, AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION, {
+        id: eventId,
+        userId: `user_${runId}`,
+        email: `user_${runId}@test.dev`,
+      });
+    });
+
+    const [row] = await db.select().from(outboxEvents).where(eq(outboxEvents.id, eventId));
+    expect(row).toBeDefined();
+    expect(row.organizationId).toBeNull();
   });
 
   it('rejects outbox publishing without transaction handle', async () => {
@@ -98,5 +172,19 @@ describe('F.2 Transactional Event Publishing Integration', () => {
 
     expect(caughtError).not.toBeNull();
     expect(caughtError?.message).toContain('Transaction handle tx is required');
+  });
+
+  it('uses a stable payload idempotency key for durable PgBoss deduplication', () => {
+    expect(
+      getOutboxSendOptions('generated-event-id', {
+        idempotencyKey: 'project:abc:created',
+      }),
+    ).toEqual({
+      singletonKey: 'project:abc:created',
+      singletonSeconds: 86400,
+    });
+    expect(getOutboxSendOptions('generated-event-id', {})).toMatchObject({
+      singletonKey: 'generated-event-id',
+    });
   });
 });

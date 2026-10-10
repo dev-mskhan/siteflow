@@ -4,57 +4,14 @@
 //     in the dev:worker/start:worker scripts.
 import { createLogger } from '@siteflow/observability/server';
 import { startQueue, stopQueue } from './lib/queue/index.js';
-import { AUTH_QUEUES } from './modules/auth/auth.jobs.js';
-import { ORG_QUEUES } from './modules/invitation/invitation.jobs.js';
-
-import { registerAuthWorkers } from './modules/auth/auth.worker.js';
-import { registerOrgWorkers } from './modules/invitation/invitation.worker.js';
-import { registerProjectWorkers } from './modules/project/core/project.worker.js';
-import { registerScheduleWorkers } from './modules/project/engine/schedule.worker.js';
-import { registerComplianceWorkers } from './modules/project/compliance/expiry-scanner.worker.js';
-import { registerExportWorkers } from './modules/reporting/exports/export.worker.js';
-
 import { outboxService } from './lib/outbox/outbox.service.js';
+import { registerWorkers } from './worker-registration.js';
 
 const logger = createLogger({ name: 'worker' });
 
 async function runWorker() {
   const boss = await startQueue();
-
-  // ─── Register Auth workers ───────────────────────────────────────────────────
-  await registerAuthWorkers(boss);
-
-  // ─── Register Org workers ────────────────────────────────────────────────────
-  await registerOrgWorkers(boss);
-
-  // ─── Register Project workers ────────────────────────────────────────────────
-  await registerProjectWorkers(boss);
-
-  // ─── Register Schedule workers ───────────────────────────────────────────────
-  await registerScheduleWorkers(boss);
-
-  // ─── Register compliance workers ────────────────────────────────────────────
-  await registerComplianceWorkers(boss);
-
-  // ─── Register Reporting Export workers ───────────────────────────────────────
-  await registerExportWorkers(boss);
-
-  // ─── Schedule cleanup jobs ───────────────────────────────────────────────────
-  // Sessions: daily at 02:00 UTC
-  await boss.schedule(AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS, '0 2 * * *', {});
-  logger.info('Scheduled cleanup: expired sessions (daily 02:00 UTC)');
-
-  // Verification tokens: daily at 02:15 UTC
-  await boss.schedule(AUTH_QUEUES.CLEANUP_EXPIRED_VERIFICATION_TOKENS, '15 2 * * *', {});
-  logger.info('Scheduled cleanup: expired verification tokens (daily 02:15 UTC)');
-
-  // Password reset tokens: daily at 02:30 UTC
-  await boss.schedule(AUTH_QUEUES.CLEANUP_EXPIRED_PASSWORD_RESET_TOKENS, '30 2 * * *', {});
-  logger.info('Scheduled cleanup: expired password reset tokens (daily 02:30 UTC)');
-
-  // Invitation expiry: every hour at :00
-  await boss.schedule(ORG_QUEUES.EXPIRE_INVITATIONS, '0 * * * *', {});
-  logger.info('Scheduled: invitation expiry check (hourly)');
+  await registerWorkers(boss);
 
   // ─── Start Outbox Listener & Poller ─────────────────────────────────────────
   // Worker exclusively owns outbox processing — API only writes to outbox_events.

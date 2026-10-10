@@ -7,6 +7,8 @@ import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext } from '../../rbac/permission.middleware.js';
 import { exportService } from './export.service.js';
 import { createSuccessResponse } from '../../../shared/response.js';
+import type { PortfolioActor } from '../report.service.js';
+import { ForbiddenError } from '../../auth/auth.errors.js';
 import {
   requestExportSchemaDoc,
   listExportsSchemaDoc,
@@ -20,6 +22,19 @@ const RequestExportBodySchema = z.object({
   format: z.literal('csv').default('csv'),
   filters: z.record(z.unknown()).default({}),
 });
+
+function requireExportActor(request: FastifyRequest): PortfolioActor {
+  const actor = request.orgContext;
+  if (!actor) throw new ForbiddenError('Organization context is required for export actions');
+  return {
+    userId: actor.userId,
+    organizationMembership: {
+      id: actor.membershipId,
+      roleId: actor.roleId,
+      permissions: actor.permissions,
+    },
+  };
+}
 
 export const exportRoutes: FastifyPluginAsync = async (app) => {
   // All export routes require authentication and organization context
@@ -40,6 +55,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
       const { organizationId } = req.params;
       const parsed = RequestExportBodySchema.parse(req.body);
       const userId = (req.user?.sub ?? (req.user as any)?.id)!;
+      const organizationActor = requireExportActor(req);
 
       const result = await exportService.requestExport({
         organizationId,
@@ -47,6 +63,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
         requestedBy: userId,
         reportType: parsed.reportType,
         filterSnapshot: parsed.filters,
+        portfolioActor: organizationActor,
       });
 
       return reply.status(202).send(createSuccessResponse(result));
@@ -80,7 +97,12 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
       const { organizationId, exportId } = req.params;
       const userId = (req.user?.sub ?? (req.user as any)?.id)!;
 
-      const record = await exportService.getExportStatus(exportId, organizationId, userId);
+      const record = await exportService.getExportStatus(
+        exportId,
+        organizationId,
+        userId,
+        requireExportActor(req),
+      );
       if (!record) {
         return reply.status(404).send({
           success: false,
@@ -116,7 +138,12 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
       const { organizationId, exportId } = req.params;
       const userId = (req.user?.sub ?? (req.user as any)?.id)!;
 
-      const result = await exportService.getDownloadUrl(exportId, organizationId, userId);
+      const result = await exportService.getDownloadUrl(
+        exportId,
+        organizationId,
+        userId,
+        requireExportActor(req),
+      );
       if (!result) {
         return reply.status(404).send({
           success: false,

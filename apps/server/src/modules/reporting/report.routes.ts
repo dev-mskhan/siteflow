@@ -4,7 +4,10 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../auth/auth.middleware.js';
 import { organizationContext } from '../rbac/permission.middleware.js';
-import { projectContext } from '../project/core/project.middleware.js';
+import {
+  projectContext,
+  requireProjectPermission,
+} from '../project/core/project.middleware.js';
 import {
   getHealthReportHandler,
   getScheduleReportHandler,
@@ -25,6 +28,16 @@ import {
 } from './docs/report.api.schemas.js';
 
 export const reportRoutes: FastifyPluginAsync = async (app) => {
+  const projectReportReadHandlers = (...capabilities: string[]) => [
+    authenticate,
+    organizationContext,
+    projectContext,
+    requireProjectPermission('project:read'),
+    ...capabilities.map((capability) =>
+      requireProjectPermission(capability),
+    ),
+  ];
+
   // --- Portfolio Report (Organization Level) ---
   app.get(
     '/:organizationId/reports/portfolio',
@@ -40,7 +53,11 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/projects/:projectId/reports/health',
     {
       schema: getHealthReportSchemaDoc,
-      preHandler: [authenticate, organizationContext, projectContext],
+      preHandler: projectReportReadHandlers(
+        'project.task.read',
+        'project.issue.read',
+        'project.rfi.read',
+      ),
     },
     getHealthReportHandler,
   );
@@ -50,7 +67,10 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/projects/:projectId/reports/schedule',
     {
       schema: getScheduleReportSchemaDoc,
-      preHandler: [authenticate, organizationContext, projectContext],
+      preHandler: projectReportReadHandlers(
+        'project.task.read',
+        'project.baseline.read',
+      ),
     },
     getScheduleReportHandler,
   );
@@ -60,7 +80,9 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/projects/:projectId/reports/cost',
     {
       schema: getCostReportSchemaDoc,
-      preHandler: [authenticate, organizationContext, projectContext],
+      preHandler: projectReportReadHandlers(
+        'project.financial_summary.read',
+      ),
     },
     getCostReportHandler,
   );
@@ -70,7 +92,13 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/projects/:projectId/reports/procurement',
     {
       schema: getProcurementReportSchemaDoc,
-      preHandler: [authenticate, organizationContext, projectContext],
+      preHandler: projectReportReadHandlers(
+        'project.material_request.read',
+        'project.purchase_order.read',
+        'project.delivery.read',
+        'project.receipt.read',
+        'project.inventory.read',
+      ),
     },
     getProcurementReportHandler,
   );
@@ -80,7 +108,11 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/projects/:projectId/reports/subcontractor',
     {
       schema: getSubcontractorReportSchemaDoc,
-      preHandler: [authenticate, organizationContext, projectContext],
+      preHandler: projectReportReadHandlers(
+        'project.subcontractor.read',
+        'project.task.read',
+        'project.purchase_order.read',
+      ),
     },
     getSubcontractorReportHandler,
   );
@@ -90,7 +122,18 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/projects/:projectId/reports/executive-summary',
     {
       schema: getExecutiveSummaryReportSchemaDoc,
-      preHandler: [authenticate, organizationContext, projectContext],
+      preHandler: projectReportReadHandlers(
+        'project.task.read',
+        'project.issue.read',
+        'project.rfi.read',
+        'project.baseline.read',
+        'project.financial_summary.read',
+        'project.material_request.read',
+        'project.purchase_order.read',
+        'project.delivery.read',
+        'project.receipt.read',
+        'project.inventory.read',
+      ),
     },
     getExecutiveSummaryReportHandler,
   );

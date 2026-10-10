@@ -4,7 +4,7 @@
 // Discloses unsupported material-to-task schedule impact as explicitly unavailable.
 
 import { ProcurementReportRepository } from './procurement-report.repository.js';
-import { normalizeReportFilters } from '../report.filters.js';
+import { getReportDateOptions, normalizeReportFilters } from '../report.filters.js';
 import type { ReportResultEnvelope, MetricCoverage } from '@siteflow/shared';
 
 export class ProcurementReportService {
@@ -22,11 +22,12 @@ export class ProcurementReportService {
       throw new Error('organizationId and projectId are required');
     }
 
+    const dateOptions = await getReportDateOptions(organizationId, projectId);
     const filters = normalizeReportFilters({
       ...(typeof rawFilters === 'object' && rawFilters ? rawFilters : {}),
       organizationId,
       projectId,
-    });
+    }, dateOptions);
 
     const facts = await this.repo.getProcurementFacts(organizationId, projectId);
 
@@ -40,7 +41,7 @@ export class ProcurementReportService {
       organizationId,
       projectId,
       asOf: new Date().toISOString(),
-      effectiveTimezone: 'UTC',
+      effectiveTimezone: dateOptions.timezone ?? 'UTC',
       filters,
       coverage,
       data: {

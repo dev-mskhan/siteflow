@@ -60,6 +60,18 @@
 - [ ] RPT-14: Any generated export is stored and downloadable only through organization/project-scoped authorization and expiring download access; report data is not exposed by guessing identifiers or object keys.
 - [ ] RPT-15: Web report views expose agreed filters and CSV export and handle pending, ready, expired, and failed export states when asynchronous processing is used.
 
+### Verified Architecture Remediation
+
+- [x] REM-01: Every project-report route enforces current project-read authority and fails closed when project membership is missing.
+- [x] REM-02: Portfolio aggregates and rows include only projects the caller can read, with bounded cursor pagination.
+- [x] REM-03: Realtime subscriptions require authenticated identity and current tenant/project authorization; tenant scope is not taken from an unauthenticated URL, and CORS follows configured policy.
+- [x] REM-04: The active outbox envelope and tenant requirements are validated; unused dispatcher paths are removed or explicitly fenced.
+- [x] REM-05: Reminder, email, and preference helpers are either completely runtime-wired and integration-tested or explicitly unavailable until their producer/consumer contract is complete.
+- [x] REM-06: CSV export client/server contracts agree; failures remain observable and report generation is not silently swallowed or duplicated for sync/async selection.
+- [x] REM-07: Export creation, state transitions, downloads, and audit records enforce organization/project/actor scope.
+- [x] REM-08: Every accepted report date preset and custom range has defined validation and timezone-correct semantics, including documented UTC fallback.
+- [x] REM-09: Project-worker retry/idempotency is safe across process restarts and replicas, and cache invalidation is bounded rather than using unbounded Redis `KEYS`.
+
 ### Future Extension Boundary
 
 - [ ] EXT-01: Reporting/module boundaries do not prevent a future platform operator perspective for usage, payments, and subscriptions; no platform billing domain is implemented by this requirement set.
@@ -81,6 +93,7 @@
 | RPT-01–RPT-03 | Phase 8 — Phase F Reporting Foundation and Security |
 | RPT-04–RPT-10 | Phase 8 — Project and Organization Portfolio Reports |
 | RPT-11–RPT-15 | Phase 8 — CSV Export and Web Delivery |
+| REM-01–REM-09 | Phase 9 — Architecture Findings Remediation |
 | EXT-01 | Phase 8 boundary; future platform phase TBD |
 
 ---

@@ -4,7 +4,7 @@
 
 import { ScheduleMetricsService } from '../../project/schedule-metrics/schedule-metrics.service.js';
 import { ScheduleReportRepository } from './schedule-report.repository.js';
-import { normalizeReportFilters } from '../report.filters.js';
+import { getReportDateOptions, normalizeReportFilters } from '../report.filters.js';
 import type { ReportResultEnvelope, MetricCoverage } from '@siteflow/shared';
 
 export class ScheduleReportService {
@@ -25,11 +25,12 @@ export class ScheduleReportService {
       throw new Error('organizationId and projectId are required');
     }
 
+    const dateOptions = await getReportDateOptions(organizationId, projectId);
     const filters = normalizeReportFilters({
       ...(typeof rawFilters === 'object' && rawFilters ? rawFilters : {}),
       organizationId,
       projectId,
-    });
+    }, dateOptions);
 
     // 1. Fetch authoritative schedule metrics summary
     const metrics = await this.scheduleMetricsSvc.getMetrics(organizationId, projectId);
@@ -54,7 +55,7 @@ export class ScheduleReportService {
       organizationId,
       projectId,
       asOf: new Date().toISOString(),
-      effectiveTimezone: 'UTC',
+      effectiveTimezone: dateOptions.timezone ?? 'UTC',
       filters,
       coverage,
       data: {

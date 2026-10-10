@@ -8,8 +8,24 @@ import { CostReportService } from './cost/cost-report.service.js';
 import { ProcurementReportService } from './procurement/procurement-report.service.js';
 import { SubcontractorReportService } from './subcontractor/subcontractor-report.service.js';
 import { PortfolioReportService } from './portfolio/portfolio-report.service.js';
-import { normalizeReportFilters } from './report.filters.js';
+import { getReportDateOptions, normalizeReportFilters } from './report.filters.js';
 import type { ReportResultEnvelope } from '@siteflow/shared';
+import type { ProjectContext } from '../project/core/project.types.js';
+
+export type PortfolioActor = {
+  userId: string;
+  organizationMembership: ProjectContext['organizationMembership'];
+};
+
+function isPortfolioActor(value: unknown): value is PortfolioActor {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Partial<PortfolioActor>;
+  return (
+    typeof candidate.userId === 'string' &&
+    typeof candidate.organizationMembership === 'object' &&
+    candidate.organizationMembership !== null
+  );
+}
 
 export class ReportService {
   private readonly healthSvc = new ProjectHealthService();
@@ -39,8 +55,15 @@ export class ReportService {
     return this.subcontractorSvc.getSubcontractorReport(organizationId, projectId, filters);
   }
 
-  async getPortfolioReport(organizationId: string, filters?: unknown) {
-    return this.portfolioSvc.getPortfolioReport(organizationId, filters);
+  async getPortfolioReport(
+    organizationId: string,
+    actorOrFilters?: unknown,
+    filters?: unknown,
+  ) {
+    if (!isPortfolioActor(actorOrFilters)) {
+      throw new Error('Authenticated organization actor is required for portfolio reports');
+    }
+    return this.portfolioSvc.getPortfolioReport(organizationId, actorOrFilters, filters);
   }
 
   async getExecutiveSummaryReport(
@@ -63,18 +86,19 @@ export class ReportService {
       return null;
     }
 
+    const dateOptions = await getReportDateOptions(organizationId, projectId);
     const filters = normalizeReportFilters({
       ...(typeof rawFilters === 'object' && rawFilters ? rawFilters : {}),
       organizationId,
       projectId,
-    });
+    }, dateOptions);
 
     return {
       reportType: 'PROJECT_EXECUTIVE_SUMMARY',
       organizationId,
       projectId,
       asOf: new Date().toISOString(),
-      effectiveTimezone: 'UTC',
+      effectiveTimezone: dateOptions.timezone ?? 'UTC',
       filters,
       coverage: {
         isAvailable: true,

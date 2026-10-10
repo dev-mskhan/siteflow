@@ -9,10 +9,15 @@ import { sendJob } from '../../../lib/queue/queue.js';
 import { MinioStorageService } from '../../../lib/storage/storage.service.js';
 import type { ReportResultEnvelope } from '@siteflow/shared';
 import type { ReportExportRecord } from '@siteflow/database/schema';
+import { serverEnv } from '../../../config/env.js';
+import type { PortfolioActor } from '../report.service.js';
+import { ProjectRepository } from '../../project/core/project.repository.js';
+import { projectPolicy } from '../../project/core/project.policy.js';
+import { ProjectNotFoundError } from '../../project/core/project.errors.js';
+import { auditService } from '../../audit/audit.service.js';
+import type { ProjectRole } from '../../project/core/project.types.js';
 
-// D-03 configurable policy values
-const SYNC_THRESHOLD_MS = 100; // exports under this are synchronous
-export const SIGNED_URL_EXPIRY_SECONDS = 5 * 60; // 5 minutes
+export const SIGNED_URL_EXPIRY_SECONDS = serverEnv.REPORT_EXPORT_SIGNED_URL_EXPIRY_SECONDS;
 
 const storage = new MinioStorageService();
 
@@ -26,6 +31,7 @@ export interface ExportJobPayload {
   projectId: string | null;
   reportType: string;
   filterSnapshot: Record<string, unknown>;
+  portfolioActor: PortfolioActor | null;
 }
 
 /** Generate a server-scoped MinIO object key (never exposed to client raw). */
@@ -41,6 +47,7 @@ async function fetchReport(
   projectId: string | null,
   reportType: string,
   filterSnapshot: Record<string, unknown>,
+  portfolioActor: PortfolioActor | null,
 ): Promise<ReportResultEnvelope | null> {
   const filters = filterSnapshot;
   switch (reportType) {
@@ -53,7 +60,10 @@ async function fetchReport(
     case 'SUBCONTRACTOR_PERFORMANCE':
       return reportService.getSubcontractorReport(organizationId, projectId!, filters);
     case 'ORGANIZATION_PORTFOLIO':
-      return reportService.getPortfolioReport(organizationId, filters);
+      if (!portfolioActor) {
+        throw new Error('Authenticated organization actor is required for portfolio exports');
+      }
+      return reportService.getPortfolioReport(organizationId, portfolioActor, filters);
     case 'PROJECT_EXECUTIVE_SUMMARY':
       return reportService.getExecutiveSummaryReport(organizationId, projectId!, filters);
     default:
@@ -62,9 +72,40 @@ async function fetchReport(
 }
 
 export class ExportService {
+  private readonly projectRepository = new ProjectRepository();
+
+  async assertProjectRead(
+    organizationId: string,
+    projectId: string,
+    actor: PortfolioActor,
+  ): Promise<void> {
+    const result = await this.projectRepository.findByIdWithMembership(
+      organizationId,
+      projectId,
+      actor.userId,
+    );
+    if (!result) throw new ProjectNotFoundError();
+    projectPolicy.authorize({
+      actor: {
+        organizationId,
+        projectId,
+        userId: actor.userId,
+        organizationMembership: actor.organizationMembership,
+        projectMembership: result.membership
+          ? {
+              id: result.membership.id,
+              role: result.membership.role as ProjectRole,
+              status: result.membership.status as 'ACTIVE' | 'REMOVED',
+            }
+          : null,
+      },
+      action: 'project:read',
+    });
+  }
+
   /**
-   * Request a CSV export. Small exports are synchronous (< SYNC_THRESHOLD_MS),
-   * larger ones are dispatched to PgBoss.
+   * Sync eligibility is decided from validated configuration before report work
+   * starts; a slow fetch is never repeated by an async fallback.
    */
   async requestExport(params: {
     organizationId: string;
@@ -72,48 +113,77 @@ export class ExportService {
     requestedBy: string;
     reportType: string;
     filterSnapshot: Record<string, unknown>;
+    portfolioActor: PortfolioActor | null;
   }): Promise<{ exportId: string; status: string; synchronous: boolean }> {
-    // Create PENDING record
-    const record = await exportRepository.create(params);
-
-    // Try synchronous path — measure time
-    const start = Date.now();
-
-    try {
-      const envelope = await fetchReport(
-        params.organizationId,
-        params.projectId,
-        params.reportType,
-        params.filterSnapshot,
-      );
-      const elapsed = Date.now() - start;
-
-      if (envelope && elapsed < SYNC_THRESHOLD_MS) {
-        // Render synchronously
-        const renderer = new CsvReportRenderer();
-        const rendered = renderer.render(envelope);
-
-        // Upload to MinIO and mark ready
-        const objectKey = makeObjectKey(params.organizationId, record.id, 'csv');
-        // Use putPresignedUrl pattern — but since we're server-side writing, upload directly
-        await uploadToMinio(objectKey, rendered.content);
-        await exportRepository.markReady(record.id, objectKey);
-
-        return { exportId: record.id, status: 'READY', synchronous: true };
+    if (params.reportType === 'ORGANIZATION_PORTFOLIO') {
+      if (params.projectId !== null || !params.portfolioActor) {
+        throw new Error('Organization portfolio export must use organization scope');
       }
-    } catch {
-      // Fall through to async path
+    } else {
+      if (!params.projectId || !params.portfolioActor) {
+        throw new Error('Project export requires project scope and an authenticated actor');
+      }
+      await this.assertProjectRead(params.organizationId, params.projectId, params.portfolioActor);
     }
 
-    // Async path — enqueue PgBoss job
-    await exportRepository.markProcessing(record.id);
+    const record = await exportRepository.create(params);
+    await auditService.log({
+      organizationId: params.organizationId,
+      actorUserId: params.requestedBy,
+      action: 'report.export.requested',
+      resourceType: 'ReportExport',
+      resourceId: record.id,
+      projectId: params.projectId,
+      metadata: { reportType: params.reportType, format: record.format },
+    });
+    const canRunSynchronously = serverEnv.REPORT_EXPORT_SYNC_REPORT_TYPES.some(
+      (reportType) => reportType === params.reportType,
+    );
+
+    if (canRunSynchronously) {
+      try {
+        const envelope = await fetchReport(
+          params.organizationId,
+          params.projectId,
+          params.reportType,
+          params.filterSnapshot,
+          params.portfolioActor,
+        );
+        if (!envelope) {
+          throw new Error(`Report data unavailable for ${params.reportType}`);
+        }
+
+        const renderer = new CsvReportRenderer();
+        const rendered = renderer.render(envelope);
+        const objectKey = makeObjectKey(params.organizationId, record.id, 'csv');
+        await uploadToMinio(objectKey, rendered.content);
+        await exportRepository.markReady(
+          record.id,
+          record.organizationId,
+          record.projectId,
+          objectKey,
+        );
+        return { exportId: record.id, status: 'READY', synchronous: true };
+      } catch (err) {
+        await exportRepository.markFailed(
+          record.id,
+          record.organizationId,
+          record.projectId,
+          err instanceof Error ? err.message : String(err),
+        );
+        throw err;
+      }
+    }
+
+    await exportRepository.markProcessing(record.id, record.organizationId, record.projectId);
     await sendJob(EXPORT_JOB_NAME, {
       exportId: record.id,
       organizationId: params.organizationId,
       projectId: params.projectId,
       reportType: params.reportType,
       filterSnapshot: params.filterSnapshot,
-    } as unknown as Record<string, unknown>);
+      portfolioActor: params.portfolioActor,
+    });
 
     return { exportId: record.id, status: 'PROCESSING', synchronous: false };
   }
@@ -126,14 +196,18 @@ export class ExportService {
     exportId: string,
     organizationId: string,
     requestedBy: string,
+    actor: PortfolioActor,
   ): Promise<ReportExportRecord | null> {
     const record = await exportRepository.findById(exportId, organizationId);
     if (!record) return null;
     // Enforce owner check
     if (record.requestedBy !== requestedBy) return null;
+    if (record.projectId) {
+      await this.assertProjectRead(organizationId, record.projectId, actor);
+    }
     // Auto-expire if past expiresAt
     if (record.status === 'READY' && new Date(record.expiresAt) < new Date()) {
-      await exportRepository.markExpired(exportId);
+      await exportRepository.markExpired(exportId, record.organizationId, record.projectId);
       return { ...record, status: 'EXPIRED', objectKey: null };
     }
     return record;
@@ -148,11 +222,21 @@ export class ExportService {
     exportId: string,
     organizationId: string,
     requestedBy: string,
+    actor: PortfolioActor,
   ): Promise<{ downloadUrl: string } | null> {
-    const record = await this.getExportStatus(exportId, organizationId, requestedBy);
+    const record = await this.getExportStatus(exportId, organizationId, requestedBy, actor);
     if (!record || record.status !== 'READY' || !record.objectKey) return null;
 
     const downloadUrl = await storage.getPresignedUrl(record.objectKey, SIGNED_URL_EXPIRY_SECONDS);
+    await auditService.log({
+      organizationId: record.organizationId,
+      actorUserId: requestedBy,
+      action: 'report.export.downloaded',
+      resourceType: 'ReportExport',
+      resourceId: record.id,
+      projectId: record.projectId,
+      metadata: { reportType: record.reportType, format: record.format },
+    });
     return { downloadUrl };
   }
 
@@ -175,7 +259,7 @@ export class ExportService {
         if (record.objectKey) {
           await storage.deleteObject(record.objectKey);
         }
-        await exportRepository.markExpired(record.id);
+        await exportRepository.markExpired(record.id, record.organizationId, record.projectId);
         cleaned++;
       } catch {
         // Log but continue — idempotent

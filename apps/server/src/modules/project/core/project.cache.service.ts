@@ -69,28 +69,41 @@ export class ProjectCacheService {
     }
   }
 
-  // ─── Cache-Aside: Project List (`org:projects:list:{organizationId}:{hash}`) ─
+  // ─── Cache-Aside: Project List (organization generation + query hash) ─────
 
-  async getProjectList(orgId: string, filter: ListProjectsFilter): Promise<ProjectListDTO | null> {
+  async getProjectList(
+    orgId: string,
+    filter: ListProjectsFilter,
+  ): Promise<{ result: ProjectListDTO | null; generation: string }> {
     try {
       const client = await ensureRedisConnected();
+      const generation = (await client.get(`org:projects:list:generation:${orgId}`)) ?? '0';
       const filterHash = ProjectCacheService.hashListFilter(filter);
-      const key = `org:projects:list:${orgId}:${filterHash}`;
+      const key = `org:projects:list:${orgId}:${generation}:${filterHash}`;
       const cached = await client.get(key);
       if (cached) {
-        return JSON.parse(cached) as ProjectListDTO;
+        return { result: JSON.parse(cached) as ProjectListDTO, generation };
       }
+      return { result: null, generation };
     } catch (err) {
       logger.warn({ err, orgId }, 'Redis getProjectList read failed — falling back to DB');
+      return { result: null, generation: '0' };
     }
-    return null;
   }
 
-  async setProjectList(orgId: string, filter: ListProjectsFilter, result: ProjectListDTO, baseTtlSeconds = 45): Promise<void> {
+  async setProjectList(
+    orgId: string,
+    filter: ListProjectsFilter,
+    result: ProjectListDTO,
+    generation: string,
+    baseTtlSeconds = 45,
+  ): Promise<void> {
     try {
       const client = await ensureRedisConnected();
+      const currentGeneration = (await client.get(`org:projects:list:generation:${orgId}`)) ?? '0';
+      if (currentGeneration !== generation) return;
       const filterHash = ProjectCacheService.hashListFilter(filter);
-      const key = `org:projects:list:${orgId}:${filterHash}`;
+      const key = `org:projects:list:${orgId}:${generation}:${filterHash}`;
       const ttl = ProjectCacheService.getJitteredTTL(baseTtlSeconds, 15); // 30s-60s jittered
       await client.set(key, JSON.stringify(result), 'EX', ttl);
     } catch (err) {
@@ -101,11 +114,7 @@ export class ProjectCacheService {
   async invalidateOrgProjectLists(orgId: string): Promise<void> {
     try {
       const client = await ensureRedisConnected();
-      const pattern = `org:projects:list:${orgId}:*`;
-      const keys = await client.keys(pattern);
-      if (keys.length > 0) {
-        await client.del(...keys);
-      }
+      await client.incr(`org:projects:list:generation:${orgId}`);
     } catch (err) {
       logger.warn({ err, orgId }, 'Redis invalidateOrgProjectLists failed');
     }

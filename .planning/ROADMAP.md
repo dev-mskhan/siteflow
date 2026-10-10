@@ -15,6 +15,7 @@ Phase F includes a versioned domain-event backbone, notification and communicati
 ### Current GSD Tracking
 
 - [ ] **Phase 8: Phase F Reporting and Downloads** - Build approved project and organization-portfolio reporting, web views, and downloadable reports.
+- [x] **Phase 9: Architecture Findings Remediation** - User-prioritized fixes for H1–H9; execute this remediation before resuming Phase 8 plans without treating Phase 8 as complete.
 
 ### Completed History
 
@@ -120,6 +121,23 @@ Expected capability areas:
 **Entry gate:** Use the decisions in `08-CONTEXT.md`; planning research must verify existing contracts and trace each metric and job to authoritative code before implementation.
 
 **Non-goals:** Build no platform payment, usage-metering, or subscription model in this phase. Do not build a concrete WhatsApp vendor integration unless configured and approved; use the replaceable channel contract.
+
+### Phase 9: Architecture Findings Remediation
+
+**Priority:** User-authorized remediation scheduled ahead of the remaining Phase 8 plan execution because the current checkout already contains the affected runtime paths.
+**Goal:** Close the source-verified authorization, tenant-isolation, reliability, export-contract, and date-semantics gaps recorded as H1–H9 in `docs/architecture/findings.md`, without claiming the unexecuted Phase 8 plans are complete.
+**Depends on:** The current checked-out SiteFlow implementation and the source-backed evidence in `docs/architecture/`; Phase 8 remains pending and is not marked complete by this remediation.
+**Requirements:** REM-01–REM-09 (one for each H1–H9; the plan must resolve confirmed gaps and either wire or explicitly remove/demote partial dormant paths based on source).
+**Success Criteria** (what must be TRUE):
+  1. Project report and portfolio results are limited by current project-read authority; report routes reject users without the relevant capability, and portfolio pagination is bounded.
+  2. SSE subscriptions require verified identity and current tenant/project authority; organization identity is never taken from an unauthenticated URL fallback, and CORS follows configured policy.
+  3. Outbox event contracts are validated, tenant requirements are explicit, and dispatch/idempotency behavior is durable across retries/restarts—or unused paths are removed and documented rather than presented as wired.
+  4. Intended reminder/email/preference paths have explicit, tested runtime wiring, or remain intentionally unavailable with inactive definitions removed or clearly fenced.
+  5. Export request filters match the web/API contract; report work is not silently swallowed or unnecessarily duplicated; sync/async selection and retention/URL expiry are validated configuration.
+  6. Export project scope, every state transition, download authorization, and audit event are organization/project/actor-qualified and covered by cross-tenant integration tests.
+  7. Every public date preset has defined behavior, custom ranges are validated, and report boundaries use project/organization timezone with documented UTC fallback.
+  8. Retry safety for project jobs is durable across processes, and cache invalidation avoids Redis `KEYS` over an unbounded keyspace.
+  9. Relevant API, worker, and multi-tenant regression suites pass; the fixes are committed/pushed without adding `docs/architecture/` to the fixes commit.
 
 ### Future Phases — Uncommitted
 

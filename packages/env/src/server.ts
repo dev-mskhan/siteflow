@@ -77,6 +77,24 @@ export const serverEnv = createEnv({
     // Request timeout (ms)
     REQUEST_TIMEOUT_MS: z.coerce.number().default(25000),
     BODY_LIMIT_BYTES: z.coerce.number().default(1048576),
+    REPORT_EXPORT_SYNC_REPORT_TYPES: z
+      .string()
+      .default('PROJECT_HEALTH')
+      .transform((value) => value.split(',').map((reportType) => reportType.trim()).filter(Boolean))
+      .pipe(
+        z.array(
+          z.enum([
+            'PROJECT_HEALTH',
+            'SCHEDULE_VARIANCE_PROGRESS',
+            'COMMERCIAL_FINANCIAL_SUMMARY',
+            'SUBCONTRACTOR_PERFORMANCE',
+            'ORGANIZATION_PORTFOLIO',
+            'PROJECT_EXECUTIVE_SUMMARY',
+          ]),
+        ),
+      ),
+    REPORT_EXPORT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).default(24),
+    REPORT_EXPORT_SIGNED_URL_EXPIRY_SECONDS: z.coerce.number().int().min(60).max(604800).default(300),
 
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),

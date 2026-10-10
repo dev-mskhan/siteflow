@@ -3,7 +3,7 @@
 // Composes authoritative subcontractor facts while explicitly marking unbacked commitment values as unavailable.
 
 import { SubcontractorReportRepository } from './subcontractor-report.repository.js';
-import { normalizeReportFilters } from '../report.filters.js';
+import { getReportDateOptions, normalizeReportFilters } from '../report.filters.js';
 import type { ReportResultEnvelope, MetricCoverage } from '@siteflow/shared';
 
 export class SubcontractorReportService {
@@ -21,11 +21,12 @@ export class SubcontractorReportService {
       throw new Error('organizationId and projectId are required');
     }
 
+    const dateOptions = await getReportDateOptions(organizationId, projectId);
     const filters = normalizeReportFilters({
       ...(typeof rawFilters === 'object' && rawFilters ? rawFilters : {}),
       organizationId,
       projectId,
-    });
+    }, dateOptions);
 
     const facts = await this.repo.getSubcontractorFacts(organizationId, projectId);
 
@@ -39,7 +40,7 @@ export class SubcontractorReportService {
       organizationId,
       projectId,
       asOf: new Date().toISOString(),
-      effectiveTimezone: 'UTC',
+      effectiveTimezone: dateOptions.timezone ?? 'UTC',
       filters,
       coverage,
       data: {

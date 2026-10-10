@@ -2,17 +2,23 @@
 // F.17B — Repository for report export lifecycle records.
 // All lookups require trusted organizationId (from authenticated context).
 
-import { eq, and, lt, or } from 'drizzle-orm';
+import { eq, and, lt, or, isNull } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { reportExports, type ReportExportRecord, type NewReportExportRecord } from '@siteflow/database/schema';
 import { generateId } from '../../../lib/id.js';
-
-// Configurable retention: 24 hours default (D-03)
-const EXPORT_RETENTION_HOURS = 24;
+import { serverEnv } from '../../../config/env.js';
 
 export class ExportRepository {
   private get db() {
     return getDb();
+  }
+
+  private scope(exportId: string, organizationId: string, projectId: string | null) {
+    return and(
+      eq(reportExports.id, exportId),
+      eq(reportExports.organizationId, organizationId),
+      projectId === null ? isNull(reportExports.projectId) : eq(reportExports.projectId, projectId),
+    );
   }
 
   /** Create a new PENDING export record scoped to the organization. */
@@ -24,7 +30,7 @@ export class ExportRepository {
     filterSnapshot: Record<string, unknown>;
   }): Promise<ReportExportRecord> {
     const id = generateId();
-    const expiresAt = new Date(Date.now() + EXPORT_RETENTION_HOURS * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + serverEnv.REPORT_EXPORT_RETENTION_HOURS * 60 * 60 * 1000);
 
     const [record] = await this.db
       .insert(reportExports)
@@ -65,35 +71,45 @@ export class ExportRepository {
   }
 
   /** Transition status to PROCESSING. */
-  async markProcessing(exportId: string): Promise<void> {
+  async markProcessing(exportId: string, organizationId: string, projectId: string | null): Promise<void> {
     await this.db
       .update(reportExports)
       .set({ status: 'PROCESSING', updatedAt: new Date() })
-      .where(eq(reportExports.id, exportId));
+      .where(this.scope(exportId, organizationId, projectId));
   }
 
   /** Transition status to READY and record the server-generated object key. */
-  async markReady(exportId: string, objectKey: string): Promise<void> {
+  async markReady(
+    exportId: string,
+    organizationId: string,
+    projectId: string | null,
+    objectKey: string,
+  ): Promise<void> {
     await this.db
       .update(reportExports)
       .set({ status: 'READY', objectKey, updatedAt: new Date() })
-      .where(eq(reportExports.id, exportId));
+      .where(this.scope(exportId, organizationId, projectId));
   }
 
   /** Transition status to FAILED and record the error message. */
-  async markFailed(exportId: string, lastError: string): Promise<void> {
+  async markFailed(
+    exportId: string,
+    organizationId: string,
+    projectId: string | null,
+    lastError: string,
+  ): Promise<void> {
     await this.db
       .update(reportExports)
       .set({ status: 'FAILED', lastError, updatedAt: new Date() })
-      .where(eq(reportExports.id, exportId));
+      .where(this.scope(exportId, organizationId, projectId));
   }
 
   /** Transition status to EXPIRED. */
-  async markExpired(exportId: string): Promise<void> {
+  async markExpired(exportId: string, organizationId: string, projectId: string | null): Promise<void> {
     await this.db
       .update(reportExports)
       .set({ status: 'EXPIRED', updatedAt: new Date() })
-      .where(eq(reportExports.id, exportId));
+      .where(this.scope(exportId, organizationId, projectId));
   }
 
   /** Find all READY or PENDING exports that have passed their expiresAt timestamp. */

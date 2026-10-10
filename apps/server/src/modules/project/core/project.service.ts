@@ -170,9 +170,9 @@ export class ProjectService {
       span.setAttribute('organization.id', orgId);
 
       // Cache-aside pattern with filter hash (org:projects:list:{organizationId}:{hash}, 30-60s TTL)
-      const cachedList = await this.cacheService.getProjectList(orgId, filters);
-      if (cachedList) {
-        return cachedList;
+      const cacheLookup = await this.cacheService.getProjectList(orgId, filters);
+      if (cacheLookup.result) {
+        return cacheLookup.result;
       }
 
       const { rows, nextCursor } = await this.projectRepo.findAll(orgId, filters);
@@ -181,7 +181,7 @@ export class ProjectService {
         nextCursor,
       };
 
-      await this.cacheService.setProjectList(orgId, filters, result, 45);
+      await this.cacheService.setProjectList(orgId, filters, result, cacheLookup.generation, 45);
       return result;
     });
   }

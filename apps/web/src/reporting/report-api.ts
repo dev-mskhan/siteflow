@@ -99,7 +99,7 @@ export function requestCsvExport(
   orgId: string,
   projectId: string | null,
   reportType: string,
-  filter: ReportFilter,
+  filters: ReportFilter,
   token: string,
 ) {
   return fetch(`${BASE}/organizations/${orgId}/exports`, {
@@ -108,7 +108,7 @@ export function requestCsvExport(
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ projectId, reportType, format: 'csv', filter }),
+    body: JSON.stringify({ projectId, reportType, format: 'csv', filters }),
   }).then((r) => r.json());
 }
 
