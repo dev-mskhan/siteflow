@@ -208,6 +208,8 @@ export class ProjectService {
 
       // Note: Version check MUST hit PostgreSQL directly inside transaction (never read expectedVersion from cache)
       const updated = await this.db.transaction(async (tx) => {
+        // Entitlement gate (D-09): project:update is blocked post-grace; reads stay open
+        await entitlementService.assertCanModifyProject(orgId, tx);
         const project = await this.projectRepo.update(
           tx,
           orgId,

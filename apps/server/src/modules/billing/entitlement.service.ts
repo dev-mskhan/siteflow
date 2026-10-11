@@ -280,6 +280,30 @@ export class EntitlementService {
   }
 
   /**
+   * Asserts that existing projects may be modified. Restricted post-grace states
+   * block writes per D-09; reads and exports are never gated here.
+   */
+  async assertCanModifyProject(organizationId: string, tx: any): Promise<void> {
+    await this.lockOrganizationUsage(organizationId, tx);
+    const { limits, state } = await this.resolveEffectiveLimits(organizationId, tx);
+
+    const stateCheck = checkRestrictedStateAccess('project:update');
+    if (!stateCheck.allowed && (state === 'RESTRICTED' || state === 'UNPAID')) {
+      throw new EntitlementError({
+        message: stateCheck.message,
+        entitlementCode: 'ACCESS_RESTRICTED',
+      });
+    }
+
+    if (!limits) {
+      throw new EntitlementError({
+        message: 'No active subscription or trial. Start a trial or subscribe to modify projects.',
+        entitlementCode: 'NO_ENTITLEMENT',
+      });
+    }
+  }
+
+  /**
    * Asserts that the organization may create or accept an organization invitation.
    * Checks subscription state and teamMembers limit (D-04).
    *
