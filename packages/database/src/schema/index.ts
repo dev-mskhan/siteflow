@@ -25,3 +25,4 @@ export * from './saas-billing.schema.js';
 export * from './saas-webhook-inbox.schema.js';
 export * from './saas-invoice.schema.js';
 export * from './saas-reminder-delivery.schema.js';
+export * from './saas-refund-history.schema.js';

@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { saasCustomers, saasSubscriptions } from '@siteflow/database/schema';
+import { saasCustomers, saasInvoices, saasSubscriptions } from '@siteflow/database/schema';
 import { createLogger } from '@siteflow/observability/server';
 import { serverEnv } from '../../config/env.js';
 import { getDb } from '../../lib/db/index.js';
@@ -13,6 +13,11 @@ import {
   SaaSInvoiceIdentityConflictError,
   type SaaSInvoiceStatus,
 } from './invoice.service.js';
+import {
+  refundHistoryRepository,
+  RefundFactVerificationError,
+  type RefundStatus,
+} from './refund-history.repository.js';
 import {
   StripeProviderError,
   stripeAdapter,
@@ -479,6 +484,77 @@ export async function reconcileStripeWebhookEvent(
       tx,
     );
   });
+}
+
+export interface VerifiedProviderRefundFact {
+  stripeMode: 'test' | 'live';
+  stripeRefundId: string;
+  stripeInvoiceId: string;
+  stripeCustomerId: string;
+  sourceEventId: string;
+  amountCents: number;
+  currency: string;
+  status: RefundStatus;
+  providerEventCreatedAt: Date;
+}
+
+/**
+ * Persist an already-verified provider refund fact as SaaS financial history.
+ * The tenant comes from the stored customer association, never from provider metadata.
+ * Refund facts never change subscription or entitlement state.
+ */
+export async function reconcileVerifiedRefundFact(
+  fact: VerifiedProviderRefundFact,
+): Promise<void> {
+  const customer = await customerRepository.findByStripeCustomer(
+    fact.stripeCustomerId,
+    fact.stripeMode,
+  );
+  if (!customer) {
+    throw new StripeWebhookQuarantineError('CUSTOMER_ASSOCIATION_NOT_FOUND');
+  }
+
+  try {
+    await getDb().transaction(async (tx) => {
+      const invoiceRows = await tx
+        .select({ id: saasInvoices.id })
+        .from(saasInvoices)
+        .where(
+          and(
+            eq(saasInvoices.organizationId, customer.organizationId),
+            eq(saasInvoices.stripeMode, fact.stripeMode),
+            eq(saasInvoices.stripeInvoiceId, fact.stripeInvoiceId),
+          ),
+        )
+        .limit(1);
+      const invoice = invoiceRows[0];
+      if (!invoice) {
+        throw new StripeWebhookQuarantineError('REFUND_INVOICE_NOT_FOUND');
+      }
+
+      await refundHistoryRepository.recordVerifiedRefund(
+        {
+          organizationId: customer.organizationId,
+          saasInvoiceId: invoice.id,
+          stripeMode: fact.stripeMode,
+          stripeRefundId: fact.stripeRefundId,
+          stripeInvoiceId: fact.stripeInvoiceId,
+          stripeCustomerId: fact.stripeCustomerId,
+          sourceEventId: fact.sourceEventId,
+          amountCents: fact.amountCents,
+          currency: fact.currency,
+          status: fact.status,
+          providerEventCreatedAt: fact.providerEventCreatedAt,
+        },
+        tx,
+      );
+    });
+  } catch (error) {
+    if (error instanceof RefundFactVerificationError) {
+      throw new StripeWebhookQuarantineError(error.code);
+    }
+    throw error;
+  }
 }
 
 export function getStripeWebhookReconciliationErrorCode(error: unknown): string {

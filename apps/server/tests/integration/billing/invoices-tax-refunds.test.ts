@@ -18,7 +18,11 @@ import {
   verifyTaxCalculationFacts,
   type TaxAccountState,
 } from '../../../src/modules/billing/tax.policy.js';
-import { reconcileStripeWebhookEvent } from '../../../src/modules/billing/provider-reconciler.js';
+import {
+  reconcileStripeWebhookEvent,
+  reconcileVerifiedRefundFact,
+  StripeWebhookQuarantineError,
+} from '../../../src/modules/billing/provider-reconciler.js';
 import { createTestApp } from '../../helpers/test-app.js';
 import {
   addMemberDirectly,
@@ -608,6 +612,165 @@ describe('SaaS billing history API (10-15)', () => {
     });
 
     expect(response.statusCode).toBe(422);
+  });
+});
+
+describe('Verified provider refund history (10-17)', () => {
+  async function createTenantWithInvoice() {
+    const { token } = await createVerifiedUser();
+    const { orgId } = await createOrgWithAdmin(app, token);
+    const customerId = `cus_refund_${crypto.randomUUID()}`;
+    const subscriptionId = `sub_refund_${crypto.randomUUID()}`;
+    const invoiceId = `in_refund_${crypto.randomUUID()}`;
+    const invoiceRowId = crypto.randomUUID();
+    await getDb().execute(sql`
+      INSERT INTO app.saas_customers (id, organization_id, stripe_mode, stripe_customer_id)
+      VALUES (${crypto.randomUUID()}, ${orgId}, 'test', ${customerId})
+    `);
+    await getDb().execute(sql`
+      INSERT INTO app.saas_subscriptions (
+        id, organization_id, plan_id, price_version_id, interval, status,
+        is_current, current_period_start, current_period_end, cancel_at_period_end,
+        stripe_customer_id, stripe_subscription_id, stripe_price_id
+      ) VALUES (
+        ${crypto.randomUUID()}, ${orgId}, 'professional', 'pro_month_v1', 'month',
+        'ACTIVE', true, now(), now() + interval '30 days', false,
+        ${customerId}, ${subscriptionId}, 'price_pro_month_v1'
+      )
+    `);
+    await getDb().execute(sql`
+      INSERT INTO app.saas_invoices (
+        id, organization_id, stripe_mode, stripe_invoice_id, stripe_customer_id,
+        stripe_subscription_id, invoice_number, status, amount_due_cents,
+        amount_paid_cents, currency, period_start, period_end, hosted_invoice_url,
+        invoice_pdf_url, provider_event_created_at
+      ) VALUES (
+        ${invoiceRowId}, ${orgId}, 'test', ${invoiceId}, ${customerId},
+        ${subscriptionId}, ${`SaaS-${invoiceId}`}, 'PAID', 1299, 1299, 'usd',
+        now(), now() + interval '30 days', 'https://invoice.stripe.test/hosted',
+        'https://invoice.stripe.test/pdf', now()
+      )
+    `);
+    return { organizationId: orgId, customerId, subscriptionId, invoiceId, invoiceRowId };
+  }
+
+  function refundFact(
+    tenant: { customerId: string; invoiceId: string },
+    overrides: Partial<Parameters<typeof reconcileVerifiedRefundFact>[0]> = {},
+  ) {
+    return {
+      stripeMode: 'test' as const,
+      stripeRefundId: `re_${crypto.randomUUID()}`,
+      stripeInvoiceId: tenant.invoiceId,
+      stripeCustomerId: tenant.customerId,
+      sourceEventId: `evt_refund_${crypto.randomUUID()}`,
+      amountCents: 500,
+      currency: 'usd',
+      status: 'succeeded' as const,
+      providerEventCreatedAt: new Date('2026-01-10T00:00:00.000Z'),
+      ...overrides,
+    };
+  }
+
+  async function countRows(table: 'app.saas_refunds' | 'app.saas_refund_events', where: string) {
+    const rows = await getDb().execute(
+      sql.raw(`SELECT count(*)::int AS n FROM ${table} WHERE ${where}`),
+    );
+    return Number((rows[0] as { n: number }).n);
+  }
+
+  it('persists a verified refund fact against the stored tenant invoice', async () => {
+    const tenant = await createTenantWithInvoice();
+    const fact = refundFact(tenant);
+
+    await reconcileVerifiedRefundFact(fact);
+
+    const rows = await getDb().execute(sql`
+      SELECT organization_id AS "organizationId", saas_invoice_id AS "saasInvoiceId",
+        amount_cents AS "amountCents", status
+      FROM app.saas_refunds WHERE stripe_refund_id = ${fact.stripeRefundId}
+    `);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      organizationId: tenant.organizationId,
+      saasInvoiceId: tenant.invoiceRowId,
+      amountCents: 500,
+      status: 'succeeded',
+    });
+  });
+
+  it('replays the same provider event without duplicating refund history', async () => {
+    const tenant = await createTenantWithInvoice();
+    const fact = refundFact(tenant);
+
+    await reconcileVerifiedRefundFact(fact);
+    await reconcileVerifiedRefundFact(fact);
+
+    expect(await countRows('app.saas_refunds', `stripe_refund_id = '${fact.stripeRefundId}'`)).toBe(1);
+    expect(await countRows('app.saas_refund_events', `source_event_id = '${fact.sourceEventId}'`)).toBe(1);
+  });
+
+  it('applies only monotonic newer provider facts to the same refund', async () => {
+    const tenant = await createTenantWithInvoice();
+    const newer = refundFact(tenant, {
+      status: 'succeeded',
+      providerEventCreatedAt: new Date('2026-01-12T00:00:00.000Z'),
+    });
+    const stale = refundFact(tenant, {
+      stripeRefundId: newer.stripeRefundId,
+      sourceEventId: `evt_refund_${crypto.randomUUID()}`,
+      status: 'pending',
+      providerEventCreatedAt: new Date('2026-01-11T00:00:00.000Z'),
+    });
+
+    await reconcileVerifiedRefundFact(newer);
+    await reconcileVerifiedRefundFact(stale);
+
+    const rows = await getDb().execute(sql`
+      SELECT status FROM app.saas_refunds WHERE stripe_refund_id = ${newer.stripeRefundId}
+    `);
+    expect(rows[0]).toMatchObject({ status: 'succeeded' });
+  });
+
+  it('rejects a refund whose invoice does not belong to the customer tenant', async () => {
+    const tenantA = await createTenantWithInvoice();
+    const tenantB = await createTenantWithInvoice();
+    const mismatched = refundFact(tenantA, { stripeInvoiceId: tenantB.invoiceId });
+
+    await expect(reconcileVerifiedRefundFact(mismatched)).rejects.toBeInstanceOf(
+      StripeWebhookQuarantineError,
+    );
+    expect(
+      await countRows('app.saas_refunds', `stripe_refund_id = '${mismatched.stripeRefundId}'`),
+    ).toBe(0);
+  });
+
+  it('quarantines a refund for an unknown customer association without writing history', async () => {
+    const tenant = await createTenantWithInvoice();
+    const unknown = refundFact(tenant, { stripeCustomerId: `cus_unknown_${crypto.randomUUID()}` });
+
+    await expect(reconcileVerifiedRefundFact(unknown)).rejects.toMatchObject({
+      code: 'CUSTOMER_ASSOCIATION_NOT_FOUND',
+    });
+    expect(
+      await countRows('app.saas_refunds', `stripe_refund_id = '${unknown.stripeRefundId}'`),
+    ).toBe(0);
+  });
+
+  it('never changes subscription or entitlement state when recording a refund', async () => {
+    const tenant = await createTenantWithInvoice();
+    const before = await getDb().execute(sql`
+      SELECT status, is_current AS "isCurrent", cancel_at_period_end AS "cancelAtPeriodEnd"
+      FROM app.saas_subscriptions WHERE organization_id = ${tenant.organizationId}
+    `);
+
+    await reconcileVerifiedRefundFact(refundFact(tenant, { status: 'failed' }));
+
+    const after = await getDb().execute(sql`
+      SELECT status, is_current AS "isCurrent", cancel_at_period_end AS "cancelAtPeriodEnd"
+      FROM app.saas_subscriptions WHERE organization_id = ${tenant.organizationId}
+    `);
+    expect(after).toEqual(before);
   });
 });
 

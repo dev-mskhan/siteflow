@@ -1,0 +1,52 @@
+{
+  "plan": "10-17",
+  "title": "Persist verified provider refund history as SaaS billing facts",
+  "verifyCommand": "pnpm --filter @siteflow/server exec vitest run tests/integration/billing/invoices-tax-refunds.test.ts",
+  "results": {
+    "integrationFile": {
+      "file": "apps/server/tests/integration/billing/invoices-tax-refunds.test.ts",
+      "passed": 18,
+      "failed": 0,
+      "refundHistoryTests_10_17": {
+        "passed": 6,
+        "failed": 0,
+        "cases": [
+          "persists a verified refund fact against the stored tenant invoice",
+          "replays the same provider event without duplicating refund history",
+          "applies only monotonic newer provider facts to the same refund",
+          "rejects a refund whose invoice does not belong to the customer tenant",
+          "quarantines a refund for an unknown customer association without writing history",
+          "never changes subscription or entitlement state when recording a refund"
+        ]
+      }
+    },
+    "migration": {
+      "file": "packages/database/drizzle/0049_saas_refund_history.sql",
+      "appliedTo": {
+        "siteflow_test": "applied; app.saas_refunds and app.saas_refund_events present",
+        "siteflow": "applied; app.saas_refunds and app.saas_refund_events present"
+      },
+      "journal": "not registered in Drizzle journal (same convention as 0048)"
+    },
+    "build": {
+      "command": "pnpm --filter @siteflow/database build",
+      "result": "success"
+    },
+    "typecheck": {
+      "command": "pnpm --filter @siteflow/server exec tsc --noEmit -p tsconfig.json",
+      "changedFileErrors": 0,
+      "totalErrors": 11,
+      "note": "Remaining 11 errors are pre-existing in catalog.service.ts, invoice.routes.ts, trial.routes.ts and were not modified."
+    }
+  },
+  "unverified": [
+    {
+      "item": "Live Stripe refund webhook events (charge.refunded / refund.updated) delivered to /api/v1/webhooks/stripe",
+      "reason": "Refund event types are not in the webhook allowlist and the Stripe SDK/event path is gated by Plan 10-10 and 10-STRIPE-SDK-APPROVAL.md. Dispatch function reconcileVerifiedRefundFact is proven by integration tests only; no live event is wired."
+    },
+    {
+      "item": "Refund initiation or mutation route",
+      "reason": "OPT-OUT. No existing privileged supra-org staff authority is source-verified (permissions.seed.ts has only billing:read and billing:manage; Platform Admin is Phase 2+ and unimplemented). No mutation route was registered."
+    }
+  ]
+}
