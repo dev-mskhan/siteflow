@@ -7,6 +7,7 @@ import {
   StripeWebhookSignatureError,
   validateStripeEnvironment,
   type StripeEnvironment,
+  type StripePortalConfigurationSnapshot,
   type StripeSdkClient,
 } from '../../../src/modules/billing/stripe.adapter.js';
 
@@ -47,6 +48,32 @@ function createClient() {
       },
     },
     billingPortal: {
+      configurations: {
+        retrieve: vi
+          .fn<StripeSdkClient['billingPortal']['configurations']['retrieve']>()
+          .mockResolvedValue({
+            id: 'bpc_test_1',
+            active: true,
+            features: {
+              payment_method_update: { enabled: true },
+              invoice_history: { enabled: true },
+              customer_update: { enabled: false, allowed_updates: [] },
+              subscription_update: {
+                enabled: false,
+                default_allowed_updates: [],
+                products: [],
+                proration_behavior: 'none',
+                schedule_at_period_end: { conditions: [] },
+              },
+              subscription_cancel: {
+                enabled: false,
+                cancellation_reason: { enabled: false, options: [] },
+                mode: 'at_period_end',
+                proration_behavior: 'none',
+              },
+            },
+          }),
+      },
       sessions: {
         create: vi.fn<StripeSdkClient['billingPortal']['sessions']['create']>().mockResolvedValue({
           id: 'bps_test_1',
@@ -196,6 +223,7 @@ describe('StripeAdapter', () => {
     };
     const portalParams: Stripe.BillingPortal.SessionCreateParams = {
       customer: 'cus_test_1',
+      configuration: 'bpc_test_1',
       return_url: 'https://siteflow.example.test/billing',
     };
     const taxParams: Stripe.Tax.CalculationCreateParams = {
@@ -223,6 +251,9 @@ describe('StripeAdapter', () => {
       idempotencyKey: 'checkout-idempotency-key',
     });
     expect(client.billingPortal.sessions.create).toHaveBeenCalledWith(portalParams);
+    expect(client.billingPortal.configurations.retrieve).toHaveBeenCalledWith(
+      'bpc_test_1',
+    );
     expect(client.subscriptions.update).toHaveBeenCalledWith(
       'sub_test_1',
       { cancel_at_period_end: true },
@@ -232,6 +263,97 @@ describe('StripeAdapter', () => {
       idempotencyKey: 'tax-idempotency-key',
     });
     expect(clientFactory).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed before Portal session creation unless the active configuration allows only payment methods and invoices', async () => {
+    const { client } = createClient();
+    const adapter = new StripeAdapter(testEnvironment, () => client);
+    const params: Stripe.BillingPortal.SessionCreateParams = {
+      customer: 'cus_test_1',
+      configuration: 'bpc_test_1',
+      return_url: 'https://siteflow.example.test/billing',
+    };
+
+    await adapter.createPortalSession(params);
+    expect(client.billingPortal.sessions.create).toHaveBeenCalledWith(params);
+    const restrictedConfiguration =
+      await client.billingPortal.configurations.retrieve('bpc_test_1');
+    vi.mocked(client.billingPortal.configurations.retrieve).mockResolvedValue({
+      ...restrictedConfiguration,
+      features: {
+        ...restrictedConfiguration.features,
+        subscription_update: {
+          ...restrictedConfiguration.features.subscription_update,
+          enabled: true,
+        },
+      },
+    });
+    await expect(adapter.createPortalSession(params)).rejects.toMatchObject({
+      code: 'STRIPE_CONFIGURATION_ERROR',
+    });
+    expect(client.billingPortal.sessions.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects cancellation, customer updates, disabled payment/invoice features, and unknown Portal features', async () => {
+    const { client } = createClient();
+    const adapter = new StripeAdapter(testEnvironment, () => client);
+    const params: Stripe.BillingPortal.SessionCreateParams = {
+      customer: 'cus_test_1',
+      configuration: 'bpc_test_1',
+      return_url: 'https://siteflow.example.test/billing',
+    };
+    const configuration =
+      await client.billingPortal.configurations.retrieve('bpc_test_1');
+    const safeFeatures = configuration.features;
+    const unsafeFeatureSets: Array<{
+      features: StripePortalConfigurationSnapshot['features'];
+    }> = [
+      {
+        features: {
+          ...safeFeatures,
+          payment_method_update: { enabled: false },
+        },
+      },
+      {
+        features: {
+          ...safeFeatures,
+          invoice_history: { enabled: false },
+        },
+      },
+      {
+        features: {
+          ...safeFeatures,
+          customer_update: { ...safeFeatures.customer_update, enabled: true },
+        },
+      },
+      {
+        features: {
+          ...safeFeatures,
+          subscription_cancel: {
+            ...safeFeatures.subscription_cancel,
+            enabled: true,
+          },
+        },
+      },
+      {
+        features: {
+          ...safeFeatures,
+          subscription_pause: { enabled: true },
+        } as StripePortalConfigurationSnapshot['features'],
+      },
+    ];
+
+    for (const unsafe of unsafeFeatureSets) {
+      vi.mocked(client.billingPortal.configurations.retrieve).mockResolvedValue({
+        ...configuration,
+        ...unsafe,
+      });
+      await expect(adapter.createPortalSession(params)).rejects.toMatchObject({
+        code: 'STRIPE_CONFIGURATION_ERROR',
+      });
+    }
+
+    expect(client.billingPortal.sessions.create).not.toHaveBeenCalled();
   });
 
   it('verifies signed webhook payloads and maps signature failures to a safe error', () => {

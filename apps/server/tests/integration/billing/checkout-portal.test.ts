@@ -224,7 +224,7 @@ describe('SaaS Billing — Restricted Customer Portal (10-13)', () => {
       headers: { authorization: `Bearer ${token}` },
     });
 
-    expect(response.statusCode, JSON.stringify(response.json())).toBe(201);
+    expect(response.statusCode).toBe(201);
     expect(response.json().data.portalUrl).toBe(
       'https://billing.example.test/portal-session',
     );
@@ -332,5 +332,24 @@ describe('SaaS Billing — Restricted Customer Portal (10-13)', () => {
 
     expect(response.statusCode).toBe(422);
     expect(createPortalSession).not.toHaveBeenCalled();
+  });
+
+  it('publishes the restricted Portal endpoint and response contract in OpenAPI', async () => {
+    const response = await app.inject({ method: 'GET', url: '/docs/json' });
+
+    expect(response.statusCode).toBe(200);
+    const specification = response.json();
+    const portalPath = Object.keys(specification.paths).find((path) =>
+      path.endsWith('/billing/portal'),
+    );
+    expect(portalPath).toBe('/api/v1/organizations/{organizationId}/billing/portal');
+    expect(specification.paths[portalPath!].post.summary).toContain(
+      'restricted SaaS Customer Portal',
+    );
+    expect(
+      specification.paths[portalPath!].post.responses['201'].content[
+        'application/json'
+      ].schema.properties.data.properties.portalUrl,
+    ).toMatchObject({ type: 'string', format: 'uri' });
   });
 });

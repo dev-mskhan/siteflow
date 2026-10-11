@@ -5,6 +5,7 @@ export interface StripeEnvironment {
   STRIPE_MODE: 'test' | 'live';
   STRIPE_TEST_SECRET_KEY?: string;
   STRIPE_LIVE_SECRET_KEY?: string;
+  STRIPE_PORTAL_CONFIGURATION_ID?: string;
   STRIPE_TEST_WEBHOOK_SECRET?: string;
   STRIPE_LIVE_WEBHOOK_SECRET?: string;
 }
@@ -13,6 +14,10 @@ export type StripeCustomerRef = Pick<Stripe.Customer, 'id'>;
 export type StripeDeletedCustomerRef = Pick<Stripe.DeletedCustomer, 'id' | 'deleted'>;
 export type StripeCheckoutSessionRef = Pick<Stripe.Checkout.Session, 'id' | 'url'>;
 export type StripePortalSessionRef = Pick<Stripe.BillingPortal.Session, 'id' | 'url'>;
+export type StripePortalConfigurationSnapshot = Pick<
+  Stripe.BillingPortal.Configuration,
+  'id' | 'active' | 'features'
+>;
 export type StripeSubscriptionSnapshot = Pick<
   Stripe.Subscription,
   'id' | 'status' | 'current_period_start' | 'current_period_end' | 'cancel_at_period_end' | 'customer'
@@ -56,6 +61,9 @@ export interface StripeSdkClient {
     };
   };
   billingPortal: {
+    configurations: {
+      retrieve(id: string): Promise<StripePortalConfigurationSnapshot>;
+    };
     sessions: {
       create(
         params: Stripe.BillingPortal.SessionCreateParams,
@@ -244,7 +252,36 @@ export class StripeAdapter {
   async createPortalSession(
     params: Stripe.BillingPortal.SessionCreateParams,
   ): Promise<StripePortalSessionRef> {
+    const configurationId = params.configuration;
+    if (!configurationId) {
+      throw new StripeConfigurationError();
+    }
+
     const { client } = this.getConfiguredClient();
+    const configuration = await this.providerRequest(() =>
+      client.billingPortal.configurations.retrieve(configurationId),
+    );
+    const { features } = configuration;
+    const supportedFeatures = [
+      'customer_update',
+      'invoice_history',
+      'payment_method_update',
+      'subscription_cancel',
+      'subscription_update',
+    ];
+    if (
+      Object.keys(features).length !== supportedFeatures.length ||
+      supportedFeatures.some((feature) => !(feature in features)) ||
+      !configuration.active ||
+      features.payment_method_update.enabled !== true ||
+      features.invoice_history.enabled !== true ||
+      features.customer_update.enabled !== false ||
+      features.subscription_update.enabled !== false ||
+      features.subscription_cancel.enabled !== false
+    ) {
+      throw new StripeConfigurationError();
+    }
+
     return this.providerRequest(() => client.billingPortal.sessions.create(params));
   }
 
