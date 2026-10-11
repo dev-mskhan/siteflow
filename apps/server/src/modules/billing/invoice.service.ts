@@ -80,7 +80,7 @@ export class InvoiceService {
         status: attempt.status,
         amountCents: attempt.amountCents,
         currency: attempt.currency,
-        attemptedAt: attempt.createdAt.toISOString(),
+        attemptedAt: new Date(attempt.createdAt).toISOString(),
       })),
     }));
   }

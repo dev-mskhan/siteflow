@@ -594,6 +594,6 @@ describe('SaaS billing history API (10-15)', () => {
       headers: { authorization: `Bearer ${admin.token}` },
     });
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(422);
   });
 });
