@@ -184,7 +184,7 @@ Plans:
 - [ ] 10-03-PLAN.md — Verify Stripe SDK legitimacy before installation
 - [ ] 10-04-PLAN.md — Tracer: provision and read an organization trial end-to-end
 - [ ] 10-05-PLAN.md — Expand the versioned catalog, subscription lifecycle, and entitlements
-- [ ] 10-11-PLAN.md — Enforce approved entitlements atomically in PostgreSQL
+- [x] 10-11-PLAN.md — Enforce approved entitlements atomically in PostgreSQL
 - [ ] 10-06-PLAN.md — Integrate hosted Checkout and restricted Customer Portal
 - [ ] 10-12-PLAN.md — Create permission-checked hosted Checkout
 - [ ] 10-13-PLAN.md — Restrict hosted Customer Portal features

@@ -78,6 +78,18 @@ describe('Invitations Routes — comprehensive integration', () => {
     orgBId = orgBResult.orgId;
     orgBRoleMap = orgBResult.roleMap;
 
+    for (const [organizationId, token] of [
+      [orgAId, adminAToken],
+      [orgBId, adminBToken],
+    ]) {
+      const trial = await app.inject({
+        method: 'POST',
+        url: `/api/v1/organizations/${organizationId}/billing/trial`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(trial.statusCode).toBe(201);
+    }
+
     // userC — fresh user, not in any org
     userCEmail = `inv_userc_${runId}@test.dev`;
     const userCResult = await createVerifiedUser({ email: userCEmail });

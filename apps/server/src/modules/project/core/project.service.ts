@@ -11,6 +11,7 @@ import { ProjectMemberRepository } from '../members/project-member.repository.js
 import { ProjectSettingsRepository } from '../settings/project-settings.repository.js';
 import { ProjectCacheService } from './project.cache.service.js';
 import { ProjectForbiddenError } from './project.errors.js';
+import { entitlementService } from '../../billing/entitlement.service.js';
 import { toProjectDTO } from './project.mapper.js';
 import { PROJECT_QUEUES } from './project.jobs.js';
 import type {
@@ -52,6 +53,9 @@ export class ProjectService {
       logger.info({ orgId, actorUserId }, 'Creating new project');
 
       const project = await this.db.transaction(async (tx) => {
+        // 0. Entitlement gate — enforce activeProjects limit atomically before insert (D-04, Plan 11)
+        await entitlementService.assertCanCreateProject(orgId, tx);
+
         // 1. Allocate project number
         const projectNumber = await this.projectRepo.generateProjectNumber(tx, orgId);
 

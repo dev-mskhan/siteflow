@@ -14,9 +14,10 @@ import { ORG_QUEUES } from './invitation.jobs.js';
 import { NotFoundError, ConflictError, ValidationError } from './invitation.errors.js';
 import type { InvitationDTO, CreateInvitationInput } from './invitation.types.js';
 import type { OrganizationContext } from '../rbac/rbac.types.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gt } from 'drizzle-orm';
 import type { Invitation } from '@siteflow/database/schema';
-import { organizationMemberships, users, roles } from '@siteflow/database/schema';
+import { invitations, organizationMemberships, users, roles } from '@siteflow/database/schema';
+import { entitlementService } from '../billing/entitlement.service.js';
 
 const logger = createLogger({ name: 'invitation-service' });
 const tracer = trace.getTracer('invitation-service');
@@ -98,6 +99,8 @@ export class InvitationService {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
       const created = await this.db.transaction(async (tx) => {
+        await entitlementService.assertCanInviteMember(orgId, tx);
+
         // Create Invitation row
         const invite = await this.repo.create(
           {
@@ -179,6 +182,16 @@ export class InvitationService {
       }
 
       await this.db.transaction(async (tx) => {
+        await entitlementService.lockOrganizationUsage(orgId, tx);
+        const currentInvite = await tx
+          .select({ status: invitations.status })
+          .from(invitations)
+          .where(and(eq(invitations.id, invitationId), eq(invitations.organizationId, orgId)))
+          .limit(1);
+        if (currentInvite[0]?.status !== 'PENDING') {
+          throw new ValidationError('Only pending invitations can be cancelled');
+        }
+
         await this.repo.updateStatus(invitationId, 'CANCELLED', tx);
         await auditService.log(
           {
@@ -234,6 +247,23 @@ export class InvitationService {
       }
 
       await this.db.transaction(async (tx) => {
+        await entitlementService.assertCanAcceptInvitation(invite.organizationId, invite.id, tx);
+        const currentInvite = await tx
+          .select({ id: invitations.id })
+          .from(invitations)
+          .where(
+            and(
+              eq(invitations.id, invite.id),
+              eq(invitations.organizationId, invite.organizationId),
+              eq(invitations.status, 'PENDING'),
+              gt(invitations.expiresAt, new Date()),
+            ),
+          )
+          .limit(1);
+        if (!currentInvite[0]) {
+          throw new ValidationError('Invitation is no longer pending or has expired');
+        }
+
         // 1. Create Organization Membership
         await tx.insert(organizationMemberships).values({
           id: generateId(),
