@@ -26,8 +26,10 @@ const webhookRoutes: FastifyPluginAsync = async (app) => {
     (_request, body, done) => done(null, body),
   );
 
+  // Stripe's dashboard endpoint may target /payment; both paths share one handler.
+  const registerStripeWebhook = (path: string) =>
   app.post(
-    '/stripe',
+    path,
     {
       attachValidation: true,
       bodyLimit: serverEnv.BODY_LIMIT_BYTES,
@@ -120,6 +122,9 @@ const webhookRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(200).send({ received: true });
     },
   );
+
+  registerStripeWebhook('/stripe');
+  registerStripeWebhook('/payment');
 };
 
 export { webhookRoutes };
