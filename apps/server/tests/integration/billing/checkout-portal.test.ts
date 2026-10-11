@@ -10,17 +10,17 @@ import { catalogRepository } from '../../../src/modules/billing/catalog.reposito
 import { customerRepository } from '../../../src/modules/billing/customer.repository.js';
 import { stripeAdapter } from '../../../src/modules/billing/stripe.adapter.js';
 
+let app: FastifyInstance;
+
+beforeAll(async () => {
+  app = await createTestApp();
+}, 30_000);
+
+afterAll(async () => {
+  await app.close();
+}, 30_000);
+
 describe('SaaS Billing — Hosted Checkout (10-12)', () => {
-  let app: FastifyInstance;
-
-  beforeAll(async () => {
-    app = await createTestApp();
-  });
-
-  afterAll(async () => {
-    await app.close();
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -191,5 +191,146 @@ describe('SaaS Billing — Hosted Checkout (10-12)', () => {
       }),
       expect.any(String),
     );
+  });
+});
+
+describe('SaaS Billing — Restricted Customer Portal (10-13)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function createOrganization() {
+    const { user: admin, token } = await createVerifiedUser();
+    const { orgId, roleMap } = await createOrgWithAdmin(app, token);
+    return { admin, token, orgId, roleMap };
+  }
+
+  function mockPortalSession() {
+    return vi.spyOn(stripeAdapter, 'createPortalSession').mockResolvedValue({
+      id: 'bps_portal_fixture',
+      url: 'https://billing.example.test/portal-session',
+    });
+  }
+
+  it('creates a Portal session using only the authenticated organization customer association', async () => {
+    const { token, orgId } = await createOrganization();
+    await customerRepository.createOrGet(orgId, 'test', `cus_portal_${orgId}`);
+    const createPortalSession = mockPortalSession();
+    const createCustomer = vi.spyOn(stripeAdapter, 'createCustomer');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/organizations/${orgId}/billing/portal`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode, JSON.stringify(response.json())).toBe(201);
+    expect(response.json().data.portalUrl).toBe(
+      'https://billing.example.test/portal-session',
+    );
+    expect(createPortalSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: `cus_portal_${orgId}`,
+        configuration: 'bpc_test_portal',
+        return_url: expect.stringContaining(`/billing?organizationId=${orgId}`),
+      }),
+    );
+    expect(createCustomer).not.toHaveBeenCalled();
+    expect(response.json().data).not.toHaveProperty('customerId');
+  });
+
+  it('rejects unauthenticated Portal requests before any provider session is created', async () => {
+    const { orgId } = await createOrganization();
+    await customerRepository.createOrGet(orgId, 'test', `cus_portal_${orgId}`);
+    const createPortalSession = mockPortalSession();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/organizations/${orgId}/billing/portal`,
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(createPortalSession).not.toHaveBeenCalled();
+  });
+
+  it('denies Finance with billing:read but not billing:manage before creating a Portal session', async () => {
+    const { orgId, roleMap } = await createOrganization();
+    const { user: financeUser, token: financeToken } = await createVerifiedUser();
+    await addMemberDirectly(orgId, financeUser.id, roleMap.get('Finance')!);
+    await customerRepository.createOrGet(orgId, 'test', `cus_portal_${orgId}`);
+    const createPortalSession = mockPortalSession();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/organizations/${orgId}/billing/portal`,
+      headers: { authorization: `Bearer ${financeToken}` },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(createPortalSession).not.toHaveBeenCalled();
+  });
+
+  it('denies a caller using another organization identifier before provider access', async () => {
+    const owner = await createOrganization();
+    const foreign = await createOrganization();
+    await customerRepository.createOrGet(
+      foreign.orgId,
+      'test',
+      `cus_portal_${foreign.orgId}`,
+    );
+    const createPortalSession = mockPortalSession();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/organizations/${foreign.orgId}/billing/portal`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(createPortalSession).not.toHaveBeenCalled();
+  });
+
+  it('does not create a Stripe customer when the organization has no persisted association', async () => {
+    const { token, orgId } = await createOrganization();
+    const createPortalSession = mockPortalSession();
+    const createCustomer = vi.spyOn(stripeAdapter, 'createCustomer');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/organizations/${orgId}/billing/portal`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(createPortalSession).not.toHaveBeenCalled();
+    expect(createCustomer).not.toHaveBeenCalled();
+  });
+
+  it('does not use a customer association from the other Stripe mode', async () => {
+    const { token, orgId } = await createOrganization();
+    await customerRepository.createOrGet(orgId, 'live', `cus_live_portal_${orgId}`);
+    const createPortalSession = mockPortalSession();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/organizations/${orgId}/billing/portal`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(createPortalSession).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed organization identifier before provider access', async () => {
+    const createPortalSession = mockPortalSession();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/organizations/not-a-uuid/billing/portal',
+      headers: { authorization: 'Bearer invalid-but-authentication-is-not-reached' },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(createPortalSession).not.toHaveBeenCalled();
   });
 });
