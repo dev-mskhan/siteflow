@@ -139,6 +139,47 @@ describe('StripeAdapter', () => {
     ).toThrow(StripeConfigurationError);
   });
 
+  it('rejects blank idempotency keys before sending provider mutations', async () => {
+    const { client } = createClient();
+    const adapter = new StripeAdapter(testEnvironment, () => client);
+
+    await expect(
+      adapter.createCustomer(
+        { metadata: { organizationId: 'org_test_1' } },
+        '  ',
+      ),
+    ).rejects.toMatchObject({
+      code: 'STRIPE_IDEMPOTENCY_KEY_REQUIRED',
+    });
+    await expect(
+      adapter.createCheckoutSession(
+        {
+          mode: 'subscription',
+          line_items: [],
+          success_url: 'https://siteflow.example.test/billing/success',
+          cancel_url: 'https://siteflow.example.test/billing/cancel',
+        },
+        '',
+      ),
+    ).rejects.toMatchObject({
+      code: 'STRIPE_IDEMPOTENCY_KEY_REQUIRED',
+    });
+    await expect(
+      adapter.updateSubscription('sub_test_1', { cancel_at_period_end: true }, ' \t'),
+    ).rejects.toMatchObject({
+      code: 'STRIPE_IDEMPOTENCY_KEY_REQUIRED',
+    });
+    await expect(
+      adapter.createTaxCalculation({ currency: 'usd', line_items: [] }, ' '),
+    ).rejects.toMatchObject({
+      code: 'STRIPE_IDEMPOTENCY_KEY_REQUIRED',
+    });
+    expect(client.customers.create).not.toHaveBeenCalled();
+    expect(client.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(client.subscriptions.update).not.toHaveBeenCalled();
+    expect(client.tax.calculations.create).not.toHaveBeenCalled();
+  });
+
   it('delegates provider operations through the selected client with SDK idempotency options', async () => {
     const { client } = createClient();
     const clientFactory = vi.fn(() => client);

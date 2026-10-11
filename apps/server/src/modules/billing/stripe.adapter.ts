@@ -107,6 +107,15 @@ export class StripeProviderError extends Error {
   }
 }
 
+export class StripeIdempotencyKeyError extends Error {
+  readonly code = 'STRIPE_IDEMPOTENCY_KEY_REQUIRED';
+
+  constructor() {
+    super('A Stripe idempotency key is required');
+    this.name = 'StripeIdempotencyKeyError';
+  }
+}
+
 export class StripeWebhookSignatureError extends Error {
   readonly code = 'STRIPE_WEBHOOK_SIGNATURE_INVALID';
 
@@ -197,10 +206,17 @@ export class StripeAdapter {
     }
   }
 
+  private requireIdempotencyKey(idempotencyKey: string): void {
+    if (!idempotencyKey.trim()) {
+      throw new StripeIdempotencyKeyError();
+    }
+  }
+
   async createCustomer(
     params: Stripe.CustomerCreateParams,
     idempotencyKey: string,
   ): Promise<StripeCustomerRef> {
+    this.requireIdempotencyKey(idempotencyKey);
     const { client } = this.getConfiguredClient();
     return this.providerRequest(() =>
       client.customers.create(params, { idempotencyKey }),
@@ -218,6 +234,7 @@ export class StripeAdapter {
     params: Stripe.Checkout.SessionCreateParams,
     idempotencyKey: string,
   ): Promise<StripeCheckoutSessionRef> {
+    this.requireIdempotencyKey(idempotencyKey);
     const { client } = this.getConfiguredClient();
     return this.providerRequest(() =>
       client.checkout.sessions.create(params, { idempotencyKey }),
@@ -243,6 +260,7 @@ export class StripeAdapter {
     params: Stripe.SubscriptionUpdateParams,
     idempotencyKey: string,
   ): Promise<StripeSubscriptionSnapshot> {
+    this.requireIdempotencyKey(idempotencyKey);
     const { client } = this.getConfiguredClient();
     return this.providerRequest(() =>
       client.subscriptions.update(subscriptionId, params, { idempotencyKey }),
@@ -258,6 +276,7 @@ export class StripeAdapter {
     params: Stripe.Tax.CalculationCreateParams,
     idempotencyKey: string,
   ): Promise<StripeTaxCalculationSnapshot> {
+    this.requireIdempotencyKey(idempotencyKey);
     const { client } = this.getConfiguredClient();
     return this.providerRequest(() =>
       client.tax.calculations.create(params, { idempotencyKey }),
