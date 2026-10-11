@@ -47,6 +47,8 @@ export const SYSTEM_PERMISSIONS = [
   'document:upload',
   'payment:approve',
   'change_order:approve',
+  'billing:read',
+  'billing:manage',
 ] as const;
 
 export type PermissionKey = (typeof SYSTEM_PERMISSIONS)[number];
@@ -83,6 +85,8 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'document:upload',
     'payment:approve',
     'change_order:approve',
+    'billing:read',
+    'billing:manage',
   ],
   'Project Manager': [
     'organization:read',
@@ -102,6 +106,7 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'task:update:own',
     'document:read',
     'payment:approve',
+    'billing:read',
   ],
   Procurement: [
     'organization:read',

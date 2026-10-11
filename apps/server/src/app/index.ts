@@ -25,6 +25,7 @@ import { supplierRoutes } from '../modules/supplier/supplier.routes.js';
 import { materialRoutes } from '../modules/material/material.routes.js';
 import { reportRoutes } from '../modules/reporting/report.routes.js';
 import { exportRoutes } from '../modules/reporting/exports/export.routes.js';
+import { trialRoutes } from '../modules/billing/trial.routes.js';
 
 /**
  * Creates and configures the Fastify application instance.
@@ -144,6 +145,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'reporting', description: 'Project and portfolio reporting engines' },
         { name: 'exports', description: 'Report export generation and presigned downloads' },
         { name: 'notifications', description: 'Notifications, channels, preferences, and realtime streams' },
+        { name: 'billing', description: 'SaaS Billing, subscriptions, and trials' },
       ],
     },
   });
@@ -183,6 +185,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(materialRoutes, { prefix: '/api/v1/organizations' });
   await app.register(reportRoutes, { prefix: '/api/v1/organizations' });
   await app.register(exportRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(trialRoutes, { prefix: '/api/v1/organizations' });
 
   // ─── Realtime SSE Notifications ─────────────────────────────────────────────
   const { realtimePlugin } = await import('../modules/notification/realtime/realtime.plugin.js');

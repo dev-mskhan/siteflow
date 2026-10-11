@@ -75,4 +75,7 @@ export * from './reporting/index.js';
 export * from './modules/notification/notification.schema.js';
 export * from './modules/notification/notification-preference.schema.js';
 
+// ─── SaaS Billing ─────────────────────────────────────────────────────────────
+export * from './modules/billing/trial.schema.js';
+
 
