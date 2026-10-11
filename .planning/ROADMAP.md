@@ -159,3 +159,46 @@ Expected capability areas:
 - PostgreSQL and authoritative domain services remain the source of truth. Cache only after measured need.
 - Resolve export sync/async thresholds from expected/measured runtime and safe bounded payloads; the approximate 100 ms threshold is a design guide, not a claim about current report performance.
 - Do not add GSD plans for completed phases solely to make their historical implementation appear to have been GSD-managed.
+
+### Phase 10: SaaS Billing & Subscription Management
+
+**Goal:** Build a secure, auditable organization-level SaaS subscription and entitlement backend within SiteFlow’s existing modular monolith. Reconcile the proposed billing specification against the repository’s actual models and patterns; use Stripe as the external commerce processor and PostgreSQL as the authoritative local state. Keep SaaS subscriptions separate from construction finance. Integrate existing authentication, organization permissions, transactions, audit, outbox, workers, and shared validation; document new routes in OpenAPI and maintain source-evidenced Archify diagrams. Require unit, integration, and end-to-end tests where each layer applies, plus security, performance, and project regression checks using `.planning/checklist_when_to_apply.md`. Resolve Stripe dashboard setup with the user before implementation.
+**Requirements:** BILL-01–BILL-11
+**Depends on:** Phase 9
+**Success Criteria** (what must be TRUE):
+  1. Versioned plans, prices, entitlements, trials, and usage limits have explicit server-side rules.
+  2. Subscription lifecycle operations and their policy (trial conversion, change, cancellation, renewal, and recovery) are implemented and auditable.
+  3. Stripe is isolated behind an adapter; checkout redirects never grant access, and signed webhooks use a durable, tenant-safe, deduplicated, retryable inbox.
+  4. Local subscription, invoice, payment-attempt, refund, history, and entitlement state is PostgreSQL-backed and tenant-scoped; construction finance remains a separate domain.
+  5. Entitlements and plan limits are enforced at backend operations, including concurrent limit changes.
+  6. Existing auth, organization/RBAC, audit, transaction/outbox, worker, and shared-validation conventions are reused without spreading Stripe calls through unrelated modules.
+  7. Appropriate unit, integration, and E2E coverage—including Stripe test-mode scenarios—plus lint, typecheck, build, and focused/full regression gates pass.
+  8. New routes have shared runtime validation and OpenAPI/Swagger documentation; Archify diagrams reflect verified runtime behavior.
+  9. Webhook replay, out-of-order delivery, provider outages, retries, and reconciliation have tested recovery behavior.
+**Plans:** 19 plans
+**Tasks:** 27 tasks
+
+Plans:
+- [ ] 10-01-PLAN.md — Capture Phase 9 lint baseline and reconcile migration history before billing schema work
+- [ ] 10-02-PLAN.md — Approve catalog, trial, entitlement, and lifecycle policy inputs
+- [ ] 10-03-PLAN.md — Verify Stripe SDK legitimacy before installation
+- [ ] 10-04-PLAN.md — Tracer: provision and read an organization trial end-to-end
+- [ ] 10-05-PLAN.md — Expand the versioned catalog, subscription lifecycle, and entitlements
+- [ ] 10-11-PLAN.md — Enforce approved entitlements atomically in PostgreSQL
+- [ ] 10-06-PLAN.md — Integrate hosted Checkout and restricted Customer Portal
+- [ ] 10-12-PLAN.md — Create permission-checked hosted Checkout
+- [ ] 10-13-PLAN.md — Restrict hosted Customer Portal features
+- [ ] 10-07-PLAN.md — Build durable signed webhook inbox and provider reconciliation
+- [ ] 10-14-PLAN.md — Recover acknowledged webhook events and reconcile provider state
+- [ ] 10-08-PLAN.md — Persist replay-safe tenant-scoped SaaS invoice and payment history
+- [ ] 10-15-PLAN.md — Expose authorized SaaS invoice history
+- [ ] 10-16-PLAN.md — Integrate conditional Stripe Tax facts
+- [ ] 10-17-PLAN.md — Persist separate refund history and guard mutation authority
+- [ ] 10-09-PLAN.md — Implement lifecycle policy and Phase 10-owned verified grace-reminder delivery
+- [ ] 10-18-PLAN.md — Add permission-checked lifecycle routes
+- [ ] 10-19-PLAN.md — Enforce approved restricted-access operation matrix
+- [ ] 10-10-PLAN.md — Verify provider acceptance, source-evidenced diagrams, and phase gates
+
+**Plan dependencies:** 10-01, 10-02, and 10-03 are prerequisite gates. 10-04 depends on 10-01 and 10-02; 10-05 follows 10-04; 10-11 follows 10-05; 10-06 follows 10-03/10-05; 10-12 follows 10-06/10-11; 10-13 follows 10-12; 10-07 follows 10-13 to serialize registration in `apps/server/src/app/index.ts`; 10-14 follows 10-07; 10-08 follows 10-14; 10-09 follows 10-02/10-08/10-11/10-14 to serialize schema/migration ownership; 10-15 follows 10-08; 10-16 follows 10-06/10-15; 10-17 follows 10-08/10-14/10-16; 10-18 follows 10-09/10-15/10-16 to serialize `stripe.adapter.ts`; 10-19 follows 10-11/10-18; and final gate 10-10 depends on 10-13, 10-17, and 10-19.
+
+**Execution waves:** Wave 1: 10-01, 10-02, 10-03; Wave 2: 10-04; Wave 3: 10-05; Wave 4: 10-06, 10-11; Wave 5: 10-12; Wave 6: 10-13; Wave 7: 10-07; Wave 8: 10-14; Wave 9: 10-08; Wave 10: 10-09, 10-15; Wave 11: 10-16; Wave 12: 10-17, 10-18; Wave 13: 10-19; Wave 14: 10-10.

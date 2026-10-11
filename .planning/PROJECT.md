@@ -27,7 +27,7 @@ Construction teams can coordinate project delivery and understand operational an
 - Phase 8 / Phase F includes the full user-approved F.0–F.18 event, notification, communication, scheduled automation, project/portfolio reporting, API, web, CSV export, and hardening scope recorded in `.planning/phases/08-phase-f-reporting-and-downloads/08-CONTEXT.md`. The latest confirmed export scope is CSV only; PDF and XLSX are deferred.
 - CSV is the only Phase 8 download format; PDF and XLSX are deferred by the user's latest scope decision. Keep small exports synchronous and use existing PgBoss infrastructure for exports expected or measured to exceed the existing ~100 ms-under-load threshold. Use 24-hour artifact retention and 5-minute signed URL expiry, configurable and overridden only when verified deployment policy requires it.
 - Realtime delivery must be implementable unattended: use a compatible existing runtime if F.0 verifies one; otherwise use the smallest viable one-way Fastify transport (SSE preferred), reusing the existing outbox/notification path when sound and rechecking current tenant and permission scope.
-- Platform payment, usage-metering, and subscription models are not part of Phase F. Keep future platform billing possible through clean domain boundaries without implementing speculative models.
+- Platform payment, usage-metering, and subscription models were not part of Phase F (Phase 8); that historical deferral remains accurate. Phase 10 separately supersedes the deferral for its approved organization-level SaaS subscription, payment, invoice, and entitlement scope. Keep this SaaS billing domain separate from construction finance; no Phase 8 scope or status is changed.
 - Detailed metric definitions, filters, role visibility, portfolio rollups, and report layouts are constrained by the Phase 8 context and must use repository evidence; unsupported values remain unavailable rather than being invented.
 
 ## Requirements
@@ -52,7 +52,7 @@ Construction teams can coordinate project delivery and understand operational an
 
 ### Out of Scope
 
-- Implementing platform subscription, usage-metering, or platform payment models in Phase F — explicitly deferred for a future decision.
+- Implementing platform subscription, usage-metering, or platform payment models in Phase F (Phase 8) was explicitly deferred. Phase 10 separately approves organization-level SaaS billing; this does not retroactively alter Phase 8.
 - Rebuilding completed Phase 1/2/3/C/D/E product capabilities as part of GSD setup.
 - Cross-tenant platform reporting in Phase F.
 - Inventing unapproved metric formulas, health scores, forecast rules, or role visibility rules before domain definitions are agreed.
@@ -70,7 +70,7 @@ Construction teams can coordinate project delivery and understand operational an
 | Realtime transport must be autonomous and deliverable; use the simplest viable one-way transport with current authorization checks | Unattended/autopilot execution cannot depend on an unresolved transport decision | Accepted |
 | Use 24-hour artifact retention and 5-minute signed URL expiry unless verified deployment policy requires otherwise | User confirmed configurable lifecycle defaults | Accepted |
 | Use PgBoss for expensive exports; retain synchronous small-export path | Existing queue is the established job infrastructure; checklist uses an approximately 100 ms under-load threshold | Accepted as a planning constraint; benchmark during design |
-| Defer platform usage/payments/subscriptions as models | Future extensibility is desired, but user selected no billing models in Phase F | Accepted |
+| Defer platform usage/payments/subscriptions as models in Phase F (Phase 8) | Future extensibility was desired, but the user selected no billing models in that phase | Accepted for Phase 8; superseded by the separately approved Phase 10 billing scope |
 | Treat existing `.planning` task documents and codebase map as brownfield evidence | No project-wide GSD artifacts existed; avoid discarding existing plans | Accepted |
 
 ## Constraints

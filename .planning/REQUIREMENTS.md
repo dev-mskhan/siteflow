@@ -72,17 +72,32 @@
 - [x] REM-08: Every accepted report date preset and custom range has defined validation and timezone-correct semantics, including documented UTC fallback.
 - [x] REM-09: Project-worker retry/idempotency is safe across process restarts and replicas, and cache invalidation is bounded rather than using unbounded Redis `KEYS`.
 
+### SaaS Billing and Subscription Management — Phase 10
+
+- [ ] BILL-01: SiteFlow owns a versioned catalog of fixed recurring organization plans, price history, and included entitlements; Stripe Product/Price identifiers are references, and amounts, intervals, plan names, and limit definitions are approved before implementation rather than inferred.
+- [ ] BILL-02: Each organization can receive one no-card 14-day trial; after expiry, paid access requires an explicit hosted Checkout flow, and browser redirects never grant paid entitlement.
+- [ ] BILL-03: PostgreSQL retains subscription history while enforcing one current subscription per organization; approved downgrades and cancellations take effect at the end of the paid period, confirmed failed renewal receives a seven-day grace period and reminders, and the approved restriction policy preserves account/billing recovery and customer data.
+- [ ] BILL-04: Backend operations enforce approved plan entitlements and included limits with tenant-scoped PostgreSQL state and concurrency-safe admission; units, reset semantics, and hard/soft behavior are agreed before enforcement is implemented.
+- [ ] BILL-05: Stripe is isolated behind a server adapter for hosted Checkout and Customer Portal; Portal features are limited to payment-method management and invoice viewing, and subscription changes remain governed by SiteFlow policy.
+- [ ] BILL-06: Stripe webhooks preserve raw request bytes for provider signature verification and enter a durable PostgreSQL inbox with unique event identity, tenant mapping from server-held provider associations, idempotent retry, current-object reconciliation, and safe handling of duplicate, replayed, and out-of-order delivery.
+- [ ] BILL-07: Stripe-generated SaaS invoices and payment attempts synchronize into separate tenant-scoped SiteFlow billing records; Stripe Tax is used only when enabled and configured, and missing or unsupported tax configuration fails explicitly.
+- [ ] BILL-08: Refund state is a separately audited billing adjustment and does not itself cancel a subscription or revoke access; a refund mutation is exposed only if privileged SiteFlow billing-staff authorization is verified, otherwise no mutation ships.
+- [ ] BILL-09: Billing routes use authenticated organization context, server-side permissions, shared runtime validation, matching OpenAPI schemas, stable safe errors, and auditable mutations; SaaS billing records remain separate from construction-finance entities and lifecycles.
+- [ ] BILL-10: Applicable unit and real-PostgreSQL/Fastify integration tests cover policy, tenant boundaries, transaction rollback, concurrency, access control, webhook replay/recovery, invoice/payment synchronization, and provider failures; provider behavior is claimed only after real Stripe Test Mode API operations and signed Dashboard webhook deliveries through ngrok.
+- [ ] BILL-11: Billing architecture diagrams under `docs/architecture/` describe only source-verified runtime components and preserve the separation between Stripe SaaS billing and construction finance; phase exit includes applicable migration, OpenAPI, security, performance, regression, lint, typecheck, and build gates.
+
 ### Future Extension Boundary
 
 - [ ] EXT-01: Reporting/module boundaries do not prevent a future platform operator perspective for usage, payments, and subscriptions; no platform billing domain is implemented by this requirement set.
 
 ## Out of Scope
 
-- Platform-level usage metering, subscription plans, invoices, and payment processing — deferred until product and billing requirements are defined.
+- Phase 8 platform usage metering, subscription plans, invoices, and payment processing were deferred until product and billing requirements were defined. Phase 10 supersedes that historical boundary for the separately approved organization-level SaaS billing scope described by BILL-01–BILL-11; it does not change Phase 8 scope or status.
 - Platform-operator and cross-tenant platform reporting — deferred until separate authorization and product requirements exist.
 - AI-generated analysis and metric scoring without an approved product definition.
 - PDF and XLSX report generation — deferred; Phase 8 delivers CSV only.
 - Replacing existing queue, storage, database, or authorization infrastructure.
+- Book-a-demo lead capture, per-seat or metered billing, AI-credit billing, additional currencies, multiple current subscriptions, and Stripe features not listed in the Phase 10 capability matrix remain out of scope.
 
 ## Traceability
 
@@ -95,6 +110,7 @@
 | RPT-11–RPT-15 | Phase 8 — CSV Export and Web Delivery |
 | REM-01–REM-09 | Phase 9 — Architecture Findings Remediation |
 | EXT-01 | Phase 8 boundary; future platform phase TBD |
+| BILL-01–BILL-11 | Phase 10 — SaaS Billing and Subscription Management |
 
 ---
 *Last updated: 2026-10-08*
