@@ -163,3 +163,88 @@ export async function countReminderDeliveriesByStatus(
 
   return Object.fromEntries(rows.map((row) => [row.status, row.count]));
 }
+
+/** Retrying rows are PENDING reminders that have already been attempted at least once. */
+export async function countRetryingReminderDeliveries(organizationId: string): Promise<number> {
+  const rows = (await getDb().execute(sql`
+    SELECT count(*)::int AS count
+    FROM app.saas_reminder_deliveries
+    WHERE organization_id = ${organizationId}
+      AND status = 'PENDING'
+      AND attempt_count > 0
+  `)) as unknown as Array<{ count: number }>;
+  return rows[0]?.count ?? 0;
+}
+
+/**
+ * Organizations needing a lifecycle pass: a reminder is due or a claim lease expired,
+ * or a current subscription is in past_due grace (so its occurrences can be scheduled).
+ */
+export async function listOrganizationsWithDueReminders(): Promise<string[]> {
+  const rows = (await getDb().execute(sql`
+    SELECT organization_id AS "organizationId"
+    FROM app.saas_reminder_deliveries
+    WHERE status IN ('PENDING', 'IN_PROGRESS')
+      AND next_attempt_at <= now()
+    UNION
+    SELECT organization_id AS "organizationId"
+    FROM app.saas_subscriptions
+    WHERE is_current = true
+      AND status = 'PAST_DUE'
+      AND grace_starts_at IS NOT NULL
+  `)) as unknown as Array<{ organizationId: string }>;
+  return rows.map((row) => row.organizationId);
+}
+
+export interface PastDueSubscriptionSnapshot {
+  subscriptionId: string;
+  status: string;
+  graceStartsAt: Date | null;
+  planName: string | null;
+  amountDueCents: number | null;
+  currency: string | null;
+}
+
+/** The current subscription for one tenant, scoped by organizationId. */
+export async function getCurrentSubscriptionSnapshot(
+  organizationId: string,
+): Promise<PastDueSubscriptionSnapshot | null> {
+  const rows = (await getDb().execute(sql`
+    SELECT s.id AS "subscriptionId",
+      s.status::text AS "status",
+      s.grace_starts_at AS "graceStartsAt",
+      p.name AS "planName",
+      pv.unit_amount_cents AS "amountDueCents",
+      pv.currency AS "currency"
+    FROM app.saas_subscriptions s
+    LEFT JOIN app.saas_plans p ON p.id = s.plan_id
+    LEFT JOIN app.saas_price_versions pv ON pv.id = s.price_version_id
+    WHERE s.organization_id = ${organizationId}
+      AND s.is_current = true
+    LIMIT 1
+  `)) as unknown as Array<
+    Omit<PastDueSubscriptionSnapshot, 'graceStartsAt'> & { graceStartsAt: Date | string | null }
+  >;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    ...row,
+    graceStartsAt: row.graceStartsAt === null ? null : new Date(row.graceStartsAt),
+  };
+}
+
+/** Email addresses of active members whose role grants billing:manage in this tenant. */
+export async function listBillingAdminEmails(organizationId: string): Promise<string[]> {
+  const rows = (await getDb().execute(sql`
+    SELECT DISTINCT u.email AS "email"
+    FROM app.organization_memberships m
+    JOIN app.users u ON u.id = m.user_id
+    JOIN app.roles r ON r.id = m.role_id AND r.organization_id = m.organization_id
+    JOIN app.role_permissions rp ON rp.role_id = r.id
+    JOIN app.permissions p ON p.id = rp.permission_id
+    WHERE m.organization_id = ${organizationId}
+      AND m.status = 'ACTIVE'
+      AND p.key = 'billing:manage'
+  `)) as unknown as Array<{ email: string }>;
+  return rows.map((row) => row.email);
+}
