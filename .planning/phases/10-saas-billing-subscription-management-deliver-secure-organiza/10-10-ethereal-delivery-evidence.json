@@ -1,0 +1,53 @@
+{
+  "plan": "10-10",
+  "checkpoint": "Ethereal reminder delivery verification",
+  "decision": "User selected ethereal for the delivery-verification checkpoint; no production SMTP credentials exist.",
+  "transport": {
+    "name": "ethereal-dev",
+    "classification": "dev-only",
+    "selectionReason": "SMTP_HOST/SMTP_USER/SMTP_PASS are not configured; EmailService falls back to nodemailer.createTestAccount()",
+    "previewHost": "ethereal.email",
+    "productionSmtp": "UNVERIFIED - requires real SMTP configuration"
+  },
+  "test": {
+    "file": "apps/server/tests/integration/billing/reminder-ethereal-delivery.test.ts",
+    "name": "delivers a grace reminder through the Ethereal dev transport and persists SENT",
+    "command": "pnpm --filter @siteflow/server exec vitest run tests/integration/billing/reminder-ethereal-delivery.test.ts",
+    "exitCode": 0,
+    "result": "1 passed"
+  },
+  "observed": {
+    "messageId": "<7d9731d2-310a-56c7-0883-a566a6ab3a40@siteflow.dev>",
+    "previewUrl": "https://ethereal.email/message/asuaMEYSGgV8dBXJasuaQFz99noLdrURAAAAAeL7X6T.Y8sYeWeJFY47cKQ",
+    "reminderKey": "grace_day_1",
+    "persistedStatus": "SENT",
+    "sentAtSet": true,
+    "errorCode": null,
+    "dispatchResult": { "SENT": 1, "RETRY": 0, "FAILED": 0 }
+  },
+  "baseline": {
+    "command": "pnpm --filter @siteflow/server exec vitest run tests/unit/billing/lifecycle-policy.test.ts tests/integration/billing/reminder-delivery-worker.test.ts",
+    "result": "43 passed (2 files)"
+  },
+  "lint": {
+    "command": "eslint apps/server/tests/integration/billing/reminder-ethereal-delivery.test.ts",
+    "exitCode": 0
+  },
+  "typecheck": {
+    "command": "pnpm --filter @siteflow/server typecheck",
+    "status": "FAILED - pre-existing, not caused by this change",
+    "errorLines": 11,
+    "files": [
+      "src/modules/billing/catalog.service.ts",
+      "src/modules/billing/invoice.routes.ts",
+      "src/modules/billing/trial.routes.ts"
+    ]
+  },
+  "notRun": [
+    "Archify billing architecture diagram (Task 1)",
+    "Stripe Test Mode setup checkpoint and real Stripe acceptance via ngrok (Tasks 2-3) - user-owned, blocked",
+    "COVERAGE.md matrix and 27-row 10-VALIDATION.md",
+    "Full lint/build, migrations, OpenAPI parity, EXPLAIN ANALYZE gates"
+  ],
+  "secretsPolicy": "No SMTP or Stripe secret values were read, printed, or stored."
+}
