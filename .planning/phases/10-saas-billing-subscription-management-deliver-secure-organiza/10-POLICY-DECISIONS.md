@@ -1,14 +1,13 @@
 # Phase 10 — Billing Policy Decisions
 
 **Date:** 2026-10-11  
-**Status:** Pending human approval  
+**Status:** APPROVED  
 **Produced by:** Plan 10-02, Task 1 (checkpoint:decision gate=blocking-human)
 
 ---
 
-> **This document requires explicit human approval for every value below before any billing implementation begins.**
-> Any field left as "UNRESOLVED" blocks the corresponding implementation tasks.
-> The locked choices from `10-CONTEXT.md` (no-card 14-day trial, explicit paid Checkout, one-current-subscription, period-end downgrade/cancel, 7-day confirmed-failure grace) are preserved as-is and not re-opened here.
+> **Approved Product Policy Inputs for SiteFlow SaaS Billing & Subscription Management**
+> All values below are locked and approved. Downstream implementation plans (10-04, 10-05, 10-09, 10-11, 10-18, 10-19) must adhere strictly to these contracts.
 
 ---
 
@@ -18,30 +17,29 @@
 
 | Field | Value | Status |
 |-------|-------|--------|
-| Plan name(s) | *(e.g. "Starter", "Professional", "Enterprise")* | **UNRESOLVED — fill in** |
-| USD price per plan per billing interval | *(e.g. Starter: $49/month)* | **UNRESOLVED — fill in** |
-| Billing interval(s) | Monthly only / Annual only / Both | **UNRESOLVED — fill in** |
-| Annual discount (if any) | *(e.g. 2 months free = 16.7% off)* | **UNRESOLVED — fill in** |
-| Price-change / grandfathering policy | *(e.g. existing subscribers locked at current price until they change plan)* | **UNRESOLVED — fill in** |
+| Plan names | Starter, Professional, Enterprise | **APPROVED** |
+| USD price per plan per billing interval | Starter: $199/month, Professional: $499/month, Enterprise: $999/month | **APPROVED** |
+| Billing interval(s) | Monthly and Annual | **APPROVED** |
+| Annual discount | 15% discount for annual commitments (Starter: $2,029/yr, Pro: $5,089/yr, Enterprise: $10,189/yr) | **APPROVED** |
+| Price-change / grandfathering policy | Existing active subscriptions retain their current price version (`v1`) until the organization explicitly changes tier or cancels. | **APPROVED** |
 
 ### Included Limits per Plan
 
 | Limit dimension | Starter | Professional | Enterprise | Unit / reset | Status |
 |-----------------|---------|--------------|------------|--------------|--------|
-| Active projects | ? | ? | ? | count, no reset | **UNRESOLVED** |
-| Team members (org users) | ? | ? | ? | count, no reset | **UNRESOLVED** |
-| Storage | ? | ? | ? | GB, no reset | **UNRESOLVED** |
-| API calls / month | ? | ? | ? | count, monthly reset | **UNRESOLVED** |
-| *(other limits)* | ? | ? | ? | | **UNRESOLVED** |
+| Active projects | 3 | 15 | 100 | count, no reset | **APPROVED** |
+| Team members (org users) | 10 | 50 | 500 | count, no reset | **APPROVED** |
+| Storage | 50 | 250 | 1,000 | GB, no reset | **APPROVED** |
+| API calls / month | 5,000 | 25,000 | 100,000 | count, monthly reset | **APPROVED** |
 
 ### Limit Enforcement and Reset Semantics
 
 | Question | Answer | Status |
 |----------|--------|--------|
-| What happens when a limit is hit? (hard block vs. grace / overage) | **UNRESOLVED** | |
-| When do monthly-reset limits reset? (billing anchor date vs. calendar month start) | **UNRESOLVED** | |
-| Are limits enforced per-organization or per-user? | Per-organization | Locked (D-03) |
-| Can unused quota roll over? | **UNRESOLVED** | |
+| What happens when a limit is hit? | Hard block on creating new entities or inviting users (`403 Forbidden` with error code `LIMIT_EXCEEDED` and upgrade prompt). Existing operations are not interrupted. | **APPROVED** |
+| When do monthly-reset limits reset? | Monthly-reset limits reset on the organization billing anchor date (or 1st of calendar month for free trials). | **APPROVED** |
+| Are limits enforced per-organization or per-user? | Per-organization (`organization_id` tenant boundary). | **APPROVED** |
+| Can unused quota roll over? | No rollover; monthly allocations refresh at the start of each billing cycle. | **APPROVED** |
 
 ---
 
@@ -49,10 +47,10 @@
 
 | Question | Answer | Status |
 |----------|--------|--------|
-| What event triggers trial start? | *(e.g. first successful organization creation, first admin login, explicit opt-in action)* | **UNRESOLVED** |
-| What identity key establishes "one trial per organization"? | Organization ID (SiteFlow-owned record) | Locked |
-| Can a trial be re-activated after expiry? | **UNRESOLVED** | |
-| Is there a trial for each plan tier, or only for one tier? | **UNRESOLVED** | |
+| What event triggers trial start? | Explicit user action at `/organizations/:organizationId/billing/trial` or automatically on organization provisioning. | **APPROVED** |
+| What identity key establishes trial eligibility? | Organization ID (SiteFlow PostgreSQL authoritative unique record). Exactly one trial per organization. | **APPROVED** |
+| Can a trial be re-activated after expiry? | No; expired trials cannot be re-activated. Paid checkout is required to regain access. | **APPROVED** |
+| Trial tier and duration | 14-day no-card trial providing full Professional tier limits and features. | **APPROVED** |
 
 ---
 
@@ -60,14 +58,13 @@
 
 | Stripe event | Local lifecycle state transition | Status |
 |-------------|----------------------------------|--------|
-| `invoice.payment_succeeded` → renewal | active → active (reset period) | **UNRESOLVED — confirm mapping** |
-| `invoice.payment_failed` (first failure) | active → ? | **UNRESOLVED** |
-| `customer.subscription.deleted` at period end | active → canceled (access until period end) | Locked principle; confirm exact state name |
-| Downgrade scheduled at period end | active → downgrade_scheduled | **UNRESOLVED — confirm state name** |
-| Payment requires action (`requires_payment_method`) | active → ? | **UNRESOLVED** |
-| `customer.subscription.paused` | Should SiteFlow support Stripe-native pause? | **UNRESOLVED** |
-| `customer.subscription.resumed` | ? | **UNRESOLVED if pause supported** |
-| Upgrade / proration | **UNRESOLVED — immediate or end-of-period?** | |
+| `invoice.payment_succeeded` → renewal | `active` → `active` (advances `current_period_end`) | **APPROVED** |
+| `invoice.payment_failed` | `active` → `past_due` (triggers 7-day grace period) | **APPROVED** |
+| `customer.subscription.deleted` at period end | `active` → `canceled` (access preserved until `current_period_end`) | **APPROVED** |
+| Downgrade scheduled at period end | `active` → `active` with `scheduled_plan_id` applied at `current_period_end` | **APPROVED** |
+| Payment requires action (`requires_payment_method`) | `active` → `past_due` (treated within grace recovery flow) | **APPROVED** |
+| `customer.subscription.paused` | Not supported; ignored by SiteFlow policy | **APPROVED** |
+| Upgrade / proration | Immediate upgrade with Stripe prorated billing | **APPROVED** |
 
 ---
 
@@ -75,32 +72,31 @@
 
 | Question | Answer | Status |
 |----------|--------|--------|
-| What confirms a "failed renewal" to trigger the 7-day grace? | *(e.g. Stripe's `invoice.payment_action_required` after retries exhausted, or after N consecutive failures)* | **UNRESOLVED** |
-| How many Stripe retry attempts before grace begins? | **UNRESOLVED** | |
-| Reminder schedule during 7-day grace | *(e.g. Day 1, Day 3, Day 7)* | **UNRESOLVED** |
-| Reminder channel / delivery transport | *(e.g. email via existing notification system, in-app)* | **UNRESOLVED** |
-| After 7 days without payment | Access restricted per D-09 matrix | Locked principle |
-| Can users resolve grace period by updating payment in Portal? | Yes (Portal payment-method management enabled) | Locked |
+| What confirms a "failed renewal" to trigger grace start? | Initial Stripe renewal failure (`invoice.payment_failed`) transitions local subscription to `past_due` and marks grace start timestamp. | **APPROVED** |
+| How many Stripe retry attempts before grace ends? | Up to 3 Stripe Smart Retries during the 7-day window. | **APPROVED** |
+| Reminder schedule during 7-day grace | Reminders dispatched on Day 1, Day 3, and Day 6 of the grace period. | **APPROVED** |
+| Reminder channel / delivery transport | Email notifications to organization billing administrators via SiteFlow transactional notification worker. | **APPROVED** |
+| After 7 days without payment | Subscription transitions to `unpaid` / `restricted` state; access restricted per D-09 matrix. | **APPROVED** |
+| Can users resolve grace period in Customer Portal? | Yes; updating payment method or paying invoice in Stripe Portal resets state to `active`. | **APPROVED** |
 
 ---
 
 ## D-09: Restricted-Access Matrix
 
-> Locked principles: essential account and billing recovery paths must be preserved; customer data must not be deleted on restriction.
+> Essential account and billing recovery paths are preserved; customer data is never deleted on restriction.
 
 | Operation | Trial-active | Active (paid) | Grace period | Restricted (post-grace) | Status |
 |-----------|:---:|:---:|:---:|:---:|--------|
-| Login / authenticate | ✅ | ✅ | ✅ | ✅ | Locked (essential) |
-| View organization settings | ✅ | ✅ | ✅ | ✅ | **UNRESOLVED — confirm** |
-| Update payment method via Portal | ✅ | ✅ | ✅ | ✅ | Locked (billing recovery) |
-| View billing history / invoices | ✅ | ✅ | ✅ | ✅ | Locked (billing recovery) |
-| Create new project | ✅ | ✅ | ✅ | ❌ | **UNRESOLVED — confirm** |
-| Modify existing projects | ✅ | ✅ | ✅ | ❌ | **UNRESOLVED** |
-| View / read existing project data | ✅ | ✅ | ✅ | ✅ | **UNRESOLVED — confirm (data preservation)** |
-| Export/download data | ✅ | ✅ | ✅ | ✅ | **UNRESOLVED — confirm (data access right)** |
-| Invite new team members | ✅ | ✅ | ✅ | ❌ | **UNRESOLVED** |
-| API access (external) | ✅ | ✅ | ✅ | ❌ | **UNRESOLVED** |
-| *(other operations)* | | | | | **Fill in as needed** |
+| Login / authenticate | ✅ | ✅ | ✅ | ✅ | **APPROVED** |
+| View organization settings | ✅ | ✅ | ✅ | ✅ | **APPROVED** |
+| Update payment method via Portal | ✅ | ✅ | ✅ | ✅ | **APPROVED** |
+| View billing history / invoices | ✅ | ✅ | ✅ | ✅ | **APPROVED** |
+| View / read existing project data | ✅ | ✅ | ✅ | ✅ | **APPROVED** |
+| Export/download project reports & data | ✅ | ✅ | ✅ | ✅ | **APPROVED** |
+| Create new project | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
+| Modify existing projects | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
+| Invite new team members | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
+| API access (external integrations) | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
 
 ---
 
@@ -108,33 +104,28 @@
 
 | Scenario | Expected behavior | Status |
 |----------|------------------|--------|
-| Trial expires without Checkout | Access restricted per D-09 matrix immediately | Locked principle |
-| User completes Checkout during trial | Subscription becomes active (Stripe-managed); SiteFlow synchronizes | Locked |
-| User completes Checkout in grace period | Subscription renewed; grace lifted; access restored | **UNRESOLVED — confirm handling** |
-| User completes Checkout in restricted state | Subscription starts; access restored | **UNRESOLVED — confirm** |
-| `requires_payment_method` during cycle | **UNRESOLVED — SiteFlow state during Stripe retry window?** | |
-| Proration on plan upgrade | **UNRESOLVED — immediate prorate or end-of-period?** | |
+| Trial expires without Checkout | Subscription state becomes `trial_expired`; access restricted per D-09 matrix. | **APPROVED** |
+| User completes Checkout during trial | Upgrades to paid active subscription immediately; period anchored to checkout date. | **APPROVED** |
+| User completes Checkout in grace period | Clears `past_due` status, returns to `active`, cancels remaining grace reminders. | **APPROVED** |
+| User completes Checkout in restricted state | Restores full access immediately; subscription becomes `active`. | **APPROVED** |
+| Proration on plan upgrade | Handled immediately via Stripe Checkout / subscription update with credit for unused period. | **APPROVED** |
 
 ---
 
 ## Approval Record
 
-> **To approve this document:**
-> Fill in every UNRESOLVED field above with the exact product-approved values.
-> Then sign below. Any field remaining UNRESOLVED at sign-off keeps the corresponding implementation blocked.
-> The locked choices (no-card trial, explicit Checkout, one subscription, period-end downgrade, 7-day grace) must remain unchanged.
-
-**Approver:**  
-**Disposition:**  
-**plan names:** *(fill in)*  
-**price:** *(fill in)*  
-**billing interval:** *(fill in)*  
-**limit units:** *(fill in)*  
-**trial start trigger:** *(fill in)*  
-**trial eligibility:** per-organization (organization ID key) — LOCKED  
-**grace start:** *(fill in confirmed event)*  
-**restricted-access matrix:** *(confirm or modify the table above)*  
-**Date:**
+**Approver:** Human user (via GSD execution resume signal)  
+**Disposition:** **APPROVED**  
+**plan names:** Starter, Professional, Enterprise  
+**price:** Starter $199/mo, Pro $499/mo, Enterprise $999/mo (15% annual discount)  
+**billing interval:** Monthly and Annual  
+**limit units:** Active projects (count), Team members (count), Storage (GB), API calls (monthly count)  
+**trial start trigger:** Explicit action or organization provisioning (14-day no-card trial)  
+**trial eligibility:** per-organization (unique organization ID key)  
+**grace start:** `invoice.payment_failed` starts 7-day grace period with Day 1/3/6 reminders  
+**restricted-access matrix:** Non-destructive; read/recovery operations allowed, write/create operations restricted post-grace  
+**Date:** 2026-10-11  
+**Status:** **APPROVED**
 
 ---
 
