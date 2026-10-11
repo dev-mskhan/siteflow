@@ -1,17 +1,18 @@
 ---
 gsd_state_version: "1.0"
 current_phase: 10
+current_plan: 11
 status: In Progress
-stopped_at: Plan 10-12 — permission-checked hosted Checkout
-last_updated: "2026-10-11T13:53:07.748+05:00"
+stopped_at: Completed 10-13-PLAN.md
+last_updated: "2026-10-11T09:49:38.659Z"
 last_activity: 2026-10-11
-last_activity_desc: Completed Phase 10 Plan 10-12 hosted Checkout
-state_head: 177eeb77f1f8ed7ec8bca1939171960f27c0cbb7
+last_activity_desc: Completed Phase 10 Plan 10-13 restricted Customer Portal
+state_head: 4fc380477ac59e16eed6a2db680662e121c0e036
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 44
-  completed_plans: 30
+  completed_plans: 34
   percent: 0
 current_phase_name: SaaS Billing & Subscription Management
 ---
@@ -21,9 +22,11 @@ current_phase_name: SaaS Billing & Subscription Management
 ## Current Position
 
 **Current phase:** Phase 10 — SaaS Billing & Subscription Management
-**Phase status:** Execution in progress; Plans 10-01 through 10-06, 10-11, and 10-12 are complete. Phase 8 remains pending.
-**Last activity:** 2026-10-11 — Completed Plan 10-12 (permission-checked hosted Checkout).
-**Next action:** Execute Plan 10-13 (restricted Customer Portal), then continue Phase 10 in dependency order.
+Current Plan: 11
+Total Plans in Phase: 19
+**Phase status:** Execution in progress; Plans 10-01 through 10-06 and 10-11 through 10-13 are complete. Phase 8 remains pending.
+**Last activity:** 2026-10-11 — Completed Plan 10-13 (restricted Customer Portal).
+**Next action:** Execute Plan 10-07, then continue Phase 10 in dependency order (10-14, 10-08, 10-09/10-15, 10-16, 10-17/10-18, 10-19, and 10-10).
 
 ## Project Snapshot
 
@@ -57,9 +60,9 @@ These are research and implementation-planning tasks, not unresolved user decisi
 
 ## Session Continuity
 
-**Last session:** 2026-10-10T09:50:56.701Z
-**Stopped at:** Phase 10 context gathered
-**Resume file:** .planning\phases\10-saas-billing-subscription-management-deliver-secure-organiza\10-CONTEXT.md
+**Last session:** 2026-10-11T09:49:38.211Z
+**Stopped at:** Completed 10-13-PLAN.md
+**Resume file:** None
 
 - Phase 8 scope and decisions are recorded in `08-CONTEXT.md`; the discussion log distinguishes user-confirmed choices from planning assumptions.
 - Phase 8 plans `08-01` through `08-22`, research, context, and `08-VALIDATION.md` exist; review remaining technical probes and command-checker findings before execution.
@@ -71,3 +74,15 @@ These are research and implementation-planning tasks, not unresolved user decisi
 ### Roadmap Evolution
 
 - Phase 10 added: Registered Phase 10 SaaS Billing & Subscription Management with secure Stripe-backed subscriptions, tenant-scoped entitlements, explicit construction-finance boundary, shared validation, OpenAPI/Archify documentation, and mandatory appropriate test gates; Phase 8 remains pending.
+
+## Performance Metrics
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 10 P13 | 38min | 1 tasks | 8 files |
+
+## Decisions
+
+- [Phase 10]: Reuse billing:manage for the combined payment-method mutation and invoice-history Portal; source grants it to Organization Admin, while Finance has billing:read only.
+- [Phase 10]: Require an explicit Stripe Portal configuration ID and retrieve/validate its active feature set before session creation.
+- [Phase 10]: Resolve Stripe customers only by authenticated organization ID and current Stripe mode; never create a customer as a Portal side effect.

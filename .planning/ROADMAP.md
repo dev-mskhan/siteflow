@@ -175,19 +175,20 @@ Expected capability areas:
   7. Appropriate unit, integration, and E2E coverage—including Stripe test-mode scenarios—plus lint, typecheck, build, and focused/full regression gates pass.
   8. New routes have shared runtime validation and OpenAPI/Swagger documentation; Archify diagrams reflect verified runtime behavior.
   9. Webhook replay, out-of-order delivery, provider outages, retries, and reconciliation have tested recovery behavior.
-**Plans:** 19 plans
+
+**Plans:** 9/19 plans executed
 **Tasks:** 27 tasks
 
 Plans:
-- [ ] 10-01-PLAN.md — Capture Phase 9 lint baseline and reconcile migration history before billing schema work
-- [ ] 10-02-PLAN.md — Approve catalog, trial, entitlement, and lifecycle policy inputs
-- [ ] 10-03-PLAN.md — Verify Stripe SDK legitimacy before installation
-- [ ] 10-04-PLAN.md — Tracer: provision and read an organization trial end-to-end
-- [ ] 10-05-PLAN.md — Expand the versioned catalog, subscription lifecycle, and entitlements
+- [x] 10-01-PLAN.md — Capture Phase 9 lint baseline and reconcile migration history before billing schema work
+- [x] 10-02-PLAN.md — Approve catalog, trial, entitlement, and lifecycle policy inputs
+- [x] 10-03-PLAN.md — Verify Stripe SDK legitimacy before installation
+- [x] 10-04-PLAN.md — Tracer: provision and read an organization trial end-to-end
+- [x] 10-05-PLAN.md — Expand the versioned catalog, subscription lifecycle, and entitlements
 - [x] 10-11-PLAN.md — Enforce approved entitlements atomically in PostgreSQL
-- [ ] 10-06-PLAN.md — Integrate hosted Checkout and restricted Customer Portal
+- [x] 10-06-PLAN.md — Integrate hosted Checkout and restricted Customer Portal
 - [x] 10-12-PLAN.md — Create permission-checked hosted Checkout
-- [ ] 10-13-PLAN.md — Restrict hosted Customer Portal features
+- [x] 10-13-PLAN.md — Restrict hosted Customer Portal features
 - [ ] 10-07-PLAN.md — Build durable signed webhook inbox and provider reconciliation
 - [ ] 10-14-PLAN.md — Recover acknowledged webhook events and reconcile provider state
 - [ ] 10-08-PLAN.md — Persist replay-safe tenant-scoped SaaS invoice and payment history
