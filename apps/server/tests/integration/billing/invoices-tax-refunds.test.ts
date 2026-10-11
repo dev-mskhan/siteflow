@@ -7,6 +7,7 @@ import { stripeAdapter } from '../../../src/modules/billing/stripe.adapter.js';
 import { reconcileStripeWebhookEvent } from '../../../src/modules/billing/provider-reconciler.js';
 import { createTestApp } from '../../helpers/test-app.js';
 import {
+  addMemberDirectly,
   createOrgWithAdmin,
   createVerifiedUser,
 } from '../../helpers/fixtures.js';
@@ -436,5 +437,147 @@ describe('SaaS invoice and payment-attempt persistence (10-08)', () => {
     expect(tenantBInvoice[0]?.stripeInvoiceId).toBe(invoiceB);
     expect(tenantBInvoice[0]?.status).toBe('OPEN');
     expect(crossTenantRead).toHaveLength(0);
+  });
+});
+
+describe('SaaS billing history API (10-15)', () => {
+  async function insertInvoice(params: {
+    organizationId: string;
+    invoiceId?: string;
+    createdAt: Date;
+  }) {
+    const id = crypto.randomUUID();
+    const providerInvoiceId = params.invoiceId ?? `in_history_${crypto.randomUUID()}`;
+    await getDb().execute(sql`
+      INSERT INTO app.saas_invoices (
+        id, organization_id, stripe_mode, stripe_invoice_id, stripe_customer_id,
+        stripe_subscription_id, invoice_number, status, amount_due_cents,
+        amount_paid_cents, currency, period_start, period_end, hosted_invoice_url,
+        invoice_pdf_url, provider_event_created_at, created_at
+      ) VALUES (
+        ${id}, ${params.organizationId}, 'test', ${providerInvoiceId},
+        ${`cus_history_${params.organizationId}`}, ${`sub_history_${params.organizationId}`},
+        ${`SaaS-${providerInvoiceId}`}, 'OPEN', 1299, 0, 'usd',
+        ${params.createdAt.toISOString()},
+        ${new Date(params.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()},
+        ${'https://invoice.stripe.test/hosted'},
+        ${'https://invoice.stripe.test/pdf'}, ${params.createdAt.toISOString()},
+        ${params.createdAt.toISOString()}
+      )
+    `);
+    return { id, providerInvoiceId };
+  }
+
+  it('returns only the authorized tenant SaaS history within the requested bound', async () => {
+    const admin = await createVerifiedUser();
+    const { orgId, roleMap } = await createOrgWithAdmin(app, admin.token);
+    const finance = await createVerifiedUser();
+    await addMemberDirectly(orgId, finance.user.id, roleMap.get('Finance')!);
+
+    const older = await insertInvoice({
+      organizationId: orgId,
+      createdAt: new Date(Date.now() - 60_000),
+    });
+    const newest = await insertInvoice({
+      organizationId: orgId,
+      createdAt: new Date(),
+    });
+    const foreignAdmin = await createVerifiedUser();
+    const foreignOrg = await createOrgWithAdmin(app, foreignAdmin.token);
+    await insertInvoice({
+      organizationId: foreignOrg.orgId,
+      createdAt: new Date(Date.now() + 60_000),
+    });
+    await getDb().execute(sql`
+      INSERT INTO app.saas_payment_attempts (
+        id, organization_id, saas_invoice_id, stripe_mode, stripe_invoice_id,
+        stripe_payment_intent_id, attempt_number, status, amount_cents, currency,
+        provider_event_created_at, created_at
+      ) VALUES (
+        ${crypto.randomUUID()}, ${orgId}, ${newest.id}, 'test',
+        ${newest.providerInvoiceId}, ${`pi_${newest.providerInvoiceId}`},
+        1, 'FAILED', 1299, 'usd', now(), now()
+      )
+    `);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/organizations/${orgId}/billing/invoices?limit=1`,
+      headers: { authorization: `Bearer ${finance.token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.invoices).toHaveLength(1);
+    expect(response.json().data.invoices[0]).toMatchObject({
+      id: newest.id,
+      invoiceNumber: `SaaS-${newest.providerInvoiceId}`,
+      paymentAttempts: [
+        expect.objectContaining({
+          status: 'FAILED',
+          amountCents: 1299,
+          currency: 'usd',
+        }),
+      ],
+    });
+    expect(response.body).not.toContain(older.providerInvoiceId);
+    expect(response.body).not.toContain(foreignOrg.orgId);
+    expect(response.body).not.toContain('paymentApplications');
+    expect(response.body).not.toContain('retainage');
+  });
+
+  it('denies unauthenticated and authenticated members without billing:read', async () => {
+    const admin = await createVerifiedUser();
+    const { orgId, roleMap } = await createOrgWithAdmin(app, admin.token);
+    const projectManager = await createVerifiedUser();
+    await addMemberDirectly(
+      orgId,
+      projectManager.user.id,
+      roleMap.get('Project Manager')!,
+    );
+    const url = `/api/v1/organizations/${orgId}/billing/invoices`;
+
+    const unauthenticated = await app.inject({ method: 'GET', url });
+    const inadequateRole = await app.inject({
+      method: 'GET',
+      url,
+      headers: { authorization: `Bearer ${projectManager.token}` },
+    });
+
+    expect(unauthenticated.statusCode).toBe(401);
+    expect(inadequateRole.statusCode).toBe(403);
+  });
+
+  it('denies a billing member from reading another organization history', async () => {
+    const adminA = await createVerifiedUser();
+    const orgA = await createOrgWithAdmin(app, adminA.token);
+    const finance = await createVerifiedUser();
+    await addMemberDirectly(
+      orgA.orgId,
+      finance.user.id,
+      orgA.roleMap.get('Finance')!,
+    );
+    const adminB = await createVerifiedUser();
+    const orgB = await createOrgWithAdmin(app, adminB.token);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/organizations/${orgB.orgId}/billing/invoices`,
+      headers: { authorization: `Bearer ${finance.token}` },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('rejects limits above the public maximum', async () => {
+    const admin = await createVerifiedUser();
+    const organization = await createOrgWithAdmin(app, admin.token);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/organizations/${organization.orgId}/billing/invoices?limit=101`,
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+
+    expect(response.statusCode).toBe(400);
   });
 });
