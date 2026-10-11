@@ -68,7 +68,7 @@ export class InvoiceService {
       throw new Error('Verified Stripe invoice facts are invalid');
     }
 
-    const invoice = await this.repo.upsertProviderInvoice(
+    const persisted = await this.repo.upsertProviderInvoice(
       {
         id: randomUUID(),
         organizationId: facts.organizationId,
@@ -89,9 +89,10 @@ export class InvoiceService {
       },
       tx,
     );
-    if (!invoice) throw new SaaSInvoiceIdentityConflictError();
+    if (!persisted) throw new SaaSInvoiceIdentityConflictError();
+    const invoice = persisted.invoice;
 
-    if (!facts.paymentAttempt) return { invoice };
+    if (!persisted.applied || !facts.paymentAttempt) return { invoice };
     const paymentAttempt = await this.repo.upsertProviderPaymentAttempt(
       {
         id: randomUUID(),

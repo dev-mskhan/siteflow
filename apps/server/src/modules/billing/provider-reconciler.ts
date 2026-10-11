@@ -297,6 +297,17 @@ export async function reconcileStripeWebhookEvent(
       throw new StripeWebhookQuarantineError('CURRENT_SUBSCRIPTION_CONFLICT');
     }
 
+    // Reject stale deliveries before synchronizing any associated invoice
+    // facts. Invoice and subscription state share the event-time high-water
+    // mark; applying the invoice first would allow an old event to regress it.
+    if (
+      current &&
+      (reconciledEventTimestamp(current.metadata) ?? Number.NEGATIVE_INFINITY) >
+        receivedEventDate.getTime()
+    ) {
+      return;
+    }
+
     if (facts.invoice) {
       const invoiceSubscriptionId = providerId(facts.invoice.subscription);
       const invoiceCustomerId = providerId(facts.invoice.customer);
@@ -366,13 +377,6 @@ export async function reconcileStripeWebhookEvent(
     }
 
     const previous = current;
-    if (
-      current &&
-      (reconciledEventTimestamp(current.metadata) ?? Number.NEGATIVE_INFINITY) >
-        receivedEventDate.getTime()
-    ) {
-      return;
-    }
     const updatedMetadata = metadataWithReconciledEvent(
       current?.metadata,
       receivedEventDate,
