@@ -4,7 +4,20 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import type { FastifyInstance } from 'fastify';
 import { saasInvoiceHistoryDataSchema } from '@siteflow/shared';
 import { getDb } from '../../../src/lib/db/index.js';
-import { stripeAdapter } from '../../../src/modules/billing/stripe.adapter.js';
+import {
+  StripeAdapter,
+  stripeAdapter,
+  type StripeSdkClient,
+  type StripeTaxCalculationSnapshot,
+} from '../../../src/modules/billing/stripe.adapter.js';
+import {
+  TaxFactVerificationError,
+  TaxPolicyError,
+  assertTaxBranchAllowsCalculation,
+  decideTaxBranch,
+  verifyTaxCalculationFacts,
+  type TaxAccountState,
+} from '../../../src/modules/billing/tax.policy.js';
 import { reconcileStripeWebhookEvent } from '../../../src/modules/billing/provider-reconciler.js';
 import { createTestApp } from '../../helpers/test-app.js';
 import {
@@ -595,5 +608,132 @@ describe('SaaS billing history API (10-15)', () => {
     });
 
     expect(response.statusCode).toBe(422);
+  });
+});
+
+describe('Stripe Tax conditional policy (10-16)', () => {
+  const enabledState = {
+    required: true,
+    enabled: true,
+    configured: true,
+    jurisdictionSupported: true,
+  };
+
+  function adapterWithTaxCreate(create: ReturnType<typeof vi.fn>) {
+    const client = { tax: { calculations: { create } } } as unknown as StripeSdkClient;
+    return new StripeAdapter(
+      { STRIPE_MODE: 'test', STRIPE_TEST_SECRET_KEY: 'sk_test_fixture_only' },
+      () => client,
+    );
+  }
+
+  async function runTaxBranch(
+    state: TaxAccountState,
+    adapter: StripeAdapter,
+  ): Promise<StripeTaxCalculationSnapshot | null> {
+    const decision = decideTaxBranch(state);
+    assertTaxBranchAllowsCalculation(decision);
+    if (decision.branch === 'NOT_CALCULATED') return null;
+    return adapter.createTaxCalculation(
+      { currency: 'usd', line_items: [] } as unknown as Stripe.Tax.CalculationCreateParams,
+      'tax-calc-idempotency-key',
+    );
+  }
+
+  const verifiedCalculation = {
+    id: 'taxcalc_fixture_1',
+    amount_total: 10_000,
+    currency: 'usd',
+    tax_amount_exclusive: 800,
+    tax_amount_inclusive: 0,
+    tax_date: 1_760_000_000,
+    expires_at: 1_760_000_300,
+    tax_breakdown: [
+      { tax_rate_details: { country: 'US' } },
+    ],
+  } as unknown as StripeTaxCalculationSnapshot;
+
+  const now = new Date(1_760_000_100 * 1000);
+
+  it('calculates through the adapter and verifies provider facts when enabled and configured', async () => {
+    const create = vi.fn().mockResolvedValue(verifiedCalculation);
+    const adapter = adapterWithTaxCreate(create);
+
+    const calculation = await runTaxBranch(enabledState, adapter);
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(expect.any(Object), {
+      idempotencyKey: 'tax-calc-idempotency-key',
+    });
+    expect(
+      verifyTaxCalculationFacts(calculation!, { currency: 'usd', now }),
+    ).toEqual({
+      calculationId: 'taxcalc_fixture_1',
+      currency: 'usd',
+      taxAmountCents: 800,
+      jurisdictionCountries: ['US'],
+    });
+  });
+
+  it('records optional disabled Tax as not calculated without a provider call or zero amount', async () => {
+    const create = vi.fn();
+    const adapter = adapterWithTaxCreate(create);
+
+    const calculation = await runTaxBranch(
+      { ...enabledState, required: false, enabled: false },
+      adapter,
+    );
+
+    expect(calculation).toBeNull();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('fails explicitly when required Tax is disabled or unconfigured before any provider object', async () => {
+    const create = vi.fn();
+    const adapter = adapterWithTaxCreate(create);
+
+    await expect(
+      runTaxBranch({ ...enabledState, enabled: false }, adapter),
+    ).rejects.toMatchObject({ code: 'TAX_CONFIGURATION_UNAVAILABLE' });
+    await expect(
+      runTaxBranch({ ...enabledState, configured: false }, adapter),
+    ).rejects.toMatchObject({ code: 'TAX_CONFIGURATION_UNAVAILABLE' });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('fails explicitly for required Tax in an unsupported jurisdiction and never assumes exemption', async () => {
+    const create = vi.fn();
+    const adapter = adapterWithTaxCreate(create);
+
+    await expect(
+      runTaxBranch({ ...enabledState, jurisdictionSupported: false }, adapter),
+    ).rejects.toBeInstanceOf(TaxPolicyError);
+    await expect(
+      runTaxBranch({ ...enabledState, jurisdictionSupported: false }, adapter),
+    ).rejects.toMatchObject({ code: 'TAX_JURISDICTION_UNSUPPORTED' });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('does not calculate optional Tax for an unsupported jurisdiction', () => {
+    expect(
+      decideTaxBranch({ ...enabledState, required: false, jurisdictionSupported: false }),
+    ).toEqual({ branch: 'NOT_CALCULATED' });
+  });
+
+  it('rejects provider facts that cannot be verified instead of persisting them', () => {
+    const verify = (calc: unknown) => () =>
+      verifyTaxCalculationFacts(calc as StripeTaxCalculationSnapshot, { currency: 'usd', now });
+
+    expect(verify({ ...verifiedCalculation, currency: 'eur' })).toThrow(TaxFactVerificationError);
+    expect(verify({ ...verifiedCalculation, expires_at: 1_760_000_000 })).toThrow(
+      TaxFactVerificationError,
+    );
+    expect(verify({ ...verifiedCalculation, id: ' ' })).toThrow(TaxFactVerificationError);
+    expect(verify({ ...verifiedCalculation, tax_breakdown: [] })).toThrow(
+      TaxFactVerificationError,
+    );
+    expect(verify({ ...verifiedCalculation, tax_amount_exclusive: -1 })).toThrow(
+      TaxFactVerificationError,
+    );
   });
 });

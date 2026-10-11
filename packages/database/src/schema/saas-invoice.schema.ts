@@ -50,6 +50,10 @@ export const saasInvoices = appSchema.table(
     periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
     hostedInvoiceUrl: text('hosted_invoice_url'),
     invoicePdfUrl: text('invoice_pdf_url'),
+    taxCalculationId: text('tax_calculation_id'),
+    taxAmountCents: integer('tax_amount_cents'),
+    taxCurrency: text('tax_currency'),
+    taxJurisdictionCountries: text('tax_jurisdiction_countries').array(),
     providerEventCreatedAt: timestamp('provider_event_created_at', {
       withTimezone: true,
     }).notNull(),
@@ -82,6 +86,18 @@ export const saasInvoices = appSchema.table(
     ),
     check('saas_invoices_currency_check', sql`${t.currency} ~ '^[a-z]{3}$'`),
     check('saas_invoices_period_check', sql`${t.periodEnd} >= ${t.periodStart}`),
+    check(
+      'saas_invoices_tax_facts_check',
+      sql`(
+        ${t.taxCalculationId} IS NULL AND ${t.taxAmountCents} IS NULL
+        AND ${t.taxCurrency} IS NULL AND ${t.taxJurisdictionCountries} IS NULL
+      ) OR (
+        length(trim(${t.taxCalculationId})) > 0
+        AND ${t.taxAmountCents} >= 0
+        AND ${t.taxCurrency} ~ '^[a-z]{3}$'
+        AND ${t.taxJurisdictionCountries} IS NOT NULL
+      )`,
+    ),
   ],
 );
 

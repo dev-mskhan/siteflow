@@ -48,7 +48,14 @@ export type StripeInvoiceSnapshot = Pick<
 >;
 export type StripeTaxCalculationSnapshot = Pick<
   Stripe.Tax.Calculation,
-  'id' | 'amount_total' | 'currency' | 'tax_breakdown' | 'expires_at'
+  | 'id'
+  | 'amount_total'
+  | 'currency'
+  | 'tax_amount_exclusive'
+  | 'tax_amount_inclusive'
+  | 'tax_breakdown'
+  | 'tax_date'
+  | 'expires_at'
 >;
 
 export interface StripeSdkClient {

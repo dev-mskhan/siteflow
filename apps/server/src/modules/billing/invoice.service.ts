@@ -10,6 +10,7 @@ import {
 } from '@siteflow/shared';
 import { invoiceRepository } from './invoice.repository.js';
 import type { InvoiceRepository } from './invoice.repository.js';
+import type { VerifiedTaxFacts } from './tax.policy.js';
 
 export type SaaSInvoiceStatus =
   | 'DRAFT'
@@ -35,6 +36,8 @@ export interface VerifiedProviderInvoiceFacts {
   hostedInvoiceUrl: string | null;
   invoicePdfUrl: string | null;
   providerEventCreatedAt: Date;
+  /** Only facts returned by verifyTaxCalculationFacts; null/undefined means Tax was not calculated. */
+  taxFacts?: VerifiedTaxFacts | null;
   paymentAttempt?: {
     stripePaymentIntentId: string;
     attemptNumber: number;
@@ -101,6 +104,7 @@ export class InvoiceService {
     ) {
       throw new Error('Verified Stripe invoice facts are invalid');
     }
+    const taxColumns = toTaxColumns(facts.taxFacts, facts.currency);
 
     const persisted = await this.repo.upsertProviderInvoice(
       {
@@ -119,6 +123,7 @@ export class InvoiceService {
         periodEnd: facts.periodEnd,
         hostedInvoiceUrl: facts.hostedInvoiceUrl,
         invoicePdfUrl: facts.invoicePdfUrl,
+        ...taxColumns,
         providerEventCreatedAt: facts.providerEventCreatedAt,
       },
       tx,
@@ -146,6 +151,34 @@ export class InvoiceService {
     if (!paymentAttempt) throw new SaaSInvoiceIdentityConflictError();
     return { invoice, paymentAttempt };
   }
+}
+
+function toTaxColumns(taxFacts: VerifiedTaxFacts | null | undefined, invoiceCurrency: string) {
+  if (!taxFacts) {
+    return {
+      taxCalculationId: null,
+      taxAmountCents: null,
+      taxCurrency: null,
+      taxJurisdictionCountries: null,
+    };
+  }
+  if (
+    typeof taxFacts.calculationId !== 'string' ||
+    taxFacts.calculationId.trim() === '' ||
+    !Number.isSafeInteger(taxFacts.taxAmountCents) ||
+    taxFacts.taxAmountCents < 0 ||
+    taxFacts.currency !== invoiceCurrency ||
+    !Array.isArray(taxFacts.jurisdictionCountries) ||
+    taxFacts.jurisdictionCountries.some((c) => typeof c !== 'string' || c.trim() === '')
+  ) {
+    throw new Error('Verified Stripe Tax facts are invalid');
+  }
+  return {
+    taxCalculationId: taxFacts.calculationId,
+    taxAmountCents: taxFacts.taxAmountCents,
+    taxCurrency: taxFacts.currency,
+    taxJurisdictionCountries: [...taxFacts.jurisdictionCountries],
+  };
 }
 
 export const invoiceService = new InvoiceService();
