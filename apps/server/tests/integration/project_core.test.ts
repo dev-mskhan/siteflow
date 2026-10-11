@@ -1,6 +1,7 @@
 // apps/server/tests/integration/project_core.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { sql } from 'drizzle-orm';
 import { createTestApp } from '../helpers/test-app.js';
 import { getDb } from '../../src/lib/db/index.js';
 import { users } from '@siteflow/database/schema';
@@ -38,6 +39,19 @@ describe('Project Core Module (Integration)', () => {
     const orgResult = await createOrgWithAdmin(app, authToken, `Project Test Org ${runId}`);
     orgId = orgResult.orgId;
     const pmRoleId = orgResult.roleMap.get('Project Manager')!;
+
+    // Project creation requires an active entitlement (billing guard).
+    await getDb().execute(sql`
+      INSERT INTO app.saas_subscriptions (
+        id, organization_id, plan_id, price_version_id, interval, status,
+        is_current, current_period_start, current_period_end, cancel_at_period_end,
+        stripe_customer_id, stripe_subscription_id, stripe_price_id
+      ) VALUES (
+        ${crypto.randomUUID()}, ${orgId}, 'professional', 'pro_month_v1', 'month',
+        'ACTIVE', true, now() - interval '1 day', now() + interval '30 days', false,
+        ${`cus_pc_${runId}`}, ${`sub_pc_${runId}`}, 'price_pro_month_v1'
+      )
+    `);
 
     // 2. Create second user and add directly to org
     const memberResult = await createVerifiedUser({ email: `project_member_${runId}@example.com` });
