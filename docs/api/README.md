@@ -10,17 +10,11 @@ Index of frontend integration guides. Each guide follows the API Integration Eng
 | [project-module.md](./project-module.md) | project core, tasks, schedule, baselines, field logs, issues, subcontractors, procurement chain, inventory, performance, change orders, commercial and financial summary, retainage | Summary depth. Route and permission inventory verified; field schemas referenced, not inlined |
 | [platform-modules.md](./platform-modules.md) | organization, profile, settings, sequences, membership, invitations, suppliers, materials, reporting, exports, health | Summary depth. Route and permission inventory verified |
 
+| [remaining-modules.md](./remaining-modules.md) | auth, audit, compliance, documents, submittals, RFIs, safety, quality, payment applications, invoice payments, retainage | Summary depth. Route, method, and permission inventory verified. Workflow state machines and some action segments not verified (listed in its Known gaps) |
+
 ## Module coverage gap
 
-These route modules exist under `apps/server/src/modules/` but have no integration guide yet:
-
-- auth (register, login, Google OAuth, refresh, email verification, password reset, sessions, logout)
-- audit (audit log listing)
-- project/compliance, project/documents, project/submittal, project/rfi, project/safety, project/quality
-- project/payment-application, project/invoice-payment
-- project/retainage (in project-module.md, shallow)
-
-Next step: add guides for these modules at the same depth, verifying the HTTP method and permission for each route against the source.
+Coverage is now complete at route-inventory depth. Field schemas and per-module state machines are still open: see the Known gaps section of each guide.
 
 ## Conventions
 
