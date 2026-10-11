@@ -1,0 +1,41 @@
+{
+  "plan": "10-18",
+  "status": "partial",
+  "commands": [
+    {
+      "command": "pnpm --filter @siteflow/server exec vitest run tests/integration/billing/lifecycle.test.ts",
+      "result": "7 passed, 0 failed"
+    },
+    {
+      "command": "pnpm --filter @siteflow/server exec vitest run tests/integration/billing/catalog-entitlements.test.ts",
+      "result": "18 passed, 0 failed (regression)"
+    },
+    {
+      "command": "pnpm --filter @siteflow/server exec tsc --noEmit",
+      "result": "no errors in lifecycle files; 11 pre-existing errors in catalog.service.ts, invoice.routes.ts, trial.routes.ts left untouched"
+    }
+  ],
+  "migrations": [],
+  "tests": {
+    "lifecycle": { "passed": 7, "failed": 0 },
+    "regression_catalog_entitlements": { "passed": 18, "failed": 0 }
+  },
+  "implemented": [
+    "POST /api/v1/organizations/:organizationId/billing/subscription/cancel (cancel at period end)",
+    "RBAC: billing:manage (Organization Admin)",
+    "Idempotent repeat cancel with no provider call",
+    "Atomic local update, history cancel_scheduled, audit billing.subscription.cancel_scheduled"
+  ],
+  "deferred": [
+    "Downgrade at period end (needs Stripe subscription schedules)",
+    "Upgrade with proration",
+    "Pause handling",
+    "Reactivation (Checkout only, D-02)"
+  ],
+  "unverified": [
+    { "item": "Live Stripe cancel_at_period_end call", "reason": "requires live Stripe credentials and SDK approval gate (10-10)" },
+    { "item": "Webhook reconciliation of cancellation", "reason": "requires real Stripe webhook delivery" },
+    { "item": "Real SMTP notification", "reason": "not exercised by this route; production-only" },
+    { "item": "ngrok acceptance", "reason": "production-only acceptance proof" }
+  ]
+}

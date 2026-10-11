@@ -29,6 +29,7 @@ import { trialRoutes } from '../modules/billing/trial.routes.js';
 import { checkoutRoutes } from '../modules/billing/checkout.routes.js';
 import { portalRoutes } from '../modules/billing/portal.routes.js';
 import { invoiceRoutes } from '../modules/billing/invoice.routes.js';
+import { lifecycleRoutes } from '../modules/billing/lifecycle.routes.js';
 import { webhookRoutes } from '../modules/billing/webhook.routes.js';
 
 /**
@@ -197,6 +198,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(checkoutRoutes, { prefix: '/api/v1/organizations' });
   await app.register(portalRoutes, { prefix: '/api/v1/organizations' });
   await app.register(invoiceRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(lifecycleRoutes, { prefix: '/api/v1/organizations' });
   await app.register(webhookRoutes, { prefix: '/api/v1/webhooks' });
 
   // ─── Realtime SSE Notifications ─────────────────────────────────────────────
