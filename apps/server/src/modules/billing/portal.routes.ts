@@ -1,16 +1,12 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
-import { z } from 'zod';
 import { serverEnv } from '@siteflow/env/server';
+import { PortalParamsSchema } from '@siteflow/shared';
 import { createSuccessResponse } from '../../shared/response.js';
 import { NotFoundError } from '../auth/auth.errors.js';
 import { authenticate } from '../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../rbac/permission.middleware.js';
 import { customerRepository } from './customer.repository.js';
 import { StripeConfigurationError, stripeAdapter } from './stripe.adapter.js';
-
-const PortalParamsSchema = z.object({
-  organizationId: z.string().uuid(),
-}).strict();
 
 const DEFAULT_FRONTEND_URL = 'http://localhost:5173';
 

@@ -80,4 +80,6 @@ export * from './modules/billing/trial.schema.js';
 export * from './modules/billing/catalog.schema.js';
 export * from './modules/billing/invoice.schema.js';
 export * from './modules/billing/lifecycle.schema.js';
+export * from './modules/billing/checkout.schema.js';
+export * from './modules/billing/portal.schema.js';
 

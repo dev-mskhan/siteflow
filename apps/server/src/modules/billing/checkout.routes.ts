@@ -1,9 +1,8 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
-import { z } from 'zod';
 import { serverEnv } from '@siteflow/env/server';
 import { organizations, users } from '@siteflow/database/schema';
 import { eq } from 'drizzle-orm';
-import { BillingIntervalSchema, PlanIdSchema } from '@siteflow/shared';
+import { CheckoutBodySchema, CheckoutParamsSchema } from '@siteflow/shared';
 import { getDb } from '../../lib/db/index.js';
 import { createSuccessResponse } from '../../shared/response.js';
 import { ConflictError, NotFoundError, ValidationError } from '../auth/auth.errors.js';
@@ -13,15 +12,6 @@ import { catalogRepository } from './catalog.repository.js';
 import { catalogService } from './catalog.service.js';
 import { customerRepository } from './customer.repository.js';
 import { stripeAdapter } from './stripe.adapter.js';
-
-const CheckoutParamsSchema = z.object({
-  organizationId: z.string().uuid(),
-});
-
-const CheckoutBodySchema = z.object({
-  planId: PlanIdSchema,
-  interval: BillingIntervalSchema,
-}).strict();
 
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 const DEFAULT_FRONTEND_URL = 'http://localhost:5173';
