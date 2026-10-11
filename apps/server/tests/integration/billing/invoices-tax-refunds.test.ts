@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { sql } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { saasInvoiceHistoryDataSchema } from '@siteflow/shared';
 import { getDb } from '../../../src/lib/db/index.js';
 import { stripeAdapter } from '../../../src/modules/billing/stripe.adapter.js';
 import { reconcileStripeWebhookEvent } from '../../../src/modules/billing/provider-reconciler.js';
@@ -506,9 +507,11 @@ describe('SaaS billing history API (10-15)', () => {
       headers: { authorization: `Bearer ${finance.token}` },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json().data.invoices).toHaveLength(1);
-    expect(response.json().data.invoices[0]).toMatchObject({
+    expect(response.statusCode, response.body).toBe(200);
+    const responseData = response.json().data;
+    expect(saasInvoiceHistoryDataSchema.safeParse(responseData).success).toBe(true);
+    expect(responseData.invoices).toHaveLength(1);
+    expect(responseData.invoices[0]).toMatchObject({
       id: newest.id,
       invoiceNumber: `SaaS-${newest.providerInvoiceId}`,
       paymentAttempts: [
@@ -523,6 +526,19 @@ describe('SaaS billing history API (10-15)', () => {
     expect(response.body).not.toContain(foreignOrg.orgId);
     expect(response.body).not.toContain('paymentApplications');
     expect(response.body).not.toContain('retainage');
+
+    const openApiOperation = app.swagger().paths[
+      '/api/v1/organizations/{organizationId}/billing/invoices'
+    ]?.get;
+    expect(openApiOperation?.responses).toHaveProperty('200');
+    expect(openApiOperation?.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'limit',
+          schema: expect.objectContaining({ maximum: 100 }),
+        }),
+      ]),
+    );
   });
 
   it('denies unauthenticated and authenticated members without billing:read', async () => {

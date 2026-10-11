@@ -1,4 +1,4 @@
-import { and, eq, lte } from 'drizzle-orm';
+import { and, desc, eq, lte, sql } from 'drizzle-orm';
 import type { DatabaseClient, DatabaseTransaction } from '@siteflow/database';
 import {
   saasInvoices,
@@ -8,10 +8,92 @@ import {
   type NewSaasInvoice,
   type NewSaasPaymentAttempt,
 } from '@siteflow/database/schema';
+import {
+  SAAS_INVOICE_HISTORY_MAX_ATTEMPTS_PER_INVOICE,
+  SAAS_INVOICE_HISTORY_MAX_LIMIT,
+} from '@siteflow/shared';
+import { getDb } from '../../lib/db/index.js';
 
 type Transaction = DatabaseTransaction | DatabaseClient;
 
+type HistoryPaymentAttemptRow = Pick<
+  SaasPaymentAttempt,
+  | 'id'
+  | 'organizationId'
+  | 'saasInvoiceId'
+  | 'attemptNumber'
+  | 'status'
+  | 'amountCents'
+  | 'currency'
+  | 'createdAt'
+>;
+
 export class InvoiceRepository {
+  async listHistoryByOrganization(
+    organizationId: string,
+    limit: number,
+    db: DatabaseClient = getDb(),
+  ): Promise<Array<{ invoice: SaasInvoice; paymentAttempts: HistoryPaymentAttemptRow[] }>> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > SAAS_INVOICE_HISTORY_MAX_LIMIT) {
+      throw new RangeError('SaaS invoice history limit is outside the allowed range');
+    }
+
+    const invoices = await db
+      .select()
+      .from(saasInvoices)
+      .where(eq(saasInvoices.organizationId, organizationId))
+      .orderBy(desc(saasInvoices.createdAt), desc(saasInvoices.id))
+      .limit(limit);
+    if (invoices.length === 0) return [];
+
+    const invoiceIds = invoices.map((invoice) => invoice.id);
+    const attempts = await db.execute(sql`
+      SELECT
+        id,
+        organization_id AS "organizationId",
+        saas_invoice_id AS "saasInvoiceId",
+        attempt_number AS "attemptNumber",
+        status,
+        amount_cents AS "amountCents",
+        currency,
+        created_at AS "createdAt"
+      FROM (
+        SELECT
+          id,
+          organization_id,
+          saas_invoice_id,
+          attempt_number,
+          status,
+          amount_cents,
+          currency,
+          created_at,
+          row_number() OVER (
+            PARTITION BY saas_invoice_id
+            ORDER BY attempt_number DESC, created_at DESC, id DESC
+          ) AS attempt_rank
+        FROM app.saas_payment_attempts
+        WHERE organization_id = ${organizationId}
+          AND saas_invoice_id IN (${sql.join(
+            invoiceIds.map((invoiceId) => sql`${invoiceId}`),
+            sql`, `,
+          )})
+      ) AS ranked_attempts
+      WHERE attempt_rank <= ${SAAS_INVOICE_HISTORY_MAX_ATTEMPTS_PER_INVOICE}
+      ORDER BY "saasInvoiceId", "attemptNumber" ASC
+    `);
+    const attemptsByInvoice = new Map<string, HistoryPaymentAttemptRow[]>();
+    for (const attempt of attempts as unknown as HistoryPaymentAttemptRow[]) {
+      const current = attemptsByInvoice.get(attempt.saasInvoiceId) ?? [];
+      current.push(attempt);
+      attemptsByInvoice.set(attempt.saasInvoiceId, current);
+    }
+
+    return invoices.map((invoice) => ({
+      invoice,
+      paymentAttempts: attemptsByInvoice.get(invoice.id) ?? [],
+    }));
+  }
+
   async upsertProviderInvoice(
     invoice: NewSaasInvoice,
     tx: Transaction,

@@ -4,6 +4,10 @@ import type {
   SaasInvoice,
   SaasPaymentAttempt,
 } from '@siteflow/database/schema';
+import {
+  SAAS_INVOICE_HISTORY_MAX_LIMIT,
+  type SaasInvoiceHistoryData,
+} from '@siteflow/shared';
 import { invoiceRepository } from './invoice.repository.js';
 import type { InvoiceRepository } from './invoice.repository.js';
 
@@ -50,6 +54,36 @@ export class SaaSInvoiceIdentityConflictError extends Error {
 
 export class InvoiceService {
   constructor(private readonly repo: InvoiceRepository = invoiceRepository) {}
+
+  async getHistory(
+    organizationId: string,
+    limit: number,
+  ): Promise<SaasInvoiceHistoryData['invoices']> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > SAAS_INVOICE_HISTORY_MAX_LIMIT) {
+      throw new RangeError('SaaS invoice history limit is outside the allowed range');
+    }
+    const rows = await this.repo.listHistoryByOrganization(organizationId, limit);
+    return rows.map(({ invoice, paymentAttempts }) => ({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      amountDueCents: invoice.amountDueCents,
+      amountPaidCents: invoice.amountPaidCents,
+      currency: invoice.currency,
+      periodStart: invoice.periodStart.toISOString(),
+      periodEnd: invoice.periodEnd.toISOString(),
+      hostedInvoiceUrl: invoice.hostedInvoiceUrl,
+      invoicePdfUrl: invoice.invoicePdfUrl,
+      createdAt: invoice.createdAt.toISOString(),
+      paymentAttempts: paymentAttempts.map((attempt) => ({
+        id: attempt.id,
+        status: attempt.status,
+        amountCents: attempt.amountCents,
+        currency: attempt.currency,
+        attemptedAt: attempt.createdAt.toISOString(),
+      })),
+    }));
+  }
 
   async synchronizeVerifiedInvoice(
     facts: VerifiedProviderInvoiceFacts,
