@@ -9,6 +9,11 @@ import { catalogRepository } from './catalog.repository.js';
 import { catalogService } from './catalog.service.js';
 import { customerRepository } from './customer.repository.js';
 import {
+  invoiceService,
+  SaaSInvoiceIdentityConflictError,
+  type SaaSInvoiceStatus,
+} from './invoice.service.js';
+import {
   StripeProviderError,
   stripeAdapter,
   type StripeInvoiceSnapshot,
@@ -28,6 +33,7 @@ export class StripeWebhookQuarantineError extends Error {
 interface ProviderSubscriptionFacts {
   subscription: StripeSubscriptionSnapshot;
   customerId: string;
+  invoice?: StripeInvoiceSnapshot;
 }
 
 function providerId(value: string | { id: string } | null | undefined): string | null {
@@ -149,7 +155,30 @@ async function retrieveCurrentSubscription(
   if (facts.customerId !== invoiceCustomerId) {
     throw new StripeWebhookQuarantineError('INVOICE_CUSTOMER_MISMATCH');
   }
-  return facts;
+  return { ...facts, invoice };
+}
+
+function providerInvoiceStatus(status: StripeInvoiceSnapshot['status']): SaaSInvoiceStatus {
+  switch (status) {
+    case 'draft':
+      return 'DRAFT';
+    case 'open':
+      return 'OPEN';
+    case 'paid':
+      return 'PAID';
+    case 'uncollectible':
+      return 'UNCOLLECTIBLE';
+    case 'void':
+      return 'VOID';
+    default:
+      throw new StripeWebhookQuarantineError('UNSUPPORTED_INVOICE_STATUS');
+  }
+}
+
+function providerPaymentIntentId(
+  paymentIntent: StripeInvoiceSnapshot['payment_intent'],
+): string | null {
+  return providerId(paymentIntent);
 }
 
 /**
@@ -266,6 +295,74 @@ export async function reconcileStripeWebhookEvent(
     }
     if (existingAssociation && current?.id !== existingAssociation.id) {
       throw new StripeWebhookQuarantineError('CURRENT_SUBSCRIPTION_CONFLICT');
+    }
+
+    if (facts.invoice) {
+      const invoiceSubscriptionId = providerId(facts.invoice.subscription);
+      const invoiceCustomerId = providerId(facts.invoice.customer);
+      if (
+        facts.invoice.id !== event.objectId ||
+        invoiceSubscriptionId !== facts.subscription.id ||
+        invoiceCustomerId !== facts.customerId
+      ) {
+        throw new StripeWebhookQuarantineError('INVOICE_ASSOCIATION_MISMATCH');
+      }
+      if (
+        !Number.isSafeInteger(facts.invoice.amount_due) ||
+        facts.invoice.amount_due < 0 ||
+        !Number.isSafeInteger(facts.invoice.amount_paid) ||
+        facts.invoice.amount_paid < 0 ||
+        !Number.isSafeInteger(facts.invoice.attempt_count) ||
+        facts.invoice.attempt_count < 0 ||
+        !Number.isSafeInteger(facts.invoice.period_start) ||
+        !Number.isSafeInteger(facts.invoice.period_end) ||
+        facts.invoice.period_end < facts.invoice.period_start ||
+        !/^[a-z]{3}$/.test(facts.invoice.currency)
+      ) {
+        throw new StripeWebhookQuarantineError('INVALID_INVOICE_FACTS');
+      }
+
+      const paymentIntentId = providerPaymentIntentId(facts.invoice.payment_intent);
+      const paymentAttempt =
+        paymentIntentId && facts.invoice.attempt_count > 0
+          ? {
+              stripePaymentIntentId: paymentIntentId,
+              attemptNumber: facts.invoice.attempt_count,
+              status: facts.invoice.paid ? ('SUCCEEDED' as const) : ('FAILED' as const),
+              amountCents: facts.invoice.paid
+                ? facts.invoice.amount_paid
+                : facts.invoice.amount_due,
+            }
+          : undefined;
+
+      try {
+        await invoiceService.synchronizeVerifiedInvoice(
+          {
+            organizationId: customer.organizationId,
+            stripeMode,
+            stripeInvoiceId: facts.invoice.id,
+            stripeCustomerId: facts.customerId,
+            stripeSubscriptionId: facts.subscription.id,
+            invoiceNumber: facts.invoice.number,
+            status: providerInvoiceStatus(facts.invoice.status),
+            amountDueCents: facts.invoice.amount_due,
+            amountPaidCents: facts.invoice.amount_paid,
+            currency: facts.invoice.currency,
+            periodStart: new Date(facts.invoice.period_start * 1000),
+            periodEnd: new Date(facts.invoice.period_end * 1000),
+            hostedInvoiceUrl: facts.invoice.hosted_invoice_url ?? null,
+            invoicePdfUrl: facts.invoice.invoice_pdf ?? null,
+            providerEventCreatedAt: receivedEventDate,
+            paymentAttempt,
+          },
+          tx,
+        );
+      } catch (error) {
+        if (error instanceof SaaSInvoiceIdentityConflictError) {
+          throw new StripeWebhookQuarantineError(error.code);
+        }
+        throw error;
+      }
     }
 
     const previous = current;

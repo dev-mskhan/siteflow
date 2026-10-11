@@ -40,6 +40,9 @@ export type StripeInvoiceSnapshot = Pick<
   | 'paid'
   | 'period_start'
   | 'period_end'
+  | 'number'
+  | 'attempt_count'
+  | 'payment_intent'
   | 'hosted_invoice_url'
   | 'invoice_pdf'
 >;
