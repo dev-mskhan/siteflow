@@ -1,19 +1,19 @@
 ---
 gsd_state_version: "1.0"
 current_phase: 10
-current_plan: 13
+current_plan: 14
 status: In Progress
-stopped_at: Completed 10-14-PLAN.md; next Plan 10-08 per dependency order
-last_updated: "2026-10-11T11:17:53.130Z"
+stopped_at: Completed 10-08-PLAN.md
+last_updated: "2026-10-11T12:03:19.940Z"
 last_activity: 2026-10-11
 last_activity_desc: Completed Phase 10 Plan 10-14 durable webhook recovery and reconciliation
-state_head: a9b9eaac4fc964649630949c468202b4a0c83a0a
+state_head: 49f965d8231937ed9151e666f3d7b9538e2d97d2
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 44
-  completed_plans: 36
-  percent: 82
+  completed_plans: 37
+  percent: 84
 current_phase_name: SaaS Billing & Subscription Management
 ---
 
@@ -22,11 +22,11 @@ current_phase_name: SaaS Billing & Subscription Management
 ## Current Position
 
 **Current phase:** Phase 10 — SaaS Billing & Subscription Management
-Current Plan: 13
+Current Plan: 14
 Total Plans in Phase: 19
-**Phase status:** Execution in progress; Plans 10-01 through 10-07, 10-11 through 10-14 are complete. Phase 8 remains pending.
-**Last activity:** 2026-10-11 — Completed Plan 10-14 (durable webhook recovery and reconciliation).
-**Next action:** Execute Plan 10-08 (tenant-scoped SaaS invoice and payment history), then continue Phase 10 in dependency order (10-09/10-15, 10-16, 10-17/10-18, 10-19, and 10-10).
+**Phase status:** Execution in progress; Plans 10-01 through 10-08 and 10-11 through 10-14 are complete. Phase 8 remains pending.
+**Last activity:** 2026-10-11 — Completed Plan 10-08 (tenant-scoped SaaS invoice and payment history).
+**Next action:** Continue Phase 10 in dependency order with Plans 10-09 and 10-15; then Plan 10-16, Plans 10-17/10-18, Plan 10-19, and Plan 10-10. Plan 10-08 is complete; no later plan was started in this execution.
 
 ## Project Snapshot
 
@@ -60,8 +60,8 @@ These are research and implementation-planning tasks, not unresolved user decisi
 
 ## Session Continuity
 
-**Last session:** 2026-10-11T11:17:52.784Z
-**Stopped at:** Completed 10-14-PLAN.md; next Plan 10-08 per dependency order
+**Last session:** 2026-10-11T12:03:19.491Z
+**Stopped at:** Completed 10-08-PLAN.md
 **Resume file:** None
 
 - Phase 8 scope and decisions are recorded in `08-CONTEXT.md`; the discussion log distinguishes user-confirmed choices from planning assumptions.
@@ -82,6 +82,7 @@ These are research and implementation-planning tasks, not unresolved user decisi
 | Phase 10 P13 | 38min | 1 tasks | 8 files |
 | Phase 10 P07 | 23 min | 1 tasks | 11 files |
 | Phase 10 P14 | 31 min | 1 tasks | 10 files |
+| Phase 10 P08 | 39 min | 2 tasks | 12 files |
 
 ## Decisions
 
@@ -94,3 +95,7 @@ These are research and implementation-planning tasks, not unresolved user decisi
 - [Phase 10]: Recover acknowledged Stripe inbox events directly at startup and on a durable one-minute PgBoss schedule.
 - [Phase 10]: Persist a local Stripe event-time high-water mark in existing subscription metadata to prevent late older work from regressing accepted state without a schema migration.
 - [Phase 10]: Resolve webhook organization ownership only through persisted mode-qualified SiteFlow customer/subscription associations; never use provider event metadata.
+- [Phase 10]: Invoice ownership is resolved only through persisted mode-qualified customer/subscription associations, never webhook metadata.
+- [Phase 10]: Invoice amounts, currency, status, and attempt outcomes come from retrieved verified Stripe invoice facts.
+- [Phase 10]: Use dedicated SaaS invoice/payment tables and approved unjournaled additive SQL, applied only to siteflow_test.
+- [Phase 10]: BILL-07 remains pending until conditional Stripe Tax owned by Plan 10-16 is delivered.

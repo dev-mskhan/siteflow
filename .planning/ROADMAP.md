@@ -176,7 +176,7 @@ Expected capability areas:
   8. New routes have shared runtime validation and OpenAPI/Swagger documentation; Archify diagrams reflect verified runtime behavior.
   9. Webhook replay, out-of-order delivery, provider outages, retries, and reconciliation have tested recovery behavior.
 
-**Plans:** 11/19 plans executed
+**Plans:** 12/19 plans executed
 **Tasks:** 27 tasks
 
 Plans:
@@ -191,7 +191,7 @@ Plans:
 - [x] 10-13-PLAN.md — Restrict hosted Customer Portal features
 - [x] 10-07-PLAN.md — Build durable signed webhook inbox and verified provider ingress
 - [x] 10-14-PLAN.md — Recover acknowledged webhook events and reconcile provider state
-- [ ] 10-08-PLAN.md — Persist replay-safe tenant-scoped SaaS invoice and payment history
+- [x] 10-08-PLAN.md — Persist replay-safe tenant-scoped SaaS invoice and payment history
 - [ ] 10-15-PLAN.md — Expose authorized SaaS invoice history
 - [ ] 10-16-PLAN.md — Integrate conditional Stripe Tax facts
 - [ ] 10-17-PLAN.md — Persist separate refund history and guard mutation authority
