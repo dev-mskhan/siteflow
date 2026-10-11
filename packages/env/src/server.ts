@@ -96,6 +96,13 @@ export const serverEnv = createEnv({
     REPORT_EXPORT_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).default(24),
     REPORT_EXPORT_SIGNED_URL_EXPIRY_SECONDS: z.coerce.number().int().min(60).max(604800).default(300),
 
+    // Stripe test and live credentials remain separate; billing defaults to Test Mode.
+    STRIPE_MODE: z.enum(['test', 'live']).default('test'),
+    STRIPE_TEST_SECRET_KEY: z.string().startsWith('sk_test_').optional(),
+    STRIPE_LIVE_SECRET_KEY: z.string().startsWith('sk_live_').optional(),
+    STRIPE_TEST_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
+    STRIPE_LIVE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
+
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   },
