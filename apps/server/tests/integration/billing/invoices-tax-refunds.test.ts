@@ -313,4 +313,128 @@ describe('SaaS invoice and payment-attempt persistence (10-08)', () => {
     expect(attempts.map((attempt) => attempt.status)).toEqual(['FAILED', 'SUCCEEDED']);
     expect(constructionInvoiceCountAfter[0]?.count).toBe(constructionInvoiceCount[0]?.count);
   });
+
+  it('does not let stale invoice facts overwrite newer state across two organizations', async () => {
+    const orgA = await createMappedSubscription();
+    const orgB = await createMappedSubscription();
+    const invoiceA = `in_invoice_a_${crypto.randomUUID()}`;
+    const invoiceB = `in_invoice_b_${crypto.randomUUID()}`;
+    const invoices = new Map<
+      string,
+      Awaited<ReturnType<typeof stripeAdapter.retrieveInvoice>>
+    >();
+    invoices.set(
+      invoiceA,
+      stripeInvoiceSnapshot({
+        invoiceId: invoiceA,
+        customerId: orgA.customerId,
+        subscriptionId: orgA.subscriptionId,
+        status: 'paid',
+        paid: true,
+        amountPaid: 1299,
+        attemptCount: 2,
+      }),
+    );
+    invoices.set(
+      invoiceB,
+      stripeInvoiceSnapshot({
+        invoiceId: invoiceB,
+        customerId: orgB.customerId,
+        subscriptionId: orgB.subscriptionId,
+        status: 'open',
+        paid: false,
+        amountPaid: 0,
+        attemptCount: 1,
+      }),
+    );
+    vi.spyOn(stripeAdapter, 'retrieveInvoice').mockImplementation(async (id) => invoices.get(id)!);
+    vi.spyOn(stripeAdapter, 'retrieveSubscription').mockImplementation(async (id) => {
+      const fixture = [orgA, orgB].find((organization) => organization.subscriptionId === id);
+      if (!fixture) throw new Error('Unexpected provider subscription in test');
+      return stripeSubscriptionSnapshot(fixture.subscriptionId, fixture.customerId);
+    });
+
+    const eventTime = Math.floor(Date.now() / 1000);
+    const latestEvent = makeInvoiceEvent({
+      eventId: `evt_invoice_latest_${crypto.randomUUID()}`,
+      invoiceId: invoiceA,
+      customerId: orgA.customerId,
+      subscriptionId: orgA.subscriptionId,
+      eventType: 'invoice.paid',
+      createdAt: eventTime + 20,
+    });
+    expect((await deliverInvoiceEvent(latestEvent)).statusCode).toBe(200);
+    await reconcileInboxEvent(latestEvent.id);
+
+    invoices.set(
+      invoiceA,
+      stripeInvoiceSnapshot({
+        invoiceId: invoiceA,
+        customerId: orgA.customerId,
+        subscriptionId: orgA.subscriptionId,
+        status: 'open',
+        paid: false,
+        amountPaid: 0,
+        attemptCount: 1,
+      }),
+    );
+    const staleEvent = makeInvoiceEvent({
+      eventId: `evt_invoice_stale_${crypto.randomUUID()}`,
+      invoiceId: invoiceA,
+      customerId: orgA.customerId,
+      subscriptionId: orgA.subscriptionId,
+      eventType: 'invoice.payment_failed',
+      createdAt: eventTime + 10,
+    });
+    expect((await deliverInvoiceEvent(staleEvent)).statusCode).toBe(200);
+    await reconcileInboxEvent(staleEvent.id);
+
+    const otherTenantEvent = makeInvoiceEvent({
+      eventId: `evt_invoice_other_tenant_${crypto.randomUUID()}`,
+      invoiceId: invoiceB,
+      customerId: orgB.customerId,
+      subscriptionId: orgB.subscriptionId,
+      eventType: 'invoice.payment_failed',
+      createdAt: eventTime + 20,
+    });
+    expect((await deliverInvoiceEvent(otherTenantEvent)).statusCode).toBe(200);
+    await reconcileInboxEvent(otherTenantEvent.id);
+
+    const tenantAInvoice = await getDb().execute(sql`
+      SELECT organization_id AS "organizationId", stripe_invoice_id AS "stripeInvoiceId",
+        status, amount_paid_cents AS "amountPaidCents"
+      FROM app.saas_invoices
+      WHERE organization_id = ${orgA.organizationId} AND stripe_invoice_id = ${invoiceA}
+    `);
+    const tenantAAttempts = await getDb().execute(sql`
+      SELECT attempt_number AS "attemptNumber", status
+      FROM app.saas_payment_attempts
+      WHERE organization_id = ${orgA.organizationId} AND stripe_invoice_id = ${invoiceA}
+      ORDER BY attempt_number
+    `);
+    const tenantBInvoice = await getDb().execute(sql`
+      SELECT organization_id AS "organizationId", stripe_invoice_id AS "stripeInvoiceId",
+        status
+      FROM app.saas_invoices
+      WHERE organization_id = ${orgB.organizationId} AND stripe_invoice_id = ${invoiceB}
+    `);
+    const crossTenantRead = await getDb().execute(sql`
+      SELECT id FROM app.saas_invoices
+      WHERE organization_id = ${orgA.organizationId} AND stripe_invoice_id = ${invoiceB}
+    `);
+
+    expect(tenantAInvoice).toHaveLength(1);
+    expect(tenantAInvoice[0]?.organizationId).toBe(orgA.organizationId);
+    expect(tenantAInvoice[0]?.stripeInvoiceId).toBe(invoiceA);
+    expect(tenantAInvoice[0]?.status).toBe('PAID');
+    expect(tenantAInvoice[0]?.amountPaidCents).toBe(1299);
+    expect(tenantAAttempts).toHaveLength(1);
+    expect(tenantAAttempts[0]?.attemptNumber).toBe(2);
+    expect(tenantAAttempts[0]?.status).toBe('SUCCEEDED');
+    expect(tenantBInvoice).toHaveLength(1);
+    expect(tenantBInvoice[0]?.organizationId).toBe(orgB.organizationId);
+    expect(tenantBInvoice[0]?.stripeInvoiceId).toBe(invoiceB);
+    expect(tenantBInvoice[0]?.status).toBe('OPEN');
+    expect(crossTenantRead).toHaveLength(0);
+  });
 });
