@@ -4,6 +4,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../rbac/permission.middleware.js';
+import type { BillingInterval, PlanId } from '@siteflow/shared';
 import { subscriptionLifecycleService } from './subscription-lifecycle.service.js';
 import { createSuccessResponse } from '../../shared/response.js';
 
