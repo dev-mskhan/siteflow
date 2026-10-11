@@ -324,16 +324,22 @@ export class StripeAdapter {
     payload: string | Buffer,
     signature: string,
   ): Stripe.Event {
-    const { client, environment } = this.getConfiguredClient();
-    if (!environment.webhookSecret || !signature.trim()) {
+    const webhookSecret =
+      this.environment.STRIPE_MODE === 'test'
+        ? this.environment.STRIPE_TEST_WEBHOOK_SECRET
+        : this.environment.STRIPE_LIVE_WEBHOOK_SECRET;
+    if (
+      !webhookSecret?.startsWith('whsec_') ||
+      !signature.trim()
+    ) {
       throw new StripeWebhookSignatureError();
     }
 
     try {
-      return client.webhooks.constructEvent(
+      return Stripe.webhooks.constructEvent(
         payload,
         signature,
-        environment.webhookSecret,
+        webhookSecret,
       );
     } catch {
       throw new StripeWebhookSignatureError();

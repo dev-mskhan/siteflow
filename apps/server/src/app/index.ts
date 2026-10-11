@@ -28,6 +28,7 @@ import { exportRoutes } from '../modules/reporting/exports/export.routes.js';
 import { trialRoutes } from '../modules/billing/trial.routes.js';
 import { checkoutRoutes } from '../modules/billing/checkout.routes.js';
 import { portalRoutes } from '../modules/billing/portal.routes.js';
+import { webhookRoutes } from '../modules/billing/webhook.routes.js';
 
 /**
  * Creates and configures the Fastify application instance.
@@ -37,7 +38,11 @@ export async function buildApp(): Promise<FastifyInstance> {
     logger: {
       level: serverEnv.LOG_LEVEL,
       redact: {
-        paths: ['req.headers.authorization', 'req.headers.cookie'],
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'req.headers.stripe-signature',
+        ],
         censor: '[REDACTED]',
       },
       transport:
@@ -190,6 +195,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(trialRoutes, { prefix: '/api/v1/organizations' });
   await app.register(checkoutRoutes, { prefix: '/api/v1/organizations' });
   await app.register(portalRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(webhookRoutes, { prefix: '/api/v1/webhooks' });
 
   // ─── Realtime SSE Notifications ─────────────────────────────────────────────
   const { realtimePlugin } = await import('../modules/notification/realtime/realtime.plugin.js');

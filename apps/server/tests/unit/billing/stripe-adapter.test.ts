@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type Stripe from 'stripe';
+import StripeSdk from 'stripe';
 import {
   StripeAdapter,
   StripeConfigurationError,
@@ -357,21 +358,31 @@ describe('StripeAdapter', () => {
   });
 
   it('verifies signed webhook payloads and maps signature failures to a safe error', () => {
-    const { client, event } = createClient();
-    const adapter = new StripeAdapter(testEnvironment, () => client);
-    const payload = Buffer.from('{"id":"evt_test_1"}');
-
-    expect(adapter.verifyWebhook(payload, 't=1,v1=signature')).toBe(event);
-    expect(client.webhooks.constructEvent).toHaveBeenCalledWith(
+    const event: Stripe.Event = {
+      id: 'evt_test_1',
+      object: 'event',
+      api_version: null,
+      created: 1_760_000_000,
+      data: { object: { id: 'sub_test_1', object: 'subscription' } },
+      livemode: false,
+      pending_webhooks: 1,
+      request: null,
+      type: 'customer.subscription.updated',
+    };
+    const payload = Buffer.from(JSON.stringify(event));
+    const secret = 'whsec_test_fixture_only';
+    const signature = StripeSdk.webhooks.generateTestHeaderString({
       payload,
-      't=1,v1=signature',
-      expect.stringMatching(/^whsec_test_/),
-    );
-
-    vi.mocked(client.webhooks.constructEvent).mockImplementation(() => {
-      throw new Error('provider signature detail');
+      secret,
     });
-    expect(() => adapter.verifyWebhook(payload, 'invalid')).toThrow(
+    const adapter = new StripeAdapter({
+      STRIPE_MODE: 'test',
+      STRIPE_TEST_WEBHOOK_SECRET: secret,
+    });
+
+    expect(adapter.verifyWebhook(payload, signature)).toEqual(event);
+
+    expect(() => adapter.verifyWebhook(Buffer.concat([payload, Buffer.from(' ')]), signature)).toThrow(
       StripeWebhookSignatureError,
     );
     expect(() => adapter.verifyWebhook(payload, 'invalid')).toThrow(
@@ -396,11 +407,7 @@ describe('StripeAdapter', () => {
   });
 
   it('requires a webhook secret for signature verification', () => {
-    const { client } = createClient();
-    const adapter = new StripeAdapter(
-      { STRIPE_MODE: 'test', STRIPE_TEST_SECRET_KEY: 'sk_test_fixture_only' },
-      () => client,
-    );
+    const adapter = new StripeAdapter({ STRIPE_MODE: 'test' });
 
     expect(() =>
       adapter.verifyWebhook(Buffer.from('{}'), 't=1,v1=signature'),
