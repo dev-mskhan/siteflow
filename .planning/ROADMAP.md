@@ -186,7 +186,7 @@ Plans:
 - [ ] 10-05-PLAN.md — Expand the versioned catalog, subscription lifecycle, and entitlements
 - [x] 10-11-PLAN.md — Enforce approved entitlements atomically in PostgreSQL
 - [ ] 10-06-PLAN.md — Integrate hosted Checkout and restricted Customer Portal
-- [ ] 10-12-PLAN.md — Create permission-checked hosted Checkout
+- [x] 10-12-PLAN.md — Create permission-checked hosted Checkout
 - [ ] 10-13-PLAN.md — Restrict hosted Customer Portal features
 - [ ] 10-07-PLAN.md — Build durable signed webhook inbox and provider reconciliation
 - [ ] 10-14-PLAN.md — Recover acknowledged webhook events and reconcile provider state

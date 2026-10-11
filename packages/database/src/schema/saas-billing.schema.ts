@@ -34,6 +34,29 @@ export const saasSubscriptionStatusEnum = appSchema.enum('saas_subscription_stat
   'RESTRICTED',
 ]);
 
+export const saasStripeModeEnum = appSchema.enum('saas_stripe_mode', ['test', 'live']);
+
+export const saasCustomers = appSchema.table(
+  'saas_customers',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'restrict' }),
+    stripeMode: saasStripeModeEnum('stripe_mode').notNull(),
+    stripeCustomerId: text('stripe_customer_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex('saas_customers_org_mode_unique_idx').on(t.organizationId, t.stripeMode),
+    uniqueIndex('saas_customers_stripe_customer_unique_idx').on(t.stripeCustomerId),
+  ],
+);
+
 // ── SaaS Trials ───────────────────────────────────────────────────────────────
 
 export const saasTrials = appSchema.table(
@@ -193,6 +216,9 @@ export const saasSubscriptionHistory = appSchema.table(
 
 export type SaasTrial = typeof saasTrials.$inferSelect;
 export type NewSaasTrial = typeof saasTrials.$inferInsert;
+
+export type SaasCustomer = typeof saasCustomers.$inferSelect;
+export type NewSaasCustomer = typeof saasCustomers.$inferInsert;
 
 export type SaasPlan = typeof saasPlans.$inferSelect;
 export type NewSaasPlan = typeof saasPlans.$inferInsert;
