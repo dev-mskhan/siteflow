@@ -24,6 +24,8 @@ export default defineConfig({
       OTEL_ENABLE_IN_TEST: 'true',
       OTEL_SERVICE_NAME: 'siteflow-server-test',
       DATABASE_URL: 'postgres://siteflow:siteflow@localhost:5434/siteflow_test',
+      STRIPE_TEST_WEBHOOK_SECRET: 'whsec_siteflow_test_fixture_only',
+      STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_test_portal',
       REDIS_URL: 'redis://localhost:6379',
       MINIO_ENDPOINT: 'localhost',
       MINIO_PORT: '9000',

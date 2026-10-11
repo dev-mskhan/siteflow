@@ -1,0 +1,10 @@
+{
+  "command": "NODE_NO_WARNINGS=1 LOG_LEVEL=fatal (from apps/server) node node_modules/vitest/vitest.mjs run tests/integration/billing/invoices-tax-refunds.test.ts --reporter=tap-flat",
+  "exitCode": 1,
+  "output": "TAP version 13\n1..2\nok 1 - tests/integration/billing/invoices-tax-refunds.test.ts > SaaS invoice and payment-attempt persistence (10-08) > reconciles signed invoice events into tenant-scoped SaaS invoice and payment history # time=691.45ms\nnot ok 2 - tests/integration/billing/invoices-tax-refunds.test.ts > SaaS invoice and payment-attempt persistence (10-08) > does not let stale invoice facts overwrite newer state across two organizations # time=783.24ms\n    ---\n    error:\n        name: \"AssertionError\"\n        message: \"expected 'OPEN' to be 'PAID' // Object.is equality\"\n    at: \"D:/summer/agentic-ai/siteflow/apps/server/tests/integration/billing/invoices-tax-refunds.test.ts:429:39\"\n    actual: \"OPEN\"\n    expected: \"PAID\"\n    ...",
+  "targetTest": "tests/integration/billing/invoices-tax-refunds.test.ts > SaaS invoice and payment-attempt persistence (10-08) > does not let stale invoice facts overwrite newer state across two organizations",
+  "targetFile": "apps/server/tests/integration/billing/invoices-tax-refunds.test.ts",
+  "expected": "A provider invoice event older than the event already reconciled must not replace the invoice's paid status/amount or add an older payment attempt; rows remain tenant-qualified for organizations A and B.",
+  "actual": "The target test ran against PostgreSQL, reconciled the newer paid event, then reconciled the older failure event. The stale event changed the persisted invoice status from PAID to OPEN.",
+  "semanticAssessment": "The intended stale-state assertion failed after valid signed delivery and provider reconciliation, not during setup or fixture creation. The failure demonstrates that an older provider event overwrites newer accepted invoice facts; GREEN is authorized."
+}

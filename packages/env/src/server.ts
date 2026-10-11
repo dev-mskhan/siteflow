@@ -100,6 +100,7 @@ export const serverEnv = createEnv({
     STRIPE_MODE: z.enum(['test', 'live']).default('test'),
     STRIPE_TEST_SECRET_KEY: z.string().startsWith('sk_test_').optional(),
     STRIPE_LIVE_SECRET_KEY: z.string().startsWith('sk_live_').optional(),
+    STRIPE_PORTAL_CONFIGURATION_ID: z.string().startsWith('bpc_').optional(),
     STRIPE_TEST_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
     STRIPE_LIVE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
 
