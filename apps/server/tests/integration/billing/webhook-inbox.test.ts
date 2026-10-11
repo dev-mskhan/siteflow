@@ -332,6 +332,7 @@ describe('Stripe webhook recovery and reconciliation (10-14)', () => {
     const raw = Buffer.from(
       JSON.stringify({
         ...event,
+        created: Math.floor((Date.now() - 60 * 60 * 1000) / 1000),
         data: {
           object: {
             id: subscriptionId,
@@ -376,7 +377,9 @@ describe('Stripe webhook recovery and reconciliation (10-14)', () => {
       worker.STRIPE_WEBHOOK_RECOVERY_QUEUE,
       worker.STRIPE_WEBHOOK_RECOVERY_CRON,
       {},
-      expect.objectContaining({ key: worker.STRIPE_WEBHOOK_RECOVERY_SCHEDULE_ID }),
+      expect.objectContaining({
+        singletonKey: worker.STRIPE_WEBHOOK_RECOVERY_SCHEDULE_ID,
+      }),
     );
     expect(worker.STRIPE_WEBHOOK_RECOVERY_CRON).toBe('* * * * *');
     expect(recoveryHandler).toBeTypeOf('function');
@@ -480,8 +483,75 @@ describe('Stripe webhook recovery and reconciliation (10-14)', () => {
     expect(await findSubscription(subscriptionId)).toMatchObject([
       expect.objectContaining({ status: 'ACTIVE' }),
     ]);
-    expect(history).toHaveLength(0);
-    expect(audits).toHaveLength(0);
+    expect(history).toHaveLength(1);
+    expect(audits).toHaveLength(1);
+  });
+
+  it('does not let a late older reconciliation overwrite a state already accepted from a newer event', async () => {
+    const worker = await loadRecoveryWorker();
+    if (!worker) return;
+
+    const organizationId = await createOrganization();
+    const customerId = `cus_late_${crypto.randomUUID()}`;
+    const subscriptionId = `sub_late_${crypto.randomUUID()}`;
+    await getDb().execute(sql`
+      INSERT INTO app.saas_customers (id, organization_id, stripe_mode, stripe_customer_id)
+      VALUES (${crypto.randomUUID()}, ${organizationId}, 'test', ${customerId})
+    `);
+    const localSubscriptionId = await insertCurrentSubscription({
+      organizationId,
+      subscriptionId,
+      customerId,
+      status: 'ACTIVE',
+    });
+    const older = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const newer = new Date(Date.now() - 60 * 60 * 1000);
+    const retrieve = vi
+      .spyOn(stripeAdapter, 'retrieveSubscription')
+      .mockResolvedValueOnce(
+        stripeSubscriptionSnapshot({
+          subscriptionId,
+          customerId,
+          status: 'past_due',
+        }),
+      )
+      .mockResolvedValueOnce(
+        stripeSubscriptionSnapshot({
+          subscriptionId,
+          customerId,
+          status: 'active',
+        }),
+      );
+
+    const newerEvent = await insertPendingEvent({
+      objectId: subscriptionId,
+      eventCreatedAt: newer,
+    });
+    await worker.recoverStripeWebhookInbox();
+    const lateOlderEvent = await insertPendingEvent({
+      objectId: subscriptionId,
+      eventCreatedAt: older,
+    });
+    await worker.recoverStripeWebhookInbox();
+
+    const history = await getDb().execute(sql`
+      SELECT id FROM app.saas_subscription_history
+      WHERE organization_id = ${organizationId} AND subscription_id = ${localSubscriptionId}
+    `);
+    const audits = await getDb().execute(sql`
+      SELECT id FROM app.audit_logs
+      WHERE organization_id = ${organizationId}
+        AND resource_id = ${localSubscriptionId}
+        AND action = 'billing.subscription.provider_reconciled'
+    `);
+    expect((await findInboxRows(newerEvent.id))[0]).toMatchObject({ status: 'PROCESSED' });
+    expect((await findInboxRows(lateOlderEvent.id))[0]).toMatchObject({ status: 'PROCESSED' });
+    expect(await findSubscription(subscriptionId)).toMatchObject([
+      expect.objectContaining({ status: 'PAST_DUE' }),
+    ]);
+    expect(retrieve).toHaveBeenCalledTimes(2);
+    expect(history).toHaveLength(1);
+    expect(audits).toHaveLength(1);
   });
 
   it('quarantines unknown provider mappings without trusting event metadata', async () => {
@@ -547,6 +617,86 @@ describe('Stripe webhook recovery and reconciliation (10-14)', () => {
     expect((await findInboxRows(event.id))[0]).toMatchObject({
       status: 'PROCESSED',
       attemptCount: 2,
+    });
+  });
+
+  it('serializes concurrent events for one provider subscription into one history and audit transition', async () => {
+    const worker = await loadRecoveryWorker();
+    if (!worker) return;
+
+    const organizationId = await createOrganization();
+    const customerId = `cus_concurrent_${crypto.randomUUID()}`;
+    const subscriptionId = `sub_concurrent_${crypto.randomUUID()}`;
+    await getDb().execute(sql`
+      INSERT INTO app.saas_customers (id, organization_id, stripe_mode, stripe_customer_id)
+      VALUES (${crypto.randomUUID()}, ${organizationId}, 'test', ${customerId})
+    `);
+    const localSubscriptionId = await insertCurrentSubscription({
+      organizationId,
+      subscriptionId,
+      customerId,
+    });
+    const snapshot = stripeSubscriptionSnapshot({
+      subscriptionId,
+      customerId,
+      status: 'past_due',
+    });
+    const retrieve = vi
+      .spyOn(stripeAdapter, 'retrieveSubscription')
+      .mockResolvedValue(snapshot);
+    const first = await insertPendingEvent({ objectId: subscriptionId });
+    const second = await insertPendingEvent({ objectId: subscriptionId });
+
+    await Promise.all([
+      worker.recoverStripeWebhookInbox(),
+      worker.recoverStripeWebhookInbox(),
+    ]);
+
+    const history = await getDb().execute(sql`
+      SELECT id FROM app.saas_subscription_history
+      WHERE organization_id = ${organizationId} AND subscription_id = ${localSubscriptionId}
+    `);
+    const audits = await getDb().execute(sql`
+      SELECT id FROM app.audit_logs
+      WHERE organization_id = ${organizationId}
+        AND resource_id = ${localSubscriptionId}
+        AND action = 'billing.subscription.provider_reconciled'
+    `);
+    expect((await findInboxRows(first.id))[0]).toMatchObject({ status: 'PROCESSED' });
+    expect((await findInboxRows(second.id))[0]).toMatchObject({ status: 'PROCESSED' });
+    expect(await findSubscription(subscriptionId)).toMatchObject([
+      expect.objectContaining({ status: 'PAST_DUE' }),
+    ]);
+    expect(retrieve).toHaveBeenCalledTimes(2);
+    expect(history).toHaveLength(1);
+    expect(audits).toHaveLength(1);
+  });
+
+  it('stops retrying after the bounded attempt limit while retaining a durable terminal failure', async () => {
+    const worker = await loadRecoveryWorker();
+    if (!worker) return;
+
+    const event = await insertPendingEvent({
+      objectId: `sub_permanent_outage_${crypto.randomUUID()}`,
+      status: 'RETRY',
+      nextAttemptAt: new Date(0),
+    });
+    await getDb().execute(sql`
+      UPDATE app.saas_webhook_inbox
+      SET attempt_count = 7,
+          next_attempt_at = now() - interval '1 second'
+      WHERE provider = 'stripe' AND provider_event_id = ${event.id}
+    `);
+    vi.spyOn(stripeAdapter, 'retrieveSubscription').mockRejectedValue(
+      new Error('provider remains unavailable'),
+    );
+
+    await worker.recoverStripeWebhookInbox();
+
+    expect((await findInboxRows(event.id))[0]).toMatchObject({
+      status: 'FAILED',
+      attemptCount: 8,
+      lastErrorCode: 'RECONCILIATION_FAILED',
     });
   });
 });

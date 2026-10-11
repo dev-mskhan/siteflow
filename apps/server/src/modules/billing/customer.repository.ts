@@ -30,6 +30,23 @@ export class CustomerRepository {
     return rows[0];
   }
 
+  async findByStripeCustomer(
+    stripeCustomerId: string,
+    stripeMode: StripeMode,
+  ): Promise<SaasCustomer | undefined> {
+    const rows = await this.db
+      .select()
+      .from(saasCustomers)
+      .where(
+        and(
+          eq(saasCustomers.stripeCustomerId, stripeCustomerId),
+          eq(saasCustomers.stripeMode, stripeMode),
+        ),
+      )
+      .limit(1);
+    return rows[0];
+  }
+
   async createOrGet(
     organizationId: string,
     stripeMode: StripeMode,

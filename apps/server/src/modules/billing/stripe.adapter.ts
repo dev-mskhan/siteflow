@@ -20,7 +20,13 @@ export type StripePortalConfigurationSnapshot = Pick<
 >;
 export type StripeSubscriptionSnapshot = Pick<
   Stripe.Subscription,
-  'id' | 'status' | 'current_period_start' | 'current_period_end' | 'cancel_at_period_end' | 'customer'
+  | 'id'
+  | 'status'
+  | 'current_period_start'
+  | 'current_period_end'
+  | 'cancel_at_period_end'
+  | 'customer'
+  | 'items'
 >;
 export type StripeInvoiceSnapshot = Pick<
   Stripe.Invoice,

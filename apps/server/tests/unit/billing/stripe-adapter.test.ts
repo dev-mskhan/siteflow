@@ -92,6 +92,13 @@ function createClient() {
           current_period_end: 1_762_592_000,
           cancel_at_period_end: false,
           customer: 'cus_test_1',
+          items: {
+            data: [
+              {
+                price: { id: 'price_pro_month_v1' },
+              },
+            ],
+          },
         }),
       update: vi
         .fn<StripeSdkClient['subscriptions']['update']>()
@@ -102,6 +109,13 @@ function createClient() {
           current_period_end: 1_762_592_000,
           cancel_at_period_end: true,
           customer: 'cus_test_1',
+          items: {
+            data: [
+              {
+                price: { id: 'price_pro_month_v1' },
+              },
+            ],
+          },
         }),
     },
     invoices: {
