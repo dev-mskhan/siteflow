@@ -27,6 +27,7 @@ describe('platform admin read baseline (Phase 11-07)', () => {
   const rbac = new PlatformRbacRepository();
   let admin: { user: { id: string }; token: string };
   let firstOrgId = '';
+  let currentOwnerToken = '';
 
   const auth = (t: string) => ({ authorization: `Bearer ${t}` });
 
@@ -36,10 +37,15 @@ describe('platform admin read baseline (Phase 11-07)', () => {
     createdUserIds.push(admin.user.id);
     await rbac.grantPlatformRole(admin.user.id, ADMIN_ROLE_ID);
 
-    const owner = await createVerifiedUser({ firstName: 'baseline-owner' });
-    createdUserIds.push(owner.user.id);
+    // Per-user organization cap is 5, so spread the dataset across owners.
+    const ORGS_PER_OWNER = 4;
     for (let i = 0; i < ORG_COUNT; i++) {
-      const org = await createOrgWithAdmin(app, owner.token);
+      if (i % ORGS_PER_OWNER === 0) {
+        const owner = await createVerifiedUser({ firstName: `baseline-owner-${i}` });
+        createdUserIds.push(owner.user.id);
+        currentOwnerToken = owner.token;
+      }
+      const org = await createOrgWithAdmin(app, currentOwnerToken);
       createdOrgIds.push(org.orgId);
       if (i === 0) firstOrgId = org.orgId;
     }
