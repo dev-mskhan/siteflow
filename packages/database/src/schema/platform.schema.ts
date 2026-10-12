@@ -93,6 +93,51 @@ export const platformApprovals = appSchema.table(
   ],
 );
 
+// Support grants (Plan 11-05). organization_id FK is enforced in migration 0054.
+export const platformSupportGrants = appSchema.table(
+  'platform_support_grants',
+  {
+    id: text('id').primaryKey(),
+    operatorUserId: text('operator_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id').notNull(),
+    reasonCode: text('reason_code').notNull(),
+    reasonNote: text('reason_note').notNull(),
+    scopes: text('scopes').array().notNull(),
+    status: text('status').notNull().default('pending'),
+    requestedByUserId: text('requested_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    approvedByUserId: text('approved_by_user_id').references(() => users.id),
+    requestedAt: timestamp('requested_at', { withTimezone: true }).defaultNow().notNull(),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    revokedByUserId: text('revoked_by_user_id').references(() => users.id),
+  },
+  (t) => [
+    index('platform_support_grants_operator_idx').on(t.operatorUserId, t.status, t.expiresAt),
+    index('platform_support_grants_org_idx').on(t.organizationId, t.status),
+    check(
+      'platform_support_grants_status_check',
+      sql`${t.status} IN ('pending', 'active', 'rejected', 'revoked')`,
+    ),
+    check(
+      'platform_support_grants_separation_check',
+      sql`${t.approvedByUserId} IS NULL OR ${t.approvedByUserId} <> ${t.requestedByUserId}`,
+    ),
+    check(
+      'platform_support_grants_ttl_check',
+      sql`${t.expiresAt} IS NULL OR (${t.approvedAt} IS NOT NULL AND ${t.expiresAt} > ${t.approvedAt} AND ${t.expiresAt} <= ${t.approvedAt} + interval '24 hours')`,
+    ),
+    check(
+      'platform_support_grants_active_check',
+      sql`${t.status} <> 'active' OR (${t.approvedByUserId} IS NOT NULL AND ${t.expiresAt} IS NOT NULL)`,
+    ),
+  ],
+);
+
 export const platformIdempotencyKeys = appSchema.table(
   'platform_idempotency_keys',
   {

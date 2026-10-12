@@ -161,6 +161,58 @@ export const reactivateOrgSchemaDoc = {
   response: lifecycleResultDoc,
 } as const;
 
+const supportGrantResultDoc = {
+  200: {
+    type: 'object',
+    properties: {
+      success: { type: 'boolean', enum: [true] },
+      data: { type: 'object', additionalProperties: true },
+    },
+  },
+  201: {
+    type: 'object',
+    properties: {
+      success: { type: 'boolean', enum: [true] },
+      data: { type: 'object', additionalProperties: true },
+    },
+  },
+  400: errorSchema,
+  401: errorSchema,
+  403: errorSchema,
+  404: errorSchema,
+  409: errorSchema,
+  422: errorSchema,
+} as const;
+
+export const requestSupportGrantSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Request a time-limited support grant for one organization (requires manage:support_grants)',
+  description:
+    'Body: password, reasonCode, reasonNote (min 10 chars), operatorUserId, organizationId, scopes (1-3 of read:org_summary, read:org_subscription, read:org_entitlements). Input is validated after authentication and permission checks.',
+  response: supportGrantResultDoc,
+} as const;
+
+export const approveSupportGrantSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Approve a pending support grant (approver must differ from requester)',
+  description: 'Body: password, durationMinutes (integer 1-1440).',
+  response: supportGrantResultDoc,
+} as const;
+
+export const revokeSupportGrantSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Revoke a pending or active support grant',
+  description: 'Body: password (re-authentication).',
+  response: supportGrantResultDoc,
+} as const;
+
+export const useSupportGrantSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Read granted organization data as the named support operator (audited)',
+  description: 'Query: scope (one of the granted scopes). Denials are audited and return 403.',
+  response: supportGrantResultDoc,
+} as const;
+
 export const organizationBillingSchemaDoc = {
   tags: ['Platform'],
   summary: 'Organization billing view (subscription, recent invoices; no Stripe secrets or payment data)',

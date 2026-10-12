@@ -9,7 +9,11 @@ import { PlatformReadRepository, type PlatformCursor } from './platform-read.rep
 import {
   accountLifecycleSchemaDoc,
   approveOrgSuspensionSchemaDoc,
+  approveSupportGrantSchemaDoc,
   listPlatformAccountsSchemaDoc,
+  requestSupportGrantSchemaDoc,
+  revokeSupportGrantSchemaDoc,
+  useSupportGrantSchemaDoc,
   listPlatformOrganizationsSchemaDoc,
   organizationBillingSchemaDoc,
   reactivateOrgSchemaDoc,
@@ -23,6 +27,11 @@ import {
   type LifecycleActionInput,
 } from './platform-lifecycle.service.js';
 import { platformBillingService } from './platform-billing.service.js';
+import {
+  SUPPORT_GRANT_SCOPES,
+  SUPPORT_GRANT_MAX_MINUTES,
+  platformSupportGrantService as grantService,
+} from './platform-support-grant.service.js';
 
 const readRepo = new PlatformReadRepository();
 
@@ -30,6 +39,25 @@ const lifecycleBodySchema = z.object({
   password: z.string().min(1).max(256),
   reasonCode: z.enum(LIFECYCLE_REASON_CODES),
   reasonNote: z.string().trim().min(10).max(500),
+});
+
+const supportGrantRequestSchema = lifecycleBodySchema.extend({
+  operatorUserId: z.string().min(1).max(64),
+  organizationId: z.string().min(1).max(64),
+  scopes: z.array(z.enum(SUPPORT_GRANT_SCOPES)).min(1).max(SUPPORT_GRANT_SCOPES.length),
+});
+
+const supportGrantApproveSchema = z.object({
+  password: z.string().min(1).max(256),
+  durationMinutes: z.number().int().min(1).max(SUPPORT_GRANT_MAX_MINUTES),
+});
+
+const supportGrantRevokeSchema = z.object({
+  password: z.string().min(1).max(256),
+});
+
+const supportGrantScopeQuerySchema = z.object({
+  scope: z.enum(SUPPORT_GRANT_SCOPES),
 });
 
 function toActionInput(
@@ -222,6 +250,69 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
           toActionInput(request, body),
         );
         return reply.send(createSuccessResponse({ status: 'ACTIVE' }));
+      },
+    );
+  });
+
+  fastify.register(async (grantRoutes) => {
+    grantRoutes.addHook('preHandler', authenticate);
+    grantRoutes.addHook('preHandler', requirePlatformPermission('manage:support_grants'));
+
+    grantRoutes.post(
+      '/support-grants',
+      { schema: requestSupportGrantSchemaDoc, config: writeRateLimit },
+      async (request, reply) => {
+        const body = supportGrantRequestSchema.parse(request.body);
+        const result = await grantService.requestGrant({
+          ...toActionInput(request, body),
+          operatorUserId: body.operatorUserId,
+          organizationId: body.organizationId,
+          scopes: body.scopes,
+        });
+        return reply.code(201).send(createSuccessResponse(result));
+      },
+    );
+    grantRoutes.post<{ Params: { grantId: string } }>(
+      '/support-grants/:grantId/approve',
+      { schema: approveSupportGrantSchemaDoc, config: writeRateLimit },
+      async (request, reply) => {
+        const body = supportGrantApproveSchema.parse(request.body);
+        if (!request.user) throw new UnauthorizedError('Authentication required');
+        const result = await grantService.approveGrant(request.params.grantId, {
+          actorUserId: request.user.sub,
+          password: body.password,
+          durationMinutes: body.durationMinutes,
+        });
+        return reply.send(createSuccessResponse(result));
+      },
+    );
+    grantRoutes.post<{ Params: { grantId: string } }>(
+      '/support-grants/:grantId/revoke',
+      { schema: revokeSupportGrantSchemaDoc, config: writeRateLimit },
+      async (request, reply) => {
+        const body = supportGrantRevokeSchema.parse(request.body);
+        if (!request.user) throw new UnauthorizedError('Authentication required');
+        await grantService.revokeGrant(request.params.grantId, {
+          actorUserId: request.user.sub,
+          password: body.password,
+        });
+        return reply.send(createSuccessResponse({ status: 'revoked' }));
+      },
+    );
+  });
+
+  fastify.register(async (grantUseRoutes) => {
+    grantUseRoutes.addHook('preHandler', authenticate);
+    grantUseRoutes.addHook('preHandler', requirePlatformPermission('use:support_grant'));
+
+    grantUseRoutes.get<{ Params: { grantId: string }; Querystring: { scope: string } }>(
+      '/support-grants/:grantId/organization',
+      { schema: useSupportGrantSchemaDoc },
+      async (request, reply) => {
+        const scope = supportGrantScopeQuerySchema.parse(request.query).scope;
+        if (!request.user) throw new UnauthorizedError('Authentication required');
+        const view = await grantService.useGrant(request.params.grantId, request.user.sub, scope);
+        return reply.send(createSuccessResponse(view));
       },
     );
   });

@@ -35,7 +35,10 @@ Total Plans in Phase: 7
 **11-04 built:** Migration 0053 (applied to siteflow and siteflow_test) adds `write:billing_sync`, granted to `prole_admin`. `platform-billing.service.ts` provides a read-only org billing view (subscription snapshot plus last 10 invoices), a platform webhook inbox summary, and a re-authenticated Stripe webhook recovery trigger (202, outbox `platform.billing.webhook_recovery_requested`). Entitlement overrides are deferred until an approved policy exists.
 **Open risks:** Recovery rate limit is IP-keyed. Outbox event `platform.billing.webhook_recovery_requested` has no registry entry. Reactivation blocklist (UNPAID, RESTRICTED, CANCELED) still awaits confirmation.
 **Tests:** `platform-billing-http.test.ts` 6/6, `platform-lifecycle-http.test.ts` and `platform-lifecycle-controls.test.ts` pass (3 files). `tsc --noEmit` clean.
-**Next action:** Commit 11-04 and push once. Then confirm the open items before 11-05.
+**11-05 built:** Migration 0054 (applied to siteflow and siteflow_test) adds `app.platform_support_grants` (status CHECKs, approver ≠ requester, TTL ≤ 24h) and permission `use:support_grant` (granted to `prole_support` and `prole_admin`). `platform-support-grant.service.ts` provides request, approve, revoke, use (read-only scoped org view), and `expireDueGrants`. Outbox payloads carry `organizationId`. Routes and Swagger docs are under `/api/v1/platform/support-grants`. Tests: `platform-support-grant-http.test.ts` 7/7, plus platform billing, lifecycle HTTP and lifecycle controls suites pass. `tsc --noEmit` clean.
+**Confirmed:** Reactivation blocklist (UNPAID, RESTRICTED, CANCELED) and per-IP rate limiting.
+**Open questions for 11-06:** Should an `expired` grant state exist (currently expiry maps to `revoked`)? Should the `/organization` support view return more than org name and status?
+**Next action:** Commit 11-04 and 11-05 and push once. Then ask the user before starting 11-06.
 
 ## Project Snapshot
 
