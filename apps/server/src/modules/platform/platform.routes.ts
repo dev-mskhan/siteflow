@@ -20,6 +20,9 @@ import {
   requestOrgSuspensionSchemaDoc,
   webhookInboxSchemaDoc,
   webhookRecoverySchemaDoc,
+  diagnosticsHealthSchemaDoc,
+  diagnosticsQueueSchemaDoc,
+  diagnosticsOrganizationSchemaDoc,
 } from './docs/platform.schemas.js';
 import {
   LIFECYCLE_REASON_CODES,
@@ -27,6 +30,7 @@ import {
   type LifecycleActionInput,
 } from './platform-lifecycle.service.js';
 import { platformBillingService } from './platform-billing.service.js';
+import { platformDiagnosticsService } from './platform-diagnostics.service.js';
 import {
   SUPPORT_GRANT_SCOPES,
   SUPPORT_GRANT_MAX_MINUTES,
@@ -187,6 +191,40 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
           toActionInput(request, body),
         );
         return reply.code(202).send(createSuccessResponse(result));
+      },
+    );
+  });
+
+  fastify.register(async (diagnosticsRoutes) => {
+    diagnosticsRoutes.addHook('preHandler', authenticate);
+    diagnosticsRoutes.addHook('preHandler', requirePlatformPermission('read:diagnostics'));
+
+    diagnosticsRoutes.get(
+      '/diagnostics/health',
+      { schema: diagnosticsHealthSchemaDoc },
+      async (_request, reply) => {
+        const health = await platformDiagnosticsService.getHealth();
+        return reply.send(createSuccessResponse(health));
+      },
+    );
+    diagnosticsRoutes.get<{ Querystring: { windowHours?: number } }>(
+      '/diagnostics/queue',
+      { schema: diagnosticsQueueSchemaDoc },
+      async (request, reply) => {
+        const view = await platformDiagnosticsService.getQueueDiagnostics(
+          request.query.windowHours ?? 24,
+        );
+        return reply.send(createSuccessResponse(view));
+      },
+    );
+    diagnosticsRoutes.get<{ Params: { orgId: string } }>(
+      '/organizations/:orgId/diagnostics',
+      { schema: diagnosticsOrganizationSchemaDoc },
+      async (request, reply) => {
+        const view = await platformDiagnosticsService.getOrganizationDiagnostics(
+          request.params.orgId,
+        );
+        return reply.send(createSuccessResponse(view));
       },
     );
   });

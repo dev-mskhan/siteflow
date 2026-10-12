@@ -74,6 +74,14 @@ const PlatformAccountPayloadSchema = z
   })
   .passthrough();
 
+const PlatformBillingRecoveryPayloadSchema = z
+  .object({
+    actorUserId: z.string().min(1),
+    reasonCode: z.string().min(1),
+    processedCount: z.number().int().nonnegative(),
+  })
+  .passthrough();
+
 const queueContracts = new Map<
   string,
   { schema: z.ZodType<Record<string, unknown>>; tenantScoped: boolean }
@@ -85,6 +93,10 @@ const queueContracts = new Map<
   [ORG_QUEUES.SEND_INVITATION_EMAIL, { schema: InvitationPayloadSchema, tenantScoped: true }],
   [PLATFORM_QUEUES.ACCOUNT_SUSPENDED, { schema: PlatformAccountPayloadSchema, tenantScoped: false }],
   [PLATFORM_QUEUES.ACCOUNT_REACTIVATED, { schema: PlatformAccountPayloadSchema, tenantScoped: false }],
+  [
+    'platform.billing.webhook_recovery_requested',
+    { schema: PlatformBillingRecoveryPayloadSchema, tenantScoped: false },
+  ],
 ]);
 const supportedQueueNames = new Set<string>(Object.values(QUEUES));
 

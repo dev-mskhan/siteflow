@@ -269,6 +269,87 @@ export const webhookRecoverySchemaDoc = {
   },
 } as const;
 
+export const diagnosticsHealthSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Application and database health (no secrets, no PII)',
+  description: 'Requires read:diagnostics. Runs SELECT 1 and reports its latency.',
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: ['ok', 'degraded'] },
+            database: {
+              type: 'object',
+              properties: {
+                ok: { type: 'boolean' },
+                latencyMs: { type: 'integer' },
+              },
+            },
+            checkedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+export const diagnosticsQueueSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'PgBoss queue state counts and oldest waiting job age (bounded window)',
+  description:
+    'Requires read:diagnostics. Counts jobs created within windowHours (1-24, default 24). Aggregated; no job payloads are returned. Webhook inbox counts are included.',
+  querystring: {
+    type: 'object',
+    properties: {
+      windowHours: { type: 'integer', minimum: 1, maximum: 24, default: 24 },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: {
+          type: 'object',
+          properties: {
+            windowHours: { type: 'integer' },
+            counts: { type: 'object', additionalProperties: { type: 'integer' } },
+            oldestWaitingJobAgeSeconds: { type: ['integer', 'null'] },
+            webhookInbox: { type: 'object', additionalProperties: { type: 'integer' } },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+export const diagnosticsOrganizationSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Organization notification delivery counts and aggregate storage bytes',
+  description:
+    'Requires read:diagnostics. Scoped to a single organization. Returns 404 for an unknown organization.',
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: {
+          type: 'object',
+          properties: {
+            organizationId: { type: 'string' },
+            notificationDeliveries: { type: 'object', additionalProperties: { type: 'integer' } },
+            storageBytes: { type: 'integer' },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
 export const listPlatformAccountsSchemaDoc = {
   tags: ['Platform'],
   summary: 'List user accounts (platform operators only)',

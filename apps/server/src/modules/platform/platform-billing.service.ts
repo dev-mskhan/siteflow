@@ -113,6 +113,7 @@ export class PlatformBillingService {
       await writeOutboxEvent(tx, 'platform.billing.webhook_recovery_requested', {
         actorUserId: input.actorUserId,
         reasonCode: input.reasonCode,
+        reasonNote: input.reasonNote,
         processedCount,
       });
     });
