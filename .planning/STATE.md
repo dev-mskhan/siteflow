@@ -32,7 +32,10 @@ Total Plans in Phase: 7
 **Open items (not built):** Idempotency-Key replay (table exists, unused). Rate limit 30 writes/min not wired. Reactivation is status-only; billing and entitlement re-check is not done. Member session revocation on org suspend not built. Confirm the reactivation policy with the user.
 **11-03 additions:** Org suspension revokes all ACTIVE members' sessions after approval and invalidates their caches. Reactivation is blocked while the current subscription is UNPAID, RESTRICTED or CANCELED (assumed rule, pending user confirmation). Lifecycle writes are rate-limited to 30/min per route via `config.rateLimit`. Limiter key is IP (the global keyGenerator), not per operator. Known gap: counter-accumulation across repeated `app.inject` calls is unverified, so the HTTP test asserts the `x-ratelimit-limit: 30` header only.
 **Tests:** lifecycle service 6/6, lifecycle HTTP 4/4, lifecycle controls 3/3, task3 RBAC 3/3, `tsc --noEmit` clean.
-**Next action:** Commit and push the 11-03 chunk once, then start 11-04 after the user confirms the open items.
+**11-04 built:** Migration 0053 (applied to siteflow and siteflow_test) adds `write:billing_sync`, granted to `prole_admin`. `platform-billing.service.ts` provides a read-only org billing view (subscription snapshot plus last 10 invoices), a platform webhook inbox summary, and a re-authenticated Stripe webhook recovery trigger (202, outbox `platform.billing.webhook_recovery_requested`). Entitlement overrides are deferred until an approved policy exists.
+**Open risks:** Recovery rate limit is IP-keyed. Outbox event `platform.billing.webhook_recovery_requested` has no registry entry. Reactivation blocklist (UNPAID, RESTRICTED, CANCELED) still awaits confirmation.
+**Tests:** `platform-billing-http.test.ts` 6/6, `platform-lifecycle-http.test.ts` and `platform-lifecycle-controls.test.ts` pass (3 files). `tsc --noEmit` clean.
+**Next action:** Commit 11-04 and push once. Then confirm the open items before 11-05.
 
 ## Project Snapshot
 

@@ -11,14 +11,18 @@ import {
   approveOrgSuspensionSchemaDoc,
   listPlatformAccountsSchemaDoc,
   listPlatformOrganizationsSchemaDoc,
+  organizationBillingSchemaDoc,
   reactivateOrgSchemaDoc,
   requestOrgSuspensionSchemaDoc,
+  webhookInboxSchemaDoc,
+  webhookRecoverySchemaDoc,
 } from './docs/platform.schemas.js';
 import {
   LIFECYCLE_REASON_CODES,
   platformLifecycleService as lifecycleService,
   type LifecycleActionInput,
 } from './platform-lifecycle.service.js';
+import { platformBillingService } from './platform-billing.service.js';
 
 const readRepo = new PlatformReadRepository();
 
@@ -117,6 +121,45 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
       '/accounts',
       { schema: listPlatformAccountsSchemaDoc },
       handleListPlatformAccounts,
+    );
+  });
+
+  fastify.register(async (billingReadRoutes) => {
+    billingReadRoutes.addHook('preHandler', authenticate);
+    billingReadRoutes.addHook('preHandler', requirePlatformPermission('read:billing'));
+
+    billingReadRoutes.get<{ Params: { orgId: string } }>(
+      '/organizations/:orgId/billing',
+      { schema: organizationBillingSchemaDoc },
+      async (request, reply) => {
+        const view = await platformBillingService.getOrganizationBillingView(request.params.orgId);
+        return reply.send(createSuccessResponse(view));
+      },
+    );
+    billingReadRoutes.get(
+      '/billing/webhook-inbox',
+      { schema: webhookInboxSchemaDoc },
+      async (_request, reply) => {
+        const summary = await platformBillingService.getWebhookInboxSummary();
+        return reply.send(createSuccessResponse(summary));
+      },
+    );
+  });
+
+  fastify.register(async (billingWriteRoutes) => {
+    billingWriteRoutes.addHook('preHandler', authenticate);
+    billingWriteRoutes.addHook('preHandler', requirePlatformPermission('write:billing_sync'));
+
+    billingWriteRoutes.post(
+      '/billing/webhook-recovery',
+      { schema: webhookRecoverySchemaDoc, config: writeRateLimit },
+      async (request, reply) => {
+        const body = lifecycleBodySchema.parse(request.body);
+        const result = await platformBillingService.triggerWebhookRecovery(
+          toActionInput(request, body),
+        );
+        return reply.code(202).send(createSuccessResponse(result));
+      },
     );
   });
 

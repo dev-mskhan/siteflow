@@ -161,6 +161,61 @@ export const reactivateOrgSchemaDoc = {
   response: lifecycleResultDoc,
 } as const;
 
+export const organizationBillingSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Organization billing view (subscription, recent invoices; no Stripe secrets or payment data)',
+  description: 'Requires a platform role with read:billing. Does not grant access to tenant project or financial records.',
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: { type: 'object', additionalProperties: true },
+      },
+    },
+    404: errorSchema,
+  },
+} as const;
+
+export const webhookInboxSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Stripe webhook inbox status counts (platform-wide, not tenant-scoped)',
+  description: 'Requires a platform role with read:billing.',
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: {
+          type: 'object',
+          properties: {
+            counts: { type: 'object', additionalProperties: { type: 'integer' } },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+export const webhookRecoverySchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Re-run bounded, idempotent Stripe webhook inbox recovery (password re-entry required)',
+  description: 'Requires write:billing_sync. Safe to retry: recovery re-fetches Stripe state under a lease.',
+  body: lifecycleBodyDoc,
+  response: {
+    202: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: {
+          type: 'object',
+          properties: { processedCount: { type: 'integer' } },
+        },
+      },
+    },
+  },
+} as const;
+
 export const listPlatformAccountsSchemaDoc = {
   tags: ['Platform'],
   summary: 'List user accounts (platform operators only)',
