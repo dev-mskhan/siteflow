@@ -85,7 +85,6 @@ const BLOCKED_WHEN_RESTRICTED: ReadonlySet<AccessAction> = new Set<AccessAction>
   'create_project',
   'modify_project',
   'invite_members',
-  'api_access',
 ]);
 
 /** D-09 matrix: only write/create and external-API operations are blocked after grace ends. */

@@ -96,7 +96,7 @@
 | Create new project | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
 | Modify existing projects | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
 | Invite new team members | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
-| API access (external integrations) | ✅ | ✅ | ✅ | ❌ | **APPROVED** |
+| API access (external integrations) | ✅ | ✅ | ✅ | ✅ | **APPROVED** |
 
 ---
 

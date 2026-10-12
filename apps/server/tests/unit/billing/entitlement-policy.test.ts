@@ -112,10 +112,10 @@ describe('checkRestrictedStateAccess — D-09 restricted-access matrix', () => {
     expect(result.reason).toBe('ACCESS_RESTRICTED');
   });
 
-  it('blocks API access in restricted state', () => {
+  it('allows API access in restricted state (approved policy — api:access)', () => {
     const result = checkRestrictedStateAccess('api:access');
-    expect(result.allowed).toBe(false);
-    expect(result.reason).toBe('ACCESS_RESTRICTED');
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBe('ALLOWED');
   });
 
   it('allows login/auth operation in restricted state (recovery path — D-09)', () => {

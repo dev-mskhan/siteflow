@@ -104,12 +104,12 @@ describe('access matrix (D-09)', () => {
     'view_billing_history',
     'read_project_data',
     'export_data',
+    'api_access',
   ] as const;
   const blockedWhenRestricted = [
     'create_project',
     'modify_project',
     'invite_members',
-    'api_access',
   ] as const;
 
   it.each(allowedWhenRestricted)('allows %s when restricted', (action) => {

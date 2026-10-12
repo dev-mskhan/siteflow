@@ -43,7 +43,6 @@ const RESTRICTED_STATE_BLOCKED_OPERATIONS = new Set<string>([
   'project:create',
   'project:update',
   'member:invite',
-  'api:access',
 ]);
 
 /**
