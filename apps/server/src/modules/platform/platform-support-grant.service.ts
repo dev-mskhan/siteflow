@@ -1,6 +1,11 @@
 // apps/server/src/modules/platform/platform-support-grant.service.ts
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { organizations, platformSupportGrants } from '@siteflow/database/schema';
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import {
+  organizationMemberships,
+  organizations,
+  platformSupportGrants,
+  roles,
+} from '@siteflow/database/schema';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
 import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
@@ -8,6 +13,8 @@ import { AuthRepository } from '../auth/auth.repository.js';
 import { ConflictError, ForbiddenError, UnauthorizedError } from '../auth/auth.errors.js';
 import { verifyPassword } from '../auth/password.service.js';
 import { LIFECYCLE_REASON_CODES, type LifecycleReasonCode } from './platform-lifecycle.service.js';
+import { getCurrentSubscriptionSnapshot } from '../billing/reminder-delivery.repository.js';
+import { catalogService } from '../billing/catalog.service.js';
 
 // Ordinary, read-only scopes. Sensitive scopes are intentionally absent and always rejected.
 export const SUPPORT_GRANT_SCOPES = [
@@ -275,11 +282,54 @@ export class PlatformSupportGrantService {
     return outcome.grant;
   }
 
-  /** Marks active grants past expiry as revoked (no 'expired' state in the schema). Safe to run repeatedly. */
+  /**
+   * Read-only organization view limited to the granted scope. Membership counts and owner are
+   * computed in SQL; subscription and entitlements reuse the billing read paths.
+   */
+  async getOrganizationView(organizationId: string, scope: SupportGrantScope) {
+    if (scope === 'read:org_subscription') {
+      return { subscription: await getCurrentSubscriptionSnapshot(organizationId) };
+    }
+    if (scope === 'read:org_entitlements') {
+      return { entitlements: await catalogService.getEffectiveEntitlements(organizationId) };
+    }
+    const db = getDb();
+    const [org] = await db
+      .select({ id: organizations.id, name: organizations.name, slug: organizations.slug, status: organizations.status })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId));
+    const [owner] = await db
+      .select({ userId: organizationMemberships.userId })
+      .from(organizationMemberships)
+      .innerJoin(roles, eq(roles.id, organizationMemberships.roleId))
+      .where(
+        and(
+          eq(organizationMemberships.organizationId, organizationId),
+          eq(roles.name, 'Organization Admin'),
+          eq(roles.isSystem, true),
+          ne(organizationMemberships.status, 'REMOVED'),
+        ),
+      )
+      .limit(1);
+    const [counts] = await db
+      .select({ memberCount: sql<number>`count(*)::int` })
+      .from(organizationMemberships)
+      .where(
+        and(
+          eq(organizationMemberships.organizationId, organizationId),
+          ne(organizationMemberships.status, 'REMOVED'),
+        ),
+      );
+    return {
+      organization: org ? { ...org, ownerUserId: owner?.userId ?? null, memberCount: counts?.memberCount ?? 0 } : null,
+    };
+  }
+
+  /** Marks active grants past expiry as expired. Safe to run repeatedly. */
   async expireDueGrants(): Promise<number> {
     const rows = await getDb()
       .update(platformSupportGrants)
-      .set({ status: 'revoked', revokedAt: new Date() })
+      .set({ status: 'expired' })
       .where(
         and(
           eq(platformSupportGrants.status, 'active'),

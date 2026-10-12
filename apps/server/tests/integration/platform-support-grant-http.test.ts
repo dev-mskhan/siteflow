@@ -1,7 +1,7 @@
 // apps/server/tests/integration/platform-support-grant-http.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb } from '../../src/lib/db/index.js';
 import {
   users,
@@ -13,6 +13,7 @@ import {
 import { createTestApp } from '../helpers/test-app.js';
 import { createVerifiedUser, createOrgWithAdmin } from '../helpers/fixtures.js';
 import { PlatformRbacRepository } from '../../src/modules/platform/platform-rbac.repository.js';
+import { platformSupportGrantService } from '../../src/modules/platform/platform-support-grant.service.js';
 
 const ADMIN_ROLE_ID = 'prole_admin';
 const SUPPORT_ROLE_ID = 'prole_support';
@@ -223,5 +224,43 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
       headers: { authorization: `Bearer ${support.token}` },
     });
     expect(afterRevoke.statusCode).toBe(403);
+  });
+
+  it('summary view exposes owner and member count; expired grant is denied and swept to expired', async () => {
+    const req = await requestGrant(admin1.token, ['read:org_summary']);
+    expect(req.statusCode).toBe(201);
+    const grantId = await latestGrantId(support.user.id);
+    const approve = await app.inject({
+      method: 'POST',
+      url: `${BASE}/${grantId}/approve`,
+      headers: { authorization: `Bearer ${admin2.token}` },
+      payload: { ...reauth, durationMinutes: 30 },
+    });
+    expect(approve.statusCode).toBe(200);
+
+    const summary = await app.inject({
+      method: 'GET',
+      url: `${BASE}/${grantId}/organization?scope=read:org_summary`,
+      headers: { authorization: `Bearer ${support.token}` },
+    });
+    expect(summary.statusCode).toBe(200);
+    const org = summary.json().data.organization;
+    expect(typeof org.memberCount).toBe('number');
+    expect(org.memberCount).toBeGreaterThanOrEqual(1);
+    expect(org.ownerUserId).toBeTruthy();
+    expect(JSON.stringify(summary.json())).not.toMatch(/email|passwordHash/);
+
+    await getDb().execute(
+      sql`UPDATE app.platform_support_grants SET approved_at = now() - interval '2 hours', expires_at = now() - interval '1 minute' WHERE id = ${grantId}`,
+    );
+    const expired = await app.inject({
+      method: 'GET',
+      url: `${BASE}/${grantId}/organization?scope=read:org_summary`,
+      headers: { authorization: `Bearer ${support.token}` },
+    });
+    expect(expired.statusCode).toBe(403);
+
+    await platformSupportGrantService.expireDueGrants();
+    expect(await grantStatus(grantId)).toBe('expired');
   });
 });

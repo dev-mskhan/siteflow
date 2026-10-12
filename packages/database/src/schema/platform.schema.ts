@@ -121,7 +121,7 @@ export const platformSupportGrants = appSchema.table(
     index('platform_support_grants_org_idx').on(t.organizationId, t.status),
     check(
       'platform_support_grants_status_check',
-      sql`${t.status} IN ('pending', 'active', 'rejected', 'revoked')`,
+      sql`${t.status} IN ('pending', 'active', 'rejected', 'revoked', 'expired')`,
     ),
     check(
       'platform_support_grants_separation_check',

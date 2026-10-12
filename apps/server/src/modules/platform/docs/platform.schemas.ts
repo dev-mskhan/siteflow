@@ -209,7 +209,8 @@ export const revokeSupportGrantSchemaDoc = {
 export const useSupportGrantSchemaDoc = {
   tags: ['Platform'],
   summary: 'Read granted organization data as the named support operator (audited)',
-  description: 'Query: scope (one of the granted scopes). Denials are audited and return 403.',
+  description:
+    'Query: scope (one of the granted scopes). Returns organizationId, scope and the scope payload: read:org_summary (lifecycle status, owner user ID, non-removed member count), read:org_subscription (subscription summary), read:org_entitlements (effective entitlements). No emails, password hashes or tokens. Denials are audited and return 403. Grants past expiresAt are marked expired by the sweep and denied.',
   response: supportGrantResultDoc,
 } as const;
 

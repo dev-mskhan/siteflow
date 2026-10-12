@@ -311,8 +311,9 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
       async (request, reply) => {
         const scope = supportGrantScopeQuerySchema.parse(request.query).scope;
         if (!request.user) throw new UnauthorizedError('Authentication required');
-        const view = await grantService.useGrant(request.params.grantId, request.user.sub, scope);
-        return reply.send(createSuccessResponse(view));
+        const grant = await grantService.useGrant(request.params.grantId, request.user.sub, scope);
+        const view = await grantService.getOrganizationView(grant.organizationId, scope);
+        return reply.send(createSuccessResponse({ organizationId: grant.organizationId, scope, ...view }));
       },
     );
   });
