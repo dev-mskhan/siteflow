@@ -95,6 +95,72 @@ export const listPlatformOrganizationsSchemaDoc = {
   },
 } as const;
 
+const lifecycleBodyDoc = {
+  type: 'object',
+  required: ['password', 'reasonCode', 'reasonNote'],
+  properties: {
+    password: { type: 'string', minLength: 1, maxLength: 256, description: 'Re-authentication' },
+    reasonCode: { type: 'string', description: 'Reason enum (see LIFECYCLE_REASON_CODES)' },
+    reasonNote: { type: 'string', minLength: 10, maxLength: 500 },
+  },
+} as const;
+
+const lifecycleResultDoc = {
+  200: {
+    type: 'object',
+    properties: {
+      success: { type: 'boolean', enum: [true] },
+      data: { type: 'object', properties: { status: { type: 'string' } } },
+    },
+  },
+  400: errorSchema,
+  401: errorSchema,
+  403: errorSchema,
+  409: errorSchema,
+} as const;
+
+export const accountLifecycleSchemaDoc = (action: 'suspend' | 'reactivate') => ({
+  tags: ['Platform'],
+  summary: `${action === 'suspend' ? 'Suspend' : 'Reactivate'} a user account`,
+  description:
+    'Requires write:organization_lifecycle and password re-entry. Conditional transition; repeated requests return 409. Sessions are revoked on suspend.',
+  body: lifecycleBodyDoc,
+  response: lifecycleResultDoc,
+});
+
+export const requestOrgSuspensionSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Request organization suspension (second operator approval required)',
+  body: lifecycleBodyDoc,
+  response: {
+    201: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: { type: 'object', properties: { approvalId: { type: 'string' } } },
+      },
+    },
+    400: errorSchema,
+    401: errorSchema,
+    403: errorSchema,
+    409: errorSchema,
+  },
+} as const;
+
+export const approveOrgSuspensionSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Approve a pending organization suspension (different operator)',
+  body: lifecycleBodyDoc,
+  response: lifecycleResultDoc,
+} as const;
+
+export const reactivateOrgSchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Reactivate an organization (status only; billing and entitlements enforced separately)',
+  body: lifecycleBodyDoc,
+  response: lifecycleResultDoc,
+} as const;
+
 export const listPlatformAccountsSchemaDoc = {
   tags: ['Platform'],
   summary: 'List user accounts (platform operators only)',

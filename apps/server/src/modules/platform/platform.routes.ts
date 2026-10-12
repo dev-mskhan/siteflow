@@ -3,14 +3,45 @@ import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { createSuccessResponse } from '../../shared/response.js';
 import { authenticate } from '../auth/auth.middleware.js';
+import { UnauthorizedError } from '../auth/auth.errors.js';
 import { requirePlatformPermission } from './platform-permission.middleware.js';
 import { PlatformReadRepository, type PlatformCursor } from './platform-read.repository.js';
 import {
+  accountLifecycleSchemaDoc,
+  approveOrgSuspensionSchemaDoc,
   listPlatformAccountsSchemaDoc,
   listPlatformOrganizationsSchemaDoc,
+  reactivateOrgSchemaDoc,
+  requestOrgSuspensionSchemaDoc,
 } from './docs/platform.schemas.js';
+import {
+  LIFECYCLE_REASON_CODES,
+  platformLifecycleService as lifecycleService,
+  type LifecycleActionInput,
+} from './platform-lifecycle.service.js';
 
 const readRepo = new PlatformReadRepository();
+
+const lifecycleBodySchema = z.object({
+  password: z.string().min(1).max(256),
+  reasonCode: z.enum(LIFECYCLE_REASON_CODES),
+  reasonNote: z.string().trim().min(10).max(500),
+});
+
+function toActionInput(
+  request: FastifyRequest,
+  body: z.infer<typeof lifecycleBodySchema>,
+): LifecycleActionInput {
+  if (!request.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+  return {
+    actorUserId: request.user.sub,
+    password: body.password,
+    reasonCode: body.reasonCode,
+    reasonNote: body.reasonNote,
+  };
+}
 
 const cursorSchema = z
   .string()
@@ -84,6 +115,69 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
       '/accounts',
       { schema: listPlatformAccountsSchemaDoc },
       handleListPlatformAccounts,
+    );
+  });
+
+  fastify.register(async (writeRoutes) => {
+    writeRoutes.addHook('preHandler', authenticate);
+    writeRoutes.addHook(
+      'preHandler',
+      requirePlatformPermission('write:organization_lifecycle'),
+    );
+
+    writeRoutes.post<{ Params: { userId: string } }>(
+      '/accounts/:userId/suspend',
+      { schema: accountLifecycleSchemaDoc('suspend') },
+      async (request, reply) => {
+        const body = lifecycleBodySchema.parse(request.body);
+        await lifecycleService.suspendAccount(request.params.userId, toActionInput(request, body));
+        return reply.send(createSuccessResponse({ status: 'SUSPENDED' }));
+      },
+    );
+    writeRoutes.post<{ Params: { userId: string } }>(
+      '/accounts/:userId/reactivate',
+      { schema: accountLifecycleSchemaDoc('reactivate') },
+      async (request, reply) => {
+        const body = lifecycleBodySchema.parse(request.body);
+        await lifecycleService.reactivateAccount(request.params.userId, toActionInput(request, body));
+        return reply.send(createSuccessResponse({ status: 'ACTIVE' }));
+      },
+    );
+    writeRoutes.post<{ Params: { orgId: string } }>(
+      '/organizations/:orgId/suspension-requests',
+      { schema: requestOrgSuspensionSchemaDoc },
+      async (request, reply) => {
+        const body = lifecycleBodySchema.parse(request.body);
+        const result = await lifecycleService.requestOrganizationSuspension(
+          request.params.orgId,
+          toActionInput(request, body),
+        );
+        return reply.code(201).send(createSuccessResponse(result));
+      },
+    );
+    writeRoutes.post<{ Params: { approvalId: string } }>(
+      '/approvals/:approvalId/approve',
+      { schema: approveOrgSuspensionSchemaDoc },
+      async (request, reply) => {
+        const body = lifecycleBodySchema.parse(request.body);
+        await lifecycleService.approveOrganizationSuspension(
+          request.params.approvalId,
+          toActionInput(request, body),
+        );
+        return reply.send(createSuccessResponse({ status: 'SUSPENDED' }));
+      },
+    );
+    writeRoutes.post<{ Params: { orgId: string } }>(
+      '/organizations/:orgId/reactivate',
+      { schema: reactivateOrgSchemaDoc },
+      async (request, reply) => {
+        const body = lifecycleBodySchema.parse(request.body);
+        await lifecycleService.reactivateOrganization(
+          request.params.orgId,
+          toActionInput(request, body),
+        );
+        return reply.send(createSuccessResponse({ status: 'ACTIVE' }));
+      },
     );
   });
 };

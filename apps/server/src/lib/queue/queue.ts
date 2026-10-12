@@ -36,6 +36,7 @@ import {
 } from '../../modules/project/engine/schedule.jobs.js';
 import { DOCUMENT_QUEUES, type DocumentUploadedPayload } from '../../modules/project/documents/document.jobs.js';
 import { COMPLIANCE_QUEUES, type ExpiryScanJobPayload } from '../../modules/project/compliance/compliance.jobs.js';
+import { PLATFORM_QUEUES } from '../../modules/platform/platform.jobs.js';
 
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {
@@ -47,6 +48,7 @@ export const QUEUES = {
   ...SCHEDULE_QUEUES,
   ...DOCUMENT_QUEUES,
   ...COMPLIANCE_QUEUES,
+  ...PLATFORM_QUEUES,
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

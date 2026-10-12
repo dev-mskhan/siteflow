@@ -10,6 +10,7 @@ import { createLogger } from '@siteflow/observability/server';
 import { z } from 'zod';
 import { AUTH_QUEUES } from '../../modules/auth/auth.jobs.js';
 import { ORG_QUEUES } from '../../modules/invitation/invitation.jobs.js';
+import { PLATFORM_QUEUES } from '../../modules/platform/platform.jobs.js';
 import { DomainEventEnvelopeSchema, DomainEventNameSchema } from '@siteflow/shared';
 
 const logger = createLogger({ name: 'outbox-service' });
@@ -64,6 +65,15 @@ const TenantScopedPayloadSchema = z
     message: 'organizationId is required in tenant-scoped outbox payloads',
   });
 
+const PlatformAccountPayloadSchema = z
+  .object({
+    targetUserId: z.string().min(1),
+    actorUserId: z.string().min(1),
+    reasonCode: z.string().min(1),
+    reasonNote: z.string().min(1),
+  })
+  .passthrough();
+
 const queueContracts = new Map<
   string,
   { schema: z.ZodType<Record<string, unknown>>; tenantScoped: boolean }
@@ -73,6 +83,8 @@ const queueContracts = new Map<
   [AUTH_QUEUES.SEND_PASSWORD_CHANGED_NOTIFICATION, { schema: PasswordChangedPayloadSchema, tenantScoped: false }],
   [AUTH_QUEUES.SEND_NEW_LOGIN_NOTIFICATION, { schema: NewLoginPayloadSchema, tenantScoped: false }],
   [ORG_QUEUES.SEND_INVITATION_EMAIL, { schema: InvitationPayloadSchema, tenantScoped: true }],
+  [PLATFORM_QUEUES.ACCOUNT_SUSPENDED, { schema: PlatformAccountPayloadSchema, tenantScoped: false }],
+  [PLATFORM_QUEUES.ACCOUNT_REACTIVATED, { schema: PlatformAccountPayloadSchema, tenantScoped: false }],
 ]);
 const supportedQueueNames = new Set<string>(Object.values(QUEUES));
 

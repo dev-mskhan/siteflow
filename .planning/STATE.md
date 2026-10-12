@@ -1,8 +1,8 @@
 ---
 gsd_state_version: "1.0"
 current_phase: 11
-current_plan: 0
-status: Planned
+current_plan: 3
+status: In progress (11-03 built; tests passing; push pending)
 stopped_at: Planned Phase 11 (7 plans)
 last_updated: "2026-10-12T00:00:00.000Z"
 last_activity: 2026-10-12
@@ -26,7 +26,11 @@ Current Plan: 0
 Total Plans in Phase: 7
 **Phase status:** In progress. Plan 11-01 (platform RBAC foundation) complete: migrations 0050 and 0051 applied to siteflow_test and siteflow (main), guard, Redis-cached permission lookup with invalidation, env bootstrap (commit 7871353). (PLATFORM_BOOTSTRAP_EMAIL). Phase 10 (SaaS Billing) is closed.
 **Last activity:** 2026-10-12 — Completed 11-01. platform-rbac integration tests 8/8 pass. Pre-existing failure in task3_rbac_tenant_isolation (invitation seat check NO_ENTITLEMENT, Phase 10 billing enforcement); not caused by 11-01.
-**Next action:** Ask user about applying 0050/0051 to main siteflow DB and approval workflow scope before starting 11-02.
+**11-02:** Read APIs and Swagger committed (`bfcd11d`, `5e03f05`). Slug prefix EXPLAIN: seq scan on 743 rows, 5.8 ms; prefix index deferred.
+**11-03 built:** Migration 0052 (applied) adds `platform_idempotency_keys` and a `lower(slug) text_pattern_ops` index. Slug search uses `lower(slug) LIKE prefix%`. `platform-lifecycle.service.ts` covers account suspend/reactivate (conditional transitions, session revoke, cache invalidation, outbox), and org suspension via second-operator approval plus org reactivate. Routes are under `/api/v1/platform` with Swagger docs. Non-tenant outbox contracts for `platform.account.*` and `platform.organization.*` queues in `platform.jobs.ts`.
+**Tests:** `platform-lifecycle.test.ts` 6/6, `platform-lifecycle-http.test.ts` 3/3 (401 anon, org user denied, support denied), `platform-rbac` and `platform-read` pass. Typecheck clean. Lint 0 errors. Build OK.
+**Open items (not built):** Idempotency-Key replay (table exists, unused). Rate limit 30 writes/min not wired. Reactivation is status-only; billing and entitlement re-check is not done. Member session revocation on org suspend not built. Confirm the reactivation policy with the user.
+**Next action:** Push the 11-03 chunk once, then start 11-04 after the user confirms the open items.
 
 ## Project Snapshot
 

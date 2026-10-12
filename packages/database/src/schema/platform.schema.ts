@@ -3,7 +3,7 @@
 // No foreign key to organizations: platform authority never derives from org membership.
 
 import { sql } from 'drizzle-orm';
-import { check, index, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { check, index, jsonb, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { appSchema, users } from './auth.schema.js';
 
 export const platformRoles = appSchema.table(
@@ -90,5 +90,28 @@ export const platformApprovals = appSchema.table(
       'platform_approvals_separation_check',
       sql`${t.approvedByUserId} IS NULL OR ${t.approvedByUserId} <> ${t.requestedByUserId}`,
     ),
+  ],
+);
+
+export const platformIdempotencyKeys = appSchema.table(
+  'platform_idempotency_keys',
+  {
+    id: text('id').primaryKey(),
+    actorUserId: text('actor_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    operation: text('operation').notNull(),
+    keyHash: text('key_hash').notNull(),
+    requestHash: text('request_hash').notNull(),
+    responseBody: jsonb('response_body'),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true })
+      .default(sql`now() + interval '24 hours'`)
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex('platform_idempotency_keys_scope_unique').on(t.actorUserId, t.operation, t.keyHash),
+    index('platform_idempotency_keys_expires_idx').on(t.expiresAt),
   ],
 );

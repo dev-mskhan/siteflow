@@ -1,5 +1,5 @@
 // apps/server/src/modules/platform/platform-read.repository.ts
-import { and, desc, eq, inArray, lt, or, ilike, ne, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, or, ne, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import {
   organizations,
@@ -72,7 +72,8 @@ export class PlatformReadRepository {
       );
     }
     if (params.search) {
-      conditions.push(ilike(organizations.slug, `${params.search.toLowerCase()}%`));
+      const prefix = params.search.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`);
+      conditions.push(sql`lower(${organizations.slug}) LIKE ${`${prefix}%`}`);
     }
 
     const orgs = await this.db
