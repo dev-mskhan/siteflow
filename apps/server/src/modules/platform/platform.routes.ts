@@ -5,6 +5,10 @@ import { createSuccessResponse } from '../../shared/response.js';
 import { authenticate } from '../auth/auth.middleware.js';
 import { requirePlatformPermission } from './platform-permission.middleware.js';
 import { PlatformReadRepository, type PlatformCursor } from './platform-read.repository.js';
+import {
+  listPlatformAccountsSchemaDoc,
+  listPlatformOrganizationsSchemaDoc,
+} from './docs/platform.schemas.js';
 
 const readRepo = new PlatformReadRepository();
 
@@ -73,12 +77,12 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
 
     protectedRoutes.get(
       '/organizations',
-      { schema: { tags: ['Platform'], summary: 'List organizations (platform operators only)' } },
+      { schema: listPlatformOrganizationsSchemaDoc },
       handleListPlatformOrganizations,
     );
     protectedRoutes.get(
       '/accounts',
-      { schema: { tags: ['Platform'], summary: 'List user accounts (platform operators only)' } },
+      { schema: listPlatformAccountsSchemaDoc },
       handleListPlatformAccounts,
     );
   });
