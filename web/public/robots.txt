@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /auth/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://siteflow.app/sitemap.xml
