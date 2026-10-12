@@ -104,6 +104,9 @@ export const serverEnv = createEnv({
     STRIPE_TEST_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
     STRIPE_LIVE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
 
+    // Platform operator bootstrap (one-time grant of platform_admin on startup)
+    PLATFORM_BOOTSTRAP_EMAIL: z.string().email().optional(),
+
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   },

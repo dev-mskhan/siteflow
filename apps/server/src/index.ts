@@ -13,7 +13,7 @@ const start = async () => {
   const app = await buildApp();
 
   try {
-    await new PlatformRbacRepository().bootstrapPlatformOperator(process.env.PLATFORM_BOOTSTRAP_EMAIL);
+    await new PlatformRbacRepository().bootstrapPlatformOperator(serverEnv.PLATFORM_BOOTSTRAP_EMAIL);
   } catch (err) {
     app.log.error({ err }, 'Platform operator bootstrap failed');
   }

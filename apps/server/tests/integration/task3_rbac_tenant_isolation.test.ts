@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/test-app.js';
 import { getDb } from '../../src/lib/db/index.js';
-import { users, roles, outboxEvents, auditLogs } from '@siteflow/database/schema';
+import { users, roles, outboxEvents, auditLogs, saasTrials } from '@siteflow/database/schema';
 import { eq } from 'drizzle-orm';
 import { outboxService } from '../../src/lib/outbox/outbox.service.js';
 import { rbacCacheService } from '../../src/modules/rbac/rbac.cache.service.js';
@@ -64,6 +64,11 @@ describe('Task 3: RBAC Authorization, Redis Caching & Tenant Isolation', () => {
       payload: { name: 'Org Beta', slug: slugB },
     });
     orgBId = orgBRes.json<ApiSuccessResponse<{ organization: OrgDTO }>>().data.organization.id;
+    // Seat checks require an active trial (Phase 10 entitlement enforcement)
+    await db.insert(saasTrials).values([
+      { id: crypto.randomUUID(), organizationId: orgAId, expiresAt: new Date(Date.now() + 14 * 86400_000) },
+      { id: crypto.randomUUID(), organizationId: orgBId, expiresAt: new Date(Date.now() + 14 * 86400_000) },
+    ]);
 
     // Find Client and Admin roles in Org A
     const orgARoles = await db.select().from(roles).where(eq(roles.organizationId, orgAId));
