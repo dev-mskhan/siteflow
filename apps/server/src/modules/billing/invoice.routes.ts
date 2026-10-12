@@ -62,7 +62,7 @@ export const invoiceRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', authenticate);
   app.addHook('preHandler', organizationContext);
 
-  app.get(
+  app.get<{ Params: { organizationId: string }; Querystring: { limit?: number } }>(
     '/:organizationId/billing/invoices',
     {
       preHandler: [requirePermission('billing:read')],

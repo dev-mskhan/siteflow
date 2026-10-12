@@ -7,9 +7,6 @@ import { getDb } from '../../lib/db/index.js';
 import { auditService } from '../audit/audit.service.js';
 import { catalogRepository, CatalogRepository } from './catalog.repository.js';
 import {
-  APPROVED_PLANS,
-  APPROVED_LIMITS,
-  APPROVED_PRICING_V1,
   getApprovedPlan,
   getApprovedPrice,
   findPriceByProviderPriceId,
@@ -17,20 +14,14 @@ import {
   type PlanDefinition,
   type PriceVersion,
   type PlanLimits,
-  type PlanId,
   type BillingInterval,
-  type SubscriptionStatus,
 } from '@siteflow/shared';
 import type {
   SaasSubscription,
   SaasSubscriptionHistoryEntry,
   NewSaasSubscription,
 } from '@siteflow/database/schema';
-import {
-  NotFoundError,
-  ValidationError,
-  ConflictError,
-} from '../auth/auth.errors.js';
+import { NotFoundError, ValidationError } from '../auth/auth.errors.js';
 
 export interface CreateSubscriptionParams {
   organizationId: string;
@@ -229,11 +220,11 @@ export class CatalogService {
       await auditService.log(
         {
           action: 'billing.subscription.created',
-          entityType: 'saas_subscription',
-          entityId: created.id,
+          resourceType: 'saas_subscription',
+          resourceId: created.id,
           organizationId,
-          userId: actorId ?? 'system',
-          details: {
+          actorUserId: actorId ?? null,
+          metadata: {
             planId,
             priceVersionId,
             interval,
@@ -354,11 +345,11 @@ export class CatalogService {
       await auditService.log(
         {
           action: 'billing.subscription.plan_changed',
-          entityType: 'saas_subscription',
-          entityId: created.id,
+          resourceType: 'saas_subscription',
+          resourceId: created.id,
           organizationId,
-          userId: actorId ?? 'system',
-          details: {
+          actorUserId: actorId ?? null,
+          metadata: {
             fromPlanId: current.planId,
             toPlanId: newPlanId,
             fromPriceVersionId: current.priceVersionId,

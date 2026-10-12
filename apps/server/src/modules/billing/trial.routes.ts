@@ -11,7 +11,7 @@ export const trialRoutes: FastifyPluginAsync = async (app) => {
   app.addHook('preHandler', organizationContext);
 
   // POST /:organizationId/billing/trial - Start or retrieve trial
-  app.post(
+  app.post<{ Params: { organizationId: string } }>(
     '/:organizationId/billing/trial',
     {
       preHandler: [requirePermission('billing:manage')],
@@ -48,7 +48,7 @@ export const trialRoutes: FastifyPluginAsync = async (app) => {
   );
 
   // GET /:organizationId/billing/trial - Retrieve trial status
-  app.get(
+  app.get<{ Params: { organizationId: string } }>(
     '/:organizationId/billing/trial',
     {
       preHandler: [requirePermission('billing:read')],
