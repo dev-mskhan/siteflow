@@ -2,9 +2,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OutboxService, writeOutboxEvent } from '../../../src/lib/outbox/outbox.service.js';
 
-vi.mock('../../../src/lib/queue/queue.js', () => ({
-  sendJob: vi.fn(),
-}));
+vi.mock('../../../src/lib/queue/queue.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/lib/queue/queue.js')>();
+  return {
+    ...actual,
+    sendJob: vi.fn(),
+  };
+});
 
 import { sendJob } from '../../../src/lib/queue/queue.js';
 
@@ -34,6 +38,7 @@ describe('OutboxService (Unit)', () => {
       const result = await writeOutboxEvent(mockTx, 'auth:send-email-verification', {
         userId: 'usr_1',
         email: 'test@example.com',
+        token: 'tok1',
       });
 
       expect(result.id).toBe('evt_123');
@@ -49,6 +54,7 @@ describe('OutboxService (Unit)', () => {
           id: 'evt_1',
           eventType: 'auth:send-email-verification',
           payload: { userId: 'usr_1', email: 'user1@example.com', token: 'tok1' },
+          organizationId: null,
           status: 'PENDING',
           retryCount: 0,
         },
@@ -81,7 +87,10 @@ describe('OutboxService (Unit)', () => {
       const count = await service.publishPendingEvents();
 
       expect(count).toBe(1);
-      expect(sendJob).toHaveBeenCalledWith('auth:send-email-verification', mockEvents[0].payload);
+      expect(sendJob).toHaveBeenCalledWith('auth:send-email-verification', mockEvents[0].payload, {
+        singletonKey: 'evt_1',
+        singletonSeconds: 86400,
+      });
       expect(mockDbInstance.update).toHaveBeenCalled();
     });
   });
