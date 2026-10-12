@@ -101,6 +101,8 @@ export async function handleListPlatformAccounts(request: FastifyRequest, reply:
   return reply.send(createSuccessResponse({ accounts: rows }, { limit: query.limit, nextCursor }));
 }
 
+const writeRateLimit = { rateLimit: { max: 30, timeWindow: '1 minute' } };
+
 export const platformRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(async (protectedRoutes) => {
     protectedRoutes.addHook('preHandler', authenticate);
@@ -127,7 +129,7 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
 
     writeRoutes.post<{ Params: { userId: string } }>(
       '/accounts/:userId/suspend',
-      { schema: accountLifecycleSchemaDoc('suspend') },
+      { schema: accountLifecycleSchemaDoc('suspend'), config: writeRateLimit },
       async (request, reply) => {
         const body = lifecycleBodySchema.parse(request.body);
         await lifecycleService.suspendAccount(request.params.userId, toActionInput(request, body));
@@ -136,7 +138,7 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
     );
     writeRoutes.post<{ Params: { userId: string } }>(
       '/accounts/:userId/reactivate',
-      { schema: accountLifecycleSchemaDoc('reactivate') },
+      { schema: accountLifecycleSchemaDoc('reactivate'), config: writeRateLimit },
       async (request, reply) => {
         const body = lifecycleBodySchema.parse(request.body);
         await lifecycleService.reactivateAccount(request.params.userId, toActionInput(request, body));
@@ -145,7 +147,7 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
     );
     writeRoutes.post<{ Params: { orgId: string } }>(
       '/organizations/:orgId/suspension-requests',
-      { schema: requestOrgSuspensionSchemaDoc },
+      { schema: requestOrgSuspensionSchemaDoc, config: writeRateLimit },
       async (request, reply) => {
         const body = lifecycleBodySchema.parse(request.body);
         const result = await lifecycleService.requestOrganizationSuspension(
@@ -157,7 +159,7 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
     );
     writeRoutes.post<{ Params: { approvalId: string } }>(
       '/approvals/:approvalId/approve',
-      { schema: approveOrgSuspensionSchemaDoc },
+      { schema: approveOrgSuspensionSchemaDoc, config: writeRateLimit },
       async (request, reply) => {
         const body = lifecycleBodySchema.parse(request.body);
         await lifecycleService.approveOrganizationSuspension(
@@ -169,7 +171,7 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
     );
     writeRoutes.post<{ Params: { orgId: string } }>(
       '/organizations/:orgId/reactivate',
-      { schema: reactivateOrgSchemaDoc },
+      { schema: reactivateOrgSchemaDoc, config: writeRateLimit },
       async (request, reply) => {
         const body = lifecycleBodySchema.parse(request.body);
         await lifecycleService.reactivateOrganization(

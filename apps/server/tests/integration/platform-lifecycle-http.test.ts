@@ -66,6 +66,16 @@ describe('platform lifecycle HTTP authorization (Phase 11-03)', () => {
     expect(row[0]!.status).toBe('ACTIVE');
   });
 
+  it('applies a 30/min rate limit to lifecycle writes', async () => {
+    const target = await newUser('rate-target');
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/platform/accounts/${target.user.id}/suspend`,
+      payload: lifecycleBody,
+    });
+    expect(res.headers['x-ratelimit-limit']).toBe('30');
+  });
+
   it('denies a support operator lacking write:organization_lifecycle', async () => {
     const support = await newUser('support-actor');
     await rbac.grantPlatformRole(support.user.id, SUPPORT_ROLE_ID);

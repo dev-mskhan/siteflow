@@ -30,7 +30,9 @@ Total Plans in Phase: 7
 **11-03 built:** Migration 0052 (applied) adds `platform_idempotency_keys` and a `lower(slug) text_pattern_ops` index. Slug search uses `lower(slug) LIKE prefix%`. `platform-lifecycle.service.ts` covers account suspend/reactivate (conditional transitions, session revoke, cache invalidation, outbox), and org suspension via second-operator approval plus org reactivate. Routes are under `/api/v1/platform` with Swagger docs. Non-tenant outbox contracts for `platform.account.*` and `platform.organization.*` queues in `platform.jobs.ts`.
 **Tests:** `platform-lifecycle.test.ts` 6/6, `platform-lifecycle-http.test.ts` 3/3 (401 anon, org user denied, support denied), `platform-rbac` and `platform-read` pass. Typecheck clean. Lint 0 errors. Build OK.
 **Open items (not built):** Idempotency-Key replay (table exists, unused). Rate limit 30 writes/min not wired. Reactivation is status-only; billing and entitlement re-check is not done. Member session revocation on org suspend not built. Confirm the reactivation policy with the user.
-**Next action:** Push the 11-03 chunk once, then start 11-04 after the user confirms the open items.
+**11-03 additions:** Org suspension revokes all ACTIVE members' sessions after approval and invalidates their caches. Reactivation is blocked while the current subscription is UNPAID, RESTRICTED or CANCELED (assumed rule, pending user confirmation). Lifecycle writes are rate-limited to 30/min per route via `config.rateLimit`. Limiter key is IP (the global keyGenerator), not per operator. Known gap: counter-accumulation across repeated `app.inject` calls is unverified, so the HTTP test asserts the `x-ratelimit-limit: 30` header only.
+**Tests:** lifecycle service 6/6, lifecycle HTTP 4/4, lifecycle controls 3/3, task3 RBAC 3/3, `tsc --noEmit` clean.
+**Next action:** Commit and push the 11-03 chunk once, then start 11-04 after the user confirms the open items.
 
 ## Project Snapshot
 

@@ -1,6 +1,12 @@
 // apps/server/src/modules/platform/platform-lifecycle.service.ts
-import { and, eq, ne } from 'drizzle-orm';
-import { organizations, platformApprovals, users } from '@siteflow/database/schema';
+import { and, eq, inArray, ne } from 'drizzle-orm';
+import {
+  organizationMemberships,
+  organizations,
+  platformApprovals,
+  saasSubscriptions,
+  users,
+} from '@siteflow/database/schema';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
 import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
@@ -10,6 +16,9 @@ import { ConflictError, ForbiddenError, UnauthorizedError } from '../auth/auth.e
 import { verifyPassword } from '../auth/password.service.js';
 
 export const ORG_SUSPEND_ACTION = 'organization.suspend';
+
+// Subscription states that block reactivation until billing is resolved.
+const REACTIVATION_BLOCKING_SUBSCRIPTION_STATUSES = ['UNPAID', 'RESTRICTED', 'CANCELED'] as const;
 
 export const LIFECYCLE_REASON_CODES = [
   'SECURITY_INCIDENT',
@@ -126,7 +135,7 @@ export class PlatformLifecycleService {
   async approveOrganizationSuspension(approvalId: string, input: LifecycleActionInput): Promise<void> {
     await this.assertReauthenticated(input.actorUserId, input.password);
 
-    await getDb().transaction(async (tx) => {
+    const organizationId = await getDb().transaction(async (tx) => {
       const claimed = await tx
         .update(platformApprovals)
         .set({ status: 'approved', approvedByUserId: input.actorUserId, decidedAt: new Date() })
@@ -164,13 +173,46 @@ export class PlatformLifecycleService {
         },
         organizationId,
       );
+      return organizationId;
     });
+
+    // Revoke member sessions after commit so a revocation failure cannot roll back the suspension.
+    const members = await getDb()
+      .select({ userId: organizationMemberships.userId })
+      .from(organizationMemberships)
+      .where(
+        and(
+          eq(organizationMemberships.organizationId, organizationId),
+          eq(organizationMemberships.status, 'ACTIVE'),
+        ),
+      );
+    for (const member of members) {
+      await this.authRepo.revokeAllUserSessions(member.userId);
+      await this.authCache.invalidateAllUserCaches(member.userId);
+    }
   }
 
   async reactivateOrganization(organizationId: string, input: LifecycleActionInput): Promise<void> {
     await this.assertReauthenticated(input.actorUserId, input.password);
 
     await getDb().transaction(async (tx) => {
+      const [blocking] = await tx
+        .select({ status: saasSubscriptions.status })
+        .from(saasSubscriptions)
+        .where(
+          and(
+            eq(saasSubscriptions.organizationId, organizationId),
+            eq(saasSubscriptions.isCurrent, true),
+            inArray(saasSubscriptions.status, [...REACTIVATION_BLOCKING_SUBSCRIPTION_STATUSES]),
+          ),
+        )
+        .limit(1);
+      if (blocking) {
+        throw new ConflictError(
+          `Organization cannot be reactivated while subscription is ${blocking.status}`,
+        );
+      }
+
       const updated = await tx
         .update(organizations)
         .set({ status: 'ACTIVE' })
