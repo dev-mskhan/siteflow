@@ -203,3 +203,34 @@ Plans:
 **Plan dependencies:** 10-01, 10-02, and 10-03 are prerequisite gates. 10-04 depends on 10-01 and 10-02; 10-05 follows 10-04; 10-11 follows 10-05; 10-06 follows 10-03/10-05; 10-12 follows 10-06/10-11; 10-13 follows 10-12; 10-07 follows 10-13 to serialize registration in `apps/server/src/app/index.ts`; 10-14 follows 10-07; 10-08 follows 10-14; 10-09 follows 10-02/10-08/10-11/10-14 to serialize schema/migration ownership; 10-15 follows 10-08; 10-16 follows 10-06/10-15; 10-17 follows 10-08/10-14/10-16; 10-18 follows 10-09/10-15/10-16 to serialize `stripe.adapter.ts`; 10-19 follows 10-11/10-18; and final gate 10-10 depends on 10-13, 10-17, and 10-19.
 
 **Execution waves:** Wave 1: 10-01, 10-02, 10-03; Wave 2: 10-04; Wave 3: 10-05; Wave 4: 10-06, 10-11; Wave 5: 10-12; Wave 6: 10-13; Wave 7: 10-07; Wave 8: 10-14; Wave 9: 10-08; Wave 10: 10-09, 10-15; Wave 11: 10-16; Wave 12: 10-17, 10-18; Wave 13: 10-19; Wave 14: 10-10.
+
+**Phase 10 follow-up (approved):** `api:access` is ALLOWED in the RESTRICTED state (previously blocked per `10-POLICY-DECISIONS.md` line 99). Plan 10-19 must be updated to reflect this and its tests must cover it.
+
+### Phase 11: Platform Administration & Operational Controls
+
+**Goal:** Add a platform-operator boundary (separate from org RBAC) for global organization/account management, lifecycle controls (suspend/reactivate), SaaS billing/entitlement administration that reuses Phase 10 authority, explicit support grants with a second-operator approval for sensitive scopes, bounded operational diagnostics, and audited high-impact actions. Follow the modular-monolith conventions, reuse existing auth/RBAC/audit/outbox/billing/cache services, and keep work bounded and tenant-isolated.
+**Requirements:** PLAT-01–PLAT-07 (see `.planning/phases/11-platform-administration-and-operational-controls/`)
+**Depends on:** Phase 10 (billing/entitlement authority, webhook inbox, reconciliation)
+**Success Criteria** (what must be TRUE):
+  1. Platform-operator authorization is separate from organization roles; org owners/admins never gain platform privileges.
+  2. Organization-level users are denied on every platform-only route (integration-tested).
+  3. Suspension, reactivation, and billing state changes are explicit, validated, concurrency-safe, audited, and invalidate sessions/caches.
+  4. Support grants are time-limited, scoped, revocable, approval-gated for sensitive scopes, and cannot widen their own scope.
+  5. Operational retry/recovery is limited to idempotent, safe operations.
+  6. Critical admin queries have bounded work with recorded baselines.
+  7. Migrations, Swagger/OpenAPI, Archify docs, tests, typecheck, lint, and build pass.
+
+**Plans:** 0/7 plans executed
+
+Plans:
+- [ ] 11-01-PLAN.md — Discovery baseline and platform-operator permission foundation
+- [ ] 11-02-PLAN.md — Global organization and account read APIs
+- [ ] 11-03-PLAN.md — Organization/account lifecycle controls
+- [ ] 11-04-PLAN.md — Billing and entitlement administration (reuses Phase 10 authority)
+- [ ] 11-05-PLAN.md — Scoped, approval-gated support access
+- [ ] 11-06-PLAN.md — Operational diagnostics and safe recovery
+- [ ] 11-07-PLAN.md — Frontend integration, performance baselines, and release gates
+
+**Plan dependencies:** 11-01 first; 11-02 and 11-03 follow 11-01; 11-04 follows 11-03; 11-05 follows 11-01 and 11-03; 11-06 follows 11-01; 11-07 is last.
+
+**Execution waves:** Wave 1: 11-01; Wave 2: 11-02, 11-06; Wave 3: 11-03, 11-05; Wave 4: 11-04; Wave 5: 11-07.
