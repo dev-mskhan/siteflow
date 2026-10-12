@@ -62,3 +62,33 @@ export const platformUserRoles = appSchema.table(
     check('platform_user_roles_grant_order', sql`${t.revokedAt} IS NULL OR ${t.revokedAt} >= ${t.grantedAt}`),
   ],
 );
+
+export const platformApprovals = appSchema.table(
+  'platform_approvals',
+  {
+    id: text('id').primaryKey(),
+    actionKey: text('action_key').notNull(),
+    targetType: text('target_type').notNull(),
+    targetId: text('target_id').notNull(),
+    requestedByUserId: text('requested_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    approvedByUserId: text('approved_by_user_id').references(() => users.id),
+    status: text('status').notNull().default('pending'),
+    reasonCode: text('reason_code').notNull(),
+    reasonNote: text('reason_note').notNull(),
+    requestedAt: timestamp('requested_at', { withTimezone: true }).defaultNow().notNull(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('platform_approvals_status_idx').on(t.status, t.requestedAt),
+    check(
+      'platform_approvals_status_check',
+      sql`${t.status} IN ('pending', 'approved', 'rejected', 'expired')`,
+    ),
+    check(
+      'platform_approvals_separation_check',
+      sql`${t.approvedByUserId} IS NULL OR ${t.approvedByUserId} <> ${t.requestedByUserId}`,
+    ),
+  ],
+);
