@@ -1,6 +1,62 @@
-/* SiteFlow — Global Stylesheet
- * Import Tailwind or custom design-token variables here as the design system matures.
+/* SiteFlow — Blueprint Dark Theme System
+ * Construction Operations OS Design Tokens
  */
+
+:root {
+  /* 60% — Neutral Backgrounds (Calm ink & slate) */
+  --bg: #0B0F17;           /* deep ink */
+  --bg-subtle: #0E1420;    /* secondary page background */
+  --surface: #121826;      /* cards, panels, sidebars */
+  --surface-2: #1A2233;    /* hover / raised elements */
+  --surface-3: #222C42;    /* active / modal surface */
+  --border: #263046;       /* primary crisp 1px borders */
+  --border-subtle: #1C2436;/* subtle dividing lines */
+  --border-focus: #FF6A2B; /* focus ring */
+
+  /* Text & Typography */
+  --text: #E8ECF4;         /* high-contrast primary text */
+  --text-muted: #8A94A8;   /* secondary / label text */
+  --text-dim: #5A657D;     /* inactive / watermark text */
+
+  /* 10% — Brand Accent (Construction Orange → Warm Gold) */
+  --accent-1: #FF6A2B;     /* safety orange */
+  --accent-2: #FFB547;     /* warm gold */
+  --gradient-brand: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  --gradient-brand-hover: linear-gradient(135deg, #FF7B42, #FFBF5E);
+  --accent-glow: rgba(255, 106, 43, 0.25);
+
+  /* Cool secondary, for engineering blueprints, contrast and telemetry */
+  --accent-cool-1: #3B82F6;
+  --accent-cool-2: #22D3EE;
+  --gradient-cool: linear-gradient(135deg, var(--accent-cool-1), var(--accent-cool-2));
+
+  /* Semantic Colors for Project Status & Operational States */
+  --success: #22C55E;      /* on track / approved / complete */
+  --success-bg: rgba(34, 197, 94, 0.12);
+  --warning: #F59E0B;      /* at risk / pending review / notice */
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --danger: #EF4444;       /* delayed / overdue / critical defect */
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --info: #38BDF8;         /* informational notice */
+  --info-bg: rgba(56, 189, 248, 0.12);
+
+  /* Fonts */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', Menlo, Monaco, Consolas, monospace;
+
+  /* Elevation & Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 25px var(--accent-glow);
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+}
 
 *,
 *::before,
@@ -10,22 +66,135 @@
   padding: 0;
 }
 
-:root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-  font-size: 16px;
+html {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: 15px;
   line-height: 1.5;
-  color-scheme: light dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   min-height: 100vh;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
 }
 
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+/* Numeric precision font for financial, BOQ, and schedule values */
+.font-mono, .numeric-cell, .boq-value {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1, "cv05" 1;
+}
+
+/* Blueprint Dark Ambient Grid Background */
+.blueprint-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(38, 48, 70, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(38, 48, 70, 0.25) 1px, transparent 1px);
+}
+
+/* Depth Glow behind Key Moments */
+.hero-glow {
+  position: relative;
+}
+
+.hero-glow::before {
+  content: "";
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(closest-side, var(--accent-glow), transparent);
+  filter: blur(80px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Gradient Headline Text */
+.gradient-text {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
+.gradient-text-cool {
+  background: var(--gradient-cool);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
+/* Glassmorphism Card System */
+.card-glass {
+  background: rgba(18, 24, 38, 0.75);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-glass:hover {
+  border-color: rgba(255, 106, 43, 0.4);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* Smooth Interactive Elements */
+button:active {
+  transform: translateY(1px);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-2);
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -13,11 +13,18 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@reduxjs/toolkit": "^2.13.0",
     "@siteflow/env": "workspace:*",
     "@siteflow/observability": "workspace:*",
     "@siteflow/shared": "workspace:*",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.90.0",
+    "react-redux": "^9.3.0",
+    "react-router-dom": "^7.18.4",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
