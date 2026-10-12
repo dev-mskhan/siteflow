@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '../../src/lib/db/index.js';
 import { users, platformUserRoles } from '@siteflow/database/schema';
 import { requirePlatformPermission } from '../../src/modules/platform/platform-permission.middleware.js';
+import { PlatformRbacRepository } from '../../src/modules/platform/platform-rbac.repository.js';
 
 const SUPPORT_ROLE_ID = 'prole_support';
 
@@ -135,5 +136,44 @@ describe('platform RBAC guard (Phase 11-01)', () => {
       .from(platformUserRoles)
       .where(eq(platformUserRoles.userId, userId));
     expect(rows).toHaveLength(1);
+  });
+
+  it('revocation invalidates the cached permission immediately', async () => {
+    const userId = await createUser('cache-revoke');
+    const repo = new PlatformRbacRepository();
+    await repo.grantPlatformRole(userId, SUPPORT_ROLE_ID);
+
+    const before = await app.inject({
+      method: 'GET',
+      url: '/platform/organizations',
+      headers: { 'x-test-user': userId },
+    });
+    expect(before.statusCode).toBe(200);
+
+    await repo.revokePlatformRole(userId, SUPPORT_ROLE_ID);
+
+    const after = await app.inject({
+      method: 'GET',
+      url: '/platform/organizations',
+      headers: { 'x-test-user': userId },
+    });
+    expect(after.statusCode).toBe(403);
+  });
+
+  it('bootstrap grants platform_admin once and is idempotent', async () => {
+    const userId = await createUser('bootstrap');
+    const email = `${userId}@example.test`;
+    const repo = new PlatformRbacRepository();
+
+    expect(await repo.bootstrapPlatformOperator(email)).toBe(true);
+    expect(await repo.bootstrapPlatformOperator(email)).toBe(true);
+    expect(await repo.bootstrapPlatformOperator(undefined)).toBe(false);
+
+    const rows = await getDb()
+      .select({ id: platformUserRoles.platformRoleId })
+      .from(platformUserRoles)
+      .where(eq(platformUserRoles.userId, userId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe('prole_admin');
   });
 });

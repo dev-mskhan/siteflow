@@ -24,9 +24,9 @@ current_phase_name: Platform Administration & Operational Controls
 **Current phase:** Phase 11 — Platform Administration & Operational Controls
 Current Plan: 0
 Total Plans in Phase: 7
-**Phase status:** Planned; no implementation started. Phase 10 (SaaS Billing) is closed, with 19 plans and api:access allowed in RESTRICTED per the approved policy.
-**Last activity:** 2026-10-12 — Created Phase 11 plans 11-01 to 11-07.
-**Next action:** Await user go-ahead to start 11-01 (discovery baseline and platform permission foundation). Ask before any schema migration.
+**Phase status:** In progress. Plan 11-01 (platform RBAC foundation) complete: migrations 0050 and 0051 applied to siteflow_test only, guard, Redis-cached permission lookup with invalidation, env bootstrap (PLATFORM_BOOTSTRAP_EMAIL). Phase 10 (SaaS Billing) is closed.
+**Last activity:** 2026-10-12 — Completed 11-01. platform-rbac integration tests 8/8 pass. Pre-existing failure in task3_rbac_tenant_isolation (invitation seat check NO_ENTITLEMENT, Phase 10 billing enforcement); not caused by 11-01.
+**Next action:** Ask user about applying 0050/0051 to main siteflow DB and approval workflow scope before starting 11-02.
 
 ## Project Snapshot
 

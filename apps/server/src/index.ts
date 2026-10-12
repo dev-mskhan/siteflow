@@ -7,9 +7,16 @@
 import { buildApp } from './app/index.js';
 import { serverEnv } from './config/env.js';
 import { stopQueue } from './lib/queue/index.js';
+import { PlatformRbacRepository } from './modules/platform/platform-rbac.repository.js';
 
 const start = async () => {
   const app = await buildApp();
+
+  try {
+    await new PlatformRbacRepository().bootstrapPlatformOperator(process.env.PLATFORM_BOOTSTRAP_EMAIL);
+  } catch (err) {
+    app.log.error({ err }, 'Platform operator bootstrap failed');
+  }
 
   // ── Gap 7: Graceful shutdown ────────────────────────────────────────────────
   // On SIGTERM (Kubernetes pod eviction, rolling deploy) or SIGINT (Ctrl-C in dev),
