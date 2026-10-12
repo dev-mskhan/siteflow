@@ -51,32 +51,41 @@ export class PlatformDiagnosticsService {
   async getQueueDiagnostics(windowHours: number): Promise<QueueDiagnosticsView> {
     const hours = clampWindowHours(windowHours);
 
-    const rows = (await getDb().execute(sql`
-      SELECT state::text AS "state", COUNT(*)::int AS "count"
-      FROM pgboss.job
-      WHERE created_on >= now() - make_interval(hours => ${hours})
-      GROUP BY state
-    `)) as unknown as Array<{ state: string; count: number }>;
-
-    const oldest = (await getDb().execute(sql`
-      SELECT EXTRACT(EPOCH FROM (now() - MIN(start_after)))::int AS "ageSeconds"
-      FROM pgboss.job
-      WHERE state IN ('created', 'retry')
-        AND start_after <= now()
-        AND created_on >= now() - make_interval(hours => ${hours})
-    `)) as unknown as Array<{ ageSeconds: number | null }>;
+    // One pgboss scan: the table is partitioned per queue, so planning cost scales with partition count.
+    const [rows, inbox] = await Promise.all([
+      getDb().execute(sql`
+        SELECT
+          state::text AS "state",
+          COUNT(*)::int AS "count",
+          MIN(start_after) FILTER (WHERE state IN ('created', 'retry') AND start_after <= now()) AS "oldestWaitingAt",
+          now() AS "observedAt"
+        FROM pgboss.job
+        WHERE created_on >= now() - make_interval(hours => ${hours})
+        GROUP BY state
+      `) as unknown as Promise<
+        Array<{ state: string; count: number; oldestWaitingAt: string | Date | null; observedAt: string | Date }>
+      >,
+      platformBillingService.getWebhookInboxSummary(),
+    ]);
 
     const counts = Object.fromEntries(QUEUE_STATES.map((s) => [s, 0])) as QueueDiagnosticsView['counts'];
+    let oldestWaitingMs: number | null = null;
+    let observedMs = Date.now();
     for (const row of rows) {
       if (row.state in counts) counts[row.state as keyof QueueDiagnosticsView['counts']] = row.count;
+      if (row.oldestWaitingAt !== null) {
+        const waitingMs = new Date(row.oldestWaitingAt).getTime();
+        oldestWaitingMs = oldestWaitingMs === null ? waitingMs : Math.min(oldestWaitingMs, waitingMs);
+        observedMs = new Date(row.observedAt).getTime();
+      }
     }
-
-    const inbox = await platformBillingService.getWebhookInboxSummary();
+    const oldestWaitingJobAgeSeconds =
+      oldestWaitingMs === null ? null : Math.max(0, Math.floor((observedMs - oldestWaitingMs) / 1000));
 
     return {
       windowHours: hours,
       counts,
-      oldestWaitingJobAgeSeconds: oldest[0]?.ageSeconds ?? null,
+      oldestWaitingJobAgeSeconds,
       webhookInbox: inbox.counts,
     };
   }

@@ -28,6 +28,7 @@ describe('platform admin read baseline (Phase 11-07)', () => {
   let admin: { user: { id: string }; token: string };
   let firstOrgId = '';
   let currentOwnerToken = '';
+  let firstOwnerToken = '';
 
   const auth = (t: string) => ({ authorization: `Bearer ${t}` });
 
@@ -47,7 +48,10 @@ describe('platform admin read baseline (Phase 11-07)', () => {
       }
       const org = await createOrgWithAdmin(app, currentOwnerToken);
       createdOrgIds.push(org.orgId);
-      if (i === 0) firstOrgId = org.orgId;
+      if (i === 0) {
+        firstOrgId = org.orgId;
+        firstOwnerToken = currentOwnerToken;
+      }
     }
   });
 
@@ -64,11 +68,11 @@ describe('platform admin read baseline (Phase 11-07)', () => {
     await app.close();
   });
 
-  async function measure(label: string, url: string): Promise<number> {
+  async function measure(label: string, url: string, token: string = admin.token): Promise<number> {
     const timings: number[] = [];
     for (let i = 0; i < SAMPLES; i++) {
       const start = performance.now();
-      const res = await app.inject({ method: 'GET', url, headers: auth(admin.token) });
+      const res = await app.inject({ method: 'GET', url, headers: auth(token) });
       timings.push(performance.now() - start);
       expect(res.statusCode, `${label} status`).toBe(200);
     }
@@ -89,6 +93,17 @@ describe('platform admin read baseline (Phase 11-07)', () => {
 
   it('queue dashboard p95 is under threshold', async () => {
     const value = await measure('queue-dashboard', `${BASE}/diagnostics/queue`);
+    expect(value).toBeLessThan(P95_THRESHOLD_MS);
+  });
+
+  // Platform-wide audit history has no route yet (deferred). This measures the existing
+  // org-scoped audit trail (audit:read) as the closest audit-history read path.
+  it('org audit-log history p95 is under threshold', async () => {
+    const value = await measure(
+      'org-audit-logs',
+      `/api/v1/organizations/${firstOrgId}/audit-logs?limit=50`,
+      firstOwnerToken,
+    );
     expect(value).toBeLessThan(P95_THRESHOLD_MS);
   });
 });
