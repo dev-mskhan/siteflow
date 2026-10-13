@@ -1,26 +1,112 @@
 @import "tailwindcss";
 @import "./theme.css";
 
-/* Base Architectural Document Styles */
-html, body {
+:root {
+  --ink: #0a0a0a;
+  --ink-2: #1a1a1a;
+  --muted: #6b6b6b;
+  --hairline: rgba(10, 10, 10, 0.08);
+  --hairline-2: rgba(10, 10, 10, 0.16);
+  --surface: #fafafa;
+  --surface-2: #f3f3f3;
+  --paper: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
   margin: 0;
-  padding: 0;
   min-height: 100%;
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  background: var(--surface);
+  color: var(--ink);
   font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Tabular figures for all financial calculations & quantities */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--ink);
+  color: white;
+}
+
 .font-tabular {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
-/* Subtle architectural drafting grid for landing / hero sections */
-.bg-drafting-grid {
-  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
-  background-size: 24px 24px;
+.rails::before,
+.rails::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 1px;
+  background: var(--hairline-2);
+  content: "";
+  pointer-events: none;
+}
+
+.rails::before {
+  left: max(20px, calc((100vw - 1320px) / 2));
+}
+
+.rails::after {
+  right: max(20px, calc((100vw - 1320px) / 2));
+}
+
+.rails > * {
+  position: relative;
+  z-index: 1;
+}
+
+.marquee-track {
+  animation: marquee 48s linear infinite;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .marquee-track {
+    animation: none;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hairline-2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }

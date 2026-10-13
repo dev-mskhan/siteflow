@@ -1,14 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { CheckCircle2, ArrowRight } from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { Card, CardContent } from '../components/ui/Card';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CheckCircle2, ArrowUpRight } from 'lucide-react';
 import { Seo } from '../components/seo/Seo';
 import { SEO_DATA } from '../content/seo';
 
 export const ThanksPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const isTrial = searchParams.get('intent') === 'trial';
+
   return (
-    <div className="bg-bg text-text min-h-[70vh] flex items-center justify-center py-16 px-4">
+    <div className="rails relative overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
       <Seo
         title={SEO_DATA.thanks.title}
         description={SEO_DATA.thanks.description}
@@ -16,34 +17,83 @@ export const ThanksPage: React.FC = () => {
         schemaType="WebPage"
       />
 
-      <Card className="max-w-lg w-full text-center border-border shadow-modal">
-        <CardContent className="p-8 sm:p-10 space-y-5">
-          <div className="w-14 h-14 rounded-full bg-status-ontrack-bg text-status-ontrack flex items-center justify-center mx-auto border border-status-ontrack-border">
-            <CheckCircle2 className="w-8 h-8" />
+      <section className="flex min-h-[calc(100dvh-72px)] items-center justify-center py-20 px-5">
+        <div className="w-full max-w-lg border border-[var(--hairline-2)] bg-[var(--paper)] p-10 sm:p-14 text-center">
+          {/* Icon */}
+          <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center border border-[#bbf7d0] bg-[#f0fdf4]">
+            <CheckCircle2 className="h-7 w-7 text-[#166534]" strokeWidth={1.6} />
           </div>
 
-          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-text">
-            Thank you for reaching out
-          </h1>
-
-          <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
-            We have received your demo request and project information. A construction operations specialist will review your details and contact you within one business day with scheduled meeting times.
+          {/* Eyebrow */}
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            {isTrial ? 'Trial request received' : 'Demo request received'}
           </p>
 
-          <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/">
-              <Button variant="primary">
-                Return to home page
-              </Button>
+          {/* Heading */}
+          <h1 className="mt-4 text-3xl font-medium tracking-[-0.045em] sm:text-4xl">
+            {isTrial ? (
+              <>
+                You are on the
+                <br />
+                <em className="font-serif font-light not-italic italic">list.</em>
+              </>
+            ) : (
+              <>
+                We will be in
+                <br />
+                <em className="font-serif font-light not-italic italic">touch.</em>
+              </>
+            )}
+          </h1>
+
+          {/* Body */}
+          <p className="mx-auto mt-6 max-w-[38ch] text-sm leading-7 text-[var(--muted)]">
+            {isTrial
+              ? 'A construction operations specialist will contact you within one business day to confirm your trial setup and configure your first project.'
+              : 'We have received your request. A construction operations specialist will review your details and contact you within one business day with scheduled meeting times.'}
+          </p>
+
+          {/* What happens next — trial only */}
+          {isTrial && (
+            <div className="mt-8 border border-[var(--hairline-2)] bg-[var(--surface-2)] p-5 text-left">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                What happens next
+              </p>
+              <ol className="mt-4 space-y-3">
+                {[
+                  'We confirm your details and provision your 14-day trial workspace.',
+                  'You receive login credentials and a guided setup checklist.',
+                  'Your first project goes live — BOQ, cost codes, and team invites ready.',
+                ].map((step, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm text-[var(--muted)]">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink)] shrink-0 mt-0.5">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="mt-10 flex flex-col items-center gap-3 border-t border-[var(--hairline-2)] pt-8 sm:flex-row sm:justify-center">
+            <Link
+              to="/"
+              className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
+            >
+              Back to home
+              <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
             </Link>
-            <Link to="/features">
-              <Button variant="secondary">
-                Explore feature modules
-              </Button>
+            <Link
+              to="/features"
+              className="inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--hairline-2)] bg-[var(--paper)] px-5 text-sm font-medium transition-colors hover:border-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
+            >
+              Explore modules
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 };

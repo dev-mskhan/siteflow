@@ -1,5 +1,20 @@
-import React, { useState } from 'react';
+/**
+ * Navbar — SiteFlow marketing site
+ *
+ * Industry-standard B2B SaaS pattern (Linear / Vercel / Resend reference):
+ *   Desktop:  Logo  |  nav links  |  Sign in (ghost)  Get started (solid)
+ *   Tablet:   Logo  |  Get started (solid)  |  hamburger
+ *   Mobile:   Logo  |  hamburger  (drawer has full nav + CTAs)
+ *
+ * Auth-aware via useAuthState:
+ *   Logged-out → "Sign in" + "Get started"
+ *   Logged-in  → "Dashboard" (single solid button, Sign in hidden)
+ *   Loading    → buttons render at reduced opacity, pointer-events off
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronDown,
   Menu,
@@ -16,365 +31,649 @@ import {
   FolderArchive,
   Globe2,
 } from 'lucide-react';
-import { Button } from '../ui/Button';
 import { Logo } from '../ui/Logo';
+import { cn } from '../../lib/cn';
+import { useAuthState } from '../../hooks/useAuthState';
+
+/* ─── Data ──────────────────────────────────────────────────────────────── */
+
+const featureLinks = [
+  {
+    title: 'Estimating & BOQ',
+    href: '/features/estimating-and-boq',
+    icon: Calculator,
+    desc: 'Structure scope & rates',
+  },
+  {
+    title: 'Scheduling',
+    href: '/features/scheduling',
+    icon: Calendar,
+    desc: 'Phase handoffs & milestones',
+  },
+  {
+    title: 'Procurement',
+    href: '/features/procurement',
+    icon: Truck,
+    desc: 'Purchase orders & receipts',
+  },
+  {
+    title: 'Field Logs',
+    href: '/features/field-logs',
+    icon: ClipboardList,
+    desc: 'Daily labor & photos',
+  },
+  {
+    title: 'Subcontractors',
+    href: '/features/subcontractors',
+    icon: Users,
+    desc: 'Dedicated trade portal',
+  },
+  {
+    title: 'Change Orders',
+    href: '/features/change-orders',
+    icon: FileCheck2,
+    desc: 'Approved paid variations',
+  },
+  {
+    title: 'Cost Control',
+    href: '/features/cost-control',
+    icon: TrendingDown,
+    desc: 'Budget vs committed vs actual',
+  },
+  {
+    title: 'Billing & Payments',
+    href: '/features/billing-and-payments',
+    icon: Receipt,
+    desc: 'IPC forms & retainage',
+  },
+  {
+    title: 'Documents',
+    href: '/features/documents',
+    icon: FolderArchive,
+    desc: 'Drawings & mill tests',
+  },
+];
+
+const personaLinks = [
+  {
+    title: 'General Contractors',
+    href: '/for/general-contractors',
+    desc: 'Control multiple jobs & margins',
+  },
+  { title: 'Subcontractors', href: '/for/subcontractors', desc: 'Submit claims & track retainage' },
+  {
+    title: 'Project Owners & Developers',
+    href: '/for/project-owners',
+    desc: 'Audit certified site progress',
+  },
+];
+
+const countryLinks = [
+  {
+    title: 'Pakistan Edition',
+    href: '/construction-software-pakistan',
+    flag: 'PK',
+    desc: 'Marla/Kanal & WHT',
+  },
+  {
+    title: 'United States',
+    href: '/construction-software-us',
+    flag: 'US',
+    desc: 'AIA billing & CSI',
+  },
+];
+
+/* ─── Animation variants ─────────────────────────────────────────────────── */
+
+const ddVariants = {
+  hidden: { opacity: 0, y: -4, scale: 0.99 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.16, ease: [0.16, 1, 0.3, 1] as const },
+  },
+  exit: {
+    opacity: 0,
+    y: -3,
+    scale: 0.99,
+    transition: { duration: 0.1, ease: [0.4, 0, 1, 1] as const },
+  },
+};
+
+const drawerVariants = {
+  hidden: { opacity: 0, height: 0 },
+  visible: {
+    opacity: 1,
+    height: 'auto',
+    transition: { duration: 0.24, ease: [0.16, 1, 0.3, 1] as const },
+  },
+  exit: { opacity: 0, height: 0, transition: { duration: 0.18, ease: [0.4, 0, 1, 1] as const } },
+};
+
+/* ─── NavLink — desktop text trigger ────────────────────────────────────── */
+
+const NavLink: React.FC<{
+  isActive?: boolean;
+  onClick?: () => void;
+  as?: 'button' | 'span';
+  children: React.ReactNode;
+}> = ({ isActive, onClick, as: Tag = 'button', children }) => (
+  <Tag
+    type={Tag === 'button' ? 'button' : undefined}
+    onClick={onClick}
+    className={cn(
+      'relative px-3 py-2 text-sm font-heading font-medium inline-flex items-center gap-1',
+      'transition-opacity duration-[120ms] hover:opacity-60',
+      isActive ? 'text-[#0a0a0a] opacity-100' : 'text-[#6b6b6b]',
+      isActive &&
+        'after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-[#0a0a0a]',
+    )}
+  >
+    {children}
+  </Tag>
+);
+
+/* ─── FeaturesDropdown ───────────────────────────────────────────────────── */
+
+const FeaturesDropdown: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => (
+  <motion.div
+    key="features-dd"
+    variants={ddVariants}
+    initial="hidden"
+    animate="visible"
+    exit="exit"
+    className="absolute top-[calc(100%+4px)] left-0 w-[500px] bg-white border border-[rgba(10,10,10,0.12)] z-50 origin-top-left"
+  >
+    <div className="p-1.5 grid grid-cols-2 gap-0">
+      {featureLinks.map(({ title, href, icon: Icon, desc }) => (
+        <Link
+          key={href}
+          to={href}
+          onClick={onNavigate}
+          className="group flex items-center gap-2.5 px-3 py-2 hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+        >
+          <div className="shrink-0 w-6 h-6 bg-[#f3f3f3] flex items-center justify-center group-hover:bg-[#0a0a0a] group-hover:text-white transition-colors duration-[120ms]">
+            <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold text-[#0a0a0a] leading-tight truncate">
+              {title}
+            </div>
+            <div className="text-[10px] text-[#9b9b9b] leading-tight truncate">{desc}</div>
+          </div>
+        </Link>
+      ))}
+    </div>
+    <div className="flex items-center justify-between px-3 py-2 border-t border-[rgba(10,10,10,0.08)] bg-[#f3f3f3]">
+      <Link
+        to="/features"
+        onClick={onNavigate}
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0a0a0a] hover:opacity-60 transition-opacity duration-[120ms]"
+      >
+        View all 9 modules <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
+      </Link>
+      <span className="text-[10px] font-mono uppercase tracking-widest text-[#9b9b9b]">
+        Core Platform
+      </span>
+    </div>
+  </motion.div>
+);
+
+/* ─── WhoDropdown ────────────────────────────────────────────────────────── */
+
+const WhoDropdown: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => (
+  <motion.div
+    key="who-dd"
+    variants={ddVariants}
+    initial="hidden"
+    animate="visible"
+    exit="exit"
+    className="absolute top-[calc(100%+4px)] left-0 w-[260px] bg-white border border-[rgba(10,10,10,0.12)] z-50 origin-top-left"
+  >
+    <div className="p-1.5">
+      <div className="px-2 py-1">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-[#9b9b9b]">
+          By Role
+        </span>
+      </div>
+      {personaLinks.map(({ href, title, desc }) => (
+        <Link
+          key={href}
+          to={href}
+          onClick={onNavigate}
+          className="flex items-start gap-2 px-2.5 py-2 hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+        >
+          <div className="shrink-0 w-1 h-1 bg-[#9b9b9b] mt-[6px]" />
+          <div>
+            <div className="text-[12px] font-semibold text-[#0a0a0a] leading-tight">{title}</div>
+            <div className="text-[10px] text-[#9b9b9b] leading-tight mt-0.5">{desc}</div>
+          </div>
+        </Link>
+      ))}
+    </div>
+    <div className="p-1.5 border-t border-[rgba(10,10,10,0.08)]">
+      <div className="px-2 py-1 flex items-center gap-1.5">
+        <Globe2 className="w-3 h-3 text-[#9b9b9b]" strokeWidth={2} />
+        <span className="text-[10px] font-mono uppercase tracking-widest text-[#9b9b9b]">
+          Country Editions
+        </span>
+      </div>
+      {countryLinks.map(({ href, flag, title, desc }) => (
+        <Link
+          key={href}
+          to={href}
+          onClick={onNavigate}
+          className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+        >
+          <span className="text-sm leading-none select-none shrink-0">
+            {flag === 'PK' ? '🇵🇰' : '🇺🇸'}
+          </span>
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold text-[#0a0a0a] leading-none truncate">
+              {title}
+            </div>
+            <div className="text-[10px] text-[#9b9b9b] leading-tight mt-0.5">{desc}</div>
+          </div>
+        </Link>
+      ))}
+    </div>
+  </motion.div>
+);
+
+/* ─── Navbar ─────────────────────────────────────────────────────────────── */
 
 export const Navbar: React.FC = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
-  const [isPersonasOpen, setIsPersonasOpen] = useState(false);
-  const [mobileFeaturesExpanded, setMobileFeaturesExpanded] = useState(false);
-  const [mobileCountriesExpanded, setMobileCountriesExpanded] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<'features' | 'who' | null>(null);
+  const [mobileFeaturesOpen, setMobileFeaturesOpen] = useState(false);
+  const [mobileWhoOpen, setMobileWhoOpen] = useState(false);
+
+  const { isLoggedIn, isLoading } = useAuthState();
   const location = useLocation();
+  const navRef = useRef<HTMLDivElement>(null);
 
-  const featureLinks = [
-    { title: 'Estimating & BOQ', href: '/features/estimating-and-boq', icon: Calculator, desc: 'Structure scope & rates' },
-    { title: 'Scheduling', href: '/features/scheduling', icon: Calendar, desc: 'Phase handoffs & milestones' },
-    { title: 'Procurement', href: '/features/procurement', icon: Truck, desc: 'Purchase orders & receipts' },
-    { title: 'Field Logs', href: '/features/field-logs', icon: ClipboardList, desc: 'Daily labor & photos' },
-    { title: 'Subcontractors', href: '/features/subcontractors', icon: Users, desc: 'Dedicated trade portal' },
-    { title: 'Change Orders', href: '/features/change-orders', icon: FileCheck2, desc: 'Approved paid variations' },
-    { title: 'Cost Control', href: '/features/cost-control', icon: TrendingDown, desc: 'Budget vs committed vs actual' },
-    { title: 'Billing & Payments', href: '/features/billing-and-payments', icon: Receipt, desc: 'IPC forms & retainage' },
-    { title: 'Documents', href: '/features/documents', icon: FolderArchive, desc: 'Drawings & mill tests' },
-  ];
+  /* Close dropdowns on outside click */
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenDropdown(null);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
 
-  const personaLinks = [
-    { title: 'General Contractors', href: '/for/general-contractors', desc: 'Control multiple jobs & margins' },
-    { title: 'Subcontractors', href: '/for/subcontractors', desc: 'Submit claims & track retainage' },
-    { title: 'Project Owners & Developers', href: '/for/project-owners', desc: 'Audit certified site progress' },
-  ];
+  /* Close everything on route change */
+  useEffect(() => {
+    setMobileOpen(false);
+    setOpenDropdown(null);
+    setMobileFeaturesOpen(false);
+    setMobileWhoOpen(false);
+  }, [location.pathname]);
 
-  const countryLinks = [
-    { title: 'Pakistan Edition (PKR)', href: '/construction-software-pakistan', desc: 'Marla/Kanal & WHT tax' },
-    { title: 'United States Edition (USD)', href: '/construction-software-us', desc: 'AIA billing & CSI divisions' },
-  ];
-
-  const handleLinkClick = () => {
-    setIsMobileMenuOpen(false);
-    setIsFeaturesOpen(false);
-    setIsPersonasOpen(false);
-    setMobileFeaturesExpanded(false);
-    setMobileCountriesExpanded(false);
+  const closeAll = () => {
+    setMobileOpen(false);
+    setOpenDropdown(null);
+    setMobileFeaturesOpen(false);
+    setMobileWhoOpen(false);
   };
 
+  /* ── Shared CTA button styles ─────────────────────────────────────────── */
+  const solidCta = cn(
+    'inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-heading font-semibold',
+    'bg-[#0a0a0a] text-white border border-[#0a0a0a]',
+    'hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a] focus-visible:ring-offset-2',
+    isLoading && 'opacity-40 pointer-events-none',
+  );
+
+  const ghostCta = cn(
+    'inline-flex items-center px-3.5 py-1.5 text-sm font-heading font-medium',
+    'text-[#6b6b6b] border border-[rgba(10,10,10,0.16)] bg-white',
+    'hover:bg-[#f3f3f3] hover:border-[rgba(10,10,10,0.28)] transition-colors duration-[120ms]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a] focus-visible:ring-offset-2',
+    isLoading && 'opacity-40 pointer-events-none',
+  );
+
   return (
-    <header className="sticky top-0 z-50 bg-surface/95 backdrop-blur-md border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-        {/* Brand Logo with new architectural mark */}
-        <Link to="/" onClick={handleLinkClick} className="shrink-0">
-          <Logo size="md" />
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-[rgba(10,10,10,0.08)]">
+      <div
+        ref={navRef}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[64px] flex items-center justify-between gap-4"
+      >
+        {/* Logo */}
+        <Link
+          to="/"
+          onClick={closeAll}
+          className="shrink-0 flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a] focus-visible:ring-offset-2"
+          aria-label="SiteFlow home"
+        >
+          <Logo size="md" showTagline={false} />
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-heading font-medium text-text-muted">
-          {/* Features Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setIsFeaturesOpen(true)}
-            onMouseLeave={() => setIsFeaturesOpen(false)}
-          >
-            <button
-              type="button"
-              className={`px-3 py-2 rounded-md inline-flex items-center gap-1 hover:text-text hover:bg-surface-muted transition-colors ${
-                location.pathname.startsWith('/features') ? 'text-accent font-semibold' : ''
-              }`}
+        {/* Desktop nav links */}
+        <nav className="hidden lg:flex items-center gap-0 flex-1 ml-2">
+          <div className="relative">
+            <NavLink
+              isActive={location.pathname.startsWith('/features')}
+              onClick={() => setOpenDropdown((p) => (p === 'features' ? null : 'features'))}
             >
-              <span>Features</span>
-              <ChevronDown className="w-4 h-4 opacity-70" />
-            </button>
-
-            {isFeaturesOpen && (
-              <div className="absolute top-full left-0 w-[580px] p-4 bg-surface border border-border rounded-lg shadow-modal grid grid-cols-2 gap-2 z-50 animate-in fade-in slide-in-from-top-1">
-                {featureLinks.map((f) => {
-                  const Icon = f.icon;
-                  return (
-                    <Link
-                      key={f.href}
-                      to={f.href}
-                      onClick={handleLinkClick}
-                      className="p-2.5 rounded-md hover:bg-surface-muted transition-colors flex items-start gap-3 group"
-                    >
-                      <div className="w-7 h-7 rounded bg-surface-muted text-accent flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-accent group-hover:text-accent-contrast transition-colors">
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-text group-hover:text-accent">
-                          {f.title}
-                        </div>
-                        <div className="text-[11px] text-text-muted leading-tight mt-0.5">
-                          {f.desc}
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-                <div className="col-span-2 pt-2 border-t border-border flex items-center justify-between text-xs">
-                  <Link
-                    to="/features"
-                    onClick={handleLinkClick}
-                    className="text-accent font-semibold hover:underline flex items-center gap-1"
-                  >
-                    <span>View all features overview</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                  <span className="text-[11px] text-text-subtle">9 Core Modules</span>
-                </div>
-              </div>
-            )}
+              Features
+              <ChevronDown
+                className={cn(
+                  'w-3.5 h-3.5 transition-transform duration-[120ms]',
+                  openDropdown === 'features' && 'rotate-180',
+                )}
+                strokeWidth={2}
+              />
+            </NavLink>
+            <AnimatePresence>
+              {openDropdown === 'features' && <FeaturesDropdown onNavigate={closeAll} />}
+            </AnimatePresence>
           </div>
 
-          {/* Who It's For Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setIsPersonasOpen(true)}
-            onMouseLeave={() => setIsPersonasOpen(false)}
-          >
-            <button
-              type="button"
-              className={`px-3 py-2 rounded-md inline-flex items-center gap-1 hover:text-text hover:bg-surface-muted transition-colors ${
-                location.pathname.startsWith('/for') ? 'text-accent font-semibold' : ''
-              }`}
+          <div className="relative">
+            <NavLink
+              isActive={location.pathname.startsWith('/for')}
+              onClick={() => setOpenDropdown((p) => (p === 'who' ? null : 'who'))}
             >
-              <span>Who it's for</span>
-              <ChevronDown className="w-4 h-4 opacity-70" />
-            </button>
-
-            {isPersonasOpen && (
-              <div className="absolute top-full left-0 w-80 p-3 bg-surface border border-border rounded-lg shadow-modal flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-1">
-                <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-subtle">
-                  Role Profiles
-                </div>
-                {personaLinks.map((p) => (
-                  <Link
-                    key={p.href}
-                    to={p.href}
-                    onClick={handleLinkClick}
-                    className="p-2.5 rounded-md hover:bg-surface-muted transition-colors block group"
-                  >
-                    <div className="text-xs font-bold text-text group-hover:text-accent">
-                      {p.title}
-                    </div>
-                    <div className="text-[11px] text-text-muted leading-tight mt-0.5">
-                      {p.desc}
-                    </div>
-                  </Link>
-                ))}
-                <div className="my-1 border-t border-border" />
-                <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-subtle flex items-center gap-1">
-                  <Globe2 className="w-3 h-3" />
-                  <span>Country Editions</span>
-                </div>
-                {countryLinks.map((c) => (
-                  <Link
-                    key={c.href}
-                    to={c.href}
-                    onClick={handleLinkClick}
-                    className="p-2 rounded-md hover:bg-surface-muted transition-colors block text-xs"
-                  >
-                    <div className="font-semibold text-text">{c.title}</div>
-                    <div className="text-[11px] text-text-muted">{c.desc}</div>
-                  </Link>
-                ))}
-              </div>
-            )}
+              Who it's for
+              <ChevronDown
+                className={cn(
+                  'w-3.5 h-3.5 transition-transform duration-[120ms]',
+                  openDropdown === 'who' && 'rotate-180',
+                )}
+                strokeWidth={2}
+              />
+            </NavLink>
+            <AnimatePresence>
+              {openDropdown === 'who' && <WhoDropdown onNavigate={closeAll} />}
+            </AnimatePresence>
           </div>
 
-          <Link
-            to="/pricing"
-            onClick={handleLinkClick}
-            className={`px-3 py-2 rounded-md hover:text-text hover:bg-surface-muted transition-colors ${
-              location.pathname === '/pricing' ? 'text-accent font-semibold' : ''
-            }`}
-          >
-            Pricing
-          </Link>
-
-          <Link
-            to="/about"
-            onClick={handleLinkClick}
-            className={`px-3 py-2 rounded-md hover:text-text hover:bg-surface-muted transition-colors ${
-              location.pathname === '/about' ? 'text-accent font-semibold' : ''
-            }`}
-          >
-            About
-          </Link>
-
-          <Link
-            to="/security"
-            onClick={handleLinkClick}
-            className={`px-3 py-2 rounded-md hover:text-text hover:bg-surface-muted transition-colors ${
-              location.pathname === '/security' ? 'text-accent font-semibold' : ''
-            }`}
-          >
-            Security
-          </Link>
+          {[
+            { to: '/pricing', label: 'Pricing' },
+            { to: '/about', label: 'About' },
+            { to: '/security', label: 'Security' },
+          ].map(({ to, label }) => (
+            <Link key={to} to={to} onClick={closeAll}>
+              <NavLink as="span" isActive={location.pathname === to}>
+                {label}
+              </NavLink>
+            </Link>
+          ))}
         </nav>
 
-        {/* Right CTA Actions */}
-        <div className="hidden sm:flex items-center gap-2 lg:gap-3 shrink-0">
-          <Link
-            to="/contact"
-            className="text-xs font-heading font-semibold text-text-muted hover:text-text px-2.5 py-1.5 rounded-md hover:bg-surface-muted transition-colors"
-          >
-            Log in
-          </Link>
-          <Link to="/contact">
-            <Button variant="primary" size="sm">
-              Book a demo
-            </Button>
-          </Link>
+        {/* ── Desktop CTAs ──────────────────────────────────────────────
+            Logged-out: Sign in (ghost)  +  Get started (solid)
+            Logged-in:  single Dashboard (solid)
+            This is the canonical Linear / Vercel / Resend pattern.
+        ──────────────────────────────────────────────────────────────── */}
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
+          {!isLoading && isLoggedIn ? (
+            <a href="/app" className={solidCta}>
+              Dashboard <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+            </a>
+          ) : (
+            <>
+              <Link to="/contact" onClick={closeAll} className={ghostCta}>
+                Sign in
+              </Link>
+              <Link to="/contact?intent=trial" onClick={closeAll} className={solidCta}>
+                Get started <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+              </Link>
+            </>
+          )}
         </div>
 
-        {/* Mobile Hamburger Button */}
-        <div className="flex items-center gap-2 lg:hidden">
-          <Link to="/contact" className="sm:hidden">
-            <Button variant="primary" size="sm">
-              Demo
-            </Button>
-          </Link>
+        {/* ── Tablet CTAs (sm–lg) ───────────────────────────────────── */}
+        <div className="hidden sm:flex lg:hidden items-center gap-2 shrink-0">
+          {!isLoading && isLoggedIn ? (
+            <a href="/app" className={solidCta}>
+              Dashboard
+            </a>
+          ) : (
+            <Link to="/contact?intent=trial" onClick={closeAll} className={solidCta}>
+              Get started <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+            </Link>
+          )}
+        </div>
 
+        {/* ── Mobile hamburger ─────────────────────────────────────── */}
+        <div className="flex items-center gap-2 sm:hidden">
           <button
             type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle mobile menu"
-            className="p-2 rounded-md text-text-muted hover:text-text hover:bg-surface-muted transition-colors"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileOpen}
+            className="p-2 text-[#6b6b6b] hover:text-[#0a0a0a] hover:bg-[#f3f3f3] transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
           >
-            {isMobileMenuOpen ? <X className="w-5 h-5 text-text" /> : <Menu className="w-5 h-5" />}
+            <AnimatePresence mode="wait" initial={false}>
+              {mobileOpen ? (
+                <motion.span
+                  key="close"
+                  initial={{ rotate: -45, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 45, opacity: 0 }}
+                  transition={{ duration: 0.14 }}
+                  className="block"
+                >
+                  <X className="w-5 h-5" strokeWidth={2} />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="open"
+                  initial={{ rotate: 45, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -45, opacity: 0 }}
+                  transition={{ duration: 0.14 }}
+                  className="block"
+                >
+                  <Menu className="w-5 h-5" strokeWidth={2} />
+                </motion.span>
+              )}
+            </AnimatePresence>
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu (Responsive, Accessible & Non-breaking) */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden border-b border-border bg-surface shadow-modal px-4 pt-3 pb-6 space-y-4 max-h-[calc(100vh-64px)] overflow-y-auto">
-          <div className="space-y-1">
-            <Link
-              to="/"
-              onClick={handleLinkClick}
-              className={`block px-3 py-2.5 text-sm font-heading font-semibold rounded-md ${
-                location.pathname === '/' ? 'bg-accent-subtle text-accent' : 'text-text hover:bg-surface-muted'
-              }`}
-            >
-              Home
-            </Link>
-
-            <Link
-              to="/pricing"
-              onClick={handleLinkClick}
-              className={`block px-3 py-2.5 text-sm font-heading font-semibold rounded-md ${
-                location.pathname === '/pricing' ? 'bg-accent-subtle text-accent' : 'text-text hover:bg-surface-muted'
-              }`}
-            >
-              Pricing
-            </Link>
-
-            <Link
-              to="/about"
-              onClick={handleLinkClick}
-              className={`block px-3 py-2.5 text-sm font-heading font-semibold rounded-md ${
-                location.pathname === '/about' ? 'bg-accent-subtle text-accent' : 'text-text hover:bg-surface-muted'
-              }`}
-            >
-              About SiteFlow
-            </Link>
-
-            <Link
-              to="/security"
-              onClick={handleLinkClick}
-              className={`block px-3 py-2.5 text-sm font-heading font-semibold rounded-md ${
-                location.pathname === '/security' ? 'bg-accent-subtle text-accent' : 'text-text hover:bg-surface-muted'
-              }`}
-            >
-              Security & Isolation
-            </Link>
-          </div>
-
-          {/* Collapsible Features Accordion for Mobile */}
-          <div className="border-t border-border pt-3">
-            <button
-              type="button"
-              onClick={() => setMobileFeaturesExpanded(!mobileFeaturesExpanded)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-heading font-bold uppercase tracking-wider text-text-muted hover:text-text"
-            >
-              <span>Features (9 Modules)</span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  mobileFeaturesExpanded ? 'rotate-180 text-accent' : ''
-                }`}
-              />
-            </button>
-
-            {mobileFeaturesExpanded && (
-              <div className="grid grid-cols-1 gap-1 pl-2 pt-1 animate-in fade-in">
+      {/* ── Mobile drawer ──────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            key="mobile-menu"
+            variants={drawerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="lg:hidden overflow-hidden border-b border-[rgba(10,10,10,0.08)] bg-white"
+          >
+            <div className="px-4 pt-2 pb-6 space-y-0.5 max-h-[calc(100dvh-64px)] overflow-y-auto">
+              {/* Flat nav links */}
+              {[
+                { to: '/', label: 'Home' },
+                { to: '/pricing', label: 'Pricing' },
+                { to: '/about', label: 'About' },
+                { to: '/security', label: 'Security' },
+              ].map(({ to, label }) => (
                 <Link
-                  to="/features"
-                  onClick={handleLinkClick}
-                  className="px-3 py-2 text-xs font-bold text-accent rounded-md hover:bg-surface-muted"
+                  key={to}
+                  to={to}
+                  onClick={closeAll}
+                  className={cn(
+                    'flex items-center px-3 py-2.5 text-sm font-heading font-medium transition-colors duration-[120ms]',
+                    location.pathname === to
+                      ? 'text-[#0a0a0a] bg-[#f3f3f3]'
+                      : 'text-[#6b6b6b] hover:text-[#0a0a0a] hover:bg-[#f3f3f3]',
+                  )}
                 >
-                  → View all modules overview
+                  {label}
                 </Link>
-                {featureLinks.map((f) => (
-                  <Link
-                    key={f.href}
-                    to={f.href}
-                    onClick={handleLinkClick}
-                    className="px-3 py-2 text-xs text-text hover:text-accent rounded-md hover:bg-surface-muted flex items-center justify-between"
-                  >
-                    <span>{f.title}</span>
-                    <span className="text-[10px] text-text-subtle">{f.desc}</span>
-                  </Link>
-                ))}
+              ))}
+
+              {/* Features accordion */}
+              <div className="border-t border-[rgba(10,10,10,0.08)] mt-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setMobileFeaturesOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-heading font-medium text-[#0a0a0a] hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+                >
+                  Features
+                  <ChevronDown
+                    className={cn(
+                      'w-4 h-4 text-[#9b9b9b] transition-transform duration-[120ms]',
+                      mobileFeaturesOpen && 'rotate-180',
+                    )}
+                    strokeWidth={2}
+                  />
+                </button>
+                <AnimatePresence>
+                  {mobileFeaturesOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{
+                        opacity: 1,
+                        height: 'auto',
+                        transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] as const },
+                      }}
+                      exit={{
+                        opacity: 0,
+                        height: 0,
+                        transition: { duration: 0.14, ease: [0.4, 0, 1, 1] as const },
+                      }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pl-2 py-1 space-y-0">
+                        <Link
+                          to="/features"
+                          onClick={closeAll}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#0a0a0a] hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+                        >
+                          View all 9 modules <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
+                        </Link>
+                        {featureLinks.map(({ href, icon: Icon, title }) => (
+                          <Link
+                            key={href}
+                            to={href}
+                            onClick={closeAll}
+                            className="flex items-center gap-2.5 px-3 py-2 text-sm text-[#6b6b6b] hover:text-[#0a0a0a] hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+                            <span className="font-medium">{title}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            )}
-          </div>
 
-          {/* Collapsible Country Editions for Mobile */}
-          <div className="border-t border-border pt-3">
-            <button
-              type="button"
-              onClick={() => setMobileCountriesExpanded(!mobileCountriesExpanded)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-heading font-bold uppercase tracking-wider text-text-muted hover:text-text"
-            >
-              <span>Country Editions</span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  mobileCountriesExpanded ? 'rotate-180 text-accent' : ''
-                }`}
-              />
-            </button>
-
-            {mobileCountriesExpanded && (
-              <div className="space-y-1 pl-2 pt-1 animate-in fade-in">
-                {countryLinks.map((c) => (
-                  <Link
-                    key={c.href}
-                    to={c.href}
-                    onClick={handleLinkClick}
-                    className="block px-3 py-2 text-xs text-text hover:text-accent rounded-md hover:bg-surface-muted"
-                  >
-                    <div className="font-semibold">{c.title}</div>
-                    <div className="text-[10px] text-text-subtle">{c.desc}</div>
-                  </Link>
-                ))}
+              {/* Who accordion */}
+              <div className="border-t border-[rgba(10,10,10,0.08)] pt-2">
+                <button
+                  type="button"
+                  onClick={() => setMobileWhoOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-heading font-medium text-[#0a0a0a] hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+                >
+                  Who it's for
+                  <ChevronDown
+                    className={cn(
+                      'w-4 h-4 text-[#9b9b9b] transition-transform duration-[120ms]',
+                      mobileWhoOpen && 'rotate-180',
+                    )}
+                    strokeWidth={2}
+                  />
+                </button>
+                <AnimatePresence>
+                  {mobileWhoOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{
+                        opacity: 1,
+                        height: 'auto',
+                        transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] as const },
+                      }}
+                      exit={{
+                        opacity: 0,
+                        height: 0,
+                        transition: { duration: 0.14, ease: [0.4, 0, 1, 1] as const },
+                      }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pl-2 py-1 space-y-0">
+                        {personaLinks.map(({ href, title, desc }) => (
+                          <Link
+                            key={href}
+                            to={href}
+                            onClick={closeAll}
+                            className="block px-3 py-2 text-sm text-[#6b6b6b] hover:text-[#0a0a0a] hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+                          >
+                            <div className="font-medium">{title}</div>
+                            <div className="text-[11px] text-[#9b9b9b] mt-0.5">{desc}</div>
+                          </Link>
+                        ))}
+                        <div className="px-3 pt-2 pb-1">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <Globe2 className="w-3 h-3 text-[#9b9b9b]" strokeWidth={2} />
+                            <span className="text-[10px] font-mono uppercase tracking-widest text-[#9b9b9b]">
+                              Country Editions
+                            </span>
+                          </div>
+                          {countryLinks.map(({ href, flag, title, desc }) => (
+                            <Link
+                              key={href}
+                              to={href}
+                              onClick={closeAll}
+                              className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-[#6b6b6b] hover:text-[#0a0a0a] hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+                            >
+                              <span className="text-base leading-none shrink-0">
+                                {flag === 'PK' ? '🇵🇰' : '🇺🇸'}
+                              </span>
+                              <div>
+                                <div className="font-medium text-sm">{title}</div>
+                                <div className="text-[11px] text-[#9b9b9b]">{desc}</div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            )}
-          </div>
 
-          <div className="border-t border-border pt-4 flex flex-col gap-2">
-            <Link to="/contact" onClick={handleLinkClick}>
-              <Button variant="primary" className="w-full" size="md">
-                Book a demo
-              </Button>
-            </Link>
-            <Link to="/contact" onClick={handleLinkClick}>
-              <Button variant="secondary" className="w-full" size="sm">
-                Log in to workspace
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
+              {/* Mobile CTAs */}
+              <div className="border-t border-[rgba(10,10,10,0.08)] pt-4 flex flex-col gap-2">
+                {isLoggedIn ? (
+                  <a
+                    href="/app"
+                    onClick={closeAll}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-heading font-semibold bg-[#0a0a0a] text-white hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]"
+                  >
+                    Open dashboard <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                  </a>
+                ) : (
+                  <>
+                    <Link
+                      to="/contact?intent=trial"
+                      onClick={closeAll}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-heading font-semibold bg-[#0a0a0a] text-white hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]"
+                    >
+                      Get started <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                    </Link>
+                    <Link
+                      to="/contact"
+                      onClick={closeAll}
+                      className="flex items-center justify-center w-full px-4 py-2.5 text-sm font-heading font-medium text-[#6b6b6b] border border-[rgba(10,10,10,0.16)] bg-white hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+                    >
+                      Sign in
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

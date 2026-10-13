@@ -36,7 +36,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Up to 5 team members (Site Supervisors & PMs)',
       'Email & WhatsApp customer support',
     ],
-    ctaLabel: 'Book a demo',
+    ctaLabel: 'Start free trial',
     isPopular: false,
   },
   {
@@ -58,7 +58,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Export to Excel & print-ready branded PDF reports',
       'Priority onboarding & telephone support',
     ],
-    ctaLabel: 'Book a demo',
+    ctaLabel: 'Start free trial',
     isPopular: true,
   },
   {

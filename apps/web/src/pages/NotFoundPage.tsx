@@ -1,47 +1,50 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { HardHat } from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { Card, CardContent } from '../components/ui/Card';
+import { HardHat, ArrowUpRight } from 'lucide-react';
 import { Seo } from '../components/seo/Seo';
 
-export const NotFoundPage: React.FC = () => {
-  return (
-    <div className="bg-bg text-text min-h-[70vh] flex items-center justify-center py-16 px-4">
-      <Seo
-        title="Page Not Found (404) | SiteFlow"
-        description="The construction operations page you are looking for does not exist or has been moved."
-        canonical="https://siteflow.app/404"
-        noindex={true}
-      />
+export const NotFoundPage: React.FC = () => (
+  <div className="rails relative overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
+    <Seo
+      title="Page Not Found (404) | SiteFlow"
+      description="The construction operations page you are looking for does not exist or has been moved."
+      canonical="https://siteflow.app/404"
+      noindex={true}
+    />
 
-      <Card className="max-w-md w-full text-center border-border shadow-card">
-        <CardContent className="p-8 space-y-4">
-          <div className="w-12 h-12 rounded-md bg-accent-subtle text-accent flex items-center justify-center mx-auto border border-accent-border">
-            <HardHat className="w-6 h-6" />
-          </div>
+    <section className="flex min-h-[calc(100dvh-72px)] items-center justify-center py-20 px-5">
+      <div className="w-full max-w-md border border-[var(--hairline-2)] bg-[var(--paper)] p-10 sm:p-14 text-center">
+        {/* Icon */}
+        <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center border border-[var(--hairline-2)] bg-[var(--surface-2)]">
+          <HardHat className="h-6 w-6" strokeWidth={1.6} />
+        </div>
 
-          <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider">
-            Error 404
-          </span>
+        {/* Eyebrow */}
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+          Error 404
+        </p>
 
-          <h1 className="font-heading text-xl font-bold text-text">
-            Page not found
-          </h1>
+        {/* Heading */}
+        <h1 className="mt-4 text-3xl font-medium tracking-[-0.045em] sm:text-4xl">
+          Page not <em className="font-serif font-light not-italic italic">found.</em>
+        </h1>
 
-          <p className="text-xs text-text-muted leading-relaxed">
-            The page you are looking for has been relocated or does not exist. Please check the URL or return to our homepage.
-          </p>
+        <p className="mx-auto mt-5 max-w-[34ch] text-sm leading-7 text-[var(--muted)]">
+          The page you are looking for has been relocated or does not exist. Check the URL or return
+          to the homepage.
+        </p>
 
-          <div className="pt-4">
-            <Link to="/">
-              <Button variant="primary">
-                Back to home page
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
+        {/* Actions */}
+        <div className="mt-10 flex flex-col items-center gap-3 border-t border-[var(--hairline-2)] pt-8">
+          <Link
+            to="/"
+            className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
+          >
+            Back to home
+            <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
+          </Link>
+        </div>
+      </div>
+    </section>
+  </div>
+);

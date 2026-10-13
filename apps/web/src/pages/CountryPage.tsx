@@ -1,25 +1,27 @@
-import React from 'react';
-import { useParams, useLocation, Link, Navigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Globe2 } from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { Card, CardContent } from '../components/ui/Card';
+import React, { useState } from 'react';
+import { useLocation, Link, Navigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowUpRight, CheckCircle2, ChevronDown, Globe2 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
 import { Seo } from '../components/seo/Seo';
 import { COUNTRIES_DATA } from '../content/countries';
 
+const Rail = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12 ${className}`}>
+    {children}
+  </div>
+);
+
 export const CountryPage: React.FC = () => {
   const location = useLocation();
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
-  // Route matches either /construction-software-pakistan or /construction-software-us
   const slug = location.pathname.replace('/', '');
   const country = COUNTRIES_DATA[slug];
-
-  if (!country) {
-    return <Navigate to="/" replace />;
-  }
+  if (!country) return <Navigate to="/" replace />;
 
   return (
-    <div className="bg-bg text-text">
+    <div className="rails relative overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
       <Seo
         title={`${country.title} | SiteFlow`}
         description={country.supportingSentence}
@@ -28,125 +30,159 @@ export const CountryPage: React.FC = () => {
         faqs={country.faqs}
       />
 
-      {/* Header */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 border-b border-border bg-drafting-grid text-left sm:text-center">
-        <div className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-heading font-semibold mb-4 border bg-accent-subtle text-accent border-accent-border">
-            <Globe2 className="w-3.5 h-3.5" />
-            <span>{country.badge}</span>
+      {/* Hero */}
+      <section className="border-b border-[var(--hairline)] bg-drafting-grid py-16 sm:py-20">
+        <Rail>
+          <div className="mb-5 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            <Globe2 className="h-3.5 w-3.5" strokeWidth={1.6} />
+            {country.badge}
           </div>
-          <h1 className="text-3xl sm:text-5xl font-heading font-extrabold tracking-tight text-text mb-4 leading-tight">
+          <h1 className="max-w-3xl text-[clamp(2.4rem,5vw,5rem)] font-medium leading-[0.96] tracking-[-0.065em]">
             {country.headline}
           </h1>
-          <p className="text-base sm:text-lg text-text-muted max-w-2xl sm:mx-auto mb-8 leading-relaxed">
+          <p className="mt-6 max-w-[54ch] text-base leading-7 text-[var(--muted)]">
             {country.supportingSentence}
           </p>
-          <div className="flex flex-wrap items-center sm:justify-center gap-3">
-            <Link to="/contact">
-              <Button variant="primary" size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                Book a demo
-              </Button>
-            </Link>
-            <Link to="/pricing">
-              <Button variant="secondary" size="lg">
-                View pricing plans
-              </Button>
+          <div className="mt-10">
+            <Link
+              to="/contact?intent=trial"
+              className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
+            >
+              Start free trial
+              <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
             </Link>
           </div>
-        </div>
+        </Rail>
       </section>
 
-      {/* Local Problem */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 border-b border-border bg-surface">
-        <div className="max-w-4xl mx-auto">
-          <div className="p-6 sm:p-8 rounded-md border border-status-atrisk-border bg-status-atrisk-bg/30">
-            <span className="text-xs font-heading font-bold uppercase tracking-wider text-status-atrisk block mb-2">
-              The Local Pain
-            </span>
-            <h2 className="text-xl sm:text-2xl font-heading font-bold text-text mb-3">
-              Why generic foreign software fails on local construction sites
-            </h2>
-            <p className="text-sm text-text-muted leading-relaxed">
+      {/* Local problem */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--surface-2)] py-14 sm:py-20">
+        <Rail>
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.72fr_1.28fr]">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                The local pain
+              </p>
+              <h2 className="mt-4 text-2xl font-medium tracking-[-0.04em] sm:text-3xl">
+                Why generic software fails on local sites
+              </h2>
+            </div>
+            <p className="self-center text-sm leading-7 text-[var(--muted)] lg:pt-2">
               {country.problem}
             </p>
           </div>
-        </div>
+        </Rail>
       </section>
 
-      {/* Local Standards & Units */}
-      <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8 border-b border-border bg-bg">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-10">
-            <span className="text-xs font-heading font-bold uppercase tracking-wider text-accent block mb-2">
-              Local Engineering Standards
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text mb-3">
-              Preconfigured for your regional building regulations
-            </h2>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <span className="text-xs text-text-muted mr-2 flex items-center">
-                Supported units:
-              </span>
-              {country.units.map((u) => (
-                <Badge key={u} variant="neutral">
-                  {u}
-                </Badge>
-              ))}
+      {/* Local standards */}
+      <section className="border-b border-[var(--hairline)] py-20 sm:py-28">
+        <Rail>
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                Local engineering standards
+              </p>
+              <h2 className="mt-4 max-w-xl text-3xl font-medium tracking-[-0.045em] sm:text-4xl">
+                Preconfigured for your regional building regulations
+              </h2>
             </div>
+            {country.units?.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pb-1">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                  Supported units:
+                </span>
+                {country.units.map((u: string) => (
+                  <span
+                    key={u}
+                    className="border border-[var(--hairline-2)] bg-[var(--paper)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em]"
+                  >
+                    {u}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {country.localStandards.map((std) => (
-              <Card key={std.title}>
-                <CardContent className="p-6 space-y-2">
-                  <h3 className="font-heading text-base font-bold text-text flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-status-ontrack shrink-0" />
-                    <span>{std.title}</span>
-                  </h3>
-                  <p className="text-xs text-text-muted leading-relaxed">
-                    {std.description}
-                  </p>
-                </CardContent>
-              </Card>
+          <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-2">
+            {country.localStandards.map((std: { title: string; description: string }) => (
+              <div key={std.title} className="bg-[var(--paper)] p-7">
+                <CheckCircle2 className="h-4 w-4 text-[#166534]" strokeWidth={1.6} />
+                <h3 className="mt-5 text-lg font-medium tracking-[-0.03em]">{std.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{std.description}</p>
+              </div>
             ))}
           </div>
-
-          {/* Regional FAQs */}
-          <div className="border border-border rounded-md bg-surface p-6 sm:p-8">
-            <span className="text-xs font-heading font-bold uppercase tracking-wider text-accent block mb-4">
-              Frequently Asked in Your Region
-            </span>
-            <div className="space-y-4">
-              {country.faqs.map((faq) => (
-                <div key={faq.question} className="border-b border-border pb-4 last:border-b-0 last:pb-0">
-                  <h4 className="font-heading text-sm font-bold text-text mb-1">
-                    {faq.question}
-                  </h4>
-                  <p className="text-xs text-text-muted leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        </Rail>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 text-center bg-drafting-grid">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-text mb-3">
-            Deploy {country.title} on your job sites today
-          </h2>
-          <p className="text-xs sm:text-sm text-text-muted mb-8 max-w-lg mx-auto">
-            Book a 20-minute demonstration tailored specifically to your active projects in PKR or USD.
-          </p>
-          <Link to="/contact">
-            <Button variant="primary" size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>
-              Book a demo
-            </Button>
+      {/* Regional FAQs */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--surface-2)] py-20 sm:py-28">
+        <Rail>
+          <div className="mb-12">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+              Frequently asked in your region
+            </p>
+            <h2 className="mt-4 max-w-xl text-3xl font-medium tracking-[-0.045em] sm:text-5xl">
+              Questions from local contractors
+            </h2>
+          </div>
+
+          <div className="border-t border-[var(--hairline-2)]">
+            {country.faqs.map((faq: { question: string; answer: string }, idx: number) => {
+              const open = activeFaq === idx;
+              return (
+                <div key={faq.question} className="border-b border-[var(--hairline-2)]">
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    onClick={() => setActiveFaq(open ? null : idx)}
+                    className="flex w-full items-center justify-between gap-6 py-5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--ink)]"
+                  >
+                    <span className="text-base font-medium tracking-[-0.02em]">{faq.question}</span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+                      strokeWidth={1.8}
+                    />
+                  </button>
+                  <motion.div
+                    initial={false}
+                    animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
+                    className="overflow-hidden"
+                  >
+                    <p className="max-w-2xl pb-5 pr-10 text-sm leading-7 text-[var(--muted)]">
+                      {faq.answer}
+                    </p>
+                  </motion.div>
+                </div>
+              );
+            })}
+          </div>
+        </Rail>
+      </section>
+
+      {/* CTA */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--ink)] py-24 text-white sm:py-32">
+        <Rail className="grid grid-cols-1 items-end gap-10 lg:grid-cols-[1fr_auto]">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+              Deploy today
+            </p>
+            <h2 className="mt-6 max-w-2xl text-4xl font-medium leading-[1.02] tracking-[-0.055em] sm:text-5xl">
+              {country.title} on your job sites.
+            </h2>
+            <p className="mt-5 max-w-lg text-base leading-7 text-white/60">
+              Start a free 14-day trial — or book a 20-minute demonstration tailored to your active
+              projects in PKR or USD.
+            </p>
+          </div>
+          <Link
+            to="/contact?intent=trial"
+            className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-5 text-sm font-medium text-[var(--ink)] transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          >
+            Get started
+            <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
           </Link>
-        </div>
+        </Rail>
       </section>
     </div>
   );

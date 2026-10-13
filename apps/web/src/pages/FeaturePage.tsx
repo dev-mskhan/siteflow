@@ -1,40 +1,37 @@
 import React, { useState } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { ArrowUpRight, ChevronDown, CheckCircle2 } from 'lucide-react';
 import {
-  ArrowRight,
-  ChevronDown,
-  Check,
-  Building2,
-  FileSpreadsheet,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Layers,
-} from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { Card, CardContent } from '../components/ui/Card';
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/Table';
 import { Badge } from '../components/ui/Badge';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table';
 import { Seo } from '../components/seo/Seo';
 import { FEATURES_DATA } from '../content/features';
+
+const Rail = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12 ${className}`}>
+    {children}
+  </div>
+);
 
 export const FeaturePage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
+  const reduce = useReducedMotion();
 
   const feature = slug ? FEATURES_DATA[slug] : undefined;
+  if (!feature) return <Navigate to="/features" replace />;
 
-  if (!feature) {
-    return <Navigate to="/features" replace />;
-  }
-
-  const relatedFeatures = feature.relatedSlugs
-    .map((s) => FEATURES_DATA[s])
-    .filter(Boolean);
+  const relatedFeatures = feature.relatedSlugs.map((s) => FEATURES_DATA[s]).filter(Boolean);
 
   return (
-    <div className="bg-bg text-text">
+    <div className="rails relative overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
       <Seo
         title={`${feature.title} | Construction Management | SiteFlow`}
         description={feature.supportingSentence}
@@ -43,103 +40,90 @@ export const FeaturePage: React.FC = () => {
         faqs={feature.faqs}
       />
 
-      {/* Header / Hero */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 border-b border-border bg-drafting-grid">
-        <div className="max-w-4xl mx-auto text-left sm:text-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-heading font-semibold mb-4 border bg-accent-subtle text-accent border-accent-border">
-            <span>{feature.badge}</span>
+      {/* Hero */}
+      <section className="border-b border-[var(--hairline)] bg-drafting-grid py-16 sm:py-20">
+        <Rail>
+          <div className="mb-5 inline-block border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            {feature.badge}
           </div>
-
-          <h1 className="text-3xl sm:text-5xl font-heading font-extrabold tracking-tight text-text mb-4 leading-tight">
+          <h1 className="max-w-3xl text-[clamp(2.4rem,5vw,5rem)] font-medium leading-[0.96] tracking-[-0.065em]">
             {feature.headline}
           </h1>
-
-          <p className="text-base sm:text-lg text-text-muted max-w-2xl sm:mx-auto mb-8 leading-relaxed">
+          <p className="mt-6 max-w-[54ch] text-base leading-7 text-[var(--muted)]">
             {feature.supportingSentence}
           </p>
-
-          <div className="flex flex-wrap items-center sm:justify-center gap-3">
-            <Link to="/contact">
-              <Button variant="primary" size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                Book a demo
-              </Button>
-            </Link>
-            <Link to="/pricing">
-              <Button variant="secondary" size="lg">
-                View pricing plans
-              </Button>
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link
+              to="/contact?intent=trial"
+              className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
+            >
+              Start free trial
+              <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
             </Link>
           </div>
-        </div>
+        </Rail>
       </section>
 
-      {/* The Problem Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 border-b border-border bg-surface">
-        <div className="max-w-4xl mx-auto">
-          <div className="p-6 sm:p-8 rounded-md border border-status-atrisk-border bg-status-atrisk-bg/30">
-            <span className="text-xs font-heading font-bold uppercase tracking-wider text-status-atrisk block mb-2">
-              The Pain In The Field
-            </span>
-            <h2 className="text-xl sm:text-2xl font-heading font-bold text-text mb-3">
-              Why traditional methods fail on site
-            </h2>
-            <p className="text-sm text-text-muted leading-relaxed">
+      {/* Problem */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--surface-2)] py-14 sm:py-20">
+        <Rail>
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.72fr_1.28fr]">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                The pain in the field
+              </p>
+              <h2 className="mt-4 text-2xl font-medium tracking-[-0.04em] sm:text-3xl">
+                Why traditional methods fail on site
+              </h2>
+            </div>
+            <p className="self-center text-sm leading-7 text-[var(--muted)] lg:pt-2">
               {feature.problem}
             </p>
           </div>
-        </div>
+        </Rail>
       </section>
 
-      {/* 3 to 4 Benefits */}
-      <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8 border-b border-border bg-bg">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-10">
-            <span className="text-xs font-heading font-bold uppercase tracking-wider text-accent block mb-2">
-              Key Capabilities
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text">
+      {/* Benefits */}
+      <section className="border-b border-[var(--hairline)] py-20 sm:py-28">
+        <Rail>
+          <div className="mb-12">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+              Key capabilities
+            </p>
+            <h2 className="mt-4 max-w-xl text-3xl font-medium tracking-[-0.045em] sm:text-5xl">
               How {feature.title} keeps your project protected
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {/* Benefits bento */}
+          <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-3">
             {feature.benefits.map((b, i) => (
-              <Card key={b.title}>
-                <CardContent className="p-5 space-y-2.5">
-                  <div className="w-7 h-7 rounded-md bg-accent text-accent-contrast font-mono text-xs font-bold flex items-center justify-center">
-                    0{i + 1}
-                  </div>
-                  <h3 className="font-heading text-sm font-bold text-text">
-                    {b.title}
-                  </h3>
-                  <p className="text-xs text-text-muted leading-relaxed">
-                    {b.description}
-                  </p>
-                </CardContent>
-              </Card>
+              <div key={b.title} className="bg-[var(--paper)] p-7">
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                  {String(i + 1).padStart(2, '0')}
+                </p>
+                <h3 className="mt-6 text-lg font-medium tracking-[-0.03em]">{b.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{b.description}</p>
+              </div>
             ))}
           </div>
 
-          {/* How It Works In The App (Real UI Component Rendering) */}
-          <div className="border border-border rounded-md bg-surface overflow-hidden shadow-card">
-            <div className="p-4 bg-surface-muted border-b border-border flex items-center justify-between text-xs">
-              <span className="font-heading font-bold text-text">
-                Live App Preview — {feature.title} Control
+          {/* App preview */}
+          <div className="mt-10 border border-[var(--hairline-2)] bg-[var(--paper)]">
+            <div className="flex items-center justify-between border-b border-[var(--hairline-2)] px-5 py-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink)]">
+                Live app preview — {feature.title} control
               </span>
-              <span className="text-text-subtle font-mono text-[11px]">
-                Active Project View
-              </span>
+              <span className="font-mono text-[10px] text-[var(--muted)]">Active project view</span>
             </div>
-
-            <div className="p-4 sm:p-6">
-              <p className="text-xs text-text-muted mb-4">
+            <div className="p-5">
+              <p className="mb-4 text-sm leading-6 text-[var(--muted)]">
                 {feature.appPreviewDescription}
               </p>
-
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code & Description</TableHead>
+                    <TableHead>Code &amp; Description</TableHead>
                     <TableHead>Scope Details</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-right">Action</TableHead>
@@ -149,25 +133,28 @@ export const FeaturePage: React.FC = () => {
                   {feature.sampleItems.map((item) => (
                     <TableRow key={item.code}>
                       <TableCell>
-                        <div className="font-mono text-xs font-bold text-text">
-                          {item.code}
-                        </div>
-                        <div className="text-xs text-text font-medium">
-                          {item.title}
-                        </div>
+                        <div className="font-mono text-xs font-bold">{item.code}</div>
+                        <div className="text-xs font-medium">{item.title}</div>
                       </TableCell>
-                      <TableCell className="text-xs text-text-muted font-mono">
+                      <TableCell className="font-mono text-xs text-[var(--muted)]">
                         {item.meta}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant={item.status}>
-                          {item.status === 'ontrack' ? 'On track' : item.status === 'atrisk' ? 'At risk' : 'Delayed'}
+                          {item.status === 'ontrack'
+                            ? 'On track'
+                            : item.status === 'atrisk'
+                              ? 'At risk'
+                              : 'Delayed'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
+                        <button
+                          type="button"
+                          className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+                        >
                           Inspect
-                        </Button>
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -175,98 +162,110 @@ export const FeaturePage: React.FC = () => {
               </Table>
             </div>
           </div>
-        </div>
+        </Rail>
       </section>
 
-      {/* Short Feature FAQ */}
-      <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8 border-b border-border bg-surface">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-10">
-            <span className="text-xs font-heading font-bold uppercase tracking-wider text-accent block mb-2">
-              Common Questions
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text">
+      {/* FAQ */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--surface-2)] py-20 sm:py-28">
+        <Rail>
+          <div className="mb-12">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+              Common questions
+            </p>
+            <h2 className="mt-4 max-w-xl text-3xl font-medium tracking-[-0.045em] sm:text-5xl">
               Frequently asked about {feature.title}
             </h2>
           </div>
 
-          <div className="space-y-3 mb-12">
+          <div className="border-t border-[var(--hairline-2)]">
             {feature.faqs.map((faq, idx) => {
-              const isOpen = activeFaq === idx;
+              const open = activeFaq === idx;
               return (
-                <div
-                  key={faq.question}
-                  className="rounded-md border border-border bg-bg overflow-hidden"
-                >
+                <div key={faq.question} className="border-b border-[var(--hairline-2)]">
                   <button
                     type="button"
-                    onClick={() => setActiveFaq(isOpen ? null : idx)}
-                    className="w-full p-4 text-left flex items-center justify-between gap-4 font-heading font-semibold text-xs sm:text-sm text-text"
+                    aria-expanded={open}
+                    onClick={() => setActiveFaq(open ? null : idx)}
+                    className="flex w-full items-center justify-between gap-6 py-5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--ink)]"
                   >
-                    <span>{faq.question}</span>
+                    <span className="text-base font-medium tracking-[-0.02em]">{faq.question}</span>
                     <ChevronDown
-                      className={`w-4 h-4 shrink-0 transition-transform ${
-                        isOpen ? 'rotate-180 text-accent' : 'text-text-muted'
-                      }`}
+                      className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+                      strokeWidth={1.8}
                     />
                   </button>
-
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.18 }}
-                        className="px-4 pb-4 pt-1 border-t border-border text-xs text-text-muted leading-relaxed"
-                      >
-                        {faq.answer}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <motion.div
+                    initial={false}
+                    animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
+                    className="overflow-hidden"
+                  >
+                    <p className="max-w-2xl pb-5 pr-10 text-sm leading-7 text-[var(--muted)]">
+                      {faq.answer}
+                    </p>
+                  </motion.div>
                 </div>
               );
             })}
           </div>
 
-          {/* Links to 2 or 3 related pages */}
-          <div className="border-t border-border pt-8">
-            <span className="text-xs font-heading font-bold uppercase tracking-wider text-text-muted block mb-4">
-              Explore Related Modules
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {relatedFeatures.map((rel) => (
-                <Link key={rel.slug} to={`/features/${rel.slug}`} className="group">
-                  <div className="p-4 rounded-md border border-border bg-bg hover:border-accent hover:shadow-card transition-all">
-                    <div className="text-xs font-heading font-bold text-text group-hover:text-accent mb-1">
-                      {rel.title}
+          {/* Related modules */}
+          {relatedFeatures.length > 0 && (
+            <div className="mt-14 border-t border-[var(--hairline-2)] pt-10">
+              <p className="mb-6 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                Explore related modules
+              </p>
+              <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-3">
+                {relatedFeatures.map((rel) => (
+                  <Link
+                    key={rel.slug}
+                    to={`/features/${rel.slug}`}
+                    className="group flex items-start justify-between gap-4 bg-[var(--paper)] p-6 transition-colors hover:bg-[var(--surface-2)]"
+                  >
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                        {rel.badge}
+                      </p>
+                      <h3 className="mt-2 text-sm font-medium">{rel.title}</h3>
                     </div>
-                    <div className="text-[11px] text-text-muted leading-tight">
-                      {rel.badge}
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                    <ArrowUpRight
+                      className="mt-1 h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1"
+                      strokeWidth={1.6}
+                    />
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </Rail>
       </section>
 
-      {/* Bottom CTA with Main Button */}
-      <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8 text-center bg-drafting-grid">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-text mb-3">
-            Ready to upgrade your {feature.title.toLowerCase()} workflow?
-          </h2>
-          <p className="text-xs sm:text-sm text-text-muted mb-8 max-w-lg mx-auto">
-            Book a 20-minute demonstration tailored specifically to your active projects in PKR or USD.
-          </p>
-          <Link to="/contact">
-            <Button variant="primary" size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>
-              Book a demo
-            </Button>
+      {/* CTA */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--ink)] py-24 text-white sm:py-32">
+        <Rail className="grid grid-cols-1 items-end gap-10 lg:grid-cols-[1fr_auto]">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+              Upgrade your workflow
+            </p>
+            <h2 className="mt-6 max-w-2xl text-4xl font-medium leading-[1.02] tracking-[-0.055em] sm:text-5xl">
+              Ready to modernise your{' '}
+              <em className="font-serif font-light not-italic italic">
+                {feature.title.toLowerCase()}
+              </em>{' '}
+              process?
+            </h2>
+            <p className="mt-5 max-w-lg text-base leading-7 text-white/60">
+              Start a free 14-day trial — or book a 20-minute demonstration tailored to your active
+              projects in PKR or USD.
+            </p>
+          </div>
+          <Link
+            to="/contact?intent=trial"
+            className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-5 text-sm font-medium text-[var(--ink)] transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+          >
+            Get started
+            <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
           </Link>
-        </div>
+        </Rail>
       </section>
     </div>
   );

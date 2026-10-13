@@ -1,107 +1,90 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  /* ─── FONTS (Google Fonts loaded in index.html) ─────────────────── */
-  --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* ── Fonts ─────────────────────────────────────────────────────────────── */
+  --font-heading: 'Geist', 'Helvetica Neue', Arial, sans-serif;
+  --font-body:    'Geist', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:    'Geist Mono', 'SFMono-Regular', Consolas, monospace;
+  --font-serif:   'Fraunces', Georgia, serif;
 
-  /* ─── COLORS: THEME 1 (Raw Concrete & Safety Amber) ───────────── */
-  /* Neutrals: Chalk, Drafting Paper, Structural Slate */
-  --color-bg: #F8F9FA;
-  --color-surface: #FFFFFF;
-  --color-surface-muted: #F1F3F5;
-  --color-surface-hover: #E9ECEF;
-  --color-border: #E2E6EA;
-  --color-border-strong: #CED4DA;
+  /* ── Colors — three-tone Vault palette ─────────────────────────────────── */
+  --color-bg:             #fafafa;
+  --color-surface:        #ffffff;
+  --color-surface-muted:  #f3f3f3;
+  --color-surface-hover:  #efefef;
 
-  /* Typography Colors */
-  --color-text: #1A1D20;
-  --color-text-muted: #606870;
-  --color-text-subtle: #868E96;
-  --color-text-inverse: #FFFFFF;
+  --color-border:         rgba(10, 10, 10, 0.08);
+  --color-border-strong:  rgba(10, 10, 10, 0.20);
 
-  /* Main Accent: Architectural Safety Amber */
-  --color-accent: #E65100;
-  --color-accent-hover: #C2410C;
-  --color-accent-subtle: #FFF3E0;
-  --color-accent-border: #FFE0B2;
-  --color-accent-contrast: #FFFFFF;
+  --color-text:           #0a0a0a;
+  --color-text-muted:     #6b6b6b;
+  --color-text-subtle:    #9b9b9b;
+  --color-text-inverse:   #ffffff;
 
-  /* Status: On Track (Verified Green) */
-  --color-status-ontrack: #166534;
-  --color-status-ontrack-bg: #DCFCE7;
-  --color-status-ontrack-border: #BBF7D0;
+  /* Accent = ink (monochrome — no hue) */
+  --color-accent:          #0a0a0a;
+  --color-accent-hover:    #1a1a1a;
+  --color-accent-subtle:   #f3f3f3;
+  --color-accent-border:   rgba(10, 10, 10, 0.16);
+  --color-accent-contrast: #ffffff;
 
-  /* Status: At Risk (Caution Amber) */
-  --color-status-atrisk: #9A3412;
-  --color-status-atrisk-bg: #FFEDD5;
-  --color-status-atrisk-border: #FED7AA;
+  /* ── Status — kept semantic, used only for product UI / form states ─────── */
+  --color-status-ontrack:        #166534;
+  --color-status-ontrack-bg:     #f0fdf4;
+  --color-status-ontrack-border: #bbf7d0;
 
-  /* Status: Delayed (Structural Stop Red) */
-  --color-status-delayed: #991B1B;
-  --color-status-delayed-bg: #FEE2E2;
-  --color-status-delayed-border: #FECACA;
+  --color-status-atrisk:         #92400e;
+  --color-status-atrisk-bg:      #fffbeb;
+  --color-status-atrisk-border:  #fde68a;
 
-  /* Secondary Neutral Badge */
-  --color-status-neutral: #495057;
-  --color-status-neutral-bg: #E9ECEF;
-  --color-status-neutral-border: #DEE2E6;
+  --color-status-delayed:        #991b1b;
+  --color-status-delayed-bg:     #fef2f2;
+  --color-status-delayed-border: #fecaca;
 
-  /* ─── CORNER RADIUS (6px Engineered Edge) ───────────────────────── */
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-full: 9999px;
+  --color-status-neutral:        #374151;
+  --color-status-neutral-bg:     #f9fafb;
+  --color-status-neutral-border: #e5e7eb;
 
-  /* ─── SPACING (8px Base System) ─────────────────────────────────── */
-  --spacing-0: 0px;
-  --spacing-0-5: 4px;
-  --spacing-1: 8px;
-  --spacing-1-5: 12px;
-  --spacing-2: 16px;
-  --spacing-2-5: 20px;
-  --spacing-3: 24px;
-  --spacing-4: 32px;
-  --spacing-5: 40px;
-  --spacing-6: 48px;
-  --spacing-7: 56px;
-  --spacing-8: 64px;
-  --spacing-10: 80px;
-  --spacing-12: 96px;
+  /* ── Radius — 0 px engineered edges (DESIGN.md §4) ─────────────────────── */
+  --radius-xs:   0px;
+  --radius-sm:   0px;
+  --radius-md:   0px;
+  --radius-lg:   0px;
+  --radius-xl:   0px;
+  --radius-full: 9999px;   /* pills only for compact inline controls */
 
-  /* ─── TYPE SCALE (1.25 Major Third Ratio) ───────────────────────── */
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.25rem;    /* 20px */
-  --text-xl: 1.5625rem;  /* 25px */
-  --text-2xl: 1.953rem;  /* 31.25px */
-  --text-3xl: 2.441rem;  /* 39.06px */
-  --text-4xl: 3.052rem;  /* 48.83px */
+  /* ── Shadows — none (depth via hairlines only, DESIGN.md §2) ───────────── */
+  --shadow-subtle:   none;
+  --shadow-card:     none;
+  --shadow-elevated: 0 0 0 1px rgba(10, 10, 10, 0.12);  /* stronger hairline */
+  --shadow-modal:    0 0 0 1px rgba(10, 10, 10, 0.16);
 
-  /* ─── SHADOWS (Thin & Architectural, No Smudgy Blur) ─────────────── */
-  --shadow-subtle: 0 1px 2px 0 rgba(26, 29, 32, 0.05);
-  --shadow-card: 0 1px 3px 0 rgba(26, 29, 32, 0.08), 0 1px 2px -1px rgba(26, 29, 32, 0.08);
-  --shadow-elevated: 0 4px 6px -1px rgba(26, 29, 32, 0.1), 0 2px 4px -2px rgba(26, 29, 32, 0.06);
-  --shadow-modal: 0 10px 25px -5px rgba(26, 29, 32, 0.2), 0 8px 10px -6px rgba(26, 29, 32, 0.1);
-
-  /* ─── MOTION DURATIONS ──────────────────────────────────────────── */
-  --duration-snappy: 150ms;
-  --duration-feedback: 200ms;
-  --duration-transition: 300ms;
-  --duration-entrance: 500ms;
+  /* ── Motion ─────────────────────────────────────────────────────────────── */
+  --duration-snappy:     120ms;
+  --duration-feedback:   180ms;
+  --duration-transition: 260ms;
+  --duration-entrance:   440ms;
 }
 
-/* Accent gradient allowed on primary button & landing headline accent */
+/* ── Utility: accent gradient (maps to solid ink — no gradient in Vault) ─── */
+/* Named bg-accent-gradient for backward compat; renders as solid ink fill.   */
 .bg-accent-gradient {
-  background: linear-gradient(135deg, #E65100 0%, #C2410C 100%);
+  background: #0a0a0a;
 }
 
 .text-accent-gradient {
-  background: linear-gradient(135deg, #E65100 0%, #C2410C 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #0a0a0a;
+}
+
+/* ── Utility: drafting-grid background dot matrix ───────────────────────── */
+/* Used sparingly — one application per page maximum.                        */
+.bg-drafting-grid {
+  background-image: radial-gradient(rgba(10, 10, 10, 0.10) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── Utility: tabular figures for financial / quantity values ───────────── */
+.font-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }

@@ -30,29 +30,41 @@ export const PricingPage: React.FC = () => {
           <h1 className="text-3xl sm:text-5xl font-heading font-extrabold tracking-tight text-text mb-4">
             Predictable plans that scale with your project volume
           </h1>
-          <p className="text-base sm:text-lg text-text-muted max-w-2xl sm:mx-auto mb-8">
-            No surprise add-ons. Unlimited Bill of Quantities line items and free subcontractor trade portal seats on every tier.
+          <p className="text-base sm:text-lg text-text-muted max-w-2xl sm:mx-auto mb-4">
+            No surprise add-ons. Unlimited Bill of Quantities line items and free subcontractor
+            trade portal seats on every tier.
+          </p>
+          {/* Trial nudge */}
+          <p className="text-sm font-medium text-[#0a0a0a] mb-8">
+            Every paid plan starts with a{' '}
+            <Link
+              to="/contact?intent=trial"
+              className="underline underline-offset-4 hover:opacity-60 transition-opacity"
+            >
+              14-day free trial
+            </Link>
+            . No credit card required.
           </p>
 
           {/* Currency Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-md border border-border bg-surface text-xs font-heading font-bold">
+          <div className="inline-flex items-center gap-1 p-1 border border-[rgba(10,10,10,0.12)] bg-white text-xs font-mono font-semibold">
             <button
               type="button"
               onClick={() => setCurrency('PKR')}
-              className={`px-3 py-1.5 rounded-sm transition-all ${
-                currency === 'PKR' ? 'bg-accent text-accent-contrast shadow-subtle' : 'text-text-muted hover:text-text'
+              className={`px-3 py-1.5 transition-colors duration-[120ms] ${
+                currency === 'PKR' ? 'bg-[#0a0a0a] text-white' : 'text-[#6b6b6b] hover:bg-[#f3f3f3]'
               }`}
             >
-              Pakistani Rupees (PKR)
+              PKR
             </button>
             <button
               type="button"
               onClick={() => setCurrency('USD')}
-              className={`px-3 py-1.5 rounded-sm transition-all ${
-                currency === 'USD' ? 'bg-accent text-accent-contrast shadow-subtle' : 'text-text-muted hover:text-text'
+              className={`px-3 py-1.5 transition-colors duration-[120ms] ${
+                currency === 'USD' ? 'bg-[#0a0a0a] text-white' : 'text-[#6b6b6b] hover:bg-[#f3f3f3]'
               }`}
             >
-              US Dollars (USD)
+              USD
             </button>
           </div>
         </div>
@@ -66,42 +78,45 @@ export const PricingPage: React.FC = () => {
             const isContact = price === 'Contact us';
 
             return (
-              <Card
+              /* overflow-visible so the badge positioned above the card is not clipped.
+                 Popular tier uses a stronger hairline border instead of shadow (DESIGN.md §6). */
+              <div
                 key={plan.id}
-                className={`flex flex-col justify-between h-full relative ${
-                  plan.isPopular ? 'border-accent shadow-elevated ring-1 ring-accent/40' : ''
+                className={`relative flex flex-col bg-white border ${
+                  plan.isPopular ? 'border-[rgba(10,10,10,0.28)]' : 'border-[rgba(10,10,10,0.10)]'
                 }`}
               >
                 {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 rounded-full bg-accent text-accent-contrast text-[11px] font-heading font-bold uppercase tracking-wider shadow-sm">
+                  /* Badge sits above the card — overflow-visible on parent allows this */
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
+                    <span className="inline-block px-3 py-1 bg-[#0a0a0a] text-white text-[10px] font-mono font-semibold uppercase tracking-widest">
                       {plan.badge}
                     </span>
                   </div>
                 )}
 
-                <CardContent className="p-6 sm:p-8 flex flex-col justify-between h-full space-y-6">
+                <div
+                  className={`p-6 sm:p-8 flex flex-col h-full space-y-6 ${plan.badge ? 'pt-8' : ''}`}
+                >
                   <div>
-                    <h2 className="font-heading text-xl font-bold text-text mb-1">
-                      {plan.name}
-                    </h2>
+                    <h2 className="font-heading text-xl font-bold text-text mb-1">{plan.name}</h2>
                     <p className="text-xs text-text-muted min-h-[36px] leading-relaxed mb-6">
                       {plan.target}
                     </p>
 
                     {/* Price display */}
-                    <div className="mb-6 pb-6 border-b border-border">
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-mono text-3xl sm:text-4xl font-extrabold text-text">
+                    <div className="mb-6 pb-6 border-b border-[rgba(10,10,10,0.08)]">
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                        <span className="font-mono text-2xl font-bold text-[#0a0a0a] break-all">
                           {price}
                         </span>
                         {!isContact && (
-                          <span className="text-xs text-text-muted font-normal">
+                          <span className="text-xs text-[#6b6b6b] font-normal shrink-0">
                             / month
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-text-subtle block mt-1">
+                      <span className="text-[11px] text-[#9b9b9b] block mt-1">
                         {plan.billingInterval}
                       </span>
                     </div>
@@ -122,8 +137,12 @@ export const PricingPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-border">
-                    <Link to="/contact">
+                  <div className="pt-4 border-t border-[rgba(10,10,10,0.08)]">
+                    <Link
+                      to={
+                        plan.ctaLabel === 'Start free trial' ? '/contact?intent=trial' : '/contact'
+                      }
+                    >
                       <Button
                         variant={plan.isPopular ? 'primary' : 'secondary'}
                         className="w-full"
@@ -133,19 +152,19 @@ export const PricingPage: React.FC = () => {
                       </Button>
                     </Link>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>
 
         {/* Note on undecided prices */}
         <div className="max-w-4xl mx-auto mt-12 p-4 rounded-md border border-border bg-bg text-xs text-text-muted">
-          <div className="font-heading font-bold text-text mb-1">
-            Product Owner Pricing Notes:
-          </div>
+          <div className="font-heading font-bold text-text mb-1">Product Owner Pricing Notes:</div>
           <p className="leading-relaxed">
-            Where a tier price is listed as <strong>Contact us</strong> (e.g. Enterprise Prime), custom pricing terms will be finalized directly based on organization site count and ERP integration needs. Subcontractor seats are completely free across all plans.
+            Where a tier price is listed as <strong>Contact us</strong> (e.g. Enterprise Prime),
+            custom pricing terms will be finalized directly based on organization site count and ERP
+            integration needs. Subcontractor seats are completely free across all plans.
           </p>
         </div>
       </section>
@@ -165,12 +184,8 @@ export const PricingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {PRICING_FAQ.map((faq) => (
               <div key={faq.q} className="p-5 rounded-md border border-border bg-surface">
-                <h3 className="font-heading text-sm font-bold text-text mb-2">
-                  {faq.q}
-                </h3>
-                <p className="text-xs text-text-muted leading-relaxed">
-                  {faq.a}
-                </p>
+                <h3 className="font-heading text-sm font-bold text-text mb-2">{faq.q}</h3>
+                <p className="text-xs text-text-muted leading-relaxed">{faq.a}</p>
               </div>
             ))}
           </div>
@@ -181,16 +196,21 @@ export const PricingPage: React.FC = () => {
       <section className="py-16 px-4 sm:px-6 lg:px-8 text-center bg-drafting-grid">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-text mb-3">
-            Still deciding on the right plan for your jobs?
+            Still deciding on the right plan?
           </h2>
           <p className="text-xs sm:text-sm text-text-muted mb-8 max-w-lg mx-auto">
-            Talk directly to our operations team. We will review your current active project count and recommend the right setup.
+            Start a free 14-day trial and explore with your real projects — or talk to our team to
+            find the right tier for your organization.
           </p>
-          <Link to="/contact">
-            <Button variant="primary" size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>
-              Book a demo
-            </Button>
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/contact?intent=trial"
+              className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
+            >
+              Start free trial
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>
