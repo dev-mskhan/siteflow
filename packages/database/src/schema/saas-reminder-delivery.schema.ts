@@ -13,8 +13,8 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { organizations } from './org.schema.js';
-import { saasSubscriptions } from './saas-billing.schema.js';
+import { organizations } from './org.schema';
+import { saasSubscriptions } from './saas-billing.schema';
 
 const appSchema = pgSchema('app');
 

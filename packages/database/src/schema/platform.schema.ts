@@ -4,7 +4,7 @@
 
 import { sql } from 'drizzle-orm';
 import { check, index, jsonb, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import { appSchema, users } from './auth.schema.js';
+import { appSchema, users } from './auth.schema';
 
 export const platformRoles = appSchema.table(
   'platform_roles',

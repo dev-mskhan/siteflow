@@ -12,8 +12,8 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { organizations } from './org.schema.js';
-import { saasStripeModeEnum } from './saas-billing.schema.js';
+import { organizations } from './org.schema';
+import { saasStripeModeEnum } from './saas-billing.schema';
 
 const appSchema = pgSchema('app');
 

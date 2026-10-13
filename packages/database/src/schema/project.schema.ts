@@ -269,6 +269,11 @@ export const projectCostCodes = appSchema.table(
   },
   (t) => [
     uniqueIndex('project_cost_codes_project_code_unique').on(t.projectId, t.code),
+    uniqueIndex('project_cost_codes_id_org_project_unique').on(
+      t.id,
+      t.organizationId,
+      t.projectId,
+    ),
     index('project_cost_codes_org_project_idx').on(t.organizationId, t.projectId),
     index('project_cost_codes_project_active_idx').on(t.projectId, t.isActive),
   ],
@@ -726,5 +731,4 @@ export type BaselineStatus = 'DRAFT' | 'ACTIVE' | 'SUPERSEDED';
 export type FieldLogStatus = 'DRAFT' | 'SUBMITTED' | 'LOCKED';
 export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type ScheduleSourceType = 'USER' | 'ISSUE' | 'RFI' | 'CHANGE_ORDER' | 'MATERIAL_DELAY' | 'WEATHER' | 'SYSTEM_CALCULATION';
-
 

@@ -6,8 +6,8 @@
 
 import { check, index, integer, pgSchema, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { organizations } from './org.schema.js';
-import { saasInvoices } from './saas-invoice.schema.js';
+import { organizations } from './org.schema';
+import { saasInvoices } from './saas-invoice.schema';
 
 const appSchema = pgSchema('app');
 

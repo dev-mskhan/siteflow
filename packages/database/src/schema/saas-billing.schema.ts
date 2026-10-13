@@ -13,7 +13,7 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { organizations } from './org.schema.js';
+import { organizations } from './org.schema';
 
 const appSchema = pgSchema('app');
 
