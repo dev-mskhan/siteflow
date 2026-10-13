@@ -1,6 +1,7 @@
 import { Decimal } from 'decimal.js';
+import { BOQ_CSV_MAX_BYTES } from '@siteflow/shared';
 
-export const BOQ_CSV_MAX_BYTES = 2 * 1024 * 1024;
+export { BOQ_CSV_MAX_BYTES };
 export const BOQ_CSV_MAX_ROWS = 2000;
 const MAX_REPORTED_ERRORS = 100;
 

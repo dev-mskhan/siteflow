@@ -47,6 +47,8 @@ export * from './modules/project/task.schema.js';
 export * from './modules/project/calendar.schema.js';
 export * from './modules/project/dependency.schema.js';
 export * from './modules/project/baseline.schema.js';
+export * from './modules/project/estimate.schema.js';
+export * from './modules/project/boq.schema.js';
 
 // ─── Project operations ───────────────────────────────────────────────────────
 export * from './modules/project/field-log.schema.js';
