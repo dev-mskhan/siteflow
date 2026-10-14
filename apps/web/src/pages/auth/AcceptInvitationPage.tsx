@@ -1,36 +1,20 @@
 /**
  * AcceptInvitationPage — /invitations/:token
  *
- * Handles the invitation email link. Three scenarios:
- *
- * A) User is not logged in
- *    → Show "You need an account to accept this invitation"
- *    → Two CTAs: "Create account" (→ /register?invite=<token>)
- *                "Sign in"        (→ /login?invite=<token>)
- *    → After auth, LoginPage/RegisterPage reads ?invite= and
- *      redirects back here to complete acceptance.
- *
- * B) User is logged in, invitation is valid
- *    → Auto-calls POST /invitations/:token/accept
- *    → On success → /dashboard (org context will be set by onboarding module later)
- *
- * C) Token expired / already accepted / wrong user
- *    → Inline error with clear explanation
- *
- * Note: The actual POST /invitations/:token/accept endpoint lives under
- * the invitation module. We add a minimal endpoint call here without
- * a separate invitationApi file (that belongs to the org module phase).
+ * A) Not logged in  → prompt to register or sign in
+ * B) Logged in      → auto-calls POST /invitations/:token/accept via RTK mutation
+ * C) Error          → inline error with admin contact prompt
  */
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, Mail, CheckCircle2 } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useAuth } from '../../features/auth/useAuth';
+import { useAcceptInvitationMutation } from '../../features/org/invitationApi';
 import { baseApi } from '../../services/baseApi';
-import { useAppDispatch, useAppSelector } from '../../app/store';
-import { useToast } from '../../components/ui/Toast';
+import { useAppDispatch } from '../../app/store';
+import { getServerError } from '../../lib/authErrors';
 
 type PageState = 'idle' | 'accepting' | 'success' | 'error';
 
@@ -38,49 +22,39 @@ export const AcceptInvitationPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isAuthenticated, isInitialized, user } = useAuth();
-  const { error: toastErr } = useToast();
+  const { isAuthenticated, isInitialized } = useAuth();
 
   const [pageState, setPageState] = useState<PageState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Once auth is initialized and user is logged in, auto-accept
+  const [acceptInvitation] = useAcceptInvitationMutation();
+
   useEffect(() => {
-    if (!isInitialized || !token) return;
-    if (!isAuthenticated) return; // show the login prompt instead
+    if (!isInitialized || !token || !isAuthenticated) return;
 
     const accept = async () => {
       setPageState('accepting');
       try {
-        // Direct fetch — invitation module hasn't been built yet.
-        // When the invitationApi is added, replace this with the RTK mutation.
-        const apiBase =
-          (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000/api/v1';
-        const res = await fetch(`${apiBase}/invitations/${token}/accept`, {
-          method: 'POST',
-          credentials: 'include',
-        });
-        const body = await res.json() as { success: boolean; error?: { code: string; message: string } };
-
-        if (!res.ok || !body.success) {
-          setErrorMsg(body.error?.message ?? 'This invitation is invalid, expired, or has already been accepted.');
-          setPageState('error');
-          return;
-        }
-
+        await acceptInvitation(token).unwrap();
         setPageState('success');
-        // Invalidate org cache so the new org appears after redirect
+        // Invalidate org list so the new org appears in OnboardingRouter
         dispatch(baseApi.util.invalidateTags(['Organization']));
-        setTimeout(() => navigate('/dashboard', { replace: true }), 1600);
-      } catch {
-        setErrorMsg('Could not connect to the server. Please check your connection and try again.');
+        setTimeout(() => navigate('/onboarding', { replace: true }), 1600);
+      } catch (err: unknown) {
+        const serverErr = getServerError(err as Parameters<typeof getServerError>[0]);
+        setErrorMsg(
+          serverErr?.message ??
+            'This invitation is invalid, expired, or has already been accepted.',
+        );
         setPageState('error');
       }
     };
 
     accept();
-  }, [isInitialized, isAuthenticated, token, navigate, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInitialized, isAuthenticated, token]);
 
+  // ── Auth not settled yet ───────────────────────────────────────────────────
   if (!isInitialized) {
     return (
       <AuthLayout showPanel={false}>
@@ -91,12 +65,12 @@ export const AcceptInvitationPage: React.FC = () => {
     );
   }
 
-  // ── Authenticated states ─────────────────────────────────────────────────
+  // ── Authenticated — show acceptance states ─────────────────────────────────
   if (isAuthenticated) {
     return (
       <AuthLayout showPanel={false}>
         <div className="flex flex-col items-center text-center gap-6 py-8">
-          {pageState === 'accepting' && (
+          {(pageState === 'idle' || pageState === 'accepting') && (
             <>
               <Loader2 className="h-8 w-8 animate-spin text-[var(--muted)]" strokeWidth={1.5} />
               <p className="text-sm text-[var(--muted)]">Accepting your invitation…</p>
@@ -122,14 +96,14 @@ export const AcceptInvitationPage: React.FC = () => {
             <div className="w-full max-w-sm space-y-4">
               <InlineAlert variant="error" title="Could not accept invitation" message={errorMsg} />
               <p className="text-sm text-[var(--muted)]">
-                The invitation may have expired or already been used. Ask your administrator to
-                send a new one.
+                The invitation may have expired or already been used. Ask your administrator to send
+                a new one.
               </p>
               <Link
-                to="/dashboard"
+                to="/onboarding"
                 className="block text-sm font-medium text-[var(--ink)] underline underline-offset-4 hover:opacity-60 transition-opacity"
               >
-                Go to dashboard →
+                Go to your workspaces →
               </Link>
             </div>
           )}
@@ -138,13 +112,12 @@ export const AcceptInvitationPage: React.FC = () => {
     );
   }
 
-  // ── Not authenticated — prompt to sign in / register ─────────────────────
+  // ── Not authenticated — prompt ─────────────────────────────────────────────
   return (
     <AuthLayout
       headline={
         <>
-          You've been{' '}
-          <em className="font-serif font-light not-italic italic">invited</em>.
+          You've been <em className="font-serif font-light not-italic italic">invited</em>.
         </>
       }
       subline="Sign in or create an account to join your team's SiteFlow workspace."
