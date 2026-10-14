@@ -9,7 +9,11 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '../../../lib/cn';
 import { useGetProjectQuery } from '../../../features/project/projectApi';
 import { useAppDispatch } from '../../../app/store';
-import { projectLoaded, projectLoadingStarted, projectCleared } from '../../../features/project/projectSlice';
+import {
+  projectLoaded,
+  projectLoadingStarted,
+  projectCleared,
+} from '../../../features/project/projectSlice';
 import { ProjectStatusBadge } from '../../../components/project/ProjectStatusBadge';
 import { useActiveProject } from '../../../features/project/useActiveProject';
 
@@ -30,31 +34,48 @@ const Tab: React.FC<{ to: string; label: string; end?: boolean }> = ({ to, label
   </NavLink>
 );
 
+import { MOCK_PROJECTS, MOCK_PROJECT_VERSIONS } from '../../../mocks/project.fixtures';
+
 export const ProjectShell: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { activeProject } = useActiveProject();
 
+  // When bypass is active the API will fail (no server) — fall back to fixtures
+  const bypass = import.meta.env.VITE_DEV_BYPASS === 'true';
+
   const { data, isLoading, isError } = useGetProjectQuery(
     { orgId: orgId!, projectId: projectId! },
-    { skip: !orgId || !projectId },
+    { skip: !orgId || !projectId || bypass },
   );
 
   useEffect(() => {
     dispatch(projectLoadingStarted());
-    return () => { dispatch(projectCleared()); };
+    return () => {
+      dispatch(projectCleared());
+    };
   }, [projectId, dispatch]);
 
   useEffect(() => {
+    if (bypass && projectId) {
+      // Seed from fixture directly — no network call needed
+      const project = MOCK_PROJECTS.find((p) => p.id === projectId);
+      if (project) {
+        dispatch(projectLoaded({ project, version: MOCK_PROJECT_VERSIONS[projectId] ?? 1 }));
+      } else {
+        navigate(`/org/${orgId}/projects`, { replace: true });
+      }
+      return;
+    }
     if (data) {
       dispatch(projectLoaded({ project: data.project, version: data._version }));
     }
-  }, [data, dispatch]);
+  }, [data, bypass, projectId, orgId, navigate, dispatch]);
 
   useEffect(() => {
-    if (isError) navigate(`/org/${orgId}/projects`, { replace: true });
-  }, [isError, navigate, orgId]);
+    if (!bypass && isError) navigate(`/org/${orgId}/projects`, { replace: true });
+  }, [isError, bypass, navigate, orgId]);
 
   const base = `/org/${orgId}/projects/${projectId}`;
 
@@ -75,7 +96,9 @@ export const ProjectShell: React.FC = () => {
             <div>
               <div className="flex items-center gap-2.5 mb-1">
                 <ProjectStatusBadge status={activeProject.status} />
-                <span className="font-mono text-[10px] text-[var(--muted)]">{activeProject.projectNumber}</span>
+                <span className="font-mono text-[10px] text-[var(--muted)]">
+                  {activeProject.projectNumber}
+                </span>
                 {activeProject.projectType && (
                   <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)] border border-[var(--hairline-2)] px-1.5 py-0.5">
                     {activeProject.projectType}
@@ -88,12 +111,12 @@ export const ProjectShell: React.FC = () => {
 
           {/* Sub-nav */}
           <nav className="flex overflow-x-auto gap-0 -mb-px">
-            <Tab to={base}                  label="Overview"    end />
-            <Tab to={`${base}/phases`}      label="Phases"          />
-            <Tab to={`${base}/cost-codes`}  label="Cost codes"      />
-            <Tab to={`${base}/budget`}      label="Budget"          />
-            <Tab to={`${base}/team`}        label="Team"            />
-            <Tab to={`${base}/settings`}    label="Settings"        />
+            <Tab to={base} label="Overview" end />
+            <Tab to={`${base}/phases`} label="Phases" />
+            <Tab to={`${base}/cost-codes`} label="Cost codes" />
+            <Tab to={`${base}/budget`} label="Budget" />
+            <Tab to={`${base}/team`} label="Team" />
+            <Tab to={`${base}/settings`} label="Settings" />
           </nav>
         </div>
       </div>

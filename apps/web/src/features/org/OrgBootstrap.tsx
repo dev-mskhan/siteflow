@@ -25,11 +25,7 @@ import { Loader2 } from 'lucide-react';
 import { useGetOrgQuery } from './orgApi';
 import { useListMembersQuery } from './memberApi';
 import { useAppDispatch, useAppSelector } from '../../app/store';
-import {
-  orgContextLoaded,
-  orgInitializedEmpty,
-  orgLoadingStarted,
-} from './orgSlice';
+import { orgContextLoaded, orgInitializedEmpty, orgLoadingStarted } from './orgSlice';
 import { derivePermissions } from '../../lib/permissions';
 
 interface OrgBootstrapProps {
@@ -53,13 +49,17 @@ export const OrgBootstrap: React.FC<OrgBootstrapProps> = ({ children }) => {
     data: orgData,
     isLoading: orgLoading,
     isError: orgError,
-  } = useGetOrgQuery(orgId!, { skip: !orgId });
+  } = useGetOrgQuery(orgId!, {
+    skip: !orgId || isOrgInitialized, // skip if already seeded by DevTestProvider
+  });
 
   const {
     data: membersData,
     isLoading: membersLoading,
     isError: membersError,
-  } = useListMembersQuery(orgId!, { skip: !orgId });
+  } = useListMembersQuery(orgId!, {
+    skip: !orgId || isOrgInitialized, // skip if already seeded by DevTestProvider
+  });
 
   useEffect(() => {
     if (!orgId || !currentUserId) return;
