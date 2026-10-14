@@ -164,6 +164,7 @@ import {
 } from './performance/performance.handler.js';
 import { partnerPerformanceService } from './performance/performance.service.js';
 import { projectBudgetRoutes } from './budget/budget.routes.js';
+import { projectTakeoffRoutes } from './takeoff/takeoff.routes.js';
 import { projectEstimateRoutes } from './estimate/estimate.routes.js';
 import { projectBoqRoutes } from './boq/boq.routes.js';
 import { costTransactionRoutes } from './cost-transaction/cost-transaction.routes.js';
@@ -314,6 +315,7 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     projectScoped.register(invoicePaymentRoutes);
     projectScoped.register(retainageRoutes);
     projectScoped.register(financialSummaryRoutes);
+    projectScoped.register(projectTakeoffRoutes);
 
     projectScoped.get(
       '/:organizationId/projects/:projectId',
