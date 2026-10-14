@@ -38,7 +38,7 @@ export const PricingPage: React.FC = () => {
           <p className="text-sm font-medium text-[#0a0a0a] mb-8">
             Every paid plan starts with a{' '}
             <Link
-              to="/contact?intent=trial"
+              to="/register"
               className="underline underline-offset-4 hover:opacity-60 transition-opacity"
             >
               14-day free trial
@@ -140,7 +140,7 @@ export const PricingPage: React.FC = () => {
                   <div className="pt-4 border-t border-[rgba(10,10,10,0.08)]">
                     <Link
                       to={
-                        plan.ctaLabel === 'Start free trial' ? '/contact?intent=trial' : '/contact'
+                        plan.ctaLabel === 'Start free trial' ? '/register' : '/contact'
                       }
                     >
                       <Button
@@ -204,7 +204,7 @@ export const PricingPage: React.FC = () => {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              to="/contact?intent=trial"
+              to="/register"
               className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
             >
               Start free trial

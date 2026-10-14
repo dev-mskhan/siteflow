@@ -117,7 +117,7 @@ export const HomePage: React.FC = () => {
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Link
-                to="/contact?intent=trial"
+                to="/register"
                 className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
               >
                 Start free trial

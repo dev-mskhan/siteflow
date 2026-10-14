@@ -45,7 +45,7 @@ export const CountryPage: React.FC = () => {
           </p>
           <div className="mt-10">
             <Link
-              to="/contact?intent=trial"
+              to="/register"
               className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
             >
               Start free trial
@@ -176,7 +176,7 @@ export const CountryPage: React.FC = () => {
             </p>
           </div>
           <Link
-            to="/contact?intent=trial"
+            to="/register"
             className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-5 text-sm font-medium text-[var(--ink)] transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
             Get started

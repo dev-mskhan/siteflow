@@ -1,9 +1,18 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from '@reduxjs/toolkit/query/react';
+import type { RootState } from '../app/store';
+
+// ─── Envelope types shared across all modules ─────────────────────────────────
 
 export interface ApiSuccess<T> {
   success: true;
   data: T;
-  meta?: Record<string, unknown>;
+  meta?: { timestamp?: string; [key: string]: unknown };
 }
 
 export interface ApiError {
@@ -12,42 +21,89 @@ export interface ApiError {
     code: string;
     message: string;
     details?: unknown;
+    requestId?: string;
   };
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
-/**
- * Base RTK Query API slice for SiteFlow.
- * Configured with `/api/v1` base URL and standard tag types.
- * Endpoints initially use `queryFn` with mock data and realistic delay.
- * Later backend integration only requires updating this file and feature `api.ts` files.
- */
-export const baseApi = createApi({
-  reducerPath: 'baseApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: '/api/v1',
-    prepareHeaders: (headers) => {
-      // Prepared for bearer tokens from auth storage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('siteflow_auth_token') : null;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
+// ─── Raw base query (cookies, no retry logic) ─────────────────────────────────
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000/api/v1',
+  // Server uses HttpOnly signed cookies for access_token + refresh_token.
+  // credentials: 'include' is REQUIRED — the browser won't send cookies otherwise.
+  credentials: 'include',
+  prepareHeaders: (headers, { getState }) => {
+    // Fallback Bearer header for environments where cookies are blocked (e.g. native app)
+    const token = (getState() as RootState).auth?.accessToken;
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return headers;
+  },
+});
+
+// ─── Wrapped base query with silent 401 → refresh → retry ────────────────────
+// Fires POST /auth/refresh (reads refresh_token cookie automatically).
+// On success the server sets a new access_token cookie and we retry.
+// On failure we dispatch authSessionExpired so the UI can redirect.
+
+let isRefreshing = false;
+
+export const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extra) => {
+  let result = await rawBaseQuery(args, api, extra);
+
+  if (result.error?.status === 401) {
+    // Prevent concurrent refresh calls from racing
+    if (!isRefreshing) {
+      isRefreshing = true;
+
+      const refreshResult = await rawBaseQuery(
+        { url: '/auth/refresh', method: 'POST' },
+        api,
+        extra,
+      );
+
+      isRefreshing = false;
+
+      if (refreshResult.data) {
+        // New cookies set by server — retry the original request
+        result = await rawBaseQuery(args, api, extra);
+      } else {
+        // Refresh itself failed — session truly expired
+        const { authSessionExpired } = await import('../features/auth/authSlice');
+        api.dispatch(authSessionExpired());
       }
-      return headers;
-    },
-  }),
+    }
+  }
+
+  return result;
+};
+
+// ─── Base API slice ────────────────────────────────────────────────────────────
+
+export const baseApi = createApi({
+  reducerPath: 'api',
+  baseQuery: baseQueryWithReauth,
   tagTypes: [
-    'Auth',
-    'Organization',
-    'Project',
-    'Estimate',
-    'BOQ',
-    'Task',
-    'Schedule',
-    'Procurement',
-    'Finance',
-    'PaymentApplication',
     'User',
+    'Session',
+    'Organization',
+    'OrgProfile',
+    'Member',
+    'Invitation',
+    'Project',
+    'CostCode',
+    'FieldLog',
+    'PurchaseOrder',
+    'MaterialRequest',
+    'Supplier',
+    'Material',
+    'Report',
+    'Billing',
   ],
   endpoints: () => ({}),
 });

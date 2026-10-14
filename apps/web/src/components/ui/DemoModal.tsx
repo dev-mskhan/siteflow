@@ -127,7 +127,7 @@ export const DemoModal: React.FC<DemoModalProps> = ({ open, onClose, videoId }) 
                     </p>
                   </div>
                   <a
-                    href="/contact?intent=trial"
+                    href="/register"
                     onClick={onClose}
                     className="inline-flex items-center gap-2 border border-white/25 px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-white/55 hover:text-white"
                   >
@@ -143,7 +143,7 @@ export const DemoModal: React.FC<DemoModalProps> = ({ open, onClose, videoId }) 
                 14-day trial · No card required
               </span>
               <a
-                href="/contact?intent=trial"
+                href="/register"
                 onClick={onClose}
                 className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/55 transition-colors hover:text-white"
               >
