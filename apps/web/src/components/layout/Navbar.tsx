@@ -34,6 +34,7 @@ import {
 import { Logo } from '../ui/Logo';
 import { cn } from '../../lib/cn';
 import { useAuthState } from '../../hooks/useAuthState';
+import { useSmartCta } from '../../hooks/useSmartCta';
 
 /* ─── Data ──────────────────────────────────────────────────────────────── */
 
@@ -290,6 +291,7 @@ export const Navbar: React.FC = () => {
   const [mobileWhoOpen, setMobileWhoOpen] = useState(false);
 
   const { isLoggedIn, isLoading } = useAuthState();
+  const smartCta = useSmartCta();
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -404,22 +406,23 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* ── Desktop CTAs ──────────────────────────────────────────────
-            Logged-out: Sign in (ghost)  +  Get started (solid)
-            Logged-in:  single Dashboard (solid)
-            This is the canonical Linear / Vercel / Resend pattern.
+            Logic via useSmartCta():
+              Not auth        → Sign in (ghost) + Start free trial (solid → /register)
+              Auth unverified → Sign in (ghost) + Verify your email (solid → /verify-email/pending)
+              Auth verified   → Continue to dashboard (solid → /dashboard)
         ──────────────────────────────────────────────────────────────── */}
         <div className="hidden lg:flex items-center gap-2 shrink-0">
           {!isLoading && isLoggedIn ? (
-            <Link to="/dashboard" onClick={closeAll} className={solidCta}>
-              Dashboard <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+            <Link to={smartCta.href} onClick={closeAll} className={solidCta}>
+              {smartCta.label} <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
             </Link>
           ) : (
             <>
               <Link to="/login" onClick={closeAll} className={ghostCta}>
                 Sign in
               </Link>
-              <Link to="/register" onClick={closeAll} className={solidCta}>
-                Get started <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+              <Link to={smartCta.href} onClick={closeAll} className={solidCta}>
+                {smartCta.label} <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
               </Link>
             </>
           )}
@@ -427,15 +430,14 @@ export const Navbar: React.FC = () => {
 
         {/* ── Tablet CTAs (sm–lg) ───────────────────────────────────── */}
         <div className="hidden sm:flex lg:hidden items-center gap-2 shrink-0">
-          {!isLoading && isLoggedIn ? (
-            <Link to="/dashboard" onClick={closeAll} className={solidCta}>
-              Dashboard
-            </Link>
-          ) : (
-            <Link to="/register" onClick={closeAll} className={solidCta}>
-              Get started <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
-            </Link>
-          )}
+          <Link
+            to={smartCta.href}
+            onClick={closeAll}
+            className={cn(solidCta, smartCta.isLoading && 'opacity-40 pointer-events-none')}
+          >
+            {isLoggedIn ? smartCta.label : 'Get started'}{' '}
+            <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+          </Link>
         </div>
 
         {/* ── Mobile hamburger ─────────────────────────────────────── */}
@@ -643,31 +645,21 @@ export const Navbar: React.FC = () => {
 
               {/* Mobile CTAs */}
               <div className="border-t border-[rgba(10,10,10,0.08)] pt-4 flex flex-col gap-2">
-                {isLoggedIn ? (
+                <Link
+                  to={smartCta.href}
+                  onClick={closeAll}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-heading font-semibold bg-[#0a0a0a] text-white hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]"
+                >
+                  {smartCta.label} <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                </Link>
+                {!isLoggedIn && (
                   <Link
-                    to="/dashboard"
+                    to="/login"
                     onClick={closeAll}
-                    className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-heading font-semibold bg-[#0a0a0a] text-white hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]"
+                    className="flex items-center justify-center w-full px-4 py-2.5 text-sm font-heading font-medium text-[#6b6b6b] border border-[rgba(10,10,10,0.16)] bg-white hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
                   >
-                    Open dashboard <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                    Sign in
                   </Link>
-                ) : (
-                  <>
-                    <Link
-                      to="/register"
-                      onClick={closeAll}
-                      className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-heading font-semibold bg-[#0a0a0a] text-white hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]"
-                    >
-                      Get started <ArrowRight className="w-4 h-4" strokeWidth={2} />
-                    </Link>
-                    <Link
-                      to="/login"
-                      onClick={closeAll}
-                      className="flex items-center justify-center w-full px-4 py-2.5 text-sm font-heading font-medium text-[#6b6b6b] border border-[rgba(10,10,10,0.16)] bg-white hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
-                    >
-                      Sign in
-                    </Link>
-                  </>
                 )}
               </div>
             </div>

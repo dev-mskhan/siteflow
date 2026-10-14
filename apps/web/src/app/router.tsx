@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 // ── Layouts ──────────────────────────────────────────────────────────────────
 import { PublicLayout } from '../components/layout/PublicLayout';
+import { AppLayout } from '../components/layout/AppLayout';
 
 // ── Guards ───────────────────────────────────────────────────────────────────
 import { RequireGuest } from '../components/guards/RequireGuest';
@@ -18,6 +19,20 @@ import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { AuthCompletePage } from '../pages/auth/AuthCompletePage';
 import { AcceptInvitationPage } from '../pages/auth/AcceptInvitationPage';
 import { SessionsPage } from '../pages/auth/SessionsPage';
+
+// ── Onboarding ───────────────────────────────────────────────────────────────
+import { OnboardingRouter } from '../pages/onboarding/OnboardingRouter';
+import { CreateOrgPage } from '../pages/onboarding/CreateOrgPage';
+import { SelectOrgPage } from '../pages/onboarding/SelectOrgPage';
+
+// ── App pages ─────────────────────────────────────────────────────────────────
+import { DashboardPage } from '../pages/app/DashboardPage';
+import { MembersPage } from '../pages/app/MembersPage';
+import { OrgSettingsLayout } from '../pages/app/settings/OrgSettingsLayout';
+import { GeneralSettingsPage } from '../pages/app/settings/GeneralSettingsPage';
+import { ProfileSettingsPage } from '../pages/app/settings/ProfileSettingsPage';
+import { SequenceSettingsPage } from '../pages/app/settings/SequenceSettingsPage';
+import { AuditLogPage } from '../pages/app/settings/AuditLogPage';
 
 // ── Marketing pages ──────────────────────────────────────────────────────────
 import { HomePage } from '../pages/HomePage';
@@ -35,24 +50,8 @@ import { CookiesPage } from '../pages/legal/CookiesPage';
 import { ThanksPage } from '../pages/ThanksPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
-// ── Dashboard stub ───────────────────────────────────────────────────────────
-// Temporary placeholder. Replaced when the app shell is built.
-const DashboardStub: React.FC = () => (
-  <div className="flex min-h-dvh items-center justify-center bg-[var(--surface)] text-[var(--ink)]">
-    <div className="border border-[var(--hairline-2)] bg-[var(--paper)] p-10 text-center max-w-sm">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
-        Coming soon
-      </p>
-      <h1 className="mt-3 text-2xl font-medium tracking-[-0.04em]">Dashboard</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        Auth is working. The app shell is the next module.
-      </p>
-    </div>
-  </div>
-);
-
 export const router = createBrowserRouter([
-  // ── Auth routes (no nav/footer shell) ──────────────────────────────────────
+  // ── Auth routes ────────────────────────────────────────────────────────────
   {
     path: '/login',
     element: (
@@ -69,10 +68,7 @@ export const router = createBrowserRouter([
       </RequireGuest>
     ),
   },
-  {
-    path: '/verify-email',
-    element: <VerifyEmailPage />,
-  },
+  { path: '/verify-email', element: <VerifyEmailPage /> },
   {
     path: '/verify-email/pending',
     element: (
@@ -89,39 +85,9 @@ export const router = createBrowserRouter([
       </RequireGuest>
     ),
   },
-  {
-    path: '/reset-password',
-    element: <ResetPasswordPage />,
-  },
-  {
-    // Landing page for Google OAuth redirect from server
-    path: '/auth/complete',
-    element: <AuthCompletePage />,
-  },
-  {
-    // Invitation links from email
-    path: '/invitations/:token',
-    element: <AcceptInvitationPage />,
-  },
-
-  // ── Protected app routes (no nav/footer shell yet) ────────────────────────
-  {
-    path: '/dashboard',
-    element: (
-      <RequireAuth>
-        <DashboardStub />
-      </RequireAuth>
-    ),
-  },
-  {
-    // Temporary /onboarding redirect — will be a real page in the org module
-    path: '/onboarding',
-    element: (
-      <RequireAuth>
-        <Navigate to="/dashboard" replace />
-      </RequireAuth>
-    ),
-  },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
+  { path: '/auth/complete', element: <AuthCompletePage /> },
+  { path: '/invitations/:token', element: <AcceptInvitationPage /> },
   {
     path: '/settings/sessions',
     element: (
@@ -131,7 +97,58 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // ── Marketing site (PublicLayout with Navbar + Footer) ───────────────────
+  // ── Onboarding ────────────────────────────────────────────────────────────
+  {
+    path: '/onboarding',
+    element: (
+      <RequireAuth>
+        <OnboardingRouter />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/onboarding/create-org',
+    element: (
+      <RequireAuth>
+        <CreateOrgPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/onboarding/select-org',
+    element: (
+      <RequireAuth>
+        <SelectOrgPage />
+      </RequireAuth>
+    ),
+  },
+
+  // ── App — all routes under /org/:orgId use AppLayout (OrgBootstrap inside) ─
+  {
+    path: '/org/:orgId',
+    element: (
+      <RequireAuth>
+        <AppLayout />
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'members', element: <MembersPage /> },
+      {
+        path: 'settings',
+        element: <OrgSettingsLayout />,
+        children: [
+          { index: true, element: <GeneralSettingsPage /> },
+          { path: 'profile', element: <ProfileSettingsPage /> },
+          { path: 'sequences', element: <SequenceSettingsPage /> },
+          { path: 'audit', element: <AuditLogPage /> },
+        ],
+      },
+    ],
+  },
+
+  // ── Marketing site (PublicLayout: Navbar + Footer) ────────────────────────
   {
     path: '/',
     element: <PublicLayout />,

@@ -5,6 +5,7 @@ import { ArrowUpRight, CheckCircle2, ChevronDown, Globe2 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
 import { Seo } from '../components/seo/Seo';
 import { COUNTRIES_DATA } from '../content/countries';
+import { SmartCtaLink } from '../components/ui/SmartCtaLink';
 
 const Rail = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12 ${className}`}>
@@ -44,13 +45,7 @@ export const CountryPage: React.FC = () => {
             {country.supportingSentence}
           </p>
           <div className="mt-10">
-            <Link
-              to="/register"
-              className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
-            >
-              Start free trial
-              <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
-            </Link>
+            <SmartCtaLink />
           </div>
         </Rail>
       </section>
@@ -175,13 +170,7 @@ export const CountryPage: React.FC = () => {
               projects in PKR or USD.
             </p>
           </div>
-          <Link
-            to="/register"
-            className="inline-flex min-h-12 items-center justify-center gap-2 bg-white px-5 text-sm font-medium text-[var(--ink)] transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-          >
-            Get started
-            <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
-          </Link>
+          <SmartCtaLink variant="white" />
         </Rail>
       </section>
     </div>

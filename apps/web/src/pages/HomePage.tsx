@@ -16,6 +16,7 @@ import {
 import { DemoModal } from '../components/ui/DemoModal';
 import { Seo } from '../components/seo/Seo';
 import { SEO_DATA } from '../content/seo';
+import { useSmartCta } from '../hooks/useSmartCta';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
@@ -82,6 +83,7 @@ export const HomePage: React.FC = () => {
   const [activeFaq, setActiveFaq] = useState(0);
   const [demoOpen, setDemoOpen] = useState(false);
   const reduce = useReducedMotion();
+  const smartCta = useSmartCta();
 
   return (
     <div className="rails relative overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
@@ -117,10 +119,10 @@ export const HomePage: React.FC = () => {
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Link
-                to="/register"
-                className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
+                to={smartCta.href}
+                className={`inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]${smartCta.isLoading ? ' opacity-60 pointer-events-none' : ''}`}
               >
-                Start free trial
+                {smartCta.label}
                 <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
               </Link>
               <button

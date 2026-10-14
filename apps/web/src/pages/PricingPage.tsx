@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ArrowRight, HelpCircle } from 'lucide-react';
+import { SmartCtaLink } from '../components/ui/SmartCtaLink';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -34,7 +35,7 @@ export const PricingPage: React.FC = () => {
             No surprise add-ons. Unlimited Bill of Quantities line items and free subcontractor
             trade portal seats on every tier.
           </p>
-          {/* Trial nudge */}
+          {/* Trial nudge — links to smart CTA destination */}
           <p className="text-sm font-medium text-[#0a0a0a] mb-8">
             Every paid plan starts with a{' '}
             <Link
@@ -138,11 +139,7 @@ export const PricingPage: React.FC = () => {
                   </div>
 
                   <div className="pt-4 border-t border-[rgba(10,10,10,0.08)]">
-                    <Link
-                      to={
-                        plan.ctaLabel === 'Start free trial' ? '/register' : '/contact'
-                      }
-                    >
+                    <Link to={plan.ctaLabel === 'Start free trial' ? '/register' : '/contact'}>
                       <Button
                         variant={plan.isPopular ? 'primary' : 'secondary'}
                         className="w-full"
@@ -203,13 +200,7 @@ export const PricingPage: React.FC = () => {
             find the right tier for your organization.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/register"
-              className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]"
-            >
-              Start free trial
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <SmartCtaLink />
           </div>
         </div>
       </section>
