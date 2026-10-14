@@ -109,6 +109,29 @@ export const serverEnv = createEnv({
 
     // Logging
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+
+    // AI / LLM
+    OPENAI_API_KEY: z.string().optional(),
+    /** Concrete model name for the "cheap" tier (fast, low cost) */
+    AI_MODEL_CHEAP: z.string().default('gpt-4o-mini'),
+    /** Concrete model name for the "strong" tier (capable, higher cost) */
+    AI_MODEL_STRONG: z.string().default('gpt-4o'),
+    /** Hard daily spend cap per organisation in USD (0 = unlimited) */
+    AI_DAILY_BUDGET_USD: z.coerce.number().nonnegative().default(5.0),
+    /** Hard token cap per single run (input + output combined) */
+    AI_RUN_MAX_TOKENS: z.coerce.number().int().positive().default(50000),
+    /** Timeout per run in milliseconds */
+    AI_RUN_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
+    /** Max LangGraph steps per run */
+    AI_RUN_MAX_STEPS: z.coerce.number().int().positive().default(20),
+    /** Max tool calls per run */
+    AI_RUN_MAX_TOOL_CALLS: z.coerce.number().int().positive().default(15),
+    /** Langfuse public key (optional — tracing disabled when absent) */
+    LANGFUSE_PUBLIC_KEY: z.string().optional(),
+    /** Langfuse secret key */
+    LANGFUSE_SECRET_KEY: z.string().optional(),
+    /** Langfuse host — defaults to Langfuse Cloud */
+    LANGFUSE_HOST: z.string().url().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

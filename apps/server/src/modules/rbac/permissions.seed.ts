@@ -49,6 +49,11 @@ export const SYSTEM_PERMISSIONS = [
   'change_order:approve',
   'billing:read',
   'billing:manage',
+  // AI module
+  'ai.runs.create',
+  'ai.runs.read',
+  'ai.runs.cancel',
+  'ai.approvals.decide',
 ] as const;
 
 export type PermissionKey = (typeof SYSTEM_PERMISSIONS)[number];
@@ -87,6 +92,10 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'change_order:approve',
     'billing:read',
     'billing:manage',
+    'ai.runs.create',
+    'ai.runs.read',
+    'ai.runs.cancel',
+    'ai.approvals.decide',
   ],
   'Project Manager': [
     'organization:read',
@@ -98,6 +107,9 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'task:update',
     'document:read',
     'document:upload',
+    'ai.runs.create',
+    'ai.runs.read',
+    'ai.runs.cancel',
   ],
   Finance: [
     'organization:read',
@@ -107,6 +119,10 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'document:read',
     'payment:approve',
     'billing:read',
+    'ai.runs.create',
+    'ai.runs.read',
+    'ai.runs.cancel',
+    'ai.approvals.decide',
   ],
   Procurement: [
     'organization:read',

@@ -6,6 +6,7 @@ import { createLogger } from '@siteflow/observability/server';
 import { startQueue, stopQueue } from './lib/queue/index.js';
 import { outboxService } from './lib/outbox/outbox.service.js';
 import { registerWorkers } from './worker-registration.js';
+import { teardownAiWorkers } from './modules/ai/workers/agent-run.worker.js';
 
 const logger = createLogger({ name: 'worker' });
 
@@ -31,6 +32,7 @@ runWorker().catch((err) => {
 
 const shutdown = async () => {
   logger.info('Worker shutting down…');
+  await teardownAiWorkers();
   await outboxService.stopPoller();
   await stopQueue();
   process.exit(0);
