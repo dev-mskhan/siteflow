@@ -14,6 +14,7 @@ export * from './commercial.schema.js';
 export * from './budget.schema.js';
 export * from './estimate.schema.js';
 export * from './takeoff.schema.js';
+export * from './pricing.schema.js';
 export * from './boq.schema.js';
 export * from './cost-transaction.schema.js';
 export * from './change-order.schema.js';
