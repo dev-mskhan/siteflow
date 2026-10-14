@@ -5,7 +5,8 @@
 import { randomUUID } from 'crypto';
 import { getDb } from '../../lib/db/index.js';
 import { auditService } from '../audit/audit.service.js';
-import { catalogRepository, CatalogRepository } from './catalog.repository.js';
+import type { CatalogRepository } from './catalog.repository.js';
+import { catalogRepository } from './catalog.repository.js';
 import {
   getApprovedPlan,
   getApprovedPrice,

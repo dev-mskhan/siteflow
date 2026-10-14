@@ -3,6 +3,7 @@
 // Takes an authorized canonical ReportResultEnvelope and serializes to a format string.
 
 import type { ReportResultEnvelope } from '@siteflow/shared';
+import { CsvReportRenderer } from './csv.renderer.js';
 
 export type RenderFormat = 'csv';
 
@@ -19,7 +20,6 @@ export interface ReportRenderer {
 
 export function getRenderer(format: RenderFormat): ReportRenderer {
   if (format === 'csv') {
-    const { CsvReportRenderer } = require('./csv.renderer.js') as typeof import('./csv.renderer.js');
     return new CsvReportRenderer();
   }
   throw new Error(`Unsupported render format: ${format}`);

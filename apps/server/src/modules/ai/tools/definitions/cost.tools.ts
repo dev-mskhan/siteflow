@@ -11,8 +11,8 @@
 
 import { z } from 'zod';
 import { registerTool } from '../tool-registry.js';
-import { financialSummaryService } from '../../project/financial-summary/financial-summary.service.js';
-import { projectBudgetService } from '../../project/budget/budget.service.js';
+import { financialSummaryService } from '../../../project/financial-summary/financial-summary.service.js';
+import { projectBudgetService } from '../../../project/budget/budget.service.js';
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 // All cost tools require a projectId. The LLM provides it as an arg ONLY because
@@ -163,7 +163,7 @@ registerTool({
     return financialSummaryService.listAuditEvents(
       ctx.organizationId,
       projectId,
-      { limit, cursor },
+      { limit: limit ?? 20, cursor },
     );
   },
 });

@@ -15,7 +15,7 @@ const tracer = trace.getTracer('financial-audit-service');
 
 export interface WriteFinancialAuditEventInput {
   organizationId: string;
-  projectId: string;
+  projectId: string | null;
   actorUserId: string;
   action: FinancialAuditAction;
   entityType: string;
@@ -34,7 +34,7 @@ export async function writeFinancialAuditEvent(
 ): Promise<FinancialAuditEvent> {
   if (
     input.organizationId.length === 0 ||
-    input.projectId.length === 0 ||
+    (input.projectId !== null && input.projectId.length === 0) ||
     input.actorUserId.length === 0 ||
     input.entityType.length === 0 ||
     input.entityId.length === 0 ||
@@ -46,7 +46,7 @@ export async function writeFinancialAuditEvent(
   return withSpan(tracer, 'financial-audit.write', async (span) => {
     span.setAttributes({
       'organization.id': input.organizationId,
-      'project.id': input.projectId,
+      'project.id': input.projectId ?? undefined,
       'financial.action': input.action,
       'financial.entity.type': input.entityType,
     });

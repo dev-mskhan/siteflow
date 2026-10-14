@@ -12,7 +12,7 @@
 //   - extractTraceId(handler) returns the Langfuse trace ID after the run ends.
 //     The runner stores this in agent_runs.trace_id.
 
-import { trace, context, SpanStatusCode } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 import { createLogger } from '@siteflow/observability/server';
 import { serverEnv } from '../../../config/env.js';
 import type { RunContext } from '../core/run-context.js';
@@ -49,7 +49,11 @@ export function buildTraceHandle(ctx: RunContext): AiTraceHandle {
   const callbackPromise: Promise<unknown> = (async () => {
     try {
       // langfuse-langchain is the official LangChain integration package
-      const { CallbackHandler } = await import('langfuse-langchain');
+      // Specifier kept in a variable so the optional package is not resolved at compile time.
+      const langfuseModule = 'langfuse-langchain';
+      const { CallbackHandler } = (await import(/* @vite-ignore */ langfuseModule)) as {
+        CallbackHandler: new (opts: Record<string, unknown>) => any;
+      };
 
       const handler = new CallbackHandler({
         publicKey:  LANGFUSE_PUBLIC_KEY,

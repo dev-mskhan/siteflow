@@ -10,8 +10,9 @@
 //   agent_approvals row exists for the current run (enforced in tool-factory).
 // - The LLM sees tool names + descriptions; it never sees riskTier or permission.
 
-import { z } from 'zod';
+import type { z } from 'zod';
 import type { AgentRiskTier } from '../core/types.js';
+import type { RunContext } from '../core/run-context.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ export interface ToolDefinition<TArgs = unknown, TResult = unknown> {
   /** RBAC permission key the calling user must hold (checked against RunContext.userId) */
   requiredPermission: string;
   /** The actual implementation — receives typed args; RunContext injected by factory */
-  execute: (args: TArgs, ctx: import('../core/run-context.js').RunContext) => Promise<TResult>;
+  execute: (args: TArgs, ctx: RunContext) => Promise<TResult>;
 }
 
 // ── Registry ──────────────────────────────────────────────────────────────────

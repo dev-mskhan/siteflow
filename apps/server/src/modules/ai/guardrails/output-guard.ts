@@ -6,7 +6,7 @@
 //   2. Number provenance — any numeric field in the answer must have a matching
 //      citation in the tool call log (LLMs must not do money math; Chunk 3 rule 3)
 
-import { z } from 'zod';
+import type { z } from 'zod';
 import { createLogger } from '@siteflow/observability/server';
 import type { AgentRunOutput } from '../core/types.js';
 

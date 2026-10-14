@@ -18,9 +18,7 @@ import { ToolCallRepository } from './tool-call.repository.js';
 import type { RunContext } from '../core/run-context.js';
 import { assertTenantScope } from '../core/run-context.js';
 import {
-  AgentNotFoundError,
   ApprovalRequiredError,
-  ToolPermissionDeniedError,
 } from '../core/errors.js';
 import type { ToolResult } from '../core/types.js';
 

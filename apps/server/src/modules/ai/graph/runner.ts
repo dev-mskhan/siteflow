@@ -27,11 +27,20 @@ import type { AgentRunOutput, AgentName } from '../core/types.js';
 import { buildEchoGraph } from '../agents/echo/graph.js';
 import { buildCostFinancialGraph } from '../agents/cost-financial/graph.js';
 
-type GraphBuilder = (ctx: RunContext, acc: UsageAccumulator) => ReturnType<typeof buildEchoGraph>;
+interface CompiledGraphLike {
+  stream(input: unknown, config: unknown): Promise<AsyncIterable<unknown>>;
+  getState(config: unknown): Promise<{ next?: readonly string[] }>;
+}
 
+type GraphBuilder = (ctx: RunContext, acc: UsageAccumulator) => {
+  compile(options: { checkpointer: unknown }): CompiledGraphLike;
+};
+
+// LangGraph's StateGraph types don't structurally match CompiledGraphLike, so the
+// builders are cast at the registry boundary; runtime shape is identical.
 const GRAPH_REGISTRY: Record<AgentName | 'echo', GraphBuilder> = {
-  'echo':            (ctx) => buildEchoGraph(ctx),
-  'cost-financial':  (ctx, acc) => buildCostFinancialGraph(ctx, acc),
+  'echo':            (ctx) => buildEchoGraph(ctx) as unknown as ReturnType<GraphBuilder>,
+  'cost-financial':  (ctx, acc) => buildCostFinancialGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
 };
 
 // ── Result type ───────────────────────────────────────────────────────────────
@@ -91,8 +100,8 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
     let interrupted = false;
 
     // stream('values') yields the full state after each node completes
-    const stream = compiledGraph.stream(
-      { input: ctx.agent === 'echo' ? {} : {} }, // input populated per-agent
+    const stream = await compiledGraph.stream(
+      { input: {} }, // input populated per-agent
       { ...lgConfig, signal: abort },
     );
 
@@ -197,7 +206,7 @@ export async function resumeRun(
 
     // null as input = resume from checkpoint; resumeVal is the Command value
     const { Command } = await import('@langchain/langgraph');
-    const stream = compiledGraph.stream(
+    const stream = await compiledGraph.stream(
       new Command({ resume: resumeVal }),
       { ...lgConfig, signal: abort },
     );

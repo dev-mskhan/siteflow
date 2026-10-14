@@ -2,7 +2,6 @@
 import { trace } from '@opentelemetry/api';
 import { createLogger, withSpan } from '@siteflow/observability/server';
 import { sendJob } from '../../../lib/queue/queue.js';
-import { generateId } from '../../../lib/id.js';
 import { AgentRunRepository } from './agent-run.repository.js';
 import { AI_QUEUES, type AgentRunJobPayload } from '../ai.jobs.js';
 import { AgentRunNotFoundError } from '../core/errors.js';
@@ -63,7 +62,7 @@ export class AgentRunService {
         createdBy: run.createdBy,
       };
 
-      await sendJob(AI_QUEUES.AGENT_RUN, payload, {
+      await sendJob(AI_QUEUES.AGENT_RUN, { ...payload }, {
         // One attempt per run — the run itself handles retries via the graph checkpointer
         retryLimit: 0,
         // Kill the job if it hasn't been picked up after 5 minutes

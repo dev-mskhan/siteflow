@@ -1,5 +1,6 @@
 import { getDb } from '../../../lib/db/index.js';
-import { preferenceRepository, PreferenceRepository } from './preference.repository.js';
+import type { PreferenceRepository } from './preference.repository.js';
+import { preferenceRepository } from './preference.repository.js';
 import { type NotificationPreference } from '@siteflow/database/schema';
 import { createLogger } from '@siteflow/observability/server';
 

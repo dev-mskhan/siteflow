@@ -1,7 +1,9 @@
 // apps/server/src/modules/billing/trial.service.ts
 import { getDb } from '../../lib/db/index.js';
-import { trialRepository, TrialRepository } from './trial.repository.js';
-import { auditService, AuditService } from '../audit/audit.service.js';
+import type { TrialRepository } from './trial.repository.js';
+import { trialRepository } from './trial.repository.js';
+import type { AuditService } from '../audit/audit.service.js';
+import { auditService } from '../audit/audit.service.js';
 import type { TrialDTO } from '@siteflow/shared';
 import type { SaasTrial } from '@siteflow/database/schema';
 

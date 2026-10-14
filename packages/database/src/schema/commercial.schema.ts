@@ -49,7 +49,7 @@ export const financialAuditEvents = appSchema.table(
     organizationId: text('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'restrict' }),
-    projectId: text('project_id').notNull(),
+    projectId: text('project_id'),
     actorUserId: text('actor_user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),

@@ -21,7 +21,7 @@ const INJECTION_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /you\s+are\s+now\s+a?\s*(different|new|another)?\s*(ai|assistant|bot|model|llm)/i,   label: 'persona-override' },
   { pattern: /disregard\s+(all\s+)?(previous|prior|above|your)\s+(instructions?|rules?)/i,         label: 'disregard-instructions' },
   { pattern: /\[system\]/i,                                                                          label: 'fake-system-tag' },
-  { pattern: /\<\|im_start\|\>/i,                                                                    label: 'chatml-injection' },
+  { pattern: /<\|im_start\|>/i,                                                                    label: 'chatml-injection' },
   { pattern: /print\s+(your\s+)?(system\s+prompt|instructions|rules)/i,                             label: 'exfiltration-attempt' },
   { pattern: /reveal\s+(your\s+)?(system\s+prompt|instructions|rules|api key)/i,                    label: 'exfiltration-attempt' },
   { pattern: /approve\s+this|authorise\s+this|authorize\s+this/i,                                   label: 'approval-injection' },

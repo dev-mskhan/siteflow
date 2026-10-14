@@ -1,6 +1,7 @@
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
-import { notificationRepository, NotificationRepository } from './notification.repository.js';
+import type { NotificationRepository } from './notification.repository.js';
+import { notificationRepository } from './notification.repository.js';
 import { type NotificationRecord, type NewNotificationRecord } from '@siteflow/database/schema';
 import { createLogger } from '@siteflow/observability/server';
 

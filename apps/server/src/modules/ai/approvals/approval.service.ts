@@ -5,7 +5,6 @@ import { sendJob } from '../../../lib/queue/queue.js';
 import { ApprovalRepository } from './approval.repository.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { AI_QUEUES } from '../ai.jobs.js';
-import { ApprovalRejectedError } from '../core/errors.js';
 import type { AgentApproval } from '@siteflow/database/schema';
 
 const tracer = trace.getTracer('ai-approval-service');

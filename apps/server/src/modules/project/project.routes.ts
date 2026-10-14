@@ -168,6 +168,7 @@ import { projectTakeoffRoutes } from './takeoff/takeoff.routes.js';
 import { projectPricingRoutes } from './pricing/pricing.routes.js';
 import { projectEstimateRoutes } from './estimate/estimate.routes.js';
 import { projectBoqRoutes } from './boq/boq.routes.js';
+import { projectProposalRoutes, tenderRoutes } from './proposal/proposal.routes.js';
 import { costTransactionRoutes } from './cost-transaction/cost-transaction.routes.js';
 import { commercialSummaryRoutes } from './commercial-summary/commercial-summary.routes.js';
 import { changeOrderRoutes } from './change-order/change-order.routes.js';
@@ -277,6 +278,9 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authenticate);
   fastify.addHook('preHandler', organizationContext);
 
+  // ── Tender opportunity routes (org-scoped, no project required) ─────────────
+  fastify.register(tenderRoutes);
+
   // ── Collection routes (no projectId in path) ────────────────────────────────
   fastify.post(
     '/:organizationId/projects',
@@ -308,6 +312,7 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     projectScoped.register(projectBudgetRoutes);
     projectScoped.register(projectEstimateRoutes);
     projectScoped.register(projectBoqRoutes);
+    projectScoped.register(projectProposalRoutes);
     projectScoped.register(costTransactionRoutes);
     projectScoped.register(commercialSummaryRoutes);
     projectScoped.register(changeOrderRoutes);
