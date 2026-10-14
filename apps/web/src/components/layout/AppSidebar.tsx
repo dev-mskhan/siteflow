@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Users,
   Settings,
+  FolderKanban,
   ChevronDown,
   Building2,
   Plus,
@@ -42,9 +43,7 @@ const NavItem: React.FC<{
   exact?: boolean;
 }> = ({ to, icon: Icon, label, exact }) => {
   const location = useLocation();
-  const isActive = exact
-    ? location.pathname === to
-    : location.pathname.startsWith(to);
+  const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
 
   return (
     <Link
@@ -57,7 +56,10 @@ const NavItem: React.FC<{
       )}
     >
       <Icon
-        className={cn('h-4 w-4 shrink-0', isActive ? 'text-white' : 'text-[var(--muted)] group-hover:text-[var(--ink)]')}
+        className={cn(
+          'h-4 w-4 shrink-0',
+          isActive ? 'text-white' : 'text-[var(--muted)] group-hover:text-[var(--ink)]',
+        )}
         strokeWidth={1.75}
       />
       {label}
@@ -97,7 +99,10 @@ const OrgSwitcher: React.FC = () => {
           </div>
         </div>
         <ChevronDown
-          className={cn('h-3.5 w-3.5 shrink-0 text-[var(--muted)] transition-transform duration-[120ms]', open && 'rotate-180')}
+          className={cn(
+            'h-3.5 w-3.5 shrink-0 text-[var(--muted)] transition-transform duration-[120ms]',
+            open && 'rotate-180',
+          )}
           strokeWidth={2}
         />
       </button>
@@ -107,7 +112,12 @@ const OrgSwitcher: React.FC = () => {
           <motion.div
             key="org-switcher-panel"
             initial={{ opacity: 0, y: -4, scaleY: 0.97 }}
-            animate={{ opacity: 1, y: 0, scaleY: 1, transition: { duration: 0.14, ease: [0.16, 1, 0.3, 1] as const } }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scaleY: 1,
+              transition: { duration: 0.14, ease: [0.16, 1, 0.3, 1] as const },
+            }}
             exit={{ opacity: 0, y: -3, transition: { duration: 0.1 } }}
             style={{ originY: 0 }}
             className="absolute left-0 right-0 top-[calc(100%+2px)] z-50 border border-[var(--ink)] bg-[var(--paper)] shadow-none"
@@ -130,7 +140,9 @@ const OrgSwitcher: React.FC = () => {
                     <Building2 className="h-3 w-3 text-[var(--muted)]" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-[var(--ink)] truncate leading-tight">{o.name}</p>
+                    <p className="text-sm font-medium text-[var(--ink)] truncate leading-tight">
+                      {o.name}
+                    </p>
                     <p className="font-mono text-[9px] text-[var(--muted)] truncate">{o.slug}</p>
                   </div>
                   {o.id === orgId && (
@@ -188,7 +200,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
 
             {/* Nav */}
             <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-              <NavItem to={`/org/${orgId}/dashboard`} icon={LayoutDashboard} label="Dashboard" exact />
+              <NavItem
+                to={`/org/${orgId}/dashboard`}
+                icon={LayoutDashboard}
+                label="Dashboard"
+                exact
+              />
+
+              <PermissionGate require="project:read">
+                <NavItem to={`/org/${orgId}/projects`} icon={FolderKanban} label="Projects" />
+              </PermissionGate>
 
               <PermissionGate require="member:read">
                 <NavItem to={`/org/${orgId}/members`} icon={Users} label="Members" />
@@ -232,7 +253,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
             >
               <div className="flex items-center justify-between border-b border-[var(--hairline-2)] px-3 py-3.5">
                 <Logo size="sm" />
-                <button type="button" onClick={onClose} aria-label="Close sidebar" className="p-1 text-[var(--muted)] hover:text-[var(--ink)]">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close sidebar"
+                  className="p-1 text-[var(--muted)] hover:text-[var(--ink)]"
+                >
                   <X className="h-4 w-4" strokeWidth={2} />
                 </button>
               </div>
@@ -240,7 +266,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
                 <OrgSwitcher />
               </div>
               <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-                <NavItem to={`/org/${orgId}/dashboard`} icon={LayoutDashboard} label="Dashboard" exact />
+                <NavItem
+                  to={`/org/${orgId}/dashboard`}
+                  icon={LayoutDashboard}
+                  label="Dashboard"
+                  exact
+                />
+                <PermissionGate require="project:read">
+                  <NavItem to={`/org/${orgId}/projects`} icon={FolderKanban} label="Projects" />
+                </PermissionGate>
                 <PermissionGate require="member:read">
                   <NavItem to={`/org/${orgId}/members`} icon={Users} label="Members" />
                 </PermissionGate>

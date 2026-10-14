@@ -1,15 +1,15 @@
 import React from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
-// ── Layouts ──────────────────────────────────────────────────────────────────
+// ── Layouts ───────────────────────────────────────────────────────────────────
 import { PublicLayout } from '../components/layout/PublicLayout';
 import { AppLayout } from '../components/layout/AppLayout';
 
-// ── Guards ───────────────────────────────────────────────────────────────────
+// ── Guards ────────────────────────────────────────────────────────────────────
 import { RequireGuest } from '../components/guards/RequireGuest';
 import { RequireAuth } from '../components/guards/RequireAuth';
 
-// ── Auth pages ───────────────────────────────────────────────────────────────
+// ── Auth pages ────────────────────────────────────────────────────────────────
 import { LoginPage } from '../pages/auth/LoginPage';
 import { RegisterPage } from '../pages/auth/RegisterPage';
 import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage';
@@ -20,12 +20,12 @@ import { AuthCompletePage } from '../pages/auth/AuthCompletePage';
 import { AcceptInvitationPage } from '../pages/auth/AcceptInvitationPage';
 import { SessionsPage } from '../pages/auth/SessionsPage';
 
-// ── Onboarding ───────────────────────────────────────────────────────────────
+// ── Onboarding ────────────────────────────────────────────────────────────────
 import { OnboardingRouter } from '../pages/onboarding/OnboardingRouter';
 import { CreateOrgPage } from '../pages/onboarding/CreateOrgPage';
 import { SelectOrgPage } from '../pages/onboarding/SelectOrgPage';
 
-// ── App pages ─────────────────────────────────────────────────────────────────
+// ── Org app pages ─────────────────────────────────────────────────────────────
 import { DashboardPage } from '../pages/app/DashboardPage';
 import { MembersPage } from '../pages/app/MembersPage';
 import { OrgSettingsLayout } from '../pages/app/settings/OrgSettingsLayout';
@@ -34,7 +34,17 @@ import { ProfileSettingsPage } from '../pages/app/settings/ProfileSettingsPage';
 import { SequenceSettingsPage } from '../pages/app/settings/SequenceSettingsPage';
 import { AuditLogPage } from '../pages/app/settings/AuditLogPage';
 
-// ── Marketing pages ──────────────────────────────────────────────────────────
+// ── Project pages ─────────────────────────────────────────────────────────────
+import { ProjectListPage } from '../pages/app/ProjectListPage';
+import { ProjectShell } from '../pages/app/project/ProjectShell';
+import { ProjectOverviewPage } from '../pages/app/project/ProjectOverviewPage';
+import { ProjectPhasesPage } from '../pages/app/project/ProjectPhasesPage';
+import { ProjectCostCodesPage } from '../pages/app/project/ProjectCostCodesPage';
+import { ProjectBudgetPage } from '../pages/app/project/ProjectBudgetPage';
+import { ProjectTeamPage } from '../pages/app/project/ProjectTeamPage';
+import { ProjectSettingsPage } from '../pages/app/project/ProjectSettingsPage';
+
+// ── Marketing pages ───────────────────────────────────────────────────────────
 import { HomePage } from '../pages/HomePage';
 import { FeaturesOverviewPage } from '../pages/FeaturesOverviewPage';
 import { FeaturePage } from '../pages/FeaturePage';
@@ -51,7 +61,7 @@ import { ThanksPage } from '../pages/ThanksPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
 export const router = createBrowserRouter([
-  // ── Auth routes ────────────────────────────────────────────────────────────
+  // ── Auth (no shell) ────────────────────────────────────────────────────────
   {
     path: '/login',
     element: (
@@ -97,7 +107,7 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // ── Onboarding ────────────────────────────────────────────────────────────
+  // ── Onboarding (no org shell) ──────────────────────────────────────────────
   {
     path: '/onboarding',
     element: (
@@ -123,7 +133,7 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // ── App — all routes under /org/:orgId use AppLayout (OrgBootstrap inside) ─
+  // ── App shell (/org/:orgId/*) — OrgBootstrap lives inside AppLayout ────────
   {
     path: '/org/:orgId',
     element: (
@@ -133,8 +143,29 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
+
+      // Org-level pages
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'members', element: <MembersPage /> },
+
+      // Project list
+      { path: 'projects', element: <ProjectListPage /> },
+
+      // Project detail — ProjectShell owns the sub-nav + loads active project
+      {
+        path: 'projects/:projectId',
+        element: <ProjectShell />,
+        children: [
+          { index: true, element: <ProjectOverviewPage /> },
+          { path: 'phases', element: <ProjectPhasesPage /> },
+          { path: 'cost-codes', element: <ProjectCostCodesPage /> },
+          { path: 'budget', element: <ProjectBudgetPage /> },
+          { path: 'team', element: <ProjectTeamPage /> },
+          { path: 'settings', element: <ProjectSettingsPage /> },
+        ],
+      },
+
+      // Org settings
       {
         path: 'settings',
         element: <OrgSettingsLayout />,
@@ -148,7 +179,7 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // ── Marketing site (PublicLayout: Navbar + Footer) ────────────────────────
+  // ── Marketing site (PublicLayout: Navbar + Footer) ─────────────────────────
   {
     path: '/',
     element: <PublicLayout />,
