@@ -45,7 +45,16 @@ export type PermissionKey =
   | 'supplier:update'
   | 'material:read'
   | 'material:create'
-  | 'material:update';
+  | 'material:update'
+  | 'project.field-log.read'
+  | 'project.field-log.create'
+  | 'project.field-log.update'
+  | 'project.field-log.submit'
+  | 'project.field-log.lock'
+  | 'project.issue.read'
+  | 'project.issue.create'
+  | 'project.issue.update'
+  | 'project.issue.transition';
 
 export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   'Organization Admin': [
@@ -63,6 +72,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'ai.runs.create', 'ai.runs.read', 'ai.runs.cancel', 'ai.approvals.decide',
     'supplier:read', 'supplier:create', 'supplier:update',
     'material:read', 'material:create', 'material:update',
+    'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit', 'project.field-log.lock',
+    'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
   ],
   'Project Manager': [
     'organization:read', 'member:read',
@@ -71,6 +82,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'document:read', 'document:upload',
     'ai.runs.create', 'ai.runs.read', 'ai.runs.cancel',
     'supplier:read', 'material:read',
+    'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit', 'project.field-log.lock',
+    'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
   ],
   'Finance': [
     'organization:read', 'member:read',
@@ -78,6 +91,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'document:read', 'payment:approve', 'billing:read',
     'ai.runs.create', 'ai.runs.read', 'ai.runs.cancel', 'ai.approvals.decide',
     'supplier:read', 'material:read',
+    'project.field-log.read',
+    'project.issue.read', 'project.issue.update',
   ],
   'Procurement': [
     'organization:read', 'member:read',
@@ -86,12 +101,16 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'change_order:approve',
     'supplier:read', 'supplier:create', 'supplier:update',
     'material:read', 'material:create', 'material:update',
+    'project.field-log.read',
+    'project.issue.read',
   ],
   'Site Supervisor': [
     'organization:read', 'member:read',
     'project:read',
     'task:create', 'task:update',
     'document:read', 'document:upload',
+    'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit',
+    'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
   ],
   'Subcontractor': [
     'organization:read',

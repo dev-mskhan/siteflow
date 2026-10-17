@@ -13,6 +13,9 @@ import { projectMemberApi } from '../features/project/projectMemberApi';
 import { projectSettingsApi } from '../features/project/projectSettingsApi';
 import { supplierApi } from '../features/supplier/supplierApi';
 import { materialApi } from '../features/material/materialApi';
+import { fieldLogApi } from '../api/fieldLogApi';
+import { issueApi } from '../api/issueApi';
+import { taskApi } from '../api/taskApi';
 import { ROLE_PERMISSIONS } from '../lib/permissions';
 
 // ── Dev bypass — seed state synchronously at store creation ──────────────────
@@ -80,6 +83,9 @@ export const store = configureStore({
     [projectSettingsApi.reducerPath]: projectSettingsApi.reducer,
     [supplierApi.reducerPath]: supplierApi.reducer,
     [materialApi.reducerPath]: materialApi.reducer,
+    [fieldLogApi.reducerPath]: fieldLogApi.reducer,
+    [issueApi.reducerPath]: issueApi.reducer,
+    [taskApi.reducerPath]: taskApi.reducer,
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
@@ -97,6 +103,9 @@ export const store = configureStore({
       projectSettingsApi.middleware,
       supplierApi.middleware,
       materialApi.middleware,
+      fieldLogApi.middleware,
+      issueApi.middleware,
+      taskApi.middleware,
     ),
   devTools: import.meta.env.DEV,
 });

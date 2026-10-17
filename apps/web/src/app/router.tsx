@@ -43,6 +43,10 @@ import { ProjectCostCodesPage } from '../pages/app/project/ProjectCostCodesPage'
 import { ProjectBudgetPage } from '../pages/app/project/ProjectBudgetPage';
 import { ProjectTeamPage } from '../pages/app/project/ProjectTeamPage';
 import { ProjectSettingsPage } from '../pages/app/project/ProjectSettingsPage';
+import { ProjectFieldLogsPage } from '../pages/ProjectFieldLogsPage';
+import { ProjectFieldLogDetailPage } from '../pages/ProjectFieldLogDetailPage';
+import { ProjectIssuesPage } from '../pages/ProjectIssuesPage';
+import { ProjectIssueDetailPage } from '../pages/ProjectIssueDetailPage';
 import { SuppliersPage } from '../pages/app/SuppliersPage';
 import { SupplierDetailPage } from '../pages/app/SupplierDetailPage';
 import { MaterialsPage } from '../pages/app/MaterialsPage';
@@ -169,6 +173,10 @@ export const router = createBrowserRouter([
           { path: 'cost-codes', element: <ProjectCostCodesPage /> },
           { path: 'budget', element: <ProjectBudgetPage /> },
           { path: 'team', element: <ProjectTeamPage /> },
+          { path: 'field-logs', element: <ProjectFieldLogsPage /> },
+          { path: 'field-logs/:logId', element: <ProjectFieldLogDetailPage /> },
+          { path: 'issues', element: <ProjectIssuesPage /> },
+          { path: 'issues/:issueId', element: <ProjectIssueDetailPage /> },
           { path: 'settings', element: <ProjectSettingsPage /> },
         ],
       },
