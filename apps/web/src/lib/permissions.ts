@@ -39,7 +39,13 @@ export type PermissionKey =
   | 'ai.runs.create'
   | 'ai.runs.read'
   | 'ai.runs.cancel'
-  | 'ai.approvals.decide';
+  | 'ai.approvals.decide'
+  | 'supplier:read'
+  | 'supplier:create'
+  | 'supplier:update'
+  | 'material:read'
+  | 'material:create'
+  | 'material:update';
 
 export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   'Organization Admin': [
@@ -55,6 +61,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'payment:approve', 'change_order:approve',
     'billing:read', 'billing:manage',
     'ai.runs.create', 'ai.runs.read', 'ai.runs.cancel', 'ai.approvals.decide',
+    'supplier:read', 'supplier:create', 'supplier:update',
+    'material:read', 'material:create', 'material:update',
   ],
   'Project Manager': [
     'organization:read', 'member:read',
@@ -62,18 +70,22 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'task:create', 'task:update',
     'document:read', 'document:upload',
     'ai.runs.create', 'ai.runs.read', 'ai.runs.cancel',
+    'supplier:read', 'material:read',
   ],
   'Finance': [
     'organization:read', 'member:read',
     'project:read', 'task:update:own',
     'document:read', 'payment:approve', 'billing:read',
     'ai.runs.create', 'ai.runs.read', 'ai.runs.cancel', 'ai.approvals.decide',
+    'supplier:read', 'material:read',
   ],
   'Procurement': [
     'organization:read', 'member:read',
     'project:read',
     'document:read', 'document:upload',
     'change_order:approve',
+    'supplier:read', 'supplier:create', 'supplier:update',
+    'material:read', 'material:create', 'material:update',
   ],
   'Site Supervisor': [
     'organization:read', 'member:read',

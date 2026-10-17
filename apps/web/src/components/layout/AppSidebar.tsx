@@ -22,6 +22,8 @@ import {
   Building2,
   Plus,
   X,
+  Building,
+  Package,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Logo } from '../ui/Logo';
@@ -177,14 +179,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          'hidden md:flex flex-col shrink-0 border-r border-[var(--hairline-2)] bg-[var(--surface)] transition-all duration-[200ms]',
-          open ? 'w-56' : 'w-0 overflow-hidden border-r-0',
-        )}
-      >
-        {open && (
+      {/* Desktop sidebar — conditionally rendered so flex recalculates when closed */}
+      {open && (
+        <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-[var(--hairline-2)] bg-[var(--surface)]">
           <div className="flex flex-col h-full">
             {/* Logo */}
             <div className="flex items-center justify-between border-b border-[var(--hairline-2)] px-3 py-3.5">
@@ -211,6 +208,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
                 <NavItem to={`/org/${orgId}/projects`} icon={FolderKanban} label="Projects" />
               </PermissionGate>
 
+              <PermissionGate require="supplier:read">
+                <NavItem to={`/org/${orgId}/suppliers`} icon={Building} label="Suppliers" />
+              </PermissionGate>
+
+              <PermissionGate require="material:read">
+                <NavItem to={`/org/${orgId}/materials`} icon={Package} label="Materials" />
+              </PermissionGate>
+
               <PermissionGate require="member:read">
                 <NavItem to={`/org/${orgId}/members`} icon={Users} label="Members" />
               </PermissionGate>
@@ -227,8 +232,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
               </p>
             </div>
           </div>
-        )}
-      </aside>
+        </aside>
+      )}
 
       {/* Mobile drawer overlay */}
       <AnimatePresence>
@@ -274,6 +279,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
                 />
                 <PermissionGate require="project:read">
                   <NavItem to={`/org/${orgId}/projects`} icon={FolderKanban} label="Projects" />
+                </PermissionGate>
+                <PermissionGate require="supplier:read">
+                  <NavItem to={`/org/${orgId}/suppliers`} icon={Building} label="Suppliers" />
+                </PermissionGate>
+                <PermissionGate require="material:read">
+                  <NavItem to={`/org/${orgId}/materials`} icon={Package} label="Materials" />
                 </PermissionGate>
                 <PermissionGate require="member:read">
                   <NavItem to={`/org/${orgId}/members`} icon={Users} label="Members" />
