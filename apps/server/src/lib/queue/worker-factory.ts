@@ -60,16 +60,30 @@ export async function registerWorker<T extends object>(
       let tenantLease: { key: string; token: string } | undefined;
       try {
         if (tenantId) {
-          while (!tenantLease) {
-            tenantLease = await acquireTenantJobLease(
-              tenantLeaseGroup,
-              tenantId,
-              tenantConcurrencyLimit,
-              (timeoutSecs + 60) * 1000,
-            ) ?? undefined;
-            if (!tenantLease) {
+          const maxAttempts = 8;
+          let attempts = 0;
+          while (!tenantLease && attempts < maxAttempts) {
+            attempts++;
+            tenantLease =
+              (await acquireTenantJobLease(
+                tenantLeaseGroup,
+                tenantId,
+                tenantConcurrencyLimit,
+                (timeoutSecs + 60) * 1000,
+              )) ?? undefined;
+            if (!tenantLease && attempts < maxAttempts) {
               await new Promise((resolve) => setTimeout(resolve, 250));
             }
+          }
+
+          if (!tenantLease) {
+            logger.warn(
+              { queue, jobId, tenantId, tenantConcurrencyLimit },
+              'Tenant concurrency limit reached; yielding worker slot for retry',
+            );
+            throw new Error(
+              `Tenant concurrency limit (${tenantConcurrencyLimit}) reached for tenant ${tenantId} on queue ${tenantLeaseGroup}. Yielding worker slot for retry.`,
+            );
           }
         }
         await handler(job);

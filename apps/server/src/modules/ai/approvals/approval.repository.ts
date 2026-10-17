@@ -61,8 +61,9 @@ export class ApprovalRepository {
       .limit(Math.min(limit, 100));
   }
 
-  async approve(id: string, userId: string, note?: string): Promise<void> {
-    await this.db
+  async approve(id: string, userId: string, note?: string, tx?: any): Promise<void> {
+    const db = tx ?? this.db;
+    await db
       .update(agentApprovals)
       .set({
         status: 'APPROVED',

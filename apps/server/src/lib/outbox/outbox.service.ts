@@ -346,7 +346,8 @@ export class OutboxService {
           throw new Error('Outbox organizationId does not match the validated payload scope');
         }
 
-        const auditOnly = queueContracts.get(event.eventType)?.auditOnly === true;
+        const hasWorker = supportedQueueNames.has(event.eventType);
+        const auditOnly = queueContracts.get(event.eventType)?.auditOnly === true || !hasWorker;
         if (!auditOnly) {
           await sendJob(
             event.eventType,
@@ -368,7 +369,7 @@ export class OutboxService {
 
         processedCount++;
         logger.debug(
-          { eventId: event.id, eventType: event.eventType },
+          { eventId: event.id, eventType: event.eventType, hasWorker },
           auditOnly ? 'Audit-only outbox event processed' : 'Outbox event dispatched successfully',
         );
       } catch (err: any) {

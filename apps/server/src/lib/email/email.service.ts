@@ -97,11 +97,15 @@ export class EmailService {
     return { messageId: info.messageId, previewUrl };
   }
 
+  private getFrontendUrl(): string {
+    return (serverEnv.FRONTEND_URL ?? serverEnv.CORS_ORIGIN ?? 'http://localhost:5173').replace(/\/$/, '');
+  }
+
   /**
    * Send Email Verification
    */
   async sendEmailVerification(to: string, token: string): Promise<void> {
-    const verifyUrl = `http://localhost:3000/verify-email?token=${token}`;
+    const verifyUrl = `${this.getFrontendUrl()}/verify-email?token=${token}`;
     const subject = 'Verify your SiteFlow account email';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -124,7 +128,7 @@ export class EmailService {
    * Send Password Reset Email
    */
   async sendPasswordReset(to: string, token: string): Promise<void> {
-    const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
+    const resetUrl = `${this.getFrontendUrl()}/reset-password?token=${token}`;
     const subject = 'Reset your SiteFlow password';
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -191,7 +195,7 @@ export class EmailService {
     to: string,
     options: { orgName: string; inviterName: string; token: string },
   ): Promise<void> {
-    const acceptUrl = `http://localhost:3000/accept-invitation?token=${options.token}`;
+    const acceptUrl = `${this.getFrontendUrl()}/accept-invitation?token=${options.token}`;
     const subject = `You've been invited to join ${options.orgName} on SiteFlow`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">

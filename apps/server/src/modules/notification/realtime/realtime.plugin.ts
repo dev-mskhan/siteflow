@@ -6,6 +6,12 @@ import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext } from '../../rbac/permission.middleware.js';
 
 export async function realtimePlugin(app: FastifyInstance): Promise<void> {
+  await realtimeDeliveryManager.startSubscriber();
+
+  app.addHook('onClose', async () => {
+    await realtimeDeliveryManager.stopSubscriber();
+  });
+
   app.get<{ Params: { organizationId: string } }>(
     '/api/v1/organizations/:organizationId/notifications/stream',
     {

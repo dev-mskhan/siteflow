@@ -7,6 +7,7 @@ import { InvitationRepository, type InvitationWithRole } from './invitation.repo
 import { MembershipRepository } from '../membership/membership.repository.js';
 import { OrganizationRepository } from '../organization/organization.repository.js';
 import { OrganizationCacheService } from '../organization/organization.cache.service.js';
+import { RbacCacheService } from '../rbac/rbac.cache.service.js';
 import { auditService } from '../audit/audit.service.js';
 import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
 import { generateOneTimeToken, hashOneTimeToken } from '../auth/token.service.js';
@@ -302,8 +303,9 @@ export class InvitationService {
         );
       });
 
-      // Synchronous org list cache invalidation AFTER transaction commit
+      // Synchronous org list and RBAC permission cache invalidation AFTER transaction commit
       await new OrganizationCacheService().invalidateUserOrgList(userId);
+      await new RbacCacheService().invalidate(invite.organizationId, userId);
     });
   }
 }

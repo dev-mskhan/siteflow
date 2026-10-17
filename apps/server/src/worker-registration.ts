@@ -13,6 +13,10 @@ import { registerLifecycleWorker } from './modules/billing/lifecycle.worker.js';
 import { registerAgentRunWorkers } from './modules/ai/workers/agent-run.worker.js';
 import { registerPlatformAccountNoticeWorkers } from './modules/platform/platform-account-notice.worker.js';
 import { registerEventNotificationWorkers } from './modules/notification/event-notification.worker.js';
+import {
+  registerOperationsRemindersWorker,
+  OPERATIONS_REMINDER_QUEUES,
+} from './modules/project/operations-reminders/operations-reminders.worker.js';
 
 const logger = createLogger({ name: 'worker-registration' });
 
@@ -28,6 +32,7 @@ export async function registerWorkers(boss: PgBoss): Promise<void> {
   await registerAgentRunWorkers(boss);
   await registerPlatformAccountNoticeWorkers(boss);
   await registerEventNotificationWorkers(boss);
+  await registerOperationsRemindersWorker(boss);
 
   await boss.schedule(AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS, '0 2 * * *', {});
   logger.info('Scheduled cleanup: expired sessions (daily 02:00 UTC)');
@@ -37,4 +42,6 @@ export async function registerWorkers(boss: PgBoss): Promise<void> {
   logger.info('Scheduled cleanup: expired password reset tokens (daily 02:30 UTC)');
   await boss.schedule(ORG_QUEUES.EXPIRE_INVITATIONS, '0 * * * *', {});
   logger.info('Scheduled: invitation expiry check (hourly)');
+  await boss.schedule(OPERATIONS_REMINDER_QUEUES.SCAN, '0 7 * * *', {});
+  logger.info('Scheduled: operations reminders scan (daily 07:00 UTC)');
 }

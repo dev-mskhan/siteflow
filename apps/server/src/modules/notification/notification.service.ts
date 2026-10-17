@@ -84,6 +84,15 @@ export class NotificationService {
   ): Promise<NotificationRecord | undefined> {
     return this.repo.markRead(this.db, organizationId, recipientId, id);
   }
+
+  async markAllRead(organizationId: string, recipientId: string): Promise<number> {
+    logger.info({ organizationId, recipientId }, 'Marking all unread notifications read');
+    return this.repo.markAllRead(this.db, organizationId, recipientId);
+  }
+
+  async getUnreadCount(organizationId: string, recipientId: string): Promise<number> {
+    return this.repo.getUnreadCount(this.db, organizationId, recipientId);
+  }
 }
 
 export const notificationService = new NotificationService();

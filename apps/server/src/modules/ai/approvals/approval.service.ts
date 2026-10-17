@@ -1,7 +1,7 @@
-// apps/server/src/modules/ai/approvals/approval.service.ts
 import { trace } from '@opentelemetry/api';
 import { withSpan } from '@siteflow/observability/server';
-import { sendJob } from '../../../lib/queue/queue.js';
+import { getDb } from '../../../lib/db/index.js';
+import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { ApprovalRepository } from './approval.repository.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { AI_QUEUES } from '../ai.jobs.js';
@@ -56,21 +56,24 @@ export class ApprovalService {
         throw new Error(`Approval ${id} is ${approval.status}, cannot approve`);
       }
 
-      await this.approvalRepo.approve(id, userId, note);
+      await getDb().transaction(async (tx) => {
+        await this.approvalRepo.approve(id, userId, note, tx);
 
-      // Resume the run by re-enqueueing the same runId
-      // Worker will detect the APPROVED approval and call resumeRun()
-      await sendJob(
-        AI_QUEUES.AGENT_RUN,
-        {
-          runId: approval.runId,
-          organizationId: approval.organizationId,
-          projectId: undefined, // worker fetches from DB
-          agent: 'cost-financial', // worker fetches from DB
-          createdBy: userId,
-        },
-        { retryLimit: 0, expireInSeconds: 300 },
-      );
+        // Resume the run atomically by enqueuing the runId via transactional outbox
+        // Worker will detect the APPROVED approval and call resumeRun()
+        await writeOutboxEvent(
+          tx,
+          AI_QUEUES.AGENT_RUN,
+          {
+            runId: approval.runId,
+            organizationId: approval.organizationId,
+            projectId: undefined,
+            agent: 'cost-financial',
+            createdBy: userId,
+          },
+          approval.organizationId,
+        );
+      });
     });
   }
 

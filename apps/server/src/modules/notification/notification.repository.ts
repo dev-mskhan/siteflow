@@ -1,5 +1,5 @@
 import { notifications, type NotificationRecord, type NewNotificationRecord } from '@siteflow/database/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, isNull, count } from 'drizzle-orm';
 
 export class NotificationRepository {
   async create(db: any, data: NewNotificationRecord): Promise<NotificationRecord> {
@@ -102,6 +102,35 @@ export class NotificationRepository {
       )
       .returning();
     return rows[0];
+  }
+
+  async markAllRead(db: any, organizationId: string, recipientId: string): Promise<number> {
+    const rows = await db
+      .update(notifications)
+      .set({ readAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(notifications.organizationId, organizationId),
+          eq(notifications.recipientId, recipientId),
+          isNull(notifications.readAt),
+        ),
+      )
+      .returning({ id: notifications.id });
+    return rows.length;
+  }
+
+  async getUnreadCount(db: any, organizationId: string, recipientId: string): Promise<number> {
+    const [row] = await db
+      .select({ count: count() })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.organizationId, organizationId),
+          eq(notifications.recipientId, recipientId),
+          isNull(notifications.readAt),
+        ),
+      );
+    return Number(row?.count ?? 0);
   }
 }
 
