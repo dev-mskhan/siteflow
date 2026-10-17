@@ -47,6 +47,14 @@ import { ProjectFieldLogsPage } from '../pages/ProjectFieldLogsPage';
 import { ProjectFieldLogDetailPage } from '../pages/ProjectFieldLogDetailPage';
 import { ProjectIssuesPage } from '../pages/ProjectIssuesPage';
 import { ProjectIssueDetailPage } from '../pages/ProjectIssueDetailPage';
+import { ProcurementShell } from '../pages/procurement/ProcurementShell';
+import { MaterialRequestsPage } from '../pages/procurement/MaterialRequestsPage';
+import { QuotesPage } from '../pages/procurement/QuotesPage';
+import { PurchaseOrdersPage } from '../pages/procurement/PurchaseOrdersPage';
+import { ApprovalsPage } from '../pages/procurement/ApprovalsPage';
+import { DeliveriesPage } from '../pages/procurement/DeliveriesPage';
+import { CommittedCostsPage } from '../pages/procurement/CommittedCostsPage';
+import { InventoryLedgerPage } from '../pages/procurement/InventoryLedgerPage';
 import { SuppliersPage } from '../pages/app/SuppliersPage';
 import { SupplierDetailPage } from '../pages/app/SupplierDetailPage';
 import { MaterialsPage } from '../pages/app/MaterialsPage';
@@ -177,6 +185,19 @@ export const router = createBrowserRouter([
           { path: 'field-logs/:logId', element: <ProjectFieldLogDetailPage /> },
           { path: 'issues', element: <ProjectIssuesPage /> },
           { path: 'issues/:issueId', element: <ProjectIssueDetailPage /> },
+          {
+            path: 'procurement',
+            element: <ProcurementShell />,
+            children: [
+              { path: 'requests', element: <MaterialRequestsPage /> },
+              { path: 'quotes', element: <QuotesPage /> },
+              { path: 'orders', element: <PurchaseOrdersPage /> },
+              { path: 'approvals', element: <ApprovalsPage /> },
+              { path: 'deliveries', element: <DeliveriesPage /> },
+              { path: 'committed', element: <CommittedCostsPage /> },
+            ],
+          },
+          { path: 'inventory', element: <InventoryLedgerPage /> },
           { path: 'settings', element: <ProjectSettingsPage /> },
         ],
       },

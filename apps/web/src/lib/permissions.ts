@@ -54,7 +54,39 @@ export type PermissionKey =
   | 'project.issue.read'
   | 'project.issue.create'
   | 'project.issue.update'
-  | 'project.issue.transition';
+  | 'project.issue.transition'
+  | 'project.material_request.read'
+  | 'project.material_request.create'
+  | 'project.material_request.update'
+  | 'project.material_request.submit'
+  | 'project.material_request.cancel'
+  | 'project.quote.read'
+  | 'project.quote.create'
+  | 'project.quote.update'
+  | 'project.quote.submit'
+  | 'project.quote.accept'
+  | 'project.quote.reject'
+  | 'project.purchase_order.read'
+  | 'project.purchase_order.create'
+  | 'project.purchase_order.update'
+  | 'project.purchase_order.submit'
+  | 'project.purchase_order.approve'
+  | 'project.purchase_order.send'
+  | 'project.purchase_order.cancel'
+  | 'project.procurement_approval.read'
+  | 'project.procurement_approval.create'
+  | 'project.procurement_approval.approve'
+  | 'project.procurement_approval.reject'
+  | 'project.committed_cost.read'
+  | 'project.delivery.read'
+  | 'project.delivery.create'
+  | 'project.delivery.update'
+  | 'project.receipt.read'
+  | 'project.receipt.create'
+  | 'project.receipt.post'
+  | 'project.receipt.void'
+  | 'project.inventory.read'
+  | 'project.inventory.adjust';
 
 export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   'Organization Admin': [
@@ -74,6 +106,14 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'material:read', 'material:create', 'material:update',
     'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit', 'project.field-log.lock',
     'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
+    'project.material_request.read', 'project.material_request.create', 'project.material_request.update', 'project.material_request.submit', 'project.material_request.cancel',
+    'project.quote.read', 'project.quote.create', 'project.quote.update', 'project.quote.submit', 'project.quote.accept', 'project.quote.reject',
+    'project.purchase_order.read', 'project.purchase_order.create', 'project.purchase_order.update', 'project.purchase_order.submit', 'project.purchase_order.approve', 'project.purchase_order.send', 'project.purchase_order.cancel',
+    'project.procurement_approval.read', 'project.procurement_approval.create', 'project.procurement_approval.approve', 'project.procurement_approval.reject',
+    'project.committed_cost.read',
+    'project.delivery.read', 'project.delivery.create', 'project.delivery.update',
+    'project.receipt.read', 'project.receipt.create', 'project.receipt.post', 'project.receipt.void',
+    'project.inventory.read', 'project.inventory.adjust',
   ],
   'Project Manager': [
     'organization:read', 'member:read',
@@ -84,6 +124,14 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'supplier:read', 'material:read',
     'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit', 'project.field-log.lock',
     'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
+    'project.material_request.read', 'project.material_request.create', 'project.material_request.update', 'project.material_request.submit', 'project.material_request.cancel',
+    'project.quote.read', 'project.quote.create', 'project.quote.update', 'project.quote.submit', 'project.quote.accept', 'project.quote.reject',
+    'project.purchase_order.read', 'project.purchase_order.create', 'project.purchase_order.update', 'project.purchase_order.submit', 'project.purchase_order.approve', 'project.purchase_order.send', 'project.purchase_order.cancel',
+    'project.procurement_approval.read', 'project.procurement_approval.create', 'project.procurement_approval.approve', 'project.procurement_approval.reject',
+    'project.committed_cost.read',
+    'project.delivery.read', 'project.delivery.create', 'project.delivery.update',
+    'project.receipt.read', 'project.receipt.create', 'project.receipt.post', 'project.receipt.void',
+    'project.inventory.read', 'project.inventory.adjust',
   ],
   'Finance': [
     'organization:read', 'member:read',
@@ -93,6 +141,14 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'supplier:read', 'material:read',
     'project.field-log.read',
     'project.issue.read', 'project.issue.update',
+    'project.material_request.read',
+    'project.quote.read',
+    'project.purchase_order.read', 'project.purchase_order.approve',
+    'project.procurement_approval.read', 'project.procurement_approval.approve', 'project.procurement_approval.reject',
+    'project.committed_cost.read',
+    'project.delivery.read',
+    'project.receipt.read',
+    'project.inventory.read',
   ],
   'Procurement': [
     'organization:read', 'member:read',
@@ -103,6 +159,14 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'material:read', 'material:create', 'material:update',
     'project.field-log.read',
     'project.issue.read',
+    'project.material_request.read', 'project.material_request.create', 'project.material_request.update', 'project.material_request.submit', 'project.material_request.cancel',
+    'project.quote.read', 'project.quote.create', 'project.quote.update', 'project.quote.submit', 'project.quote.accept', 'project.quote.reject',
+    'project.purchase_order.read', 'project.purchase_order.create', 'project.purchase_order.update', 'project.purchase_order.submit', 'project.purchase_order.send', 'project.purchase_order.cancel',
+    'project.procurement_approval.read', 'project.procurement_approval.create',
+    'project.committed_cost.read',
+    'project.delivery.read', 'project.delivery.create', 'project.delivery.update',
+    'project.receipt.read', 'project.receipt.create', 'project.receipt.post',
+    'project.inventory.read', 'project.inventory.adjust',
   ],
   'Site Supervisor': [
     'organization:read', 'member:read',
