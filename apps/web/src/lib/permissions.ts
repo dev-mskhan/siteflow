@@ -55,7 +55,11 @@ export type PermissionKey =
   | 'project.issue.create'
   | 'project.issue.update'
   | 'project.issue.transition'
-  | 'project.task.read'
+  | 'project.subcontractor.read'
+  | 'project.subcontractor.create'
+  | 'project.subcontractor.update'
+  | 'project.subcontractor.assign'
+  | 'project.performance.read'
   | 'project.task.create'
   | 'project.task.update'
   | 'project.task.delete'
@@ -121,6 +125,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'project.task.read', 'project.task.create', 'project.task.update', 'project.task.delete',
     'project.baseline.read', 'project.baseline.create', 'project.baseline.activate', 'project.baseline.delete',
     'project.calendar.manage', 'project.schedule.recalculate', 'project.dependency.create', 'project.dependency.delete',
+    'project.subcontractor.read', 'project.subcontractor.create', 'project.subcontractor.update', 'project.subcontractor.assign',
+    'project.performance.read',
     'project.material_request.read', 'project.material_request.create', 'project.material_request.update', 'project.material_request.submit', 'project.material_request.cancel',
     'project.quote.read', 'project.quote.create', 'project.quote.update', 'project.quote.submit', 'project.quote.accept', 'project.quote.reject',
     'project.purchase_order.read', 'project.purchase_order.create', 'project.purchase_order.update', 'project.purchase_order.submit', 'project.purchase_order.approve', 'project.purchase_order.send', 'project.purchase_order.cancel',
@@ -142,6 +148,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'project.task.read', 'project.task.create', 'project.task.update', 'project.task.delete',
     'project.baseline.read', 'project.baseline.create', 'project.baseline.activate', 'project.baseline.delete',
     'project.calendar.manage', 'project.schedule.recalculate', 'project.dependency.create', 'project.dependency.delete',
+    'project.subcontractor.read', 'project.subcontractor.create', 'project.subcontractor.update', 'project.subcontractor.assign',
+    'project.performance.read',
     'project.material_request.read', 'project.material_request.create', 'project.material_request.update', 'project.material_request.submit', 'project.material_request.cancel',
     'project.quote.read', 'project.quote.create', 'project.quote.update', 'project.quote.submit', 'project.quote.accept', 'project.quote.reject',
     'project.purchase_order.read', 'project.purchase_order.create', 'project.purchase_order.update', 'project.purchase_order.submit', 'project.purchase_order.approve', 'project.purchase_order.send', 'project.purchase_order.cancel',

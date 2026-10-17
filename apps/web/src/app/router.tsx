@@ -51,6 +51,7 @@ import { ProjectTasksPage } from '../pages/ProjectTasksPage';
 import { ProjectTaskDetailPage } from '../pages/ProjectTaskDetailPage';
 import { ProjectBaselinesPage } from '../pages/ProjectBaselinesPage';
 import { ProjectCalendarPage } from '../pages/ProjectCalendarPage';
+import { ProjectSubcontractorsPage } from '../pages/ProjectSubcontractorsPage';
 import { ProcurementShell } from '../pages/procurement/ProcurementShell';
 import { MaterialRequestsPage } from '../pages/procurement/MaterialRequestsPage';
 import { QuotesPage } from '../pages/procurement/QuotesPage';
@@ -61,6 +62,8 @@ import { CommittedCostsPage } from '../pages/procurement/CommittedCostsPage';
 import { InventoryLedgerPage } from '../pages/procurement/InventoryLedgerPage';
 import { SuppliersPage } from '../pages/app/SuppliersPage';
 import { SupplierDetailPage } from '../pages/app/SupplierDetailPage';
+import { SubcontractorsPage } from '../pages/app/SubcontractorsPage';
+import { SubcontractorDetailPage } from '../pages/app/SubcontractorDetailPage';
 import { MaterialsPage } from '../pages/app/MaterialsPage';
 
 // ── Marketing pages ───────────────────────────────────────────────────────────
@@ -173,6 +176,8 @@ export const router = createBrowserRouter([
       // Org catalog
       { path: 'suppliers', element: <SuppliersPage /> },
       { path: 'suppliers/:supplierId', element: <SupplierDetailPage /> },
+      { path: 'subcontractors', element: <SubcontractorsPage /> },
+      { path: 'subcontractors/:subcontractorId', element: <SubcontractorDetailPage /> },
       { path: 'materials', element: <MaterialsPage /> },
 
       // Project detail — ProjectShell owns the sub-nav + loads active project
@@ -193,6 +198,7 @@ export const router = createBrowserRouter([
           { path: 'tasks/:taskId', element: <ProjectTaskDetailPage /> },
           { path: 'baselines', element: <ProjectBaselinesPage /> },
           { path: 'calendar', element: <ProjectCalendarPage /> },
+          { path: 'subcontractors', element: <ProjectSubcontractorsPage /> },
           {
             path: 'procurement',
             element: <ProcurementShell />,

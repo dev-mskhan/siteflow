@@ -24,6 +24,7 @@ import {
   X,
   Building,
   Package,
+  HardHat,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Logo } from '../ui/Logo';
@@ -210,6 +211,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
 
               <PermissionGate require="supplier:read">
                 <NavItem to={`/org/${orgId}/suppliers`} icon={Building} label="Suppliers" />
+              </PermissionGate>
+
+              <PermissionGate require="project.subcontractor.read">
+                <NavItem
+                  to={`/org/${orgId}/subcontractors`}
+                  icon={HardHat}
+                  label="Subcontractors"
+                />
               </PermissionGate>
 
               <PermissionGate require="material:read">
