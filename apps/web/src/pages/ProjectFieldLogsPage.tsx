@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { getServerError } from '../lib/errors';
+import { getServerError } from '../lib/authErrors';
 import type { CreateFieldLogInput, FieldLogEntryInput } from '../types/fieldLogTypes';
 
 interface FormValues extends CreateFieldLogInput {}
@@ -27,9 +27,13 @@ export function ProjectFieldLogsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [entryRows, setEntryRows] = useState<FieldLogEntryInput[]>([]);
 
-  const { data, isLoading } = useListFieldLogsQuery({ orgId: organizationId!, projectId: projectId! });
+  const { data, isLoading } = useListFieldLogsQuery({
+    orgId: organizationId!,
+    projectId: projectId!,
+  });
   const { data: tasksData } = useListTasksQuery({ orgId: organizationId!, projectId: projectId! });
-  const [createFieldLog, { isLoading: isCreatingLog, error: createError }] = useCreateFieldLogMutation();
+  const [createFieldLog, { isLoading: isCreatingLog, error: createError }] =
+    useCreateFieldLogMutation();
 
   const {
     register,
@@ -44,7 +48,11 @@ export function ProjectFieldLogsPage() {
         ...values,
         entries: entryRows.length > 0 ? entryRows : undefined,
       };
-      const result = await createFieldLog({ orgId: organizationId!, projectId: projectId!, input }).unwrap();
+      const result = await createFieldLog({
+        orgId: organizationId!,
+        projectId: projectId!,
+        input,
+      }).unwrap();
       reset();
       setEntryRows([]);
       setIsCreating(false);
@@ -61,7 +69,11 @@ export function ProjectFieldLogsPage() {
     ]);
   };
 
-  const updateEntryRow = (index: number, field: keyof FieldLogEntryInput, value: string | number) => {
+  const updateEntryRow = (
+    index: number,
+    field: keyof FieldLogEntryInput,
+    value: string | number,
+  ) => {
     const updated = [...entryRows];
     updated[index] = { ...updated[index], [field]: value };
     setEntryRows(updated);
@@ -79,9 +91,7 @@ export function ProjectFieldLogsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Field Logs</h1>
-        {canCreate && !isCreating && (
-          <Button onClick={() => setIsCreating(true)}>New Log</Button>
-        )}
+        {canCreate && !isCreating && <Button onClick={() => setIsCreating(true)}>New Log</Button>}
       </div>
 
       {isCreating && (
@@ -100,7 +110,9 @@ export function ProjectFieldLogsPage() {
                 {...register('logDate', { required: 'Date is required' })}
                 className="w-full px-3 py-2 border rounded-lg"
               />
-              {errors.logDate && <p className="text-sm text-red-600 mt-1">{errors.logDate.message}</p>}
+              {errors.logDate && (
+                <p className="text-sm text-red-600 mt-1">{errors.logDate.message}</p>
+              )}
             </div>
 
             <div>
@@ -141,7 +153,9 @@ export function ProjectFieldLogsPage() {
                     max={100}
                     className="col-span-2 px-2 py-1 border rounded text-sm"
                     value={entry.completionPctRecorded}
-                    onChange={(e) => updateEntryRow(idx, 'completionPctRecorded', Number(e.target.value))}
+                    onChange={(e) =>
+                      updateEntryRow(idx, 'completionPctRecorded', Number(e.target.value))
+                    }
                   />
                   <input
                     type="text"
@@ -213,7 +227,9 @@ export function ProjectFieldLogsPage() {
             {logs.map((log) => (
               <tr
                 key={log.id}
-                onClick={() => navigate(`/${organizationId}/projects/${projectId}/field-logs/${log.id}`)}
+                onClick={() =>
+                  navigate(`/${organizationId}/projects/${projectId}/field-logs/${log.id}`)
+                }
                 className="hover:bg-gray-50 cursor-pointer"
               >
                 <td className="px-4 py-3 text-sm">{log.logDate}</td>

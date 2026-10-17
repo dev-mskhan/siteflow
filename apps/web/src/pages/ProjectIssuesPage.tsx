@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { getServerError } from '../lib/errors';
+import { getServerError } from '../lib/authErrors';
 import type { CreateIssueInput, IssueStatus } from '../types/issueTypes';
 
 interface FormValues extends CreateIssueInput {}
@@ -29,8 +29,12 @@ export function ProjectIssuesPage() {
   const [statusFilter, setStatusFilter] = useState<IssueStatus | 'ALL'>('ALL');
 
   const { data, isLoading } = useListIssuesQuery({ orgId: organizationId!, projectId: projectId! });
-  const { data: membersData } = useListProjectMembersQuery({ orgId: organizationId!, projectId: projectId! });
-  const [createIssue, { isLoading: isCreatingIssue, error: createError }] = useCreateIssueMutation();
+  const { data: membersData } = useListProjectMembersQuery({
+    orgId: organizationId!,
+    projectId: projectId!,
+  });
+  const [createIssue, { isLoading: isCreatingIssue, error: createError }] =
+    useCreateIssueMutation();
 
   const {
     register,
@@ -45,7 +49,11 @@ export function ProjectIssuesPage() {
         ...values,
         reportedImpactDays: values.reportedImpactDays ? Number(values.reportedImpactDays) : 0,
       };
-      const result = await createIssue({ orgId: organizationId!, projectId: projectId!, input }).unwrap();
+      const result = await createIssue({
+        orgId: organizationId!,
+        projectId: projectId!,
+        input,
+      }).unwrap();
       reset();
       setIsCreating(false);
       navigate(`/${organizationId}/projects/${projectId}/issues/${result.id}`);
@@ -57,15 +65,14 @@ export function ProjectIssuesPage() {
   if (isLoading) return <div>Loading issues...</div>;
 
   const allIssues = data?.data || [];
-  const filteredIssues = statusFilter === 'ALL' ? allIssues : allIssues.filter((i) => i.status === statusFilter);
+  const filteredIssues =
+    statusFilter === 'ALL' ? allIssues : allIssues.filter((i) => i.status === statusFilter);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Issues</h1>
-        {canCreate && !isCreating && (
-          <Button onClick={() => setIsCreating(true)}>New Issue</Button>
-        )}
+        {canCreate && !isCreating && <Button onClick={() => setIsCreating(true)}>New Issue</Button>}
       </div>
 
       {/* Status filter tabs */}
@@ -98,7 +105,11 @@ export function ProjectIssuesPage() {
               <label className="block text-sm font-medium mb-1">Title</label>
               <input
                 type="text"
-                {...register('title', { required: 'Title is required', minLength: 1, maxLength: 500 })}
+                {...register('title', {
+                  required: 'Title is required',
+                  minLength: 1,
+                  maxLength: 500,
+                })}
                 className="w-full px-3 py-2 border rounded-lg"
               />
               {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>}
@@ -173,12 +184,16 @@ export function ProjectIssuesPage() {
             {filteredIssues.map((issue) => (
               <tr
                 key={issue.id}
-                onClick={() => navigate(`/${organizationId}/projects/${projectId}/issues/${issue.id}`)}
+                onClick={() =>
+                  navigate(`/${organizationId}/projects/${projectId}/issues/${issue.id}`)
+                }
                 className="hover:bg-gray-50 cursor-pointer"
               >
                 <td className="px-4 py-3 text-sm font-medium">{issue.title}</td>
                 <td className="px-4 py-3">
-                  <Badge variant={STATUS_COLORS[issue.status]}>{issue.status.replace('_', ' ')}</Badge>
+                  <Badge variant={STATUS_COLORS[issue.status]}>
+                    {issue.status.replace('_', ' ')}
+                  </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm">
                   <span className="text-gray-600">{issue.reportedImpactDays}</span>
@@ -186,9 +201,7 @@ export function ProjectIssuesPage() {
                     <span className="ml-1 text-green-600">/ {issue.approvedImpactDays}</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {issue.assignedTo || '—'}
-                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{issue.assignedTo || '—'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {new Date(issue.createdAt).toLocaleDateString()}
                 </td>

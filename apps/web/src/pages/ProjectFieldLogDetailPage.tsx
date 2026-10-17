@@ -15,8 +15,12 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { getServerError } from '../lib/errors';
-import type { UpdateFieldLogInput, FieldLogEntryInput, CreateAmendmentInput } from '../types/fieldLogTypes';
+import { getServerError } from '../lib/authErrors';
+import type {
+  UpdateFieldLogInput,
+  FieldLogEntryInput,
+  CreateAmendmentInput,
+} from '../types/fieldLogTypes';
 
 const STATUS_COLORS = {
   DRAFT: 'gray',
@@ -34,14 +38,24 @@ export function ProjectFieldLogDetailPage() {
   const [isCreatingAmendment, setIsCreatingAmendment] = useState(false);
   const [entryRows, setEntryRows] = useState<FieldLogEntryInput[]>([]);
 
-  const { data: log, isLoading } = useGetFieldLogQuery({ orgId: organizationId!, projectId: projectId!, logId: logId! });
-  const { data: amendmentsData } = useListAmendmentsQuery({ orgId: organizationId!, projectId: projectId!, logId: logId! });
+  const { data: log, isLoading } = useGetFieldLogQuery({
+    orgId: organizationId!,
+    projectId: projectId!,
+    logId: logId!,
+  });
+  const { data: amendmentsData } = useListAmendmentsQuery({
+    orgId: organizationId!,
+    projectId: projectId!,
+    logId: logId!,
+  });
   const { data: tasksData } = useListTasksQuery({ orgId: organizationId!, projectId: projectId! });
 
-  const [updateFieldLog, { isLoading: isUpdating, error: updateError }] = useUpdateFieldLogMutation();
+  const [updateFieldLog, { isLoading: isUpdating, error: updateError }] =
+    useUpdateFieldLogMutation();
   const [submitFieldLog, { isLoading: isSubmitting }] = useSubmitFieldLogMutation();
   const [lockFieldLog, { isLoading: isLocking }] = useLockFieldLogMutation();
-  const [createAmendment, { isLoading: isCreatingAmend, error: amendError }] = useCreateAmendmentMutation();
+  const [createAmendment, { isLoading: isCreatingAmend, error: amendError }] =
+    useCreateAmendmentMutation();
 
   const {
     register: registerUpdate,
@@ -61,7 +75,12 @@ export function ProjectFieldLogDetailPage() {
         ...values,
         entries: entryRows.length > 0 ? entryRows : undefined,
       };
-      await updateFieldLog({ orgId: organizationId!, projectId: projectId!, logId: logId!, input }).unwrap();
+      await updateFieldLog({
+        orgId: organizationId!,
+        projectId: projectId!,
+        logId: logId!,
+        input,
+      }).unwrap();
       setIsEditing(false);
     } catch (e) {
       // Error shown via updateError
@@ -78,7 +97,12 @@ export function ProjectFieldLogDetailPage() {
 
   const onCreateAmendment = async (values: CreateAmendmentInput) => {
     try {
-      await createAmendment({ orgId: organizationId!, projectId: projectId!, logId: logId!, input: values }).unwrap();
+      await createAmendment({
+        orgId: organizationId!,
+        projectId: projectId!,
+        logId: logId!,
+        input: values,
+      }).unwrap();
       resetAmend();
       setIsCreatingAmendment(false);
     } catch (e) {
@@ -89,13 +113,15 @@ export function ProjectFieldLogDetailPage() {
   const startEdit = () => {
     if (log) {
       resetUpdate({ notes: log.notes || '' });
-      setEntryRows(log.entries?.map((e) => ({
-        taskId: e.taskId,
-        completionPctRecorded: e.completionPctRecorded,
-        quantityCompleted: e.quantityCompleted || '',
-        unit: e.unit || '',
-        notes: e.notes || '',
-      })) || []);
+      setEntryRows(
+        log.entries?.map((e) => ({
+          taskId: e.taskId,
+          completionPctRecorded: e.completionPctRecorded,
+          quantityCompleted: e.quantityCompleted || '',
+          unit: e.unit || '',
+          notes: e.notes || '',
+        })) || [],
+      );
       setIsEditing(true);
     }
   };
@@ -107,7 +133,11 @@ export function ProjectFieldLogDetailPage() {
     ]);
   };
 
-  const updateEntryRow = (index: number, field: keyof FieldLogEntryInput, value: string | number) => {
+  const updateEntryRow = (
+    index: number,
+    field: keyof FieldLogEntryInput,
+    value: string | number,
+  ) => {
     const updated = [...entryRows];
     updated[index] = { ...updated[index], [field]: value };
     setEntryRows(updated);
@@ -144,11 +174,17 @@ export function ProjectFieldLogDetailPage() {
                 <Button variant="outline" onClick={startEdit}>
                   Edit
                 </Button>
-                {canSubmit && <Button onClick={onSubmit} isLoading={isSubmitting}>Submit</Button>}
+                {canSubmit && (
+                  <Button onClick={onSubmit} isLoading={isSubmitting}>
+                    Submit
+                  </Button>
+                )}
               </>
             )}
             {log.status === 'SUBMITTED' && canLock && (
-              <Button onClick={onLock} isLoading={isLocking}>Lock</Button>
+              <Button onClick={onLock} isLoading={isLocking}>
+                Lock
+              </Button>
             )}
             {log.status === 'LOCKED' && canUpdate && !isCreatingAmendment && (
               <Button variant="outline" onClick={() => setIsCreatingAmendment(true)}>
@@ -160,18 +196,30 @@ export function ProjectFieldLogDetailPage() {
 
         {/* Status pipeline */}
         <div className="flex items-center gap-2 mb-6 pb-6 border-b">
-          <div className={`flex items-center gap-2 ${log.status === 'DRAFT' ? 'text-gray-900' : 'text-gray-400'}`}>
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">1</div>
+          <div
+            className={`flex items-center gap-2 ${log.status === 'DRAFT' ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
+              1
+            </div>
             <span className="text-sm font-medium">DRAFT</span>
           </div>
           <div className="flex-1 h-0.5 bg-gray-300" />
-          <div className={`flex items-center gap-2 ${log.status === 'SUBMITTED' ? 'text-gray-900' : 'text-gray-400'}`}>
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">2</div>
+          <div
+            className={`flex items-center gap-2 ${log.status === 'SUBMITTED' ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
+              2
+            </div>
             <span className="text-sm font-medium">SUBMITTED</span>
           </div>
           <div className="flex-1 h-0.5 bg-gray-300" />
-          <div className={`flex items-center gap-2 ${log.status === 'LOCKED' ? 'text-gray-900' : 'text-gray-400'}`}>
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">3</div>
+          <div
+            className={`flex items-center gap-2 ${log.status === 'LOCKED' ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
+              3
+            </div>
             <span className="text-sm font-medium">LOCKED</span>
           </div>
         </div>
@@ -219,7 +267,9 @@ export function ProjectFieldLogDetailPage() {
                     max={100}
                     className="col-span-2 px-2 py-1 border rounded text-sm"
                     value={entry.completionPctRecorded}
-                    onChange={(e) => updateEntryRow(idx, 'completionPctRecorded', Number(e.target.value))}
+                    onChange={(e) =>
+                      updateEntryRow(idx, 'completionPctRecorded', Number(e.target.value))
+                    }
                   />
                   <input
                     type="text"
@@ -244,7 +294,13 @@ export function ProjectFieldLogDetailPage() {
                     value={entry.notes || ''}
                     onChange={(e) => updateEntryRow(idx, 'notes', e.target.value)}
                   />
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removeEntryRow(idx)} className="col-span-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeEntryRow(idx)}
+                    className="col-span-1"
+                  >
                     ✕
                   </Button>
                 </div>
@@ -252,7 +308,9 @@ export function ProjectFieldLogDetailPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" isLoading={isUpdating}>Save</Button>
+              <Button type="submit" isLoading={isUpdating}>
+                Save
+              </Button>
               <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
                 Cancel
               </Button>
@@ -291,7 +349,9 @@ export function ProjectFieldLogDetailPage() {
                                   style={{ width: `${entry.completionPctRecorded}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-gray-600">{entry.completionPctRecorded}%</span>
+                              <span className="text-xs text-gray-600">
+                                {entry.completionPctRecorded}%
+                              </span>
                             </div>
                           </td>
                           <td className="px-3 py-2">{entry.quantityCompleted || '—'}</td>
@@ -315,7 +375,10 @@ export function ProjectFieldLogDetailPage() {
           <h2 className="text-lg font-medium mb-4">Amendments</h2>
 
           {isCreatingAmendment && (
-            <form onSubmit={handleAmend(onCreateAmendment)} className="mb-6 p-4 border rounded-lg space-y-3">
+            <form
+              onSubmit={handleAmend(onCreateAmendment)}
+              className="mb-6 p-4 border rounded-lg space-y-3"
+            >
               {amendError && (
                 <InlineAlert variant="error">{getServerError(amendError)}</InlineAlert>
               )}
@@ -375,9 +438,7 @@ export function ProjectFieldLogDetailPage() {
                         {new Date(amendment.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    {amendment.approvedBy && (
-                      <Badge variant="green">Approved</Badge>
-                    )}
+                    {amendment.approvedBy && <Badge variant="green">Approved</Badge>}
                   </div>
                   <p className="text-sm mb-2">{amendment.reason}</p>
                   <details className="text-xs">

@@ -12,7 +12,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { getServerError } from '../lib/errors';
+import { getServerError } from '../lib/authErrors';
 import type { UpdateIssueInput, IssueStatus } from '../types/issueTypes';
 
 interface FormValues extends UpdateIssueInput {}
@@ -47,8 +47,15 @@ export function ProjectIssueDetailPage() {
 
   const [isEditing, setIsEditing] = useState(false);
 
-  const { data: issue, isLoading } = useGetIssueQuery({ orgId: organizationId!, projectId: projectId!, issueId: issueId! });
-  const { data: membersData } = useListProjectMembersQuery({ orgId: organizationId!, projectId: projectId! });
+  const { data: issue, isLoading } = useGetIssueQuery({
+    orgId: organizationId!,
+    projectId: projectId!,
+    issueId: issueId!,
+  });
+  const { data: membersData } = useListProjectMembersQuery({
+    orgId: organizationId!,
+    projectId: projectId!,
+  });
 
   const [updateIssue, { isLoading: isUpdating, error: updateError }] = useUpdateIssueMutation();
   const [transitionIssue, { isLoading: isTransitioning }] = useTransitionIssueMutation();
@@ -64,10 +71,19 @@ export function ProjectIssueDetailPage() {
     try {
       const input: UpdateIssueInput = {
         ...values,
-        reportedImpactDays: values.reportedImpactDays ? Number(values.reportedImpactDays) : undefined,
-        approvedImpactDays: values.approvedImpactDays ? Number(values.approvedImpactDays) : undefined,
+        reportedImpactDays: values.reportedImpactDays
+          ? Number(values.reportedImpactDays)
+          : undefined,
+        approvedImpactDays: values.approvedImpactDays
+          ? Number(values.approvedImpactDays)
+          : undefined,
       };
-      await updateIssue({ orgId: organizationId!, projectId: projectId!, issueId: issueId!, input }).unwrap();
+      await updateIssue({
+        orgId: organizationId!,
+        projectId: projectId!,
+        issueId: issueId!,
+        input,
+      }).unwrap();
       setIsEditing(false);
     } catch (e) {
       // Error shown via updateError
@@ -75,7 +91,12 @@ export function ProjectIssueDetailPage() {
   };
 
   const onTransition = async (status: IssueStatus) => {
-    await transitionIssue({ orgId: organizationId!, projectId: projectId!, issueId: issueId!, status });
+    await transitionIssue({
+      orgId: organizationId!,
+      projectId: projectId!,
+      issueId: issueId!,
+      status,
+    });
   };
 
   const startEdit = () => {
@@ -132,23 +153,39 @@ export function ProjectIssueDetailPage() {
 
         {/* Status pipeline */}
         <div className="flex items-center gap-2 mb-6 pb-6 border-b">
-          <div className={`flex items-center gap-2 ${issue.status === 'OPEN' ? 'text-gray-900' : 'text-gray-400'}`}>
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">1</div>
+          <div
+            className={`flex items-center gap-2 ${issue.status === 'OPEN' ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
+              1
+            </div>
             <span className="text-sm font-medium">OPEN</span>
           </div>
           <div className="flex-1 h-0.5 bg-gray-300" />
-          <div className={`flex items-center gap-2 ${issue.status === 'IN_PROGRESS' ? 'text-gray-900' : 'text-gray-400'}`}>
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">2</div>
+          <div
+            className={`flex items-center gap-2 ${issue.status === 'IN_PROGRESS' ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
+              2
+            </div>
             <span className="text-sm font-medium">IN PROGRESS</span>
           </div>
           <div className="flex-1 h-0.5 bg-gray-300" />
-          <div className={`flex items-center gap-2 ${issue.status === 'RESOLVED' ? 'text-gray-900' : 'text-gray-400'}`}>
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">3</div>
+          <div
+            className={`flex items-center gap-2 ${issue.status === 'RESOLVED' ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
+              3
+            </div>
             <span className="text-sm font-medium">RESOLVED</span>
           </div>
           <div className="flex-1 h-0.5 bg-gray-300" />
-          <div className={`flex items-center gap-2 ${issue.status === 'CLOSED' ? 'text-gray-900' : 'text-gray-400'}`}>
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">4</div>
+          <div
+            className={`flex items-center gap-2 ${issue.status === 'CLOSED' ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
+              4
+            </div>
             <span className="text-sm font-medium">CLOSED</span>
           </div>
         </div>
@@ -162,7 +199,11 @@ export function ProjectIssueDetailPage() {
               <label className="block text-sm font-medium mb-1">Title</label>
               <input
                 type="text"
-                {...register('title', { required: 'Title is required', minLength: 1, maxLength: 500 })}
+                {...register('title', {
+                  required: 'Title is required',
+                  minLength: 1,
+                  maxLength: 500,
+                })}
                 className="w-full px-3 py-2 border rounded-lg"
               />
               {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>}
