@@ -1,299 +1,409 @@
-import { useState } from 'react';
+/**
+ * ProjectIssueDetailPage — /org/:orgId/projects/:projectId/issues/:issueId
+ * Detail + edit form + transition actions + status pipeline.
+ */
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { Pencil, ArrowRight } from 'lucide-react';
 import {
   useGetIssueQuery,
   useUpdateIssueMutation,
   useTransitionIssueMutation,
 } from '../api/issueApi';
 import { useListProjectMembersQuery } from '../features/project/projectMemberApi';
-import { useCanAccess } from '../hooks/usePermission';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
+import { usePermission } from '../hooks/usePermission';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { getServerError } from '../lib/authErrors';
+import { useToast } from '../components/ui/Toast';
+import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../lib/authErrors';
 import type { UpdateIssueInput, IssueStatus } from '../types/issueTypes';
 
-interface FormValues extends UpdateIssueInput {}
+const STATUS_BADGE: Record<IssueStatus, string> = {
+  OPEN: 'border-[#fde68a] bg-[#fffbeb] text-[#92400e]',
+  IN_PROGRESS: 'border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af]',
+  RESOLVED: 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
+  CLOSED: 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
+};
 
-const STATUS_COLORS = {
-  OPEN: 'amber',
-  IN_PROGRESS: 'blue',
-  RESOLVED: 'green',
-  CLOSED: 'gray',
-} as const;
+const STATUS_LABELS: Record<IssueStatus, string> = {
+  OPEN: 'Open',
+  IN_PROGRESS: 'In progress',
+  RESOLVED: 'Resolved',
+  CLOSED: 'Closed',
+};
 
-const TRANSITIONS: Record<IssueStatus, Array<{ label: string; status: IssueStatus }>> = {
+const TRANSITIONS: Record<
+  IssueStatus,
+  Array<{ label: string; to: IssueStatus; primary?: boolean }>
+> = {
   OPEN: [
-    { label: 'Start Progress', status: 'IN_PROGRESS' },
-    { label: 'Close', status: 'CLOSED' },
+    { label: 'Start progress', to: 'IN_PROGRESS', primary: true },
+    { label: 'Close', to: 'CLOSED' },
   ],
   IN_PROGRESS: [
-    { label: 'Mark Resolved', status: 'RESOLVED' },
-    { label: 'Reopen', status: 'OPEN' },
+    { label: 'Mark resolved', to: 'RESOLVED', primary: true },
+    { label: 'Reopen', to: 'OPEN' },
   ],
   RESOLVED: [
-    { label: 'Close', status: 'CLOSED' },
-    { label: 'Reopen', status: 'OPEN' },
+    { label: 'Close', to: 'CLOSED', primary: true },
+    { label: 'Reopen', to: 'OPEN' },
   ],
   CLOSED: [],
 };
 
-export function ProjectIssueDetailPage() {
-  const { organizationId, projectId, issueId } = useParams();
-  const canUpdate = useCanAccess('project.issue.update');
-  const canTransition = useCanAccess('project.issue.transition');
+const STEPS: IssueStatus[] = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+
+export const ProjectIssueDetailPage: React.FC = () => {
+  const { orgId, projectId, issueId } = useParams<{
+    orgId: string;
+    projectId: string;
+    issueId: string;
+  }>();
+  const canUpdate = usePermission('project.issue.update');
+  const canTransition = usePermission('project.issue.transition');
+  const { success: toastOk, error: toastErr } = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
 
   const { data: issue, isLoading } = useGetIssueQuery({
-    orgId: organizationId!,
+    orgId: orgId!,
     projectId: projectId!,
     issueId: issueId!,
   });
   const { data: membersData } = useListProjectMembersQuery({
-    orgId: organizationId!,
+    orgId: orgId!,
     projectId: projectId!,
   });
 
-  const [updateIssue, { isLoading: isUpdating, error: updateError }] = useUpdateIssueMutation();
-  const [transitionIssue, { isLoading: isTransitioning }] = useTransitionIssueMutation();
+  const [updateIssue, { isLoading: updating, error: updateErr }] = useUpdateIssueMutation();
+  const [transitionIssue, { isLoading: transitioning }] = useTransitionIssueMutation();
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>();
+  } = useForm<UpdateIssueInput>();
 
-  const onUpdate = async (values: FormValues) => {
+  const startEdit = () => {
+    if (!issue) return;
+    reset({
+      title: issue.title,
+      description: issue.description ?? '',
+      reportedImpactDays: issue.reportedImpactDays,
+      approvedImpactDays: issue.approvedImpactDays,
+      assignedTo: issue.assignedTo ?? undefined,
+    });
+    setIsEditing(true);
+  };
+
+  const onSave = async (values: UpdateIssueInput) => {
     try {
-      const input: UpdateIssueInput = {
-        ...values,
-        reportedImpactDays: values.reportedImpactDays
-          ? Number(values.reportedImpactDays)
-          : undefined,
-        approvedImpactDays: values.approvedImpactDays
-          ? Number(values.approvedImpactDays)
-          : undefined,
-      };
       await updateIssue({
-        orgId: organizationId!,
+        orgId: orgId!,
         projectId: projectId!,
         issueId: issueId!,
-        input,
+        input: {
+          ...values,
+          reportedImpactDays:
+            values.reportedImpactDays !== undefined ? Number(values.reportedImpactDays) : undefined,
+          approvedImpactDays:
+            values.approvedImpactDays !== undefined ? Number(values.approvedImpactDays) : undefined,
+          assignedTo: values.assignedTo || undefined,
+        },
       }).unwrap();
+      toastOk('Issue updated', '');
       setIsEditing(false);
-    } catch (e) {
-      // Error shown via updateError
+    } catch (err) {
+      if (isToastError(err as never)) toastErr('Update failed', toastErrorMessage(err as never));
     }
   };
 
   const onTransition = async (status: IssueStatus) => {
-    await transitionIssue({
-      orgId: organizationId!,
-      projectId: projectId!,
-      issueId: issueId!,
-      status,
-    });
-  };
-
-  const startEdit = () => {
-    if (issue) {
-      reset({
-        title: issue.title,
-        description: issue.description || '',
-        reportedImpactDays: issue.reportedImpactDays,
-        approvedImpactDays: issue.approvedImpactDays,
-        assignedTo: issue.assignedTo || undefined,
-      });
-      setIsEditing(true);
+    try {
+      await transitionIssue({
+        orgId: orgId!,
+        projectId: projectId!,
+        issueId: issueId!,
+        status,
+      }).unwrap();
+      toastOk(`Issue moved to ${STATUS_LABELS[status]}`, '');
+    } catch (err) {
+      toastErr('Transition failed', toastErrorMessage(err as never));
     }
   };
 
-  if (isLoading) return <div>Loading issue...</div>;
-  if (!issue) return <div>Issue not found</div>;
+  if (isLoading) {
+    return (
+      <div className="p-6 sm:p-8 space-y-3">
+        {[1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-20 animate-pulse bg-[var(--surface-2)] border border-[var(--hairline-2)]"
+          />
+        ))}
+      </div>
+    );
+  }
 
-  const availableTransitions = TRANSITIONS[issue.status];
+  if (!issue) {
+    return (
+      <div className="p-6 sm:p-8">
+        <p className="text-sm text-[var(--muted)]">Issue not found.</p>
+      </div>
+    );
+  }
+
   const canEditDetails = canUpdate && (issue.status === 'OPEN' || issue.status === 'IN_PROGRESS');
+  const availableTransitions = TRANSITIONS[issue.status];
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-semibold">{issue.title}</h1>
-              <Badge variant={STATUS_COLORS[issue.status]}>{issue.status.replace('_', ' ')}</Badge>
-            </div>
-            <p className="text-sm text-gray-600">
-              Created {new Date(issue.createdAt).toLocaleString()}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {canEditDetails && !isEditing && (
-              <Button variant="outline" onClick={startEdit}>
-                Edit
-              </Button>
-            )}
-            {canTransition &&
-              availableTransitions.map((t) => (
-                <Button
-                  key={t.status}
-                  onClick={() => onTransition(t.status)}
-                  isLoading={isTransitioning}
-                  variant={t.status === 'CLOSED' ? 'outline' : 'primary'}
-                >
-                  {t.label}
-                </Button>
-              ))}
+    <div className="p-6 sm:p-8 max-w-4xl space-y-8">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--hairline-2)]">
+        <div className="flex-1 min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            Issue
+          </p>
+          <h1 className="mt-1 text-2xl font-medium tracking-[-0.04em] leading-snug">
+            {issue.title}
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span
+              className={`font-mono text-[9px] uppercase tracking-[0.12em] border px-2 py-0.5 ${STATUS_BADGE[issue.status]}`}
+            >
+              {STATUS_LABELS[issue.status]}
+            </span>
+            <span className="font-mono text-[10px] text-[var(--muted)]">
+              {new Date(issue.createdAt).toLocaleDateString('en', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </span>
           </div>
         </div>
 
-        {/* Status pipeline */}
-        <div className="flex items-center gap-2 mb-6 pb-6 border-b">
-          <div
-            className={`flex items-center gap-2 ${issue.status === 'OPEN' ? 'text-gray-900' : 'text-gray-400'}`}
-          >
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
-              1
-            </div>
-            <span className="text-sm font-medium">OPEN</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-300" />
-          <div
-            className={`flex items-center gap-2 ${issue.status === 'IN_PROGRESS' ? 'text-gray-900' : 'text-gray-400'}`}
-          >
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
-              2
-            </div>
-            <span className="text-sm font-medium">IN PROGRESS</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-300" />
-          <div
-            className={`flex items-center gap-2 ${issue.status === 'RESOLVED' ? 'text-gray-900' : 'text-gray-400'}`}
-          >
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
-              3
-            </div>
-            <span className="text-sm font-medium">RESOLVED</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-300" />
-          <div
-            className={`flex items-center gap-2 ${issue.status === 'CLOSED' ? 'text-gray-900' : 'text-gray-400'}`}
-          >
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
-              4
-            </div>
-            <span className="text-sm font-medium">CLOSED</span>
-          </div>
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {canEditDetails && !isEditing && (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="inline-flex items-center gap-2 border border-[var(--hairline-2)] px-4 py-2 text-sm font-medium hover:bg-[var(--surface-2)] transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Edit
+            </button>
+          )}
+          {canTransition &&
+            availableTransitions.map((t) => (
+              <button
+                key={t.to}
+                type="button"
+                disabled={transitioning}
+                onClick={() => onTransition(t.to)}
+                className={`inline-flex items-center gap-2 min-h-9 px-4 text-sm font-medium transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0 ${
+                  t.primary
+                    ? 'bg-[var(--ink)] text-white'
+                    : 'border border-[var(--hairline-2)] text-[var(--ink)] hover:bg-[var(--surface-2)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
         </div>
+      </div>
 
-        {isEditing ? (
-          <form onSubmit={handleSubmit(onUpdate)} className="space-y-4">
-            {updateError && (
-              <InlineAlert variant="error">{getServerError(updateError)}</InlineAlert>
+      {/* Status pipeline */}
+      <div className="flex items-center gap-0">
+        {STEPS.map((step, idx) => {
+          const active = issue.status === step;
+          const done = STEPS.indexOf(issue.status) > idx;
+          return (
+            <React.Fragment key={step}>
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 border ${active ? 'border-[var(--ink)] bg-[var(--ink)] text-white' : done ? 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]' : 'border-[var(--hairline-2)] bg-[var(--paper)] text-[var(--muted)]'}`}
+              >
+                <span className="font-mono text-[9px] uppercase tracking-[0.14em]">
+                  {STATUS_LABELS[step]}
+                </span>
+              </div>
+              {idx < STEPS.length - 1 && (
+                <ArrowRight
+                  className="h-3.5 w-3.5 text-[var(--muted)] shrink-0"
+                  strokeWidth={1.5}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Edit form */}
+      {isEditing && (
+        <div className="border border-[var(--hairline-2)] bg-[var(--paper)] p-6 space-y-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+            Edit issue
+          </p>
+          {isInlineError(updateErr) && (
+            <InlineAlert variant="error" message={getServerError(updateErr)?.message ?? 'Error'} />
+          )}
+          <div>
+            <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+              Title *
+            </label>
+            <input
+              type="text"
+              {...register('title', { required: 'Title is required', maxLength: 500 })}
+              className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+            />
+            {errors.title && (
+              <p className="mt-1 font-mono text-[9px] text-[#991b1b]">{errors.title.message}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+              Description
+            </label>
+            <textarea
+              {...register('description')}
+              rows={4}
+              maxLength={4000}
+              className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm resize-none focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Reported impact (days)
+              </label>
               <input
-                type="text"
-                {...register('title', {
-                  required: 'Title is required',
-                  minLength: 1,
-                  maxLength: 500,
+                type="number"
+                {...register('reportedImpactDays')}
+                min={0}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
+            </div>
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Approved impact (days)
+                <span className="ml-1 font-mono text-[8px] normal-case tracking-normal text-[var(--muted)]">
+                  PM / Finance only
+                </span>
+              </label>
+              <input
+                type="number"
+                {...register('approvedImpactDays')}
+                min={0}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+              Assign to
+            </label>
+            <select
+              {...register('assignedTo')}
+              className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+            >
+              <option value="">Unassigned</option>
+              {membersData?.members.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.user.firstName} {m.user.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2 border-t border-[var(--hairline-2)]">
+            <button
+              onClick={handleSubmit(onSave)}
+              disabled={updating}
+              className="inline-flex items-center gap-2 min-h-10 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0"
+            >
+              {updating ? 'Saving…' : 'Save changes'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Details (read-only) */}
+      {!isEditing && (
+        <div className="space-y-6">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-2">
+              Description
+            </p>
+            <p className="text-sm">{issue.description || '—'}</p>
+          </div>
+
+          <div className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-4">
+              Impact days
+            </p>
+            <div className="grid grid-cols-3 gap-6">
+              <div>
+                <p className="text-xs text-[var(--muted)] mb-1">Reported</p>
+                <p className="text-2xl font-medium tracking-[-0.04em]">
+                  {issue.reportedImpactDays}
+                </p>
+                <p className="font-mono text-[9px] text-[var(--muted)] mt-0.5">days</p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--muted)] mb-1">Approved</p>
+                <p
+                  className={`text-2xl font-medium tracking-[-0.04em] ${issue.approvedImpactDays !== issue.reportedImpactDays ? 'text-[#166534]' : ''}`}
+                >
+                  {issue.approvedImpactDays}
+                </p>
+                <p className="font-mono text-[9px] text-[var(--muted)] mt-0.5">days</p>
+              </div>
+              {issue.approvedImpactDays !== issue.reportedImpactDays && (
+                <div className="flex items-center">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[#fde68a] bg-[#fffbeb] text-[#92400e] px-2 py-1">
+                    Differs from reported
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-2">
+                Assigned to
+              </p>
+              <p className="text-sm">{issue.assignedTo ?? 'Unassigned'}</p>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-2">
+                Created
+              </p>
+              <p className="text-sm">
+                {new Date(issue.createdAt).toLocaleString('en', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
                 })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>}
+              </p>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                {...register('description')}
-                rows={4}
-                maxLength={4000}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Reported Impact (days)</label>
-                <input
-                  type="number"
-                  {...register('reportedImpactDays')}
-                  min={0}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Approved Impact (days)</label>
-                <input
-                  type="number"
-                  {...register('approvedImpactDays')}
-                  min={0}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-                <p className="text-xs text-gray-500 mt-1">PM/Finance only</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Assign To</label>
-              <select {...register('assignedTo')} className="w-full px-3 py-2 border rounded-lg">
-                <option value="">Unassigned</option>
-                {membersData?.members.map((m) => (
-                  <option key={m.userId} value={m.userId}>
-                    {m.userFirstName} {m.userLastName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex gap-2">
-              <Button type="submit" isLoading={isUpdating}>
-                Save Changes
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Description</h3>
-                <p className="text-sm">{issue.description || '—'}</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-6 pt-4 border-t">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Reported Impact</h3>
-                  <p className="text-lg font-semibold">{issue.reportedImpactDays} days</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Approved Impact</h3>
-                  <p className="text-lg font-semibold">
-                    {issue.approvedImpactDays} days
-                    {issue.approvedImpactDays !== issue.reportedImpactDays && (
-                      <span className="text-sm text-amber-600 ml-2">(differs from reported)</span>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Assigned To</h3>
-                  <p className="text-sm">{issue.assignedTo || 'Unassigned'}</p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};

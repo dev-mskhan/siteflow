@@ -1,6 +1,11 @@
-import { useState } from 'react';
+/**
+ * ProjectFieldLogDetailPage — /org/:orgId/projects/:projectId/field-logs/:logId
+ * Detail view with entries table, state machine actions, amendments section.
+ */
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { Plus, X, ArrowRight, Lock, Send, Pencil } from 'lucide-react';
 import {
   useGetFieldLogQuery,
   useUpdateFieldLogMutation,
@@ -10,451 +15,556 @@ import {
   useCreateAmendmentMutation,
 } from '../api/fieldLogApi';
 import { useListTasksQuery } from '../api/taskApi';
-import { useCanAccess } from '../hooks/usePermission';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
+import { usePermission } from '../hooks/usePermission';
 import { InlineAlert } from '../components/ui/InlineAlert';
-import { getServerError } from '../lib/authErrors';
+import { useToast } from '../components/ui/Toast';
+import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../lib/authErrors';
 import type {
   UpdateFieldLogInput,
   FieldLogEntryInput,
   CreateAmendmentInput,
+  FieldLogStatus,
 } from '../types/fieldLogTypes';
 
-const STATUS_COLORS = {
-  DRAFT: 'gray',
-  SUBMITTED: 'amber',
-  LOCKED: 'green',
-} as const;
+const STATUS_BADGE: Record<FieldLogStatus, string> = {
+  DRAFT: 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
+  SUBMITTED: 'border-[#fde68a] bg-[#fffbeb] text-[#92400e]',
+  LOCKED: 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
+};
 
-export function ProjectFieldLogDetailPage() {
-  const { organizationId, projectId, logId } = useParams();
-  const canUpdate = useCanAccess('project.field-log.update');
-  const canSubmit = useCanAccess('project.field-log.submit');
-  const canLock = useCanAccess('project.field-log.lock');
+const STEPS: FieldLogStatus[] = ['DRAFT', 'SUBMITTED', 'LOCKED'];
+
+export const ProjectFieldLogDetailPage: React.FC = () => {
+  const { orgId, projectId, logId } = useParams<{
+    orgId: string;
+    projectId: string;
+    logId: string;
+  }>();
+  const canUpdate = usePermission('project.field-log.update');
+  const canSubmit = usePermission('project.field-log.submit');
+  const canLock = usePermission('project.field-log.lock');
+  const { success: toastOk, error: toastErr } = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [isCreatingAmendment, setIsCreatingAmendment] = useState(false);
-  const [entryRows, setEntryRows] = useState<FieldLogEntryInput[]>([]);
+  const [editRows, setEditRows] = useState<FieldLogEntryInput[]>([]);
+  const [showAmendForm, setShowAmendForm] = useState(false);
 
   const { data: log, isLoading } = useGetFieldLogQuery({
-    orgId: organizationId!,
+    orgId: orgId!,
     projectId: projectId!,
     logId: logId!,
   });
   const { data: amendmentsData } = useListAmendmentsQuery({
-    orgId: organizationId!,
+    orgId: orgId!,
     projectId: projectId!,
     logId: logId!,
   });
-  const { data: tasksData } = useListTasksQuery({ orgId: organizationId!, projectId: projectId! });
+  const { data: tasksData } = useListTasksQuery({ orgId: orgId!, projectId: projectId! });
 
-  const [updateFieldLog, { isLoading: isUpdating, error: updateError }] =
-    useUpdateFieldLogMutation();
-  const [submitFieldLog, { isLoading: isSubmitting }] = useSubmitFieldLogMutation();
-  const [lockFieldLog, { isLoading: isLocking }] = useLockFieldLogMutation();
-  const [createAmendment, { isLoading: isCreatingAmend, error: amendError }] =
+  const [updateFieldLog, { isLoading: updating, error: updateErr }] = useUpdateFieldLogMutation();
+  const [submitFieldLog, { isLoading: submitting }] = useSubmitFieldLogMutation();
+  const [lockFieldLog, { isLoading: locking }] = useLockFieldLogMutation();
+  const [createAmendment, { isLoading: creatingAmend, error: amendErr }] =
     useCreateAmendmentMutation();
 
   const {
-    register: registerUpdate,
+    register: regUpdate,
     handleSubmit: handleUpdate,
     reset: resetUpdate,
   } = useForm<UpdateFieldLogInput>();
-
   const {
-    register: registerAmend,
+    register: regAmend,
     handleSubmit: handleAmend,
     reset: resetAmend,
-  } = useForm<CreateAmendmentInput>();
+  } = useForm<{ reason: string; correctionRaw: string }>();
 
-  const onUpdate = async (values: UpdateFieldLogInput) => {
+  const getTaskName = (taskId: string) => {
+    const t = tasksData?.tasks.find((t) => t.id === taskId);
+    return t ? `${t.taskCode} — ${t.name}` : taskId;
+  };
+
+  const startEdit = () => {
+    if (!log) return;
+    resetUpdate({ notes: log.notes ?? '' });
+    setEditRows(
+      (log.entries ?? []).map((e) => ({
+        taskId: e.taskId,
+        completionPctRecorded: e.completionPctRecorded,
+        quantityCompleted: e.quantityCompleted ?? undefined,
+        unit: e.unit ?? undefined,
+        notes: e.notes ?? undefined,
+      })),
+    );
+    setIsEditing(true);
+  };
+
+  const addRow = () => setEditRows((r) => [...r, { taskId: '', completionPctRecorded: 0 }]);
+  const updateRow = (idx: number, patch: Partial<FieldLogEntryInput>) =>
+    setEditRows((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  const removeRow = (idx: number) => setEditRows((rows) => rows.filter((_, i) => i !== idx));
+
+  const onSave = async (values: UpdateFieldLogInput) => {
     try {
-      const input: UpdateFieldLogInput = {
-        ...values,
-        entries: entryRows.length > 0 ? entryRows : undefined,
-      };
       await updateFieldLog({
-        orgId: organizationId!,
+        orgId: orgId!,
         projectId: projectId!,
         logId: logId!,
-        input,
+        input: { ...values, entries: editRows.filter((e) => e.taskId) },
       }).unwrap();
+      toastOk('Log updated', '');
       setIsEditing(false);
-    } catch (e) {
-      // Error shown via updateError
+    } catch (err) {
+      if (isToastError(err as never)) toastErr('Update failed', toastErrorMessage(err as never));
     }
   };
 
   const onSubmit = async () => {
-    await submitFieldLog({ orgId: organizationId!, projectId: projectId!, logId: logId! });
+    try {
+      await submitFieldLog({ orgId: orgId!, projectId: projectId!, logId: logId! }).unwrap();
+      toastOk('Log submitted', '');
+    } catch (err) {
+      toastErr('Submit failed', toastErrorMessage(err as never));
+    }
   };
 
   const onLock = async () => {
-    await lockFieldLog({ orgId: organizationId!, projectId: projectId!, logId: logId! });
+    try {
+      await lockFieldLog({ orgId: orgId!, projectId: projectId!, logId: logId! }).unwrap();
+      toastOk('Log locked', '');
+    } catch (err) {
+      toastErr('Lock failed', toastErrorMessage(err as never));
+    }
   };
 
-  const onCreateAmendment = async (values: CreateAmendmentInput) => {
+  const onAmend = async (values: { reason: string; correctionRaw: string }) => {
+    let correction: Record<string, unknown>;
+    try {
+      correction = JSON.parse(values.correctionRaw);
+    } catch {
+      toastErr('Invalid JSON', 'The correction field must be valid JSON.');
+      return;
+    }
     try {
       await createAmendment({
-        orgId: organizationId!,
+        orgId: orgId!,
         projectId: projectId!,
         logId: logId!,
-        input: values,
+        input: { reason: values.reason, correction },
       }).unwrap();
+      toastOk('Amendment submitted', '');
       resetAmend();
-      setIsCreatingAmendment(false);
-    } catch (e) {
-      // Error shown via amendError
+      setShowAmendForm(false);
+    } catch (err) {
+      if (isToastError(err as never)) toastErr('Amendment failed', toastErrorMessage(err as never));
     }
   };
 
-  const startEdit = () => {
-    if (log) {
-      resetUpdate({ notes: log.notes || '' });
-      setEntryRows(
-        log.entries?.map((e) => ({
-          taskId: e.taskId,
-          completionPctRecorded: e.completionPctRecorded,
-          quantityCompleted: e.quantityCompleted || '',
-          unit: e.unit || '',
-          notes: e.notes || '',
-        })) || [],
-      );
-      setIsEditing(true);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="p-6 sm:p-8 space-y-3">
+        {[1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-20 animate-pulse bg-[var(--surface-2)] border border-[var(--hairline-2)]"
+          />
+        ))}
+      </div>
+    );
+  }
 
-  const addEntryRow = () => {
-    setEntryRows([
-      ...entryRows,
-      { taskId: '', completionPctRecorded: 0, quantityCompleted: '', unit: '', notes: '' },
-    ]);
-  };
+  if (!log) {
+    return (
+      <div className="p-6 sm:p-8">
+        <p className="text-sm text-[var(--muted)]">Field log not found.</p>
+      </div>
+    );
+  }
 
-  const updateEntryRow = (
-    index: number,
-    field: keyof FieldLogEntryInput,
-    value: string | number,
-  ) => {
-    const updated = [...entryRows];
-    updated[index] = { ...updated[index], [field]: value };
-    setEntryRows(updated);
-  };
-
-  const removeEntryRow = (index: number) => {
-    setEntryRows(entryRows.filter((_, i) => i !== index));
-  };
-
-  const getTaskName = (taskId: string) => {
-    const task = tasksData?.tasks.find((t) => t.id === taskId);
-    return task ? `${task.taskCode} - ${task.name}` : taskId;
-  };
-
-  if (isLoading) return <div>Loading field log...</div>;
-  if (!log) return <div>Field log not found</div>;
-
-  const amendments = amendmentsData?.data || [];
+  const amendments = amendmentsData?.data ?? [];
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold mb-2">Field Log - {log.logDate}</h1>
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span>Supervisor: {log.supervisorId}</span>
-              <Badge variant={STATUS_COLORS[log.status]}>{log.status}</Badge>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {log.status === 'DRAFT' && canUpdate && !isEditing && (
-              <>
-                <Button variant="outline" onClick={startEdit}>
-                  Edit
-                </Button>
-                {canSubmit && (
-                  <Button onClick={onSubmit} isLoading={isSubmitting}>
-                    Submit
-                  </Button>
-                )}
-              </>
-            )}
-            {log.status === 'SUBMITTED' && canLock && (
-              <Button onClick={onLock} isLoading={isLocking}>
-                Lock
-              </Button>
-            )}
-            {log.status === 'LOCKED' && canUpdate && !isCreatingAmendment && (
-              <Button variant="outline" onClick={() => setIsCreatingAmendment(true)}>
-                Add Amendment
-              </Button>
-            )}
+    <div className="p-6 sm:p-8 max-w-4xl space-y-8">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--hairline-2)]">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            Field log
+          </p>
+          <h1 className="mt-1 text-2xl font-medium tracking-[-0.04em]">{log.logDate}</h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span
+              className={`font-mono text-[9px] uppercase tracking-[0.12em] border px-2 py-0.5 ${STATUS_BADGE[log.status]}`}
+            >
+              {log.status}
+            </span>
+            <span className="font-mono text-[10px] text-[var(--muted)]">
+              Supervisor: {log.supervisorId}
+            </span>
           </div>
         </div>
 
-        {/* Status pipeline */}
-        <div className="flex items-center gap-2 mb-6 pb-6 border-b">
-          <div
-            className={`flex items-center gap-2 ${log.status === 'DRAFT' ? 'text-gray-900' : 'text-gray-400'}`}
-          >
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
-              1
-            </div>
-            <span className="text-sm font-medium">DRAFT</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-300" />
-          <div
-            className={`flex items-center gap-2 ${log.status === 'SUBMITTED' ? 'text-gray-900' : 'text-gray-400'}`}
-          >
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
-              2
-            </div>
-            <span className="text-sm font-medium">SUBMITTED</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-gray-300" />
-          <div
-            className={`flex items-center gap-2 ${log.status === 'LOCKED' ? 'text-gray-900' : 'text-gray-400'}`}
-          >
-            <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm">
-              3
-            </div>
-            <span className="text-sm font-medium">LOCKED</span>
-          </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 shrink-0">
+          {log.status === 'DRAFT' && canUpdate && !isEditing && (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="inline-flex items-center gap-2 border border-[var(--hairline-2)] px-4 py-2 text-sm font-medium hover:bg-[var(--surface-2)] transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Edit
+            </button>
+          )}
+          {log.status === 'DRAFT' && canSubmit && (
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={submitting}
+              className="inline-flex items-center gap-2 min-h-10 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" strokeWidth={1.8} />
+              {submitting ? 'Submitting…' : 'Submit'}
+            </button>
+          )}
+          {log.status === 'SUBMITTED' && canLock && (
+            <button
+              type="button"
+              onClick={onLock}
+              disabled={locking}
+              className="inline-flex items-center gap-2 min-h-10 bg-[#166534] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
+            >
+              <Lock className="h-4 w-4" strokeWidth={1.8} />
+              {locking ? 'Locking…' : 'Lock'}
+            </button>
+          )}
+          {log.status === 'LOCKED' && canUpdate && !showAmendForm && (
+            <button
+              type="button"
+              onClick={() => setShowAmendForm(true)}
+              className="inline-flex items-center gap-2 border border-[var(--hairline-2)] px-4 py-2 text-sm font-medium hover:bg-[var(--surface-2)] transition-colors"
+            >
+              <Plus className="h-4 w-4" strokeWidth={1.8} />
+              Add amendment
+            </button>
+          )}
         </div>
+      </div>
 
-        {isEditing ? (
-          <form onSubmit={handleUpdate(onUpdate)} className="space-y-4">
-            {updateError && (
-              <InlineAlert variant="error">{getServerError(updateError)}</InlineAlert>
-            )}
-            <div>
-              <label className="block text-sm font-medium mb-1">Notes</label>
-              <textarea
-                {...registerUpdate('notes')}
-                rows={3}
-                maxLength={4000}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium">Task Entries</label>
-                <Button type="button" variant="outline" size="sm" onClick={addEntryRow}>
-                  Add Entry
-                </Button>
+      {/* Status pipeline */}
+      <div className="flex items-center gap-0">
+        {STEPS.map((step, idx) => {
+          const active = log.status === step;
+          const done = STEPS.indexOf(log.status) > idx;
+          return (
+            <React.Fragment key={step}>
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 border ${active ? 'border-[var(--ink)] bg-[var(--ink)] text-white' : done ? 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]' : 'border-[var(--hairline-2)] bg-[var(--paper)] text-[var(--muted)]'}`}
+              >
+                <span className="font-mono text-[9px] uppercase tracking-[0.14em]">{step}</span>
               </div>
-              {entryRows.map((entry, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 mb-2 p-3 border rounded">
-                  <select
-                    className="col-span-3 px-2 py-1 border rounded text-sm"
-                    value={entry.taskId}
-                    onChange={(e) => updateEntryRow(idx, 'taskId', e.target.value)}
-                  >
-                    <option value="">Select task</option>
-                    {tasksData?.tasks.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.taskCode} - {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="% Complete"
-                    min={0}
-                    max={100}
-                    className="col-span-2 px-2 py-1 border rounded text-sm"
-                    value={entry.completionPctRecorded}
-                    onChange={(e) =>
-                      updateEntryRow(idx, 'completionPctRecorded', Number(e.target.value))
-                    }
-                  />
-                  <input
-                    type="text"
-                    placeholder="Qty"
-                    className="col-span-2 px-2 py-1 border rounded text-sm"
-                    value={entry.quantityCompleted || ''}
-                    onChange={(e) => updateEntryRow(idx, 'quantityCompleted', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Unit"
-                    maxLength={50}
-                    className="col-span-1 px-2 py-1 border rounded text-sm"
-                    value={entry.unit || ''}
-                    onChange={(e) => updateEntryRow(idx, 'unit', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Notes"
-                    maxLength={2000}
-                    className="col-span-3 px-2 py-1 border rounded text-sm"
-                    value={entry.notes || ''}
-                    onChange={(e) => updateEntryRow(idx, 'notes', e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeEntryRow(idx)}
-                    className="col-span-1"
-                  >
-                    ✕
-                  </Button>
+              {idx < STEPS.length - 1 && (
+                <ArrowRight
+                  className="h-3.5 w-3.5 text-[var(--muted)] shrink-0"
+                  strokeWidth={1.5}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Notes */}
+      {!isEditing && (
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-2">
+            Notes
+          </p>
+          <p className="text-sm">{log.notes || '—'}</p>
+        </div>
+      )}
+
+      {/* Edit form */}
+      {isEditing && (
+        <div className="border border-[var(--hairline-2)] bg-[var(--paper)] p-6 space-y-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+            Edit log
+          </p>
+          {isInlineError(updateErr) && (
+            <InlineAlert variant="error" message={getServerError(updateErr)?.message ?? 'Error'} />
+          )}
+          <div>
+            <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+              Notes
+            </label>
+            <textarea
+              {...regUpdate('notes')}
+              rows={3}
+              maxLength={4000}
+              className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm resize-none focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+            />
+          </div>
+
+          {/* Entry rows */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                Task entries
+              </p>
+              <button
+                type="button"
+                onClick={addRow}
+                className="inline-flex items-center gap-1.5 text-xs font-medium border border-[var(--hairline-2)] px-3 py-1.5 hover:bg-[var(--surface-2)] transition-colors"
+              >
+                <Plus className="h-3 w-3" strokeWidth={2} /> Add entry
+              </button>
+            </div>
+            {editRows.length > 0 && (
+              <div className="border border-[var(--hairline-2)] divide-y divide-[var(--hairline-2)]">
+                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr_32px] gap-2 px-3 py-2 bg-[var(--surface-2)]">
+                  {['Task', '% Done', 'Qty', 'Unit', 'Notes', ''].map((h) => (
+                    <p
+                      key={h}
+                      className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]"
+                    >
+                      {h}
+                    </p>
+                  ))}
                 </div>
+                {editRows.map((row, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr_32px] gap-2 items-center px-3 py-2.5 bg-[var(--paper)]"
+                  >
+                    <select
+                      value={row.taskId}
+                      onChange={(e) => updateRow(idx, { taskId: e.target.value })}
+                      className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-2 py-1.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                    >
+                      <option value="">Select task…</option>
+                      {tasksData?.tasks.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.taskCode} — {t.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={row.completionPctRecorded}
+                      onChange={(e) =>
+                        updateRow(idx, { completionPctRecorded: Number(e.target.value) })
+                      }
+                      className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-2 py-1.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="—"
+                      value={row.quantityCompleted ?? ''}
+                      onChange={(e) =>
+                        updateRow(idx, { quantityCompleted: e.target.value || undefined })
+                      }
+                      className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-2 py-1.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="m³"
+                      maxLength={50}
+                      value={row.unit ?? ''}
+                      onChange={(e) => updateRow(idx, { unit: e.target.value || undefined })}
+                      className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-2 py-1.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                    />
+                    <input
+                      type="text"
+                      maxLength={2000}
+                      placeholder="Notes"
+                      value={row.notes ?? ''}
+                      onChange={(e) => updateRow(idx, { notes: e.target.value || undefined })}
+                      className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-2 py-1.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeRow(idx)}
+                      className="p-1 text-[var(--muted)] hover:text-[#991b1b] transition-colors"
+                    >
+                      <X className="h-4 w-4" strokeWidth={1.8} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 pt-2 border-t border-[var(--hairline-2)]">
+            <button
+              onClick={handleUpdate(onSave)}
+              disabled={updating}
+              className="inline-flex items-center gap-2 min-h-10 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0"
+            >
+              {updating ? 'Saving…' : 'Save changes'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Entries table (read-only) */}
+      {!isEditing && (
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-3">
+            Task entries
+          </p>
+          <div className="border border-[var(--hairline-2)]">
+            <div className="grid grid-cols-[2fr_160px_80px_80px_2fr] gap-4 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]">
+              {['Task', 'Progress', 'Qty', 'Unit', 'Notes'].map((h) => (
+                <p
+                  key={h}
+                  className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]"
+                >
+                  {h}
+                </p>
               ))}
             </div>
-
-            <div className="flex gap-2">
-              <Button type="submit" isLoading={isUpdating}>
-                Save
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Notes</h3>
-              <p className="text-sm">{log.notes || '—'}</p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium mb-3">Task Entries</h3>
-              {log.entries && log.entries.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-medium">Task</th>
-                        <th className="px-3 py-2 text-left font-medium">Progress</th>
-                        <th className="px-3 py-2 text-left font-medium">Quantity</th>
-                        <th className="px-3 py-2 text-left font-medium">Unit</th>
-                        <th className="px-3 py-2 text-left font-medium">Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {log.entries.map((entry) => (
-                        <tr key={entry.id}>
-                          <td className="px-3 py-2">{getTaskName(entry.taskId)}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-blue-600"
-                                  style={{ width: `${entry.completionPctRecorded}%` }}
-                                />
-                              </div>
-                              <span className="text-xs text-gray-600">
-                                {entry.completionPctRecorded}%
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">{entry.quantityCompleted || '—'}</td>
-                          <td className="px-3 py-2">{entry.unit || '—'}</td>
-                          <td className="px-3 py-2 text-gray-600">{entry.notes || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {!log.entries || log.entries.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-[var(--muted)]">
+                No entries recorded.
+              </div>
+            ) : (
+              log.entries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="grid grid-cols-[2fr_160px_80px_80px_2fr] gap-4 items-center px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]"
+                >
+                  <p className="text-sm font-medium truncate">{getTaskName(entry.taskId)}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-[var(--surface-2)] border border-[var(--hairline-2)]">
+                      <div
+                        className="h-full bg-[var(--ink)]"
+                        style={{ width: `${entry.completionPctRecorded}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] text-[var(--muted)] w-8 text-right">
+                      {entry.completionPctRecorded}%
+                    </span>
+                  </div>
+                  <p className="font-mono text-[11px] text-[var(--muted)]">
+                    {entry.quantityCompleted ?? '—'}
+                  </p>
+                  <p className="font-mono text-[11px] text-[var(--muted)]">{entry.unit ?? '—'}</p>
+                  <p className="text-sm text-[var(--muted)] truncate">{entry.notes ?? '—'}</p>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500">No entries recorded</p>
-              )}
-            </div>
-          </>
-        )}
-      </Card>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
+      {/* Amendments (only on LOCKED logs) */}
       {log.status === 'LOCKED' && (
-        <Card className="p-6">
-          <h2 className="text-lg font-medium mb-4">Amendments</h2>
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-3">
+            Amendments
+          </p>
 
-          {isCreatingAmendment && (
+          {showAmendForm && (
             <form
-              onSubmit={handleAmend(onCreateAmendment)}
-              className="mb-6 p-4 border rounded-lg space-y-3"
+              onSubmit={handleAmend(onAmend)}
+              className="mb-4 border border-[var(--hairline-2)] bg-[var(--paper)] p-5 space-y-4"
             >
-              {amendError && (
-                <InlineAlert variant="error">{getServerError(amendError)}</InlineAlert>
+              {isInlineError(amendErr) && (
+                <InlineAlert
+                  variant="error"
+                  message={getServerError(amendErr)?.message ?? 'Error'}
+                />
               )}
               <div>
-                <label className="block text-sm font-medium mb-1">Reason</label>
+                <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                  Reason *
+                </label>
                 <textarea
-                  {...registerAmend('reason', { required: true, minLength: 1, maxLength: 2000 })}
+                  {...regAmend('reason', { required: true, minLength: 1, maxLength: 2000 })}
                   rows={3}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm resize-none focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Correction (JSON)</label>
+                <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                  Correction (JSON) *
+                </label>
                 <textarea
-                  {...registerAmend('correction', {
-                    required: true,
-                    setValueAs: (v) => {
-                      try {
-                        return JSON.parse(v);
-                      } catch {
-                        return {};
-                      }
-                    },
-                  })}
+                  {...regAmend('correctionRaw', { required: true })}
                   rows={4}
-                  placeholder='{"field": "value"}'
-                  className="w-full px-3 py-2 border rounded-lg text-sm font-mono"
+                  placeholder='{"field": "oldValue", "correctedValue": "newValue"}'
+                  className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm font-mono resize-none focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
                 />
               </div>
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" isLoading={isCreatingAmend}>
-                  Submit Amendment
-                </Button>
-                <Button
+              <div className="flex items-center gap-3 pt-2 border-t border-[var(--hairline-2)]">
+                <button
+                  type="submit"
+                  disabled={creatingAmend}
+                  className="inline-flex items-center gap-2 min-h-9 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
+                >
+                  {creatingAmend ? 'Submitting…' : 'Submit amendment'}
+                </button>
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={() => {
-                    setIsCreatingAmendment(false);
+                    setShowAmendForm(false);
                     resetAmend();
                   }}
+                  className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
             </form>
           )}
 
-          {amendments.length > 0 ? (
-            <div className="space-y-3">
-              {amendments.map((amendment) => (
-                <div key={amendment.id} className="p-4 border rounded-lg">
+          <div className="border border-[var(--hairline-2)]">
+            {amendments.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-[var(--muted)]">
+                No amendments yet.
+              </div>
+            ) : (
+              amendments.map((a, idx) => (
+                <div
+                  key={a.id}
+                  className="px-4 py-4 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]"
+                >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="text-sm font-medium">Requested by: {amendment.requestedBy}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(amendment.createdAt).toLocaleString()}
+                      <p className="font-mono text-[10px] text-[var(--muted)]">
+                        #{idx + 1} · Requested by {a.requestedBy} ·{' '}
+                        {new Date(a.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    {amendment.approvedBy && <Badge variant="green">Approved</Badge>}
+                    {a.approvedBy && (
+                      <span className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534] px-1.5 py-0.5">
+                        Approved
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm mb-2">{amendment.reason}</p>
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-gray-600">View correction</summary>
-                    <pre className="mt-2 p-2 bg-gray-50 rounded overflow-x-auto">
-                      {JSON.stringify(amendment.correction, null, 2)}
+                  <p className="text-sm mb-3">{a.reason}</p>
+                  <details>
+                    <summary className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)] cursor-pointer hover:text-[var(--ink)]">
+                      View correction JSON
+                    </summary>
+                    <pre className="mt-2 p-3 bg-[var(--surface-2)] border border-[var(--hairline-2)] text-xs font-mono overflow-x-auto">
+                      {JSON.stringify(a.correction, null, 2)}
                     </pre>
                   </details>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No amendments yet</p>
-          )}
-        </Card>
+              ))
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
-}
+};
