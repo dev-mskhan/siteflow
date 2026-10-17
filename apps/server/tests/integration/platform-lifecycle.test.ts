@@ -1,11 +1,12 @@
 // apps/server/tests/integration/platform-lifecycle.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../../src/lib/db/index.js';
-import { users, organizations, platformApprovals } from '@siteflow/database/schema';
+import { users, organizations, platformApprovals, auditLogs } from '@siteflow/database/schema';
 import { hashPassword } from '../../src/modules/auth/password.service.js';
 import { PlatformLifecycleService } from '../../src/modules/platform/platform-lifecycle.service.js';
+import { auditService } from '../../src/modules/audit/audit.service.js';
 
 const PASSWORD = 'Correct-Horse-9';
 const reason = {
@@ -40,9 +41,13 @@ describe('platform lifecycle service (Phase 11-03)', () => {
     const db = getDb();
     if (orgIds.length) {
       await db.delete(platformApprovals).where(inArray(platformApprovals.targetId, orgIds));
+      await db.delete(auditLogs).where(inArray(auditLogs.organizationId, orgIds));
       await db.delete(organizations).where(inArray(organizations.id, orgIds));
     }
-    if (userIds.length) await db.delete(users).where(inArray(users.id, userIds));
+    if (userIds.length) {
+      await db.delete(auditLogs).where(inArray(auditLogs.actorUserId, userIds));
+      await db.delete(users).where(inArray(users.id, userIds));
+    }
   });
 
   async function createOrg(suffix: string): Promise<string> {
@@ -57,6 +62,14 @@ describe('platform lifecycle service (Phase 11-03)', () => {
     return id;
   }
 
+  async function expectAuditCount(action: string, resourceId: string, count = 1) {
+    const rows = await getDb()
+      .select({ id: auditLogs.id })
+      .from(auditLogs)
+      .where(and(eq(auditLogs.action, action), eq(auditLogs.resourceId, resourceId)));
+    expect(rows).toHaveLength(count);
+  }
+
   it('rejects a wrong password for an account suspension', async () => {
     await expect(
       svc.suspendAccount(targetUser, { actorUserId: operatorA, password: 'wrong-password', ...reason }),
@@ -67,6 +80,26 @@ describe('platform lifecycle service (Phase 11-03)', () => {
     await expect(
       svc.suspendAccount(operatorA, { actorUserId: operatorA, password: PASSWORD, ...reason }),
     ).rejects.toThrow('Operators cannot suspend their own account');
+  });
+
+  it('rolls back the mutation and audit row when a later transaction step fails', async () => {
+    const originalLog = auditService.log.bind(auditService);
+    const auditSpy = vi.spyOn(auditService, 'log').mockImplementation(async (entry, tx) => {
+      await originalLog(entry, tx);
+      throw new Error('forced failure after audit insert');
+    });
+
+    try {
+      await expect(
+        svc.suspendAccount(targetUser, { actorUserId: operatorA, password: PASSWORD, ...reason }),
+      ).rejects.toThrow('forced failure after audit insert');
+    } finally {
+      auditSpy.mockRestore();
+    }
+
+    const [user] = await getDb().select({ status: users.status }).from(users).where(eq(users.id, targetUser));
+    expect(user!.status).toBe('ACTIVE');
+    await expectAuditCount('platform.account.suspended', targetUser, 0);
   });
 
   it('allows exactly one of two concurrent account suspensions', async () => {
@@ -81,10 +114,12 @@ describe('platform lifecycle service (Phase 11-03)', () => {
     expect(rejected).toHaveLength(1);
     const [row] = await getDb().select({ status: users.status }).from(users).where(eq(users.id, targetUser));
     expect(row.status).toBe('SUSPENDED');
+    await expectAuditCount('platform.account.suspended', targetUser);
   });
 
   it('reactivates a suspended account and rejects a second reactivation', async () => {
     await svc.reactivateAccount(targetUser, { actorUserId: operatorA, password: PASSWORD, ...reason });
+    await expectAuditCount('platform.account.reactivated', targetUser);
     await expect(
       svc.reactivateAccount(targetUser, { actorUserId: operatorA, password: PASSWORD, ...reason }),
     ).rejects.toThrow('Account is not suspended');
@@ -97,6 +132,7 @@ describe('platform lifecycle service (Phase 11-03)', () => {
       password: PASSWORD,
       ...reason,
     });
+    await expectAuditCount('platform.organization.suspension_requested', orgId);
 
     await expect(
       svc.approveOrganizationSuspension(approvalId, { actorUserId: operatorA, password: PASSWORD, ...reason }),
@@ -110,6 +146,14 @@ describe('platform lifecycle service (Phase 11-03)', () => {
 
     const [org] = await getDb().select({ status: organizations.status }).from(organizations).where(eq(organizations.id, orgId));
     expect(org.status).toBe('SUSPENDED');
+    await expectAuditCount('platform.organization.suspended', orgId);
+
+    await svc.reactivateOrganization(orgId, {
+      actorUserId: operatorA,
+      password: PASSWORD,
+      ...reason,
+    });
+    await expectAuditCount('platform.organization.reactivated', orgId);
 
     await expect(
       svc.approveOrganizationSuspension(approvalId, { actorUserId: operatorB, password: PASSWORD, ...reason }),

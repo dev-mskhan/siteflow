@@ -47,3 +47,31 @@ export async function ensureRedisConnected(): Promise<Redis> {
   }
   return client;
 }
+
+export async function deleteRedisKeysByPattern(
+  client: Redis,
+  pattern: string,
+  options: { count?: number; maxBatches?: number; maxKeys?: number } = {},
+): Promise<number> {
+  const count = options.count ?? 100;
+  const maxBatches = options.maxBatches ?? 1_000;
+  const maxKeys = options.maxKeys ?? 100_000;
+  let cursor = '0';
+  let batches = 0;
+  let deleted = 0;
+
+  do {
+    if (batches >= maxBatches) {
+      throw new Error(`Redis scan exceeded ${maxBatches} batches for pattern ${pattern}`);
+    }
+    const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', count);
+    cursor = nextCursor;
+    batches += 1;
+    if (deleted + keys.length > maxKeys) {
+      throw new Error(`Redis scan exceeded ${maxKeys} keys for pattern ${pattern}`);
+    }
+    if (keys.length > 0) deleted += await client.del(...keys);
+  } while (cursor !== '0');
+
+  return deleted;
+}

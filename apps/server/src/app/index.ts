@@ -209,6 +209,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   // ─── Realtime SSE Notifications ─────────────────────────────────────────────
   const { realtimePlugin } = await import('../modules/notification/realtime/realtime.plugin.js');
   await app.register(realtimePlugin);
+  const { notificationRoutes } = await import('../modules/notification/notification.routes.js');
+  await app.register(notificationRoutes);
 
   return app;
 }

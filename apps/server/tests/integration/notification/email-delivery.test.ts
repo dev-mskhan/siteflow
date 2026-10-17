@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { processEmailNotificationJob } from '../../../src/modules/notification/email/email.worker.js';
 import { notificationService } from '../../../src/modules/notification/notification.service.js';
+import { preferenceService } from '../../../src/modules/notification/preferences/preference.service.js';
 import { type EmailProvider } from '../../../src/modules/notification/email/email.provider.js';
 
 describe('F.5 Email Notification Delivery Integration', () => {
@@ -84,6 +85,32 @@ describe('F.5 Email Notification Delivery Integration', () => {
     expect(target).toBeDefined();
     expect(target?.status).toBe('FAILED');
     expect(target?.lastError).toContain('SMTP Connection Timeout');
+  });
+
+  it('does not send email when the recipient opted out', async () => {
+    const notif = await notificationService.createNotification({
+      organizationId: org1Id,
+      recipientId: user1Id,
+      eventType: 'IssueCreated',
+      channel: 'EMAIL',
+    });
+    await preferenceService.setPreference(org1Id, user1Id, 'IssueCreated', 'EMAIL', false);
+    const provider = new MockEmailProvider();
+
+    const result = await processEmailNotificationJob(
+      {
+        notificationId: notif.id,
+        organizationId: org1Id,
+        recipientEmail: 'siteadmin@siteflow.dev',
+        eventType: 'IssueCreated',
+      },
+      provider,
+    );
+
+    expect(result.success).toBe(true);
+    expect(provider.sentCount).toBe(0);
+    const updated = await notificationService.getRecipientNotifications(org1Id, user1Id);
+    expect(updated.find((notification) => notification.id === notif.id)?.status).toBe('CANCELLED');
   });
 
   it('enforces tenant context on worker job data', async () => {

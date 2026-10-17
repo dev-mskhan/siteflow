@@ -2,12 +2,11 @@
 // Phase 10 — Plan 11: Transactional entitlement admission
 // Enforces approved limits atomically in PostgreSQL at consuming operation boundaries.
 
-import { count, eq, and, gt, ne, notInArray, sql } from 'drizzle-orm';
+import { count, eq, and, notInArray, sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import {
   projects,
   organizationMemberships,
-  invitations,
 } from '@siteflow/database/schema';
 import {
   saasTrials,
@@ -195,30 +194,9 @@ export class EntitlementService {
       .where(
         and(
           eq(organizationMemberships.organizationId, organizationId),
-          ne(organizationMemberships.status, 'REMOVED'),
+          eq(organizationMemberships.status, 'ACTIVE'),
         ),
       );
-    return Number(result[0]?.cnt ?? 0);
-  }
-
-  async countPendingInvitations(
-    organizationId: string,
-    tx: any,
-    excludedInvitationId?: string,
-  ): Promise<number> {
-    const filters = [
-      eq(invitations.organizationId, organizationId),
-      eq(invitations.status, 'PENDING'),
-      gt(invitations.expiresAt, new Date()),
-    ];
-    if (excludedInvitationId) {
-      filters.push(ne(invitations.id, excludedInvitationId));
-    }
-
-    const result = await tx
-      .select({ cnt: count() })
-      .from(invitations)
-      .where(and(...filters));
     return Number(result[0]?.cnt ?? 0);
   }
 
@@ -316,17 +294,12 @@ export class EntitlementService {
 
   async assertCanAcceptInvitation(
     organizationId: string,
-    invitationId: string,
     tx: any,
   ): Promise<void> {
-    await this.assertCanUseMemberSeat(organizationId, tx, invitationId);
+    await this.assertCanUseMemberSeat(organizationId, tx);
   }
 
-  private async assertCanUseMemberSeat(
-    organizationId: string,
-    tx: any,
-    excludedInvitationId?: string,
-  ): Promise<void> {
+  private async assertCanUseMemberSeat(organizationId: string, tx: any): Promise<void> {
     await this.lockOrganizationUsage(organizationId, tx);
     const { limits, state } = await this.resolveEffectiveLimits(organizationId, tx);
 
@@ -346,19 +319,12 @@ export class EntitlementService {
       });
     }
 
-    // Pending invitations reserve seats; acceptance converts its own reservation.
     const activeMembers = await this.countActiveOrgMembers(organizationId, tx);
-    const pendingInvitations = await this.countPendingInvitations(
-      organizationId,
-      tx,
-      excludedInvitationId,
-    );
-    const current = activeMembers + pendingInvitations;
-    const check = checkEntitlementLimit('teamMembers', current, limits);
+    const check = checkEntitlementLimit('teamMembers', activeMembers, limits);
 
     if (!check.allowed) {
       logger.info(
-        { organizationId, current, limit: check.limit },
+        { organizationId, current: activeMembers, limit: check.limit },
         'Organization invitation blocked: teamMembers limit exceeded',
       );
       throw new EntitlementError({
@@ -370,7 +336,7 @@ export class EntitlementService {
       });
     }
 
-    logger.debug({ organizationId, current, limit: check.limit }, 'Organization seat admitted by entitlement check');
+    logger.debug({ organizationId, current: activeMembers, limit: check.limit }, 'Organization seat admitted by entitlement check');
   }
 }
 

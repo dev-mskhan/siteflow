@@ -247,7 +247,7 @@ export class InvitationService {
       }
 
       await this.db.transaction(async (tx) => {
-        await entitlementService.assertCanAcceptInvitation(invite.organizationId, invite.id, tx);
+        await entitlementService.assertCanAcceptInvitation(invite.organizationId, tx);
         const currentInvite = await tx
           .select({ id: invitations.id })
           .from(invitations)

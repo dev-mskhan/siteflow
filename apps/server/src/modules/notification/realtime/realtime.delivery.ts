@@ -31,6 +31,37 @@ export class RealtimeDeliveryManager {
     }
   }
 
+  closeConnectionsForUser(userId: string): number {
+    return this.closeMatching((conn) => conn.userId === userId, 'user_revoked');
+  }
+
+  closeConnectionsForOrganization(organizationId: string): number {
+    return this.closeMatching((conn) => conn.organizationId === organizationId, 'org_revoked');
+  }
+
+  private closeMatching(match: (conn: SSEConnection) => boolean, reason: string): number {
+    let closed = 0;
+    for (const conn of [...this.connections.values()]) {
+      if (!match(conn)) continue;
+      try {
+        conn.reply.raw.write(`event: revoked\ndata: ${JSON.stringify({ reason })}\n\n`);
+      } catch {
+        // Socket may already be gone; the removal below still applies.
+      }
+      try {
+        conn.reply.raw.end();
+      } catch {
+        // Already ended.
+      }
+      this.removeConnection(conn.connectionId);
+      closed++;
+    }
+    if (closed > 0) {
+      logger.info({ reason, closed }, 'Realtime SSE connections closed by revocation');
+    }
+    return closed;
+  }
+
   broadcastToTenant(organizationId: string, eventData: Record<string, unknown>): number {
     let sentCount = 0;
     const payload = `data: ${JSON.stringify(eventData)}\n\n`;
@@ -47,6 +78,25 @@ export class RealtimeDeliveryManager {
       }
     }
 
+    return sentCount;
+  }
+
+  broadcastToUser(userId: string, organizationId: string, eventData: Record<string, unknown>): number {
+    let sentCount = 0;
+    const payload = `data: ${JSON.stringify(eventData)}\n\n`;
+    for (const conn of this.connections.values()) {
+      if (conn.userId !== userId || !authorizeRealtimeDelivery(conn.organizationId, organizationId)) continue;
+      try {
+        conn.reply.raw.write(payload);
+        sentCount += 1;
+      } catch (err: unknown) {
+        logger.error(
+          { connectionId: conn.connectionId, err: err instanceof Error ? err.message : String(err) },
+          'Failed to write SSE payload',
+        );
+        this.removeConnection(conn.connectionId);
+      }
+    }
     return sentCount;
   }
 

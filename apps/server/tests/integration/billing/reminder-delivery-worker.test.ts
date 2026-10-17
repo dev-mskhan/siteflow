@@ -6,6 +6,7 @@ import {
   countReminderDeliveriesByStatus,
   listBillingAdminEmails,
 } from '../../../src/modules/billing/reminder-delivery.repository.js';
+import { preferenceService } from '../../../src/modules/notification/preferences/preference.service.js';
 import {
   dispatchDueGraceReminders,
   ensureGraceReminderSchedule,
@@ -60,7 +61,7 @@ async function createPastDueOrg(graceAgo: string | null = '2 days') {
       ${graceAgo ? sql.raw(`now() - interval '${graceAgo}'`) : null}
     )
   `);
-  return { organizationId: orgId, subscriptionId, adminEmail: user.email };
+  return { organizationId: orgId, subscriptionId, adminEmail: user.email, adminUserId: user.id };
 }
 
 async function setReminderDue(organizationId: string) {
@@ -87,7 +88,7 @@ describe('billing grace reminder dispatch (10-09 Task 3)', () => {
 
     const counts = await dispatchDueGraceReminders(organizationId);
 
-    expect(counts).toEqual({ SENT: 1, RETRY: 0, FAILED: 0 });
+    expect(counts).toEqual({ SENT: 1, RETRY: 0, FAILED: 0, SUPPRESSED: 0 });
     expect(transportMock.sendGraceReminder).toHaveBeenCalledTimes(1);
     const payload = transportMock.sendGraceReminder.mock.calls[0]![0];
     expect(payload.recipients).toContain(adminEmail);
@@ -96,6 +97,28 @@ describe('billing grace reminder dispatch (10-09 Task 3)', () => {
       ['amountDueText', 'billingPortalUrl', 'graceDay', 'planName', 'recipients'].sort(),
     );
     expect(await countReminderDeliveriesByStatus(organizationId)).toEqual({ PENDING: 2, SENT: 1 });
+  });
+
+  it('suppresses a reminder when all billing admins opt out of billing email', async () => {
+    const { organizationId, adminUserId } = await createPastDueOrg('2 days');
+    await preferenceService.setPreference(
+      organizationId,
+      adminUserId,
+      'billing.grace_reminder',
+      'EMAIL',
+      false,
+    );
+    await ensureGraceReminderSchedule(organizationId);
+
+    const counts = await dispatchDueGraceReminders(organizationId);
+
+    expect(counts).toEqual({ SENT: 0, RETRY: 0, FAILED: 0, SUPPRESSED: 1 });
+    expect(transportMock.sendGraceReminder).not.toHaveBeenCalled();
+    expect(await countReminderDeliveriesByStatus(organizationId)).toEqual({
+      PENDING: 2,
+      SUPPRESSED: 1,
+    });
+    expect((await getReminderDeliveryStatus(organizationId)).suppressed).toBe(1);
   });
 
   it('never resends after success, including across a simulated restart', async () => {
@@ -123,7 +146,7 @@ describe('billing grace reminder dispatch (10-09 Task 3)', () => {
     );
 
     const first = await dispatchDueGraceReminders(organizationId);
-    expect(first).toEqual({ SENT: 0, RETRY: 1, FAILED: 0 });
+    expect(first).toEqual({ SENT: 0, RETRY: 1, FAILED: 0, SUPPRESSED: 0 });
 
     const status = await getReminderDeliveryStatus(organizationId);
     expect(status.sent).toBe(0);
@@ -132,7 +155,7 @@ describe('billing grace reminder dispatch (10-09 Task 3)', () => {
 
     await setReminderDue(organizationId);
     const second = await dispatchDueGraceReminders(organizationId);
-    expect(second).toEqual({ SENT: 3, RETRY: 0, FAILED: 0 });
+    expect(second).toEqual({ SENT: 3, RETRY: 0, FAILED: 0, SUPPRESSED: 0 });
     expect((await getReminderDeliveryStatus(organizationId)).sent).toBe(3);
   });
 
@@ -152,6 +175,7 @@ describe('billing grace reminder dispatch (10-09 Task 3)', () => {
       SENT: 0,
       RETRY: 0,
       FAILED: 1,
+      SUPPRESSED: 0,
     });
     const rows = (await getDb().execute(sql`
       SELECT status, last_error_code AS "lastErrorCode"
@@ -172,7 +196,7 @@ describe('billing grace reminder dispatch (10-09 Task 3)', () => {
 
     const counts = await dispatchDueGraceReminders(organizationId);
 
-    expect(counts).toEqual({ SENT: 0, RETRY: 0, FAILED: 3 });
+    expect(counts).toEqual({ SENT: 0, RETRY: 0, FAILED: 3, SUPPRESSED: 0 });
     expect(transportMock.sendGraceReminder).not.toHaveBeenCalled();
     const rows = (await getDb().execute(sql`
       SELECT last_error_code AS "lastErrorCode"

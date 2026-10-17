@@ -1,10 +1,12 @@
 // apps/server/src/modules/platform/platform.routes.ts
+import { createHash } from 'node:crypto';
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { createSuccessResponse } from '../../shared/response.js';
 import { authenticate } from '../auth/auth.middleware.js';
 import { UnauthorizedError } from '../auth/auth.errors.js';
 import { requirePlatformPermission } from './platform-permission.middleware.js';
+import { runIdempotentWrite } from './platform-idempotency.js';
 import { PlatformReadRepository, type PlatformCursor } from './platform-read.repository.js';
 import {
   accountLifecycleSchemaDoc,
@@ -23,6 +25,7 @@ import {
   diagnosticsHealthSchemaDoc,
   diagnosticsQueueSchemaDoc,
   diagnosticsOrganizationSchemaDoc,
+  outboxReplaySchemaDoc,
 } from './docs/platform.schemas.js';
 import {
   LIFECYCLE_REASON_CODES,
@@ -45,6 +48,8 @@ const lifecycleBodySchema = z.object({
   reasonNote: z.string().trim().min(10).max(500),
 });
 
+const idempotencyKeySchema = z.string().trim().min(1).max(128).optional();
+
 const supportGrantRequestSchema = lifecycleBodySchema.extend({
   operatorUserId: z.string().min(1).max(64),
   organizationId: z.string().min(1).max(64),
@@ -64,6 +69,10 @@ const supportGrantScopeQuerySchema = z.object({
   scope: z.enum(SUPPORT_GRANT_SCOPES),
 });
 
+function getIdempotencyKey(request: FastifyRequest): string | undefined {
+  return idempotencyKeySchema.parse(request.headers['idempotency-key']);
+}
+
 function toActionInput(
   request: FastifyRequest,
   body: z.infer<typeof lifecycleBodySchema>,
@@ -76,6 +85,7 @@ function toActionInput(
     password: body.password,
     reasonCode: body.reasonCode,
     reasonNote: body.reasonNote,
+    idempotencyKey: getIdempotencyKey(request),
   };
 }
 
@@ -137,7 +147,22 @@ export async function handleListPlatformAccounts(request: FastifyRequest, reply:
   return reply.send(createSuccessResponse({ accounts: rows }, { limit: query.limit, nextCursor }));
 }
 
-const writeRateLimit = { rateLimit: { max: 30, timeWindow: '1 minute' } };
+const writeRateLimit = {
+  rateLimit: {
+    max: 30,
+    timeWindow: '1 minute',
+    keyGenerator: (request: FastifyRequest) => {
+      const authHeader = request.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.slice(7).trim();
+        if (token) {
+          return `platform:${createHash('sha256').update(token).digest('hex')}`;
+        }
+      }
+      return `ip:${request.ip}`;
+    },
+  },
+};
 
 export const platformRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(async (protectedRoutes) => {
@@ -229,6 +254,20 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
     );
   });
 
+  fastify.register(async (outboxReplayRoutes) => {
+    outboxReplayRoutes.addHook('preHandler', authenticate);
+    outboxReplayRoutes.addHook('preHandler', requirePlatformPermission('write:outbox_replay'));
+    outboxReplayRoutes.post<{ Params: { eventId: string } }>(
+      '/diagnostics/outbox/:eventId/replay',
+      { schema: outboxReplaySchemaDoc, config: writeRateLimit },
+      async (request, reply) => {
+        if (!request.user) throw new UnauthorizedError('Authentication required');
+        await platformDiagnosticsService.replayFailedOutboxEvent(request.params.eventId, request.user.sub);
+        return reply.send(createSuccessResponse({ status: 'PENDING' }));
+      },
+    );
+  });
+
   fastify.register(async (writeRoutes) => {
     writeRoutes.addHook('preHandler', authenticate);
     writeRoutes.addHook(
@@ -241,8 +280,18 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
       { schema: accountLifecycleSchemaDoc('suspend'), config: writeRateLimit },
       async (request, reply) => {
         const body = lifecycleBodySchema.parse(request.body);
-        await lifecycleService.suspendAccount(request.params.userId, toActionInput(request, body));
-        return reply.send(createSuccessResponse({ status: 'SUSPENDED' }));
+        if (!request.user) throw new UnauthorizedError('Authentication required');
+        const result = await runIdempotentWrite({
+          actorUserId: request.user.sub,
+          operation: `account.suspend:${request.params.userId}`,
+          idempotencyKey: getIdempotencyKey(request),
+          body,
+          execute: async () => {
+            await lifecycleService.suspendAccount(request.params.userId, toActionInput(request, body));
+            return createSuccessResponse({ status: 'SUSPENDED' });
+          },
+        });
+        return reply.send(result);
       },
     );
     writeRoutes.post<{ Params: { userId: string } }>(
@@ -333,6 +382,7 @@ export const platformRoutes: FastifyPluginAsync = async (fastify) => {
         await grantService.revokeGrant(request.params.grantId, {
           actorUserId: request.user.sub,
           password: body.password,
+          idempotencyKey: getIdempotencyKey(request),
         });
         return reply.send(createSuccessResponse({ status: 'revoked' }));
       },

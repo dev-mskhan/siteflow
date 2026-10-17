@@ -4,6 +4,7 @@ import { saasCustomers, saasInvoices, saasSubscriptions } from '@siteflow/databa
 import { createLogger } from '@siteflow/observability/server';
 import { serverEnv } from '../../config/env.js';
 import { getDb } from '../../lib/db/index.js';
+import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
 import { auditService } from '../audit/audit.service.js';
 import { catalogRepository } from './catalog.repository.js';
 import { catalogService } from './catalog.service.js';
@@ -382,6 +383,14 @@ export async function reconcileStripeWebhookEvent(
     }
 
     const previous = current;
+    const previousGraceStartsAt = current?.graceStartsAt ?? null;
+    const graceStartsAt =
+      next.status === 'PAST_DUE'
+        ? current?.status === 'PAST_DUE' && current.graceStartsAt
+          ? current.graceStartsAt
+          : receivedEventDate
+        : null;
+    const reconciledNext = { ...next, graceStartsAt };
     const updatedMetadata = metadataWithReconciledEvent(
       current?.metadata,
       receivedEventDate,
@@ -392,10 +401,11 @@ export async function reconcileStripeWebhookEvent(
         .values({
           id: randomUUID(),
           organizationId: customer.organizationId,
-          planId: next.planId,
-          priceVersionId: next.priceVersionId,
-          interval: next.interval,
-          status: next.status,
+          planId: reconciledNext.planId,
+          priceVersionId: reconciledNext.priceVersionId,
+          interval: reconciledNext.interval,
+          status: reconciledNext.status,
+          graceStartsAt: reconciledNext.graceStartsAt,
           isCurrent: true,
           currentPeriodStart: next.currentPeriodStart,
           currentPeriodEnd: next.currentPeriodEnd,
@@ -410,16 +420,17 @@ export async function reconcileStripeWebhookEvent(
       if (!current) throw new Error('Provider subscription insert returned no row');
     } else {
       const unchanged =
-        current.planId === next.planId &&
-        current.priceVersionId === next.priceVersionId &&
-        current.interval === next.interval &&
-        current.status === next.status &&
-        current.currentPeriodStart.getTime() === next.currentPeriodStart.getTime() &&
-        current.currentPeriodEnd.getTime() === next.currentPeriodEnd.getTime() &&
-        current.cancelAtPeriodEnd === next.cancelAtPeriodEnd &&
-        current.stripeCustomerId === next.stripeCustomerId &&
-        current.stripeSubscriptionId === next.stripeSubscriptionId &&
-        current.stripePriceId === next.stripePriceId;
+        current.planId === reconciledNext.planId &&
+        current.priceVersionId === reconciledNext.priceVersionId &&
+        current.interval === reconciledNext.interval &&
+        current.status === reconciledNext.status &&
+        current.graceStartsAt?.getTime() === reconciledNext.graceStartsAt?.getTime() &&
+        current.currentPeriodStart.getTime() === reconciledNext.currentPeriodStart.getTime() &&
+        current.currentPeriodEnd.getTime() === reconciledNext.currentPeriodEnd.getTime() &&
+        current.cancelAtPeriodEnd === reconciledNext.cancelAtPeriodEnd &&
+        current.stripeCustomerId === reconciledNext.stripeCustomerId &&
+        current.stripeSubscriptionId === reconciledNext.stripeSubscriptionId &&
+        current.stripePriceId === reconciledNext.stripePriceId;
       if (unchanged) {
         await tx
           .update(saasSubscriptions)
@@ -436,7 +447,7 @@ export async function reconcileStripeWebhookEvent(
 
       const updated = await tx
         .update(saasSubscriptions)
-        .set({ ...next, metadata: updatedMetadata, updatedAt: new Date() })
+        .set({ ...reconciledNext, metadata: updatedMetadata, updatedAt: new Date() })
         .where(
           and(
             eq(saasSubscriptions.id, current.id),
@@ -483,6 +494,64 @@ export async function reconcileStripeWebhookEvent(
       },
       tx,
     );
+    const providerEventId = event.providerEventId;
+    if (!previous || previous.status !== current.status) {
+      await writeOutboxEvent(
+        tx,
+        'billing.subscription.status_changed',
+        {
+          id: `${providerEventId}:billing.subscription.status_changed`,
+          organizationId: customer.organizationId,
+          subscriptionId: current.id,
+          fromStatus: previous?.status ?? null,
+          toStatus: current.status,
+          providerEventId,
+        },
+        customer.organizationId,
+      );
+    }
+    if (!previous || previous.planId !== current.planId || previous.priceVersionId !== current.priceVersionId) {
+      await writeOutboxEvent(
+        tx,
+        'billing.entitlement.changed',
+        {
+          id: `${providerEventId}:billing.entitlement.changed`,
+          organizationId: customer.organizationId,
+          subscriptionId: current.id,
+          fromPlanId: previous?.planId ?? null,
+          toPlanId: current.planId,
+          providerEventId,
+        },
+        customer.organizationId,
+      );
+    }
+    if (previous?.status !== 'PAST_DUE' && current.status === 'PAST_DUE') {
+      await writeOutboxEvent(
+        tx,
+        'billing.grace.started',
+        {
+          id: `${providerEventId}:billing.grace.started`,
+          organizationId: customer.organizationId,
+          subscriptionId: current.id,
+          graceStartsAt: current.graceStartsAt?.toISOString() ?? null,
+          providerEventId,
+        },
+        customer.organizationId,
+      );
+    } else if (previous?.status === 'PAST_DUE' && current.status !== 'PAST_DUE') {
+      await writeOutboxEvent(
+        tx,
+        'billing.grace.ended',
+        {
+          id: `${providerEventId}:billing.grace.ended`,
+          organizationId: customer.organizationId,
+          subscriptionId: current.id,
+          graceStartsAt: previousGraceStartsAt?.toISOString() ?? null,
+          providerEventId,
+        },
+        customer.organizationId,
+      );
+    }
   });
 }
 

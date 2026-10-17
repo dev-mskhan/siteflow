@@ -320,10 +320,48 @@ export const diagnosticsQueueSchemaDoc = {
             counts: { type: 'object', additionalProperties: { type: 'integer' } },
             oldestWaitingJobAgeSeconds: { type: ['integer', 'null'] },
             webhookInbox: { type: 'object', additionalProperties: { type: 'integer' } },
+            outbox: {
+              type: 'object',
+              properties: {
+                failedCount: { type: 'integer' },
+                oldestFailedAt: { type: ['string', 'null'], format: 'date-time' },
+                failed: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      eventType: { type: 'string' },
+                      organizationId: { type: ['string', 'null'] },
+                      retryCount: { type: 'integer' },
+                      createdAt: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
     },
+  },
+} as const;
+
+export const outboxReplaySchemaDoc = {
+  tags: ['Platform'],
+  summary: 'Replay one failed outbox event',
+  description: 'Requires write:outbox_replay. Requeues only a FAILED event, resets its retry counter, and audits the replay.',
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true] },
+        data: { type: 'object', properties: { status: { type: 'string', enum: ['PENDING'] } } },
+      },
+    },
+    401: errorSchema,
+    403: errorSchema,
+    409: errorSchema,
   },
 } as const;
 

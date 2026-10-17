@@ -5,7 +5,7 @@ export type { AuditLog, NewAuditLog };
 
 export interface AuditLogDTO {
   id: string;
-  organizationId: string;
+  organizationId: string | null;
   actorUserId: string | null;
   action: string;
   resourceType: string | null;

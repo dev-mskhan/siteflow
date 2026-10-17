@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
 import { auditService } from '../audit/audit.service.js';
-import { getRedis } from '../../lib/redis/redis.js';
+import { deleteRedisKeysByPattern, getRedis } from '../../lib/redis/redis.js';
 import { MaterialRepository } from './material.repository.js';
 import { MaterialNotFoundError, MaterialDuplicateCodeError, MaterialInactiveError } from './material.errors.js';
 import type { MaterialDTO, CreateMaterialInput, UpdateMaterialInput, ListMaterialsQuery } from './material.types.js';
@@ -64,19 +64,9 @@ async function delCached(...keys: string[]): Promise<void> {
   }
 }
 
-async function scanAndDelete(redis: any, pattern: string): Promise<void> {
-  let cursor = '0';
-  do {
-    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
-    cursor = nextCursor;
-    if (keys.length > 0) await redis.del(...keys);
-  } while (cursor !== '0');
-}
-
 async function invalidateListCache(orgId: string): Promise<void> {
   try {
-    const redis = getRedis();
-    await scanAndDelete(redis, `siteflow:v1:org:${orgId}:material:list:*`);
+    await deleteRedisKeysByPattern(getRedis(), `siteflow:v1:org:${orgId}:material:list:*`);
   } catch {
     // cache failure must not break the service
   }

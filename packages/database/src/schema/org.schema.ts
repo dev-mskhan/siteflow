@@ -275,9 +275,7 @@ export const auditLogs = appSchema.table(
   'audit_logs',
   {
     id: text('id').primaryKey(),
-    organizationId: text('organization_id')
-      .notNull()
-      .references(() => organizations.id),
+    organizationId: text('organization_id').references(() => organizations.id),
     actorUserId: text('actor_user_id').references(() => users.id),
     action: text('action').notNull(),
     resourceType: text('resource_type'),

@@ -113,6 +113,24 @@ export async function markReminderSent(params: {
   return (updated as unknown as unknown[]).length === 1;
 }
 
+export async function markReminderSuppressed(params: {
+  organizationId: string;
+  deliveryId: string;
+}): Promise<boolean> {
+  const updated = await getDb().execute(sql`
+    UPDATE app.saas_reminder_deliveries
+    SET status = 'SUPPRESSED',
+        suppressed_at = now(),
+        last_error_code = NULL,
+        updated_at = now()
+    WHERE id = ${params.deliveryId}
+      AND organization_id = ${params.organizationId}
+      AND status = 'IN_PROGRESS'
+    RETURNING id
+  `);
+  return (updated as unknown as unknown[]).length === 1;
+}
+
 export async function markReminderRetry(params: {
   organizationId: string;
   deliveryId: string;
@@ -233,10 +251,12 @@ export async function getCurrentSubscriptionSnapshot(
   };
 }
 
-/** Email addresses of active members whose role grants billing:manage in this tenant. */
-export async function listBillingAdminEmails(organizationId: string): Promise<string[]> {
+/** Active members whose role grants billing:manage in this tenant. */
+export async function listBillingAdminRecipients(
+  organizationId: string,
+): Promise<Array<{ userId: string; email: string }>> {
   const rows = (await getDb().execute(sql`
-    SELECT DISTINCT u.email AS "email"
+    SELECT DISTINCT u.id AS "userId", u.email AS "email"
     FROM app.organization_memberships m
     JOIN app.users u ON u.id = m.user_id
     JOIN app.roles r ON r.id = m.role_id AND r.organization_id = m.organization_id
@@ -244,7 +264,13 @@ export async function listBillingAdminEmails(organizationId: string): Promise<st
     JOIN app.permissions p ON p.id = rp.permission_id
     WHERE m.organization_id = ${organizationId}
       AND m.status = 'ACTIVE'
+      AND u.status = 'ACTIVE'
       AND p.key = 'billing:manage'
-  `)) as unknown as Array<{ email: string }>;
-  return rows.map((row) => row.email);
+  `)) as unknown as Array<{ userId: string; email: string }>;
+  return rows;
+}
+
+export async function listBillingAdminEmails(organizationId: string): Promise<string[]> {
+  const recipients = await listBillingAdminRecipients(organizationId);
+  return recipients.map((recipient) => recipient.email);
 }

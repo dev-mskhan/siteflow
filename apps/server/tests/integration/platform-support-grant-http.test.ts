@@ -121,6 +121,14 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
     return rows[0]!.status;
   }
 
+  async function expectAuditCount(action: string, resourceId: string, count = 1) {
+    const rows = await getDb()
+      .select({ id: auditLogs.id })
+      .from(auditLogs)
+      .where(and(eq(auditLogs.action, action), eq(auditLogs.resourceId, resourceId)));
+    expect(rows).toHaveLength(count);
+  }
+
   it('rejects unauthenticated grant requests', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -178,6 +186,7 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
     const req = await requestGrant(admin1.token, ['read:org_summary']);
     expect(req.statusCode).toBe(201);
     const grantId = await latestGrantId(support.user.id);
+    await expectAuditCount('platform.support_grant.requested', grantId);
 
     const approve = await app.inject({
       method: 'POST',
@@ -186,6 +195,7 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
       payload: { ...reauth, durationMinutes: 30 },
     });
     expect(approve.statusCode).toBe(200);
+    await expectAuditCount('platform.support_grant.approved', grantId);
     expect(await grantStatus(grantId)).toBe('active');
 
     const ok = await app.inject({
@@ -194,6 +204,7 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
       headers: { authorization: `Bearer ${support.token}` },
     });
     expect(ok.statusCode).toBe(200);
+    await expectAuditCount('platform.support_grant.used', grantId);
 
     const wrongScope = await app.inject({
       method: 'GET',
@@ -201,6 +212,7 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
       headers: { authorization: `Bearer ${support.token}` },
     });
     expect(wrongScope.statusCode).toBe(403);
+    await expectAuditCount('platform.support_grant.use_denied', grantId);
 
     const otherOperator = await app.inject({
       method: 'GET',
@@ -208,6 +220,7 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
       headers: { authorization: `Bearer ${support2.token}` },
     });
     expect(otherOperator.statusCode).toBe(403);
+    await expectAuditCount('platform.support_grant.use_denied', grantId, 2);
 
     const revoke = await app.inject({
       method: 'POST',
@@ -216,6 +229,7 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
       payload: reauth,
     });
     expect(revoke.statusCode).toBe(200);
+    await expectAuditCount('platform.support_grant.revoked', grantId);
     expect(await grantStatus(grantId)).toBe('revoked');
 
     const afterRevoke = await app.inject({
@@ -247,7 +261,8 @@ describe('platform support grants HTTP (Phase 11-05)', () => {
     const org = summary.json().data.organization;
     expect(typeof org.memberCount).toBe('number');
     expect(org.memberCount).toBeGreaterThanOrEqual(1);
-    expect(org.ownerUserId).toBeTruthy();
+    expect(org.ownerEmailMasked).toBeTruthy();
+    expect(org.ownerUserId).toBeUndefined();
     expect(JSON.stringify(summary.json())).not.toMatch(/email|passwordHash/);
 
     await getDb().execute(

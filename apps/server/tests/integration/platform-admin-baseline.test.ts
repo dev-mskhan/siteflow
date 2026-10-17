@@ -53,10 +53,13 @@ describe('platform admin read baseline (Phase 11-07)', () => {
         firstOwnerToken = currentOwnerToken;
       }
     }
-  });
+  }, 120_000);
 
   afterAll(async () => {
     const db = getDb();
+    if (createdUserIds.length > 0) {
+      await db.delete(auditLogs).where(inArray(auditLogs.actorUserId, createdUserIds));
+    }
     if (createdOrgIds.length > 0) {
       await db.delete(auditLogs).where(inArray(auditLogs.organizationId, createdOrgIds));
       await db.delete(organizations).where(inArray(organizations.id, createdOrgIds));
@@ -66,7 +69,7 @@ describe('platform admin read baseline (Phase 11-07)', () => {
       await db.delete(users).where(inArray(users.id, createdUserIds));
     }
     await app.close();
-  });
+  }, 120_000);
 
   async function measure(label: string, url: string, token: string = admin.token): Promise<number> {
     const timings: number[] = [];

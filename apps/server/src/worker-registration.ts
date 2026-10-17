@@ -11,6 +11,8 @@ import { registerExportWorkers } from './modules/reporting/exports/export.worker
 import { registerStripeWebhookWorker } from './modules/billing/webhook.worker.js';
 import { registerLifecycleWorker } from './modules/billing/lifecycle.worker.js';
 import { registerAgentRunWorkers } from './modules/ai/workers/agent-run.worker.js';
+import { registerPlatformAccountNoticeWorkers } from './modules/platform/platform-account-notice.worker.js';
+import { registerEventNotificationWorkers } from './modules/notification/event-notification.worker.js';
 
 const logger = createLogger({ name: 'worker-registration' });
 
@@ -24,6 +26,8 @@ export async function registerWorkers(boss: PgBoss): Promise<void> {
   await registerStripeWebhookWorker(boss);
   await registerLifecycleWorker(boss);
   await registerAgentRunWorkers(boss);
+  await registerPlatformAccountNoticeWorkers(boss);
+  await registerEventNotificationWorkers(boss);
 
   await boss.schedule(AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS, '0 2 * * *', {});
   logger.info('Scheduled cleanup: expired sessions (daily 02:00 UTC)');

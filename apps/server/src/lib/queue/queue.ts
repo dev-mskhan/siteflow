@@ -38,6 +38,7 @@ import { DOCUMENT_QUEUES, type DocumentUploadedPayload } from '../../modules/pro
 import { COMPLIANCE_QUEUES, type ExpiryScanJobPayload } from '../../modules/project/compliance/compliance.jobs.js';
 import { PLATFORM_QUEUES } from '../../modules/platform/platform.jobs.js';
 import { AI_QUEUES as AI_QUEUE_NAMES } from '../../modules/ai/ai.jobs.js';
+import { NOTIFICATION_EVENT_QUEUES } from '../../modules/notification/notification.jobs.js';
 
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {
@@ -51,9 +52,32 @@ export const QUEUES = {
   ...COMPLIANCE_QUEUES,
   ...PLATFORM_QUEUES,
   ...AI_QUEUE_NAMES,
+  ...NOTIFICATION_EVENT_QUEUES,
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
+export const QUEUE_RETRY_SETTINGS = {
+  retryLimit: 5,
+  retryDelay: 30,
+  retryBackoff: true,
+  expireInSeconds: 900,
+} as const;
+
+export function getQueueOptions(name: string): PgBoss.Queue {
+  return {
+    name,
+    ...QUEUE_RETRY_SETTINGS,
+    deadLetter: `${name}.dlq`,
+  };
+}
+
+export function getDeadLetterQueueOptions(name: string): PgBoss.Queue {
+  return {
+    name: `${name}.dlq`,
+    retryLimit: 0,
+    expireInSeconds: QUEUE_RETRY_SETTINGS.expireInSeconds,
+  };
+}
 
 // ─── Job payloads ────────────────────────────────────────────────────────────
 export interface SendEmailPayload {
@@ -98,6 +122,23 @@ export type JobPayloads = {
 
 let _bossInstance: PgBoss | undefined;
 let _startPromise: Promise<PgBoss> | undefined;
+const configuredQueues = new Map<string, Promise<void>>();
+
+async function ensureQueueConfigured(boss: PgBoss, name: string): Promise<void> {
+  const existing = configuredQueues.get(name);
+  if (existing) return existing;
+  const configuring = (async () => {
+    await boss.createQueue(`${name}.dlq`, getDeadLetterQueueOptions(name));
+    await boss.createQueue(name, getQueueOptions(name));
+  })();
+  configuredQueues.set(name, configuring);
+  try {
+    await configuring;
+  } catch (err) {
+    configuredQueues.delete(name);
+    throw err;
+  }
+}
 
 /**
  * Gets or creates the singleton PgBoss queue instance.
@@ -131,13 +172,9 @@ export async function startQueue(): Promise<PgBoss> {
       .start()
       .then(async () => {
         logger.info('PgBoss queue started successfully in schema "pgboss"');
-        // Pre-create all registered queues with retry/backoff defaults
+        // Every worker queue has explicit retry, expiration, and dead-letter behavior.
         for (const queueName of Object.values(QUEUES) as QueueName[]) {
-          try {
-            await boss.createQueue(queueName);
-          } catch (err) {
-            logger.debug({ queueName, err }, 'Queue creation notice');
-          }
+          await ensureQueueConfigured(boss, queueName);
         }
         return boss;
       })
@@ -173,6 +210,7 @@ export async function sendJob<N extends keyof JobPayloads | (string & {})>(
   options?: PgBoss.SendOptions,
 ): Promise<string | null> {
   const boss = await startQueue();
+  await ensureQueueConfigured(boss, name as string);
   return options
     ? boss.send(name as string, data as object, options)
     : boss.send(name as string, data as object);

@@ -2,12 +2,14 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
+import { auditService } from '../audit/audit.service.js';
 import { AuthRepository } from '../auth/auth.repository.js';
 import { NotFoundError, UnauthorizedError } from '../auth/auth.errors.js';
 import { verifyPassword } from '../auth/password.service.js';
 import { InvoiceRepository } from '../billing/invoice.repository.js';
 import { getCurrentSubscriptionSnapshot } from '../billing/reminder-delivery.repository.js';
 import { recoverStripeWebhookInbox } from '../billing/webhook.worker.js';
+import { runIdempotentWrite } from './platform-idempotency.js';
 import type { LifecycleActionInput } from './platform-lifecycle.service.js';
 
 const INVOICE_VIEW_LIMIT = 10;
@@ -107,18 +109,37 @@ export class PlatformBillingService {
   async triggerWebhookRecovery(input: LifecycleActionInput): Promise<{ processedCount: number }> {
     await this.assertReauthenticated(input.actorUserId, input.password);
 
-    const processedCount = await recoverStripeWebhookInbox();
+    return runIdempotentWrite({
+      actorUserId: input.actorUserId,
+      operation: 'billing.webhook_recovery',
+      idempotencyKey: input.idempotencyKey,
+      body: { reasonCode: input.reasonCode, reasonNote: input.reasonNote },
+      execute: async () => {
+        const processedCount = await recoverStripeWebhookInbox();
 
-    await getDb().transaction(async (tx) => {
-      await writeOutboxEvent(tx, 'platform.billing.webhook_recovery_requested', {
-        actorUserId: input.actorUserId,
-        reasonCode: input.reasonCode,
-        reasonNote: input.reasonNote,
-        processedCount,
-      });
+        await getDb().transaction(async (tx) => {
+          await auditService.log(
+            {
+              organizationId: null,
+              actorUserId: input.actorUserId,
+              action: 'platform.billing.webhook_recovery_requested',
+              resourceType: 'stripe_webhook_inbox',
+              resourceId: null,
+              metadata: { reasonCode: input.reasonCode, reasonNote: input.reasonNote, processedCount },
+            },
+            tx,
+          );
+          await writeOutboxEvent(tx, 'platform.billing.webhook_recovery_requested', {
+            actorUserId: input.actorUserId,
+            reasonCode: input.reasonCode,
+            reasonNote: input.reasonNote,
+            processedCount,
+          });
+        });
+
+        return { processedCount };
+      },
     });
-
-    return { processedCount };
   }
 }
 

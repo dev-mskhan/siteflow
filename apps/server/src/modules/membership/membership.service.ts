@@ -6,6 +6,7 @@ import { MembershipRepository, type MemberWithDetails } from './membership.repos
 import { rbacCacheService } from '../rbac/rbac.cache.service.js';
 import { OrganizationCacheService } from '../organization/organization.cache.service.js';
 import { auditService } from '../audit/audit.service.js';
+import { realtimeDeliveryManager } from '../notification/realtime/realtime.delivery.js';
 import { NotFoundError, ForbiddenError, ValidationError } from './membership.errors.js';
 import type { MemberDTO, UpdateMemberInput } from './membership.types.js';
 import type { OrganizationContext } from '../rbac/rbac.types.js';
@@ -194,6 +195,9 @@ export class MembershipService {
       // Synchronous cache invalidation AFTER transaction commit
       await rbacCacheService.invalidate(orgId, existing.userId);
       await new OrganizationCacheService().invalidateUserOrgList(existing.userId);
+      
+      // Close SSE connections for the removed user
+      realtimeDeliveryManager.closeConnectionsForUser(existing.userId);
     });
   }
 }

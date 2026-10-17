@@ -3,7 +3,32 @@ import { eq, and, desc } from 'drizzle-orm';
 
 export class NotificationRepository {
   async create(db: any, data: NewNotificationRecord): Promise<NotificationRecord> {
-    const rows = await db.insert(notifications).values(data).returning();
+    const rows = await db.insert(notifications).values(data).onConflictDoNothing().returning();
+    if (rows[0]) return rows[0];
+    if (data.eventId) {
+      const existing = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.organizationId, data.organizationId),
+            eq(notifications.recipientId, data.recipientId),
+            eq(notifications.eventId, data.eventId),
+            eq(notifications.channel, data.channel ?? 'IN_APP'),
+          ),
+        )
+        .limit(1);
+      if (existing[0]) return existing[0];
+    }
+    throw new Error('Notification insert conflicted without a matching idempotent delivery');
+  }
+
+  async findByNotificationId(db: any, organizationId: string, id: string): Promise<NotificationRecord | undefined> {
+    const rows = await db
+      .select()
+      .from(notifications)
+      .where(and(eq(notifications.organizationId, organizationId), eq(notifications.id, id)))
+      .limit(1);
     return rows[0];
   }
 
@@ -56,6 +81,26 @@ export class NotificationRepository {
       .where(and(eq(notifications.organizationId, organizationId), eq(notifications.id, id)))
       .returning();
 
+    return rows[0];
+  }
+
+  async markRead(
+    db: any,
+    organizationId: string,
+    recipientId: string,
+    id: string,
+  ): Promise<NotificationRecord | undefined> {
+    const rows = await db
+      .update(notifications)
+      .set({ readAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(notifications.organizationId, organizationId),
+          eq(notifications.recipientId, recipientId),
+          eq(notifications.id, id),
+        ),
+      )
+      .returning();
     return rows[0];
   }
 }

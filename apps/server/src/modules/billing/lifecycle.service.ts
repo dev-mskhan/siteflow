@@ -10,10 +10,11 @@ import {
   countReminderDeliveriesByStatus,
   countRetryingReminderDeliveries,
   getCurrentSubscriptionSnapshot,
-  listBillingAdminEmails,
+  listBillingAdminRecipients,
   markReminderFailed,
   markReminderRetry,
   markReminderSent,
+  markReminderSuppressed,
   scheduleReminderDelivery,
   type ClaimedReminderDelivery,
 } from './reminder-delivery.repository.js';
@@ -22,6 +23,7 @@ import {
   resolveAccessState,
 } from './lifecycle.policy.js';
 import { ReminderTransportError, sendGraceReminder } from './reminder-delivery.transport.js';
+import { preferenceService } from '../notification/preferences/preference.service.js';
 
 const logger = createLogger({ name: 'billing-lifecycle' });
 const tracer = trace.getTracer('billing-lifecycle');
@@ -63,7 +65,7 @@ function billingPortalUrl(organizationId: string): string {
   return `${base}/organizations/${organizationId}/billing`;
 }
 
-type DispatchOutcome = 'SENT' | 'RETRY' | 'FAILED';
+type DispatchOutcome = 'SENT' | 'RETRY' | 'FAILED' | 'SUPPRESSED';
 
 async function dispatchOne(
   organizationId: string,
@@ -85,8 +87,26 @@ async function dispatchOne(
     return 'FAILED';
   }
 
-  const recipients = await listBillingAdminEmails(organizationId);
+  const billingAdmins = await listBillingAdminRecipients(organizationId);
+  const recipients: string[] = [];
+  for (const recipient of billingAdmins) {
+    if (
+      await preferenceService.isChannelEnabled(
+        organizationId,
+        recipient.userId,
+        'billing.grace_reminder',
+        'EMAIL',
+      )
+    ) {
+      recipients.push(recipient.email);
+    }
+  }
+
   if (recipients.length === 0) {
+    if (billingAdmins.length > 0) {
+      await markReminderSuppressed({ organizationId, deliveryId: delivery.id });
+      return 'SUPPRESSED';
+    }
     await markReminderFailed({ organizationId, deliveryId: delivery.id, errorCode: 'NO_BILLING_RECIPIENTS' });
     return 'FAILED';
   }
@@ -124,7 +144,7 @@ async function dispatchOne(
 /** Claims due reminders for one tenant and dispatches each. Returns outcome counts. */
 export async function dispatchDueGraceReminders(organizationId: string): Promise<Record<DispatchOutcome, number>> {
   return tracer.startActiveSpan('billing.lifecycle.dispatch', async (span) => {
-    const counts: Record<DispatchOutcome, number> = { SENT: 0, RETRY: 0, FAILED: 0 };
+    const counts: Record<DispatchOutcome, number> = { SENT: 0, RETRY: 0, FAILED: 0, SUPPRESSED: 0 };
     try {
       await ensureGraceReminderSchedule(organizationId);
       const claimed = await claimDueReminderDeliveries({ organizationId });
@@ -157,6 +177,7 @@ export async function getReminderDeliveryStatus(organizationId: string) {
     inProgress: byStatus.IN_PROGRESS ?? 0,
     sent: byStatus.SENT ?? 0,
     failed: byStatus.FAILED ?? 0,
+    suppressed: byStatus.SUPPRESSED ?? 0,
     retrying: await countRetryingReminderDeliveries(organizationId),
   };
 }

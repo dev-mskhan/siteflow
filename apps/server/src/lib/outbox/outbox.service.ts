@@ -82,9 +82,62 @@ const PlatformBillingRecoveryPayloadSchema = z
   })
   .passthrough();
 
+const PlatformOrganizationSuspensionRequestedPayloadSchema = z
+  .object({
+    organizationId: z.string().min(1),
+    approvalId: z.string().min(1),
+    actorUserId: z.string().min(1),
+    reasonCode: z.string().min(1),
+  })
+  .passthrough();
+
+const PlatformSupportGrantPayloadSchema = z
+  .object({
+    organizationId: z.string().min(1),
+    grantId: z.string().min(1),
+  })
+  .passthrough();
+
+const PlatformOrganizationLifecyclePayloadSchema = z
+  .object({
+    organizationId: z.string().min(1),
+    actorUserId: z.string().min(1),
+    reasonCode: z.string().min(1),
+    reasonNote: z.string().min(1),
+  })
+  .passthrough();
+
+const BillingSubscriptionStatusPayloadSchema = z
+  .object({
+    organizationId: z.string().min(1),
+    subscriptionId: z.string().min(1),
+    fromStatus: z.string().nullable(),
+    toStatus: z.string().min(1),
+    providerEventId: z.string().min(1),
+  })
+  .passthrough();
+
+const BillingEntitlementPayloadSchema = z
+  .object({
+    organizationId: z.string().min(1),
+    subscriptionId: z.string().min(1),
+    fromPlanId: z.string().nullable(),
+    toPlanId: z.string().min(1),
+    providerEventId: z.string().min(1),
+  })
+  .passthrough();
+
+const BillingGracePayloadSchema = z
+  .object({
+    organizationId: z.string().min(1),
+    subscriptionId: z.string().min(1),
+    providerEventId: z.string().min(1),
+  })
+  .passthrough();
+
 const queueContracts = new Map<
   string,
-  { schema: z.ZodType<Record<string, unknown>>; tenantScoped: boolean }
+  { schema: z.ZodType<Record<string, unknown>>; tenantScoped: boolean; auditOnly?: boolean }
 >([
   [AUTH_QUEUES.SEND_EMAIL_VERIFICATION, { schema: EmailJobPayloadSchema, tenantScoped: false }],
   [AUTH_QUEUES.SEND_PASSWORD_RESET, { schema: EmailJobPayloadSchema, tenantScoped: false }],
@@ -94,8 +147,50 @@ const queueContracts = new Map<
   [PLATFORM_QUEUES.ACCOUNT_SUSPENDED, { schema: PlatformAccountPayloadSchema, tenantScoped: false }],
   [PLATFORM_QUEUES.ACCOUNT_REACTIVATED, { schema: PlatformAccountPayloadSchema, tenantScoped: false }],
   [
+    PLATFORM_QUEUES.ORGANIZATION_SUSPENDED,
+    { schema: PlatformOrganizationLifecyclePayloadSchema, tenantScoped: true },
+  ],
+  [
+    PLATFORM_QUEUES.ORGANIZATION_REACTIVATED,
+    { schema: PlatformOrganizationLifecyclePayloadSchema, tenantScoped: true },
+  ],
+  [
+    'billing.subscription.status_changed',
+    { schema: BillingSubscriptionStatusPayloadSchema, tenantScoped: true },
+  ],
+  [
+    'billing.entitlement.changed',
+    { schema: BillingEntitlementPayloadSchema, tenantScoped: true },
+  ],
+  ['billing.grace.started', { schema: BillingGracePayloadSchema, tenantScoped: true }],
+  ['billing.grace.ended', { schema: BillingGracePayloadSchema, tenantScoped: true }],
+  [
     'platform.billing.webhook_recovery_requested',
-    { schema: PlatformBillingRecoveryPayloadSchema, tenantScoped: false },
+    { schema: PlatformBillingRecoveryPayloadSchema, tenantScoped: false, auditOnly: true },
+  ],
+  [
+    PLATFORM_QUEUES.ORGANIZATION_SUSPENSION_REQUESTED,
+    { schema: PlatformOrganizationSuspensionRequestedPayloadSchema, tenantScoped: true, auditOnly: true },
+  ],
+  [
+    'platform.support_grant.requested',
+    { schema: PlatformSupportGrantPayloadSchema, tenantScoped: true, auditOnly: true },
+  ],
+  [
+    'platform.support_grant.approved',
+    { schema: PlatformSupportGrantPayloadSchema, tenantScoped: true, auditOnly: true },
+  ],
+  [
+    'platform.support_grant.revoked',
+    { schema: PlatformSupportGrantPayloadSchema, tenantScoped: true, auditOnly: true },
+  ],
+  [
+    'platform.support_grant.used',
+    { schema: PlatformSupportGrantPayloadSchema, tenantScoped: true, auditOnly: true },
+  ],
+  [
+    'platform.support_grant.use_denied',
+    { schema: PlatformSupportGrantPayloadSchema, tenantScoped: true, auditOnly: true },
   ],
 ]);
 const supportedQueueNames = new Set<string>(Object.values(QUEUES));
@@ -251,12 +346,14 @@ export class OutboxService {
           throw new Error('Outbox organizationId does not match the validated payload scope');
         }
 
-        // Dispatch outbox event payload to queue worker
-        await sendJob(
-          event.eventType,
-          event.payload as Record<string, unknown>,
-          getOutboxSendOptions(event.id, event.payload as Record<string, unknown>),
-        );
+        const auditOnly = queueContracts.get(event.eventType)?.auditOnly === true;
+        if (!auditOnly) {
+          await sendJob(
+            event.eventType,
+            { ...(event.payload as Record<string, unknown>), outboxEventId: event.id },
+            getOutboxSendOptions(event.id, event.payload as Record<string, unknown>),
+          );
+        }
 
         // Mark as PROCESSED on success
         await this.db
@@ -270,7 +367,10 @@ export class OutboxService {
           .where(eq(outboxEvents.id, event.id));
 
         processedCount++;
-        logger.debug({ eventId: event.id, eventType: event.eventType }, 'Outbox event dispatched successfully');
+        logger.debug(
+          { eventId: event.id, eventType: event.eventType },
+          auditOnly ? 'Audit-only outbox event processed' : 'Outbox event dispatched successfully',
+        );
       } catch (err: any) {
         const nextRetryCount = event.retryCount + 1;
         const nextStatus = nextRetryCount >= MAX_OUTBOX_RETRIES ? 'FAILED' : 'PENDING';

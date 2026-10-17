@@ -59,6 +59,10 @@ export class NotificationService {
     return this.repo.findByRecipient(this.db, organizationId, recipientId, limit);
   }
 
+  async getNotification(organizationId: string, id: string): Promise<NotificationRecord | undefined> {
+    return this.repo.findByNotificationId(this.db, organizationId, id);
+  }
+
   async markDelivered(organizationId: string, id: string): Promise<NotificationRecord | undefined> {
     logger.info({ notificationId: id, organizationId }, 'Marking notification delivered');
     return this.repo.updateStatus(this.db, organizationId, id, 'DELIVERED', null, new Date());
@@ -67,6 +71,18 @@ export class NotificationService {
   async markFailed(organizationId: string, id: string, error: string): Promise<NotificationRecord | undefined> {
     logger.error({ notificationId: id, organizationId, error }, 'Marking notification failed');
     return this.repo.updateStatus(this.db, organizationId, id, 'FAILED', error);
+  }
+
+  async markCancelled(organizationId: string, id: string): Promise<NotificationRecord | undefined> {
+    return this.repo.updateStatus(this.db, organizationId, id, 'CANCELLED');
+  }
+
+  async markRead(
+    organizationId: string,
+    recipientId: string,
+    id: string,
+  ): Promise<NotificationRecord | undefined> {
+    return this.repo.markRead(this.db, organizationId, recipientId, id);
   }
 }
 

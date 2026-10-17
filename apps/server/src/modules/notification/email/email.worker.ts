@@ -1,6 +1,7 @@
 import { defaultEmailProvider, type EmailProvider } from './email.provider.js';
 import { renderEmailTemplate } from './email.templates.js';
 import { notificationService } from '../notification.service.js';
+import { preferenceService } from '../preferences/preference.service.js';
 import { createLogger } from '@siteflow/observability/server';
 
 const logger = createLogger({ name: 'email-worker' });
@@ -19,6 +20,25 @@ export async function processEmailNotificationJob(
 ): Promise<{ success: boolean; messageId?: string }> {
   if (!data.organizationId) {
     throw new Error('organizationId is required for tenant email worker job execution');
+  }
+
+  const notification = await notificationService.getNotification(data.organizationId, data.notificationId);
+  if (!notification) {
+    throw new Error(`Notification ${data.notificationId} not found in organization ${data.organizationId}`);
+  }
+  if (notification.status === 'DELIVERED' || notification.status === 'CANCELLED') {
+    return { success: true };
+  }
+  if (
+    !(await preferenceService.isChannelEnabled(
+      data.organizationId,
+      notification.recipientId,
+      data.eventType,
+      'EMAIL',
+    ))
+  ) {
+    await notificationService.markCancelled(data.organizationId, data.notificationId);
+    return { success: true };
   }
 
   logger.info({ notificationId: data.notificationId, organizationId: data.organizationId, recipient: data.recipientEmail }, 'Processing email notification worker job');

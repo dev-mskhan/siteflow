@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
 import { auditService } from '../audit/audit.service.js';
-import { getRedis } from '../../lib/redis/redis.js';
+import { deleteRedisKeysByPattern, getRedis } from '../../lib/redis/redis.js';
 import { SupplierRepository } from './supplier.repository.js';
 import {
   SupplierNotFoundError,
@@ -38,15 +38,6 @@ function supplierListCacheKey(orgId: string, queryHash: string) {
 
 function hashQuery(query: ListSuppliersQuery): string {
   return crypto.createHash('md5').update(JSON.stringify(query)).digest('hex');
-}
-
-async function scanAndDelete(redis: any, pattern: string): Promise<void> {
-  let cursor = '0';
-  do {
-    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
-    cursor = nextCursor;
-    if (keys.length > 0) await redis.del(...keys);
-  } while (cursor !== '0');
 }
 
 function toSupplierDTO(row: Supplier): SupplierDTO {
@@ -127,7 +118,7 @@ export class SupplierService {
     try {
       const redis = getRedis();
       const pattern = `siteflow:v1:org:${orgId}:supplier:list:*`;
-      await scanAndDelete(redis, pattern);
+      await deleteRedisKeysByPattern(redis, pattern);
     } catch {
       // cache failure must not break the service
     }

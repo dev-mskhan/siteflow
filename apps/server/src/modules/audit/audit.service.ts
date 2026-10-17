@@ -32,7 +32,7 @@ export class AuditService {
     tx?: any,
   ): Promise<AuditLogDTO> {
     return withSpan(tracer, 'audit.log', async (span) => {
-      span.setAttribute('organization.id', entry.organizationId);
+      if (entry.organizationId) span.setAttribute('organization.id', entry.organizationId);
       span.setAttribute('audit.action', entry.action);
       if (entry.actorUserId) span.setAttribute('user.id', entry.actorUserId);
 

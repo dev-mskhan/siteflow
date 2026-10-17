@@ -20,7 +20,7 @@ const appSchema = pgSchema('app');
 
 export const saasReminderDeliveryStatusEnum = appSchema.enum(
   'saas_reminder_delivery_status',
-  ['PENDING', 'IN_PROGRESS', 'SENT', 'FAILED'],
+  ['PENDING', 'IN_PROGRESS', 'SENT', 'FAILED', 'SUPPRESSED'],
 );
 
 export const saasReminderDeliveries = appSchema.table(
@@ -44,6 +44,7 @@ export const saasReminderDeliveries = appSchema.table(
     lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
     lastErrorCode: text('last_error_code'),
     sentAt: timestamp('sent_at', { withTimezone: true }),
+    suppressedAt: timestamp('suppressed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
@@ -71,6 +72,10 @@ export const saasReminderDeliveries = appSchema.table(
     check(
       'saas_reminder_deliveries_sent_at_check',
       sql`(${t.status} = 'SENT') = (${t.sentAt} IS NOT NULL)`,
+    ),
+    check(
+      'saas_reminder_deliveries_suppressed_at_check',
+      sql`(${t.status} = 'SUPPRESSED') = (${t.suppressedAt} IS NOT NULL)`,
     ),
   ],
 );

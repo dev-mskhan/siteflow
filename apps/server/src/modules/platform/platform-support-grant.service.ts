@@ -5,6 +5,7 @@ import {
   organizations,
   platformSupportGrants,
   roles,
+  users,
 } from '@siteflow/database/schema';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
@@ -15,6 +16,8 @@ import { verifyPassword } from '../auth/password.service.js';
 import { LIFECYCLE_REASON_CODES, type LifecycleReasonCode } from './platform-lifecycle.service.js';
 import { getCurrentSubscriptionSnapshot } from '../billing/reminder-delivery.repository.js';
 import { catalogService } from '../billing/catalog.service.js';
+import { auditService } from '../audit/audit.service.js';
+import { runIdempotentWrite } from './platform-idempotency.js';
 
 // Ordinary, read-only scopes. Sensitive scopes are intentionally absent and always rejected.
 export const SUPPORT_GRANT_SCOPES = [
@@ -32,6 +35,12 @@ export const SENSITIVE_SUPPORT_SCOPES = [
 ] as const;
 
 export const SUPPORT_GRANT_MAX_MINUTES = 24 * 60;
+
+function maskSupportEmail(email: string): string {
+  const [local = '', domain = ''] = email.split('@');
+  const visible = local.slice(0, 1);
+  return `${visible}***@${domain}`;
+}
 
 export interface SupportGrantRequestInput {
   actorUserId: string;
@@ -85,6 +94,17 @@ export class PlatformSupportGrantService {
         status: 'pending',
         requestedByUserId: input.actorUserId,
       });
+      await auditService.log(
+        {
+          organizationId: input.organizationId,
+          actorUserId: input.actorUserId,
+          action: 'platform.support_grant.requested',
+          resourceType: 'support_grant',
+          resourceId: grantId,
+          metadata: { operatorUserId: input.operatorUserId, scopes: input.scopes, reasonCode: input.reasonCode },
+        },
+        tx,
+      );
       await writeOutboxEvent(
         tx,
         'platform.support_grant.requested',
@@ -143,6 +163,17 @@ export class PlatformSupportGrantService {
         throw new ConflictError('Grant cannot be approved (not pending, or self-approval)');
       }
       const grant = updated[0]!;
+      await auditService.log(
+        {
+          organizationId: grant.organizationId,
+          actorUserId: input.actorUserId,
+          action: 'platform.support_grant.approved',
+          resourceType: 'support_grant',
+          resourceId: grantId,
+          metadata: { operatorUserId: grant.operatorUserId, scopes: grant.scopes, expiresAt: expiresAt.toISOString() },
+        },
+        tx,
+      );
       await writeOutboxEvent(
         tx,
         'platform.support_grant.approved',
@@ -162,42 +193,61 @@ export class PlatformSupportGrantService {
 
   async revokeGrant(
     grantId: string,
-    input: { actorUserId: string; password: string },
+    input: { actorUserId: string; password: string; idempotencyKey?: string },
   ): Promise<void> {
     await this.assertReauthenticated(input.actorUserId, input.password);
 
-    await getDb().transaction(async (tx) => {
-      const updated = await tx
-        .update(platformSupportGrants)
-        .set({
-          status: 'revoked',
-          revokedAt: new Date(),
-          revokedByUserId: input.actorUserId,
-        })
-        .where(
-          and(
-            eq(platformSupportGrants.id, grantId),
-            inArray(platformSupportGrants.status, ['pending', 'active']),
-          ),
-        )
-        .returning({
-          organizationId: platformSupportGrants.organizationId,
-          operatorUserId: platformSupportGrants.operatorUserId,
+    return runIdempotentWrite({
+      actorUserId: input.actorUserId,
+      operation: `support_grant.revoke:${grantId}`,
+      idempotencyKey: input.idempotencyKey,
+      body: { grantId },
+      execute: async () => {
+        await getDb().transaction(async (tx) => {
+          const updated = await tx
+            .update(platformSupportGrants)
+            .set({
+              status: 'revoked',
+              revokedAt: new Date(),
+              revokedByUserId: input.actorUserId,
+            })
+            .where(
+              and(
+                eq(platformSupportGrants.id, grantId),
+                inArray(platformSupportGrants.status, ['pending', 'active']),
+              ),
+            )
+            .returning({
+              organizationId: platformSupportGrants.organizationId,
+              operatorUserId: platformSupportGrants.operatorUserId,
+            });
+          if (updated.length === 0) {
+            throw new ConflictError('Grant is not pending or active');
+          }
+          await auditService.log(
+            {
+              organizationId: updated[0]!.organizationId,
+              actorUserId: input.actorUserId,
+              action: 'platform.support_grant.revoked',
+              resourceType: 'support_grant',
+              resourceId: grantId,
+              metadata: { operatorUserId: updated[0]!.operatorUserId },
+            },
+            tx,
+          );
+          await writeOutboxEvent(
+            tx,
+            'platform.support_grant.revoked',
+            {
+              grantId,
+              operatorUserId: updated[0]!.operatorUserId,
+              organizationId: updated[0]!.organizationId,
+              actorUserId: input.actorUserId,
+            },
+            updated[0]!.organizationId,
+          );
         });
-      if (updated.length === 0) {
-        throw new ConflictError('Grant is not pending or active');
-      }
-      await writeOutboxEvent(
-        tx,
-        'platform.support_grant.revoked',
-        {
-          grantId,
-          operatorUserId: updated[0]!.operatorUserId,
-          organizationId: updated[0]!.organizationId,
-          actorUserId: input.actorUserId,
-        },
-        updated[0]!.organizationId,
-      );
+      },
     });
   }
 
@@ -237,6 +287,17 @@ export class PlatformSupportGrantService {
 
       if (denyReason) {
         if (grant) {
+          await auditService.log(
+            {
+              organizationId: grant.organizationId,
+              actorUserId,
+              action: 'platform.support_grant.use_denied',
+              resourceType: 'support_grant',
+              resourceId: grantId,
+              metadata: { scope, reason: denyReason },
+            },
+            tx,
+          );
           await writeOutboxEvent(
             tx,
             'platform.support_grant.use_denied',
@@ -260,6 +321,17 @@ export class PlatformSupportGrantService {
       if (!org) {
         return { denyReason: 'organization_missing', grant: null as null };
       }
+      await auditService.log(
+        {
+          organizationId: grant!.organizationId,
+          actorUserId,
+          action: 'platform.support_grant.used',
+          resourceType: 'support_grant',
+          resourceId: grantId,
+          metadata: { scope },
+        },
+        tx,
+      );
       await writeOutboxEvent(
         tx,
         'platform.support_grant.used',
@@ -299,9 +371,10 @@ export class PlatformSupportGrantService {
       .from(organizations)
       .where(eq(organizations.id, organizationId));
     const [owner] = await db
-      .select({ userId: organizationMemberships.userId })
+      .select({ email: users.email })
       .from(organizationMemberships)
       .innerJoin(roles, eq(roles.id, organizationMemberships.roleId))
+      .innerJoin(users, eq(users.id, organizationMemberships.userId))
       .where(
         and(
           eq(organizationMemberships.organizationId, organizationId),
@@ -321,7 +394,13 @@ export class PlatformSupportGrantService {
         ),
       );
     return {
-      organization: org ? { ...org, ownerUserId: owner?.userId ?? null, memberCount: counts?.memberCount ?? 0 } : null,
+      organization: org
+        ? {
+            ...org,
+            ownerEmailMasked: owner ? maskSupportEmail(owner.email) : null,
+            memberCount: counts?.memberCount ?? 0,
+          }
+        : null,
     };
   }
 

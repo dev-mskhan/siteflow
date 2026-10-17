@@ -1,5 +1,5 @@
 // apps/server/src/modules/rbac/rbac.cache.service.ts
-import { ensureRedisConnected } from '../../lib/redis/redis.js';
+import { deleteRedisKeysByPattern, ensureRedisConnected } from '../../lib/redis/redis.js';
 import { createLogger } from '@siteflow/observability/server';
 
 const logger = createLogger({ name: 'rbac-cache-service' });
@@ -52,14 +52,7 @@ export class RbacCacheService {
     try {
       const r = await ensureRedisConnected();
       const pattern = `org:${orgId}:user:*:permissions`;
-      let cursor = '0';
-      do {
-        const [nextCursor, keys] = await r.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
-        cursor = nextCursor;
-        if (keys.length > 0) {
-          await r.del(...keys);
-        }
-      } while (cursor !== '0');
+      await deleteRedisKeysByPattern(r, pattern);
     } catch {
       // fail-open
     }

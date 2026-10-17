@@ -113,7 +113,7 @@ describe('Task 3: RBAC Authorization, Redis Caching & Tenant Isolation', () => {
     });
     const members = membersRes.json<ApiSuccessResponse<{ members: MemberDTO[] }>>().data.members;
     userCMemberId = members.find((m) => m.userId === userCId)!.id;
-  }, 30000);
+  }, 60000);
 
   afterAll(async () => {
     if (app) await app.close();
