@@ -47,6 +47,10 @@ import { ProjectFieldLogsPage } from '../pages/ProjectFieldLogsPage';
 import { ProjectFieldLogDetailPage } from '../pages/ProjectFieldLogDetailPage';
 import { ProjectIssuesPage } from '../pages/ProjectIssuesPage';
 import { ProjectIssueDetailPage } from '../pages/ProjectIssueDetailPage';
+import { ProjectTasksPage } from '../pages/ProjectTasksPage';
+import { ProjectTaskDetailPage } from '../pages/ProjectTaskDetailPage';
+import { ProjectBaselinesPage } from '../pages/ProjectBaselinesPage';
+import { ProjectCalendarPage } from '../pages/ProjectCalendarPage';
 import { ProcurementShell } from '../pages/procurement/ProcurementShell';
 import { MaterialRequestsPage } from '../pages/procurement/MaterialRequestsPage';
 import { QuotesPage } from '../pages/procurement/QuotesPage';
@@ -185,6 +189,10 @@ export const router = createBrowserRouter([
           { path: 'field-logs/:logId', element: <ProjectFieldLogDetailPage /> },
           { path: 'issues', element: <ProjectIssuesPage /> },
           { path: 'issues/:issueId', element: <ProjectIssueDetailPage /> },
+          { path: 'tasks', element: <ProjectTasksPage /> },
+          { path: 'tasks/:taskId', element: <ProjectTaskDetailPage /> },
+          { path: 'baselines', element: <ProjectBaselinesPage /> },
+          { path: 'calendar', element: <ProjectCalendarPage /> },
           {
             path: 'procurement',
             element: <ProcurementShell />,

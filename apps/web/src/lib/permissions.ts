@@ -55,6 +55,18 @@ export type PermissionKey =
   | 'project.issue.create'
   | 'project.issue.update'
   | 'project.issue.transition'
+  | 'project.task.read'
+  | 'project.task.create'
+  | 'project.task.update'
+  | 'project.task.delete'
+  | 'project.baseline.read'
+  | 'project.baseline.create'
+  | 'project.baseline.activate'
+  | 'project.baseline.delete'
+  | 'project.calendar.manage'
+  | 'project.schedule.recalculate'
+  | 'project.dependency.create'
+  | 'project.dependency.delete'
   | 'project.material_request.read'
   | 'project.material_request.create'
   | 'project.material_request.update'
@@ -106,6 +118,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'material:read', 'material:create', 'material:update',
     'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit', 'project.field-log.lock',
     'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
+    'project.task.read', 'project.task.create', 'project.task.update', 'project.task.delete',
+    'project.baseline.read', 'project.baseline.create', 'project.baseline.activate', 'project.baseline.delete',
+    'project.calendar.manage', 'project.schedule.recalculate', 'project.dependency.create', 'project.dependency.delete',
     'project.material_request.read', 'project.material_request.create', 'project.material_request.update', 'project.material_request.submit', 'project.material_request.cancel',
     'project.quote.read', 'project.quote.create', 'project.quote.update', 'project.quote.submit', 'project.quote.accept', 'project.quote.reject',
     'project.purchase_order.read', 'project.purchase_order.create', 'project.purchase_order.update', 'project.purchase_order.submit', 'project.purchase_order.approve', 'project.purchase_order.send', 'project.purchase_order.cancel',
@@ -124,6 +139,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'supplier:read', 'material:read',
     'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit', 'project.field-log.lock',
     'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
+    'project.task.read', 'project.task.create', 'project.task.update', 'project.task.delete',
+    'project.baseline.read', 'project.baseline.create', 'project.baseline.activate', 'project.baseline.delete',
+    'project.calendar.manage', 'project.schedule.recalculate', 'project.dependency.create', 'project.dependency.delete',
     'project.material_request.read', 'project.material_request.create', 'project.material_request.update', 'project.material_request.submit', 'project.material_request.cancel',
     'project.quote.read', 'project.quote.create', 'project.quote.update', 'project.quote.submit', 'project.quote.accept', 'project.quote.reject',
     'project.purchase_order.read', 'project.purchase_order.create', 'project.purchase_order.update', 'project.purchase_order.submit', 'project.purchase_order.approve', 'project.purchase_order.send', 'project.purchase_order.cancel',
@@ -141,6 +159,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'supplier:read', 'material:read',
     'project.field-log.read',
     'project.issue.read', 'project.issue.update',
+    'project.task.read',
+    'project.baseline.read',
     'project.material_request.read',
     'project.quote.read',
     'project.purchase_order.read', 'project.purchase_order.approve',
@@ -173,6 +193,8 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'project:read',
     'task:create', 'task:update',
     'document:read', 'document:upload',
+    'project.task.read', 'project.task.create', 'project.task.update',
+    'project.baseline.read',
     'project.field-log.read', 'project.field-log.create', 'project.field-log.update', 'project.field-log.submit',
     'project.issue.read', 'project.issue.create', 'project.issue.update', 'project.issue.transition',
   ],
