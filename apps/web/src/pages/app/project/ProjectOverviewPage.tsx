@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowUpRight, Play, PauseCircle, CheckCircle2, XCircle, Archive } from 'lucide-react';
+import { cn } from '../../../lib/cn';
 import { useActiveProject } from '../../../features/project/useActiveProject';
 import { useTransitionProjectMutation } from '../../../features/project/projectApi';
 import { useListBudgetsQuery, useGetBudgetSummaryQuery } from '../../../features/project/budgetApi';
@@ -23,25 +24,32 @@ function formatMoney(val: string, currency: string): string {
 
 function formatDate(d: string | null): string {
   if (!d) return '—';
-  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(d));
+  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    new Date(d),
+  );
 }
 
-type TransitionBtn = { label: string; transition: ProjectTransition; icon: React.ElementType; danger?: boolean };
+type TransitionBtn = {
+  label: string;
+  transition: ProjectTransition;
+  icon: React.ElementType;
+  danger?: boolean;
+};
 
 const TRANSITION_MAP: Record<string, TransitionBtn[]> = {
-  DRAFT:     [{ label: 'Activate', transition: 'activate', icon: Play }],
-  ACTIVE:    [
+  DRAFT: [{ label: 'Activate', transition: 'activate', icon: Play }],
+  ACTIVE: [
     { label: 'Put on hold', transition: 'hold', icon: PauseCircle },
     { label: 'Mark complete', transition: 'complete', icon: CheckCircle2 },
     { label: 'Cancel', transition: 'cancel', icon: XCircle, danger: true },
   ],
-  ON_HOLD:   [
+  ON_HOLD: [
     { label: 'Resume', transition: 'resume', icon: Play },
     { label: 'Cancel', transition: 'cancel', icon: XCircle, danger: true },
   ],
   COMPLETED: [{ label: 'Archive', transition: 'archive', icon: Archive }],
   CANCELLED: [{ label: 'Archive', transition: 'archive', icon: Archive }],
-  ARCHIVED:  [],
+  ARCHIVED: [],
 };
 
 export const ProjectOverviewPage: React.FC = () => {
@@ -56,7 +64,10 @@ export const ProjectOverviewPage: React.FC = () => {
     { orgId: orgId!, projectId: projectId!, budgetId: budget?.id ?? '' },
     { skip: !budget },
   );
-  const { data: membersData } = useListProjectMembersQuery({ orgId: orgId!, projectId: projectId! });
+  const { data: membersData } = useListProjectMembersQuery({
+    orgId: orgId!,
+    projectId: projectId!,
+  });
 
   const [transition, { isLoading: transitioning }] = useTransitionProjectMutation();
 
@@ -83,18 +94,24 @@ export const ProjectOverviewPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 sm:p-8 max-w-[1320px] space-y-8">
-
+    <div className="p-6 sm:p-8 space-y-8">
       {/* Key metrics */}
       <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-4">
         {[
-          { label: 'Contract value', value: activeProject.contractValue ? formatMoney(activeProject.contractValue, activeProject.currency) : '—' },
-          { label: 'Planned start',  value: formatDate(activeProject.plannedStartDate) },
-          { label: 'Planned end',    value: formatDate(activeProject.plannedEndDate) },
-          { label: 'Actual start',   value: formatDate(activeProject.actualStartDate) },
+          {
+            label: 'Contract value',
+            value: activeProject.contractValue
+              ? formatMoney(activeProject.contractValue, activeProject.currency)
+              : '—',
+          },
+          { label: 'Planned start', value: formatDate(activeProject.plannedStartDate) },
+          { label: 'Planned end', value: formatDate(activeProject.plannedEndDate) },
+          { label: 'Actual start', value: formatDate(activeProject.actualStartDate) },
         ].map(({ label, value }) => (
           <div key={label} className="bg-[var(--paper)] p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">{label}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+              {label}
+            </p>
             <p className="mt-2 text-lg font-medium tracking-[-0.03em]">{value}</p>
           </div>
         ))}
@@ -103,26 +120,53 @@ export const ProjectOverviewPage: React.FC = () => {
       {/* Budget summary */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Budget</p>
-          <Link to={`/org/${orgId}/projects/${projectId}/budget`} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--ink)] transition-colors flex items-center gap-1">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+            Budget
+          </p>
+          <Link
+            to={`/org/${orgId}/projects/${projectId}/budget`}
+            className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--ink)] transition-colors flex items-center gap-1"
+          >
             View detail <ArrowUpRight className="h-3 w-3" strokeWidth={2} />
           </Link>
         </div>
         {!budget ? (
           <div className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5 text-sm text-[var(--muted)]">
             No budget created yet.{' '}
-            <Link to={`/org/${orgId}/projects/${projectId}/budget`} className="underline underline-offset-4 hover:text-[var(--ink)] transition-colors">Create one →</Link>
+            <Link
+              to={`/org/${orgId}/projects/${projectId}/budget`}
+              className="underline underline-offset-4 hover:text-[var(--ink)] transition-colors"
+            >
+              Create one →
+            </Link>
           </div>
         ) : (
           <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-4">
             {[
-              { label: 'Status',    value: budget.status.replace('_', ' ') },
-              { label: 'Original',  value: summaryData ? formatMoney(summaryData.summary.original, budget.currencyCode) : '—' },
-              { label: 'Changes',   value: summaryData ? formatMoney(summaryData.summary.approvedChanges, budget.currencyCode) : '—' },
-              { label: 'Revised',   value: summaryData ? formatMoney(summaryData.summary.revised, budget.currencyCode) : '—' },
+              { label: 'Status', value: budget.status.replace('_', ' ') },
+              {
+                label: 'Original',
+                value: summaryData
+                  ? formatMoney(summaryData.summary.original, budget.currencyCode)
+                  : '—',
+              },
+              {
+                label: 'Changes',
+                value: summaryData
+                  ? formatMoney(summaryData.summary.approvedChanges, budget.currencyCode)
+                  : '—',
+              },
+              {
+                label: 'Revised',
+                value: summaryData
+                  ? formatMoney(summaryData.summary.revised, budget.currencyCode)
+                  : '—',
+              },
             ].map(({ label, value }) => (
               <div key={label} className="bg-[var(--paper)] p-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">{label}</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                  {label}
+                </p>
                 <p className="mt-2 text-base font-medium">{value}</p>
               </div>
             ))}
@@ -133,8 +177,13 @@ export const ProjectOverviewPage: React.FC = () => {
       {/* Team preview */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Team</p>
-          <Link to={`/org/${orgId}/projects/${projectId}/team`} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--ink)] transition-colors flex items-center gap-1">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+            Team
+          </p>
+          <Link
+            to={`/org/${orgId}/projects/${projectId}/team`}
+            className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--ink)] transition-colors flex items-center gap-1"
+          >
             Manage <ArrowUpRight className="h-3 w-3" strokeWidth={2} />
           </Link>
         </div>
@@ -145,14 +194,18 @@ export const ProjectOverviewPage: React.FC = () => {
                 {[m.user.firstName[0], m.user.lastName?.[0]].filter(Boolean).join('').toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[var(--ink)] truncate">{m.user.firstName} {m.user.lastName}</p>
+                <p className="text-sm font-medium text-[var(--ink)] truncate">
+                  {m.user.firstName} {m.user.lastName}
+                </p>
                 <p className="font-mono text-[10px] text-[var(--muted)] truncate">{m.user.email}</p>
               </div>
               <ProjectRoleBadge role={m.role} />
             </div>
           ))}
           {members.length === 0 && (
-            <div className="px-4 py-6 text-sm text-[var(--muted)] text-center">No team members yet.</div>
+            <div className="px-4 py-6 text-sm text-[var(--muted)] text-center">
+              No team members yet.
+            </div>
           )}
         </div>
       </div>
@@ -160,7 +213,9 @@ export const ProjectOverviewPage: React.FC = () => {
       {/* Lifecycle actions */}
       {transitions.length > 0 && (
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-3">Actions</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-3">
+            Actions
+          </p>
           <div className="flex flex-wrap gap-2">
             {transitions.map(({ label, transition: t, icon: Icon, danger }) => (
               <button
@@ -190,13 +245,22 @@ export const ProjectOverviewPage: React.FC = () => {
             <h3 className="text-base font-medium">Confirm {confirmTransition}</h3>
             <p className="text-sm text-[var(--muted)]">
               This action will {confirmTransition === 'cancel' ? 'cancel' : 'archive'} the project.
-              {confirmTransition === 'cancel' && ' This cannot be undone without creating a new project.'}
+              {confirmTransition === 'cancel' &&
+                ' This cannot be undone without creating a new project.'}
             </p>
             <div className="flex gap-3">
-              <button type="button" onClick={() => doTransition(confirmTransition)} className="flex-1 min-h-10 bg-[#991b1b] text-white text-sm font-medium hover:opacity-80 transition-opacity">
+              <button
+                type="button"
+                onClick={() => doTransition(confirmTransition)}
+                className="flex-1 min-h-10 bg-[#991b1b] text-white text-sm font-medium hover:opacity-80 transition-opacity"
+              >
                 Confirm
               </button>
-              <button type="button" onClick={() => setConfirmTransition(null)} className="flex-1 min-h-10 border border-[var(--hairline-2)] text-sm font-medium text-[var(--muted)] hover:border-[var(--ink)] hover:text-[var(--ink)] transition-colors">
+              <button
+                type="button"
+                onClick={() => setConfirmTransition(null)}
+                className="flex-1 min-h-10 border border-[var(--hairline-2)] text-sm font-medium text-[var(--muted)] hover:border-[var(--ink)] hover:text-[var(--ink)] transition-colors"
+              >
                 Cancel
               </button>
             </div>

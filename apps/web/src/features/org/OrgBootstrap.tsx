@@ -1,24 +1,3 @@
-/**
- * OrgBootstrap — scoped to AppLayout, fires when :orgId is in the URL.
- *
- * Fires two RTK Query calls in parallel:
- *   1. GET /organizations/:orgId              → org name, slug, status
- *   2. GET /organizations/:orgId/members      → all members (list is small, bounded by tier)
- *      → finds the entry matching auth.user.id → current user's MemberDTO
- *      → derives permissions via ROLE_PERMISSIONS[roleName]
- *
- * Dispatches:
- *   orgContextLoaded   — happy path
- *   orgInitializedEmpty — org 404, user not a member, org suspended/archived
- *
- * Re-fires automatically when orgId URL param changes (org switch works for free).
- *
- * States rendered:
- *   loading           → <AppLoadingScreen /> (spinner inside app shell, not full-page)
- *   error / no access → dispatches orgInitializedEmpty → RequireOrgMember handles it
- *   success           → renders children
- */
-
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
@@ -32,63 +11,53 @@ interface OrgBootstrapProps {
   children: React.ReactNode;
 }
 
-export const OrgBootstrap: React.FC<OrgBootstrapProps> = ({ children }) => {
+// ── Real bootstrap — fires API calls, populates orgSlice ──────────────────────
+const OrgBootstrapReal: React.FC<OrgBootstrapProps> = ({ children }) => {
   const { orgId } = useParams<{ orgId: string }>();
   const dispatch = useAppDispatch();
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
   const { isOrgInitialized, activeOrg } = useAppSelector((s) => s.org);
 
-  // Signal that we are starting a new org load (handles org switch)
+  // Detect org switch — reset when :orgId changes
   useEffect(() => {
     if (orgId && activeOrg?.id !== orgId) {
       dispatch(orgLoadingStarted());
     }
-  }, [orgId, activeOrg?.id, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
 
   const {
     data: orgData,
     isLoading: orgLoading,
     isError: orgError,
-  } = useGetOrgQuery(orgId!, {
-    skip: !orgId || isOrgInitialized, // skip if already seeded by DevTestProvider
-  });
+  } = useGetOrgQuery(orgId!, { skip: !orgId || isOrgInitialized });
 
   const {
     data: membersData,
     isLoading: membersLoading,
     isError: membersError,
-  } = useListMembersQuery(orgId!, {
-    skip: !orgId || isOrgInitialized, // skip if already seeded by DevTestProvider
-  });
+  } = useListMembersQuery(orgId!, { skip: !orgId || isOrgInitialized });
 
   useEffect(() => {
     if (!orgId || !currentUserId) return;
-
-    // Still loading — wait
     if (orgLoading || membersLoading) return;
 
-    // Any API error → empty context (RequireOrgMember will show NoAccess)
     if (orgError || membersError || !orgData || !membersData) {
       dispatch(orgInitializedEmpty());
       return;
     }
 
-    // Find current user's membership in the list
-    const myMembership = membersData.members.find((m) => m.userId === currentUserId);
-
-    if (!myMembership || myMembership.status === 'REMOVED') {
+    const mine = membersData.members.find((m) => m.userId === currentUserId);
+    if (!mine || mine.status === 'REMOVED') {
       dispatch(orgInitializedEmpty());
       return;
     }
 
-    // Derive permissions from role name (mirrors DEFAULT_ORG_ROLES on server)
-    const permissions = derivePermissions(myMembership.roleName);
-
     dispatch(
       orgContextLoaded({
         org: orgData.organization,
-        membership: myMembership,
-        permissions,
+        membership: mine,
+        permissions: derivePermissions(mine.roleName),
       }),
     );
   }, [
@@ -103,7 +72,6 @@ export const OrgBootstrap: React.FC<OrgBootstrapProps> = ({ children }) => {
     dispatch,
   ]);
 
-  // Show spinner inside app shell while loading
   if (!isOrgInitialized || orgLoading || membersLoading) {
     return (
       <div className="flex flex-1 items-center justify-center min-h-[calc(100dvh-64px)]">
@@ -114,3 +82,14 @@ export const OrgBootstrap: React.FC<OrgBootstrapProps> = ({ children }) => {
 
   return <>{children}</>;
 };
+
+// ── Bypass bootstrap — store already seeded, render children immediately ──────
+// No API calls, no effects, no spinner. Used when VITE_DEV_BYPASS=true.
+const OrgBootstrapBypass: React.FC<OrgBootstrapProps> = ({ children }) => <>{children}</>;
+
+// ── Exported component — picks the right implementation at module init time ───
+const BYPASS = import.meta.env.VITE_DEV_BYPASS === 'true';
+
+export const OrgBootstrap: React.FC<OrgBootstrapProps> = BYPASS
+  ? OrgBootstrapBypass
+  : OrgBootstrapReal;

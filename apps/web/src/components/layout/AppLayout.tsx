@@ -1,19 +1,3 @@
-/**
- * AppLayout — outer shell for all /org/:orgId/* screens.
- *
- * Structure:
- *   OrgBootstrap            loads org + membership + permissions
- *   RequireOrgMember        verifies active membership
- *   <div class="app-shell">
- *     AppSidebar            left panel (collapsible)
- *     <main>
- *       AppTopbar           top bar
- *       <Outlet />          page content
- *     </main>
- *
- * The marketing site (PublicLayout) is completely unaffected.
- */
-
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { OrgBootstrap } from '../../features/org/OrgBootstrap';
@@ -27,17 +11,22 @@ export const AppLayout: React.FC = () => {
   return (
     <OrgBootstrap>
       <RequireOrgMember>
-        <div className="flex min-h-dvh bg-[var(--surface)] text-[var(--ink)]">
-          {/* Sidebar */}
+        {/*
+          The outer div is a flex row.
+          Sidebar is only rendered in the DOM when open (md+).
+          Main area always gets flex-1 so it fills 100% when sidebar is hidden.
+        */}
+        <div className="flex h-dvh overflow-hidden bg-[var(--surface)] text-[var(--ink)]">
+          {/* Sidebar — only occupies space when open */}
           <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-          {/* Main area */}
-          <div className="flex flex-1 flex-col min-w-0">
+          {/* Main column — always fills remaining width */}
+          <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
             <AppTopbar
               sidebarOpen={sidebarOpen}
               onToggleSidebar={() => setSidebarOpen((v) => !v)}
             />
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1 overflow-y-auto overflow-x-hidden">
               <Outlet />
             </main>
           </div>

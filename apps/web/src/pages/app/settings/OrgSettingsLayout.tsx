@@ -25,10 +25,12 @@ export const OrgSettingsLayout: React.FC = () => {
   const base = `/org/${orgId}/settings`;
 
   return (
-    <div className="p-6 sm:p-8 max-w-[1320px]">
+    <div className="p-6 sm:p-8">
       <div className="mb-6">
         <h1 className="text-xl font-medium tracking-[-0.03em]">Settings</h1>
-        <p className="mt-0.5 text-sm text-[var(--muted)]">Manage your organization configuration.</p>
+        <p className="mt-0.5 text-sm text-[var(--muted)]">
+          Manage your organization configuration.
+        </p>
       </div>
 
       {/* Settings sub-nav */}

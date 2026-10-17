@@ -34,16 +34,18 @@ import type { MemberDTO } from '../../features/org/orgSlice';
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, string> = {
-    ACTIVE:    'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
+    ACTIVE: 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
     SUSPENDED: 'border-[#fde68a] bg-[#fffbeb] text-[#92400e]',
-    REMOVED:   'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
-    PENDING:   'border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af]',
-    ACCEPTED:  'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
-    EXPIRED:   'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
+    REMOVED: 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
+    PENDING: 'border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af]',
+    ACCEPTED: 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
+    EXPIRED: 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
     CANCELLED: 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
   };
   return (
-    <span className={`font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 ${map[status] ?? ''}`}>
+    <span
+      className={`font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 ${map[status] ?? ''}`}
+    >
       {status}
     </span>
   );
@@ -80,7 +82,10 @@ const MemberRow: React.FC<{
   };
 
   const handleRemove = async () => {
-    if (!confirm(`Remove ${member.userFirstName} ${member.userLastName ?? ''} from this workspace?`)) return;
+    if (
+      !confirm(`Remove ${member.userFirstName} ${member.userLastName ?? ''} from this workspace?`)
+    )
+      return;
     try {
       await removeMember({ orgId, memberId: member.id }).unwrap();
       toastOk('Member removed', 'They no longer have access to this workspace.');
@@ -102,7 +107,9 @@ const MemberRow: React.FC<{
           <p className="text-sm font-medium text-[var(--ink)]">
             {member.userFirstName} {member.userLastName}
             {isCurrentUser && (
-              <span className="ml-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">(you)</span>
+              <span className="ml-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                (you)
+              </span>
             )}
           </p>
           <StatusBadge status={member.status} />
@@ -133,19 +140,21 @@ const MemberRow: React.FC<{
               )}
 
               {/* Change role */}
-              {canUpdate && roles.map((role) => (
-                role.name !== member.roleName && (
-                  <button
-                    key={role.id}
-                    type="button"
-                    disabled={updating}
-                    onClick={() => handleUpdate({ roleId: role.id })}
-                    className="w-full px-3 py-2 text-left text-sm text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors"
-                  >
-                    Set as {role.name}
-                  </button>
-                )
-              ))}
+              {canUpdate &&
+                roles.map(
+                  (role) =>
+                    role.name !== member.roleName && (
+                      <button
+                        key={role.id}
+                        type="button"
+                        disabled={updating}
+                        onClick={() => handleUpdate({ roleId: role.id })}
+                        className="w-full px-3 py-2 text-left text-sm text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors"
+                      >
+                        Set as {role.name}
+                      </button>
+                    ),
+                )}
 
               {/* Suspend / Reactivate */}
               {canUpdate && member.status === 'ACTIVE' && (
@@ -197,12 +206,12 @@ export const MembersPage: React.FC = () => {
   const canInvite = usePermission('member:invite');
   const canCancel = usePermission('invitation:cancel');
 
-  const [tab, setTab]       = useState<'members' | 'invitations'>('members');
+  const [tab, setTab] = useState<'members' | 'invitations'>('members');
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  const { data: membersData, isLoading: membersLoading }      = useListMembersQuery(orgId!);
-  const { data: invitationsData, isLoading: invitesLoading }  = useListInvitationsQuery(orgId!);
-  const [cancelInvitation, { isLoading: cancelling }]         = useCancelInvitationMutation();
+  const { data: membersData, isLoading: membersLoading } = useListMembersQuery(orgId!);
+  const { data: invitationsData, isLoading: invitesLoading } = useListInvitationsQuery(orgId!);
+  const [cancelInvitation, { isLoading: cancelling }] = useCancelInvitationMutation();
   const { error: toastErr, success: toastOk } = useToast();
 
   const members = membersData?.members.filter((m) => m.status !== 'REMOVED') ?? [];
@@ -223,8 +232,7 @@ export const MembersPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 sm:p-8 max-w-[1320px]">
-
+    <div className="p-6 sm:p-8">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
@@ -275,11 +283,16 @@ export const MembersPage: React.FC = () => {
           {membersLoading ? (
             <div className="space-y-0">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 animate-pulse bg-[var(--surface-2)] border-b border-[var(--hairline-2)]" />
+                <div
+                  key={i}
+                  className="h-14 animate-pulse bg-[var(--surface-2)] border-b border-[var(--hairline-2)]"
+                />
               ))}
             </div>
           ) : members.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-[var(--muted)]">No members found.</div>
+            <div className="px-4 py-10 text-center text-sm text-[var(--muted)]">
+              No members found.
+            </div>
           ) : (
             members.map((m) => (
               <MemberRow
@@ -305,7 +318,10 @@ export const MembersPage: React.FC = () => {
             </div>
           ) : (
             pendingInvites.map((inv) => (
-              <div key={inv.id} className="flex items-center gap-4 px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0">
+              <div
+                key={inv.id}
+                className="flex items-center gap-4 px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0"
+              >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-[var(--ink)] truncate">{inv.email}</p>
                   <p className="font-mono text-[10px] text-[var(--muted)]">
@@ -339,7 +355,6 @@ export const MembersPage: React.FC = () => {
           onClose={() => setInviteOpen(false)}
         />
       )}
-
     </div>
   );
 };

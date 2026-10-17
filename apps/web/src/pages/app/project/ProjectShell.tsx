@@ -91,7 +91,7 @@ export const ProjectShell: React.FC = () => {
     <div className="flex flex-col min-h-0">
       {/* Project header */}
       <div className="border-b border-[var(--hairline-2)] bg-[var(--paper)] px-6 sm:px-8 pt-6 pb-0">
-        <div className="max-w-[1320px]">
+        <div>
           <div className="flex items-start gap-3 mb-3">
             <div>
               <div className="flex items-center gap-2.5 mb-1">

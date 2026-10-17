@@ -30,7 +30,9 @@ function formatCurrency(value: string | null, currency: string): string {
 
 function formatDate(d: string | null): string {
   if (!d) return '—';
-  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(d));
+  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    new Date(d),
+  );
 }
 
 export const ProjectListPage: React.FC = () => {
@@ -48,7 +50,7 @@ export const ProjectListPage: React.FC = () => {
   const projects = data?.projects ?? [];
 
   return (
-    <div className="p-6 sm:p-8 max-w-[1320px]">
+    <div className="p-6 sm:p-8">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
@@ -73,7 +75,10 @@ export const ProjectListPage: React.FC = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center mb-6">
         {/* Search */}
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)]" strokeWidth={1.8} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)]"
+            strokeWidth={1.8}
+          />
           <input
             type="text"
             value={search}
@@ -115,7 +120,9 @@ export const ProjectListPage: React.FC = () => {
           <FolderOpen className="h-10 w-10 text-[var(--muted)] mb-4" strokeWidth={1.5} />
           <p className="text-sm font-medium text-[var(--ink)]">No projects found</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            {search || statusFilter ? 'Try adjusting your filters.' : 'Create your first project to get started.'}
+            {search || statusFilter
+              ? 'Try adjusting your filters.'
+              : 'Create your first project to get started.'}
           </p>
         </div>
       ) : (
@@ -130,26 +137,38 @@ export const ProjectListPage: React.FC = () => {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex flex-col gap-1.5">
                     <ProjectStatusBadge status={project.status} />
-                    <span className="font-mono text-[10px] text-[var(--muted)]">{project.projectNumber}</span>
+                    <span className="font-mono text-[10px] text-[var(--muted)]">
+                      {project.projectNumber}
+                    </span>
                   </div>
                   <ArrowUpRight
                     className="h-4 w-4 shrink-0 text-[var(--muted)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                     strokeWidth={1.6}
                   />
                 </div>
-                <h2 className="text-base font-medium tracking-[-0.02em] leading-snug">{project.name}</h2>
+                <h2 className="text-base font-medium tracking-[-0.02em] leading-snug">
+                  {project.name}
+                </h2>
                 {project.description && (
-                  <p className="mt-2 text-sm text-[var(--muted)] line-clamp-2">{project.description}</p>
+                  <p className="mt-2 text-sm text-[var(--muted)] line-clamp-2">
+                    {project.description}
+                  </p>
                 )}
               </div>
 
               <div className="mt-6 pt-4 border-t border-[var(--hairline)] grid grid-cols-2 gap-3">
                 <div>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">Contract value</p>
-                  <p className="mt-1 text-sm font-medium">{formatCurrency(project.contractValue, project.currency)}</p>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                    Contract value
+                  </p>
+                  <p className="mt-1 text-sm font-medium">
+                    {formatCurrency(project.contractValue, project.currency)}
+                  </p>
                 </div>
                 <div>
-                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">Planned end</p>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                    Planned end
+                  </p>
                   <p className="mt-1 text-sm font-medium">{formatDate(project.plannedEndDate)}</p>
                 </div>
               </div>
@@ -158,9 +177,7 @@ export const ProjectListPage: React.FC = () => {
         </div>
       )}
 
-      {createOpen && (
-        <CreateProjectModal orgId={orgId!} onClose={() => setCreateOpen(false)} />
-      )}
+      {createOpen && <CreateProjectModal orgId={orgId!} onClose={() => setCreateOpen(false)} />}
     </div>
   );
 };

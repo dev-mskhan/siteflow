@@ -43,6 +43,9 @@ import { ProjectCostCodesPage } from '../pages/app/project/ProjectCostCodesPage'
 import { ProjectBudgetPage } from '../pages/app/project/ProjectBudgetPage';
 import { ProjectTeamPage } from '../pages/app/project/ProjectTeamPage';
 import { ProjectSettingsPage } from '../pages/app/project/ProjectSettingsPage';
+import { SuppliersPage } from '../pages/app/SuppliersPage';
+import { SupplierDetailPage } from '../pages/app/SupplierDetailPage';
+import { MaterialsPage } from '../pages/app/MaterialsPage';
 
 // ── Marketing pages ───────────────────────────────────────────────────────────
 import { HomePage } from '../pages/HomePage';
@@ -150,6 +153,11 @@ export const router = createBrowserRouter([
 
       // Project list
       { path: 'projects', element: <ProjectListPage /> },
+
+      // Org catalog
+      { path: 'suppliers', element: <SuppliersPage /> },
+      { path: 'suppliers/:supplierId', element: <SupplierDetailPage /> },
+      { path: 'materials', element: <MaterialsPage /> },
 
       // Project detail — ProjectShell owns the sub-nav + loads active project
       {
