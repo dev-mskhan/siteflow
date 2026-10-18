@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
 import { auditService } from '../audit/audit.service.js';
-import { deleteRedisKeysByPattern, getRedis } from '../../lib/redis/redis.js';
+import { getRedis } from '../../lib/redis/redis.js';
 import { SupplierRepository } from './supplier.repository.js';
 import {
   SupplierNotFoundError,
@@ -32,8 +32,17 @@ function supplierCacheKey(orgId: string, supplierId: string) {
   return `siteflow:v1:org:${orgId}:supplier:${supplierId}`;
 }
 
-function supplierListCacheKey(orgId: string, queryHash: string) {
-  return `siteflow:v1:org:${orgId}:supplier:list:${queryHash}`;
+function supplierListGenKey(orgId: string) {
+  return `siteflow:v1:org:${orgId}:supplier:list:gen`;
+}
+
+async function getSupplierListCacheKey(orgId: string, queryHash: string): Promise<string> {
+  try {
+    const gen = (await getRedis().get(supplierListGenKey(orgId))) ?? '0';
+    return `siteflow:v1:org:${orgId}:supplier:list:${gen}:${queryHash}`;
+  } catch {
+    return `siteflow:v1:org:${orgId}:supplier:list:0:${queryHash}`;
+  }
 }
 
 function hashQuery(query: ListSuppliersQuery): string {
@@ -116,9 +125,8 @@ export class SupplierService {
 
   private async invalidateListCache(orgId: string): Promise<void> {
     try {
-      const redis = getRedis();
-      const pattern = `siteflow:v1:org:${orgId}:supplier:list:*`;
-      await deleteRedisKeysByPattern(redis, pattern);
+      // Atomic O(1) generation bump — all cached list pages for this org are now stale
+      await getRedis().incr(supplierListGenKey(orgId));
     } catch {
       // cache failure must not break the service
     }
@@ -227,7 +235,7 @@ export class SupplierService {
       span.setAttributes({ organizationId });
 
       const qHash = hashQuery(query);
-      const listKey = supplierListCacheKey(organizationId, qHash);
+      const listKey = await getSupplierListCacheKey(organizationId, qHash);
       const cached = await this.getCached(listKey);
       if (cached) {
         return JSON.parse(cached) as { data: SupplierDTO[]; nextCursor: string | null };

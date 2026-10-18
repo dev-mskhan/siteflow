@@ -12,6 +12,7 @@ import { getDb } from '../../lib/db/index.js';
 import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
 import { AuthRepository } from '../auth/auth.repository.js';
 import { AuthCacheService } from '../auth/auth.cache.service.js';
+import { OrganizationCacheService } from '../organization/organization.cache.service.js';
 import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../auth/auth.errors.js';
 import { verifyPassword } from '../auth/password.service.js';
 import { isWithinGracePeriod } from '../billing/entitlement.policy.js';
@@ -258,6 +259,8 @@ export class PlatformLifecycleService {
       realtimeDeliveryManager.closeConnectionsForUser(member.userId);
     }
     realtimeDeliveryManager.closeConnectionsForOrganization(organizationId);
+    // Flush org-level caches so the suspended status is immediately visible
+    await new OrganizationCacheService().invalidateOrg(organizationId);
   }
 
   async reactivateOrganization(organizationId: string, input: LifecycleActionInput): Promise<void> {

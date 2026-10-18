@@ -2,6 +2,7 @@
 import { trace } from '@opentelemetry/api';
 import { withSpan } from '@siteflow/observability/server';
 import { getDb } from '../../lib/db/index.js';
+import { writeOutboxEvent } from '../../lib/outbox/outbox.service.js';
 import { MembershipRepository, type MemberWithDetails } from './membership.repository.js';
 import { rbacCacheService } from '../rbac/rbac.cache.service.js';
 import { OrganizationCacheService } from '../organization/organization.cache.service.js';
@@ -148,6 +149,12 @@ export class MembershipService {
           },
           tx,
         );
+        await writeOutboxEvent(
+          tx,
+          action,
+          { organizationId: orgId, userId: result.userId, memberId, actorUserId: actorCtx.userId, ...input },
+          orgId,
+        );
         return result;
       });
 
@@ -189,6 +196,12 @@ export class MembershipService {
             resourceId: memberId,
           },
           tx,
+        );
+        await writeOutboxEvent(
+          tx,
+          'member.removed',
+          { organizationId: orgId, userId: existing.userId, memberId, actorUserId: actorCtx.userId },
+          orgId,
         );
       });
 

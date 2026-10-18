@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
 import { auditService } from '../audit/audit.service.js';
-import { deleteRedisKeysByPattern, getRedis } from '../../lib/redis/redis.js';
+import { getRedis } from '../../lib/redis/redis.js';
 import { MaterialRepository } from './material.repository.js';
 import { MaterialNotFoundError, MaterialDuplicateCodeError, MaterialInactiveError } from './material.errors.js';
 import type { MaterialDTO, CreateMaterialInput, UpdateMaterialInput, ListMaterialsQuery } from './material.types.js';
@@ -36,8 +36,17 @@ function cacheKey(orgId: string, id: string) {
   return `siteflow:v1:org:${orgId}:material:${id}`;
 }
 
-function listCacheKey(orgId: string, qHash: string) {
-  return `siteflow:v1:org:${orgId}:material:list:${qHash}`;
+function listGenKey(orgId: string) {
+  return `siteflow:v1:org:${orgId}:material:list:gen`;
+}
+
+async function getListCacheKey(orgId: string, qHash: string): Promise<string> {
+  try {
+    const gen = (await getRedis().get(listGenKey(orgId))) ?? '0';
+    return `siteflow:v1:org:${orgId}:material:list:${gen}:${qHash}`;
+  } catch {
+    return `siteflow:v1:org:${orgId}:material:list:0:${qHash}`;
+  }
 }
 
 async function getCached(key: string): Promise<string | null> {
@@ -66,7 +75,8 @@ async function delCached(...keys: string[]): Promise<void> {
 
 async function invalidateListCache(orgId: string): Promise<void> {
   try {
-    await deleteRedisKeysByPattern(getRedis(), `siteflow:v1:org:${orgId}:material:list:*`);
+    // Atomic O(1) generation bump — all cached list pages for this org are now stale
+    await getRedis().incr(listGenKey(orgId));
   } catch {
     // cache failure must not break the service
   }
@@ -171,7 +181,7 @@ export class MaterialService {
       span.setAttributes({ organizationId });
 
       const qHash = crypto.createHash('md5').update(JSON.stringify(query)).digest('hex');
-      const listKey = listCacheKey(organizationId, qHash);
+      const listKey = await getListCacheKey(organizationId, qHash);
       const cached = await getCached(listKey);
       if (cached) return JSON.parse(cached) as { data: MaterialDTO[]; nextCursor: string | null };
 
