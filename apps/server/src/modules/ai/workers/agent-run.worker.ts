@@ -22,6 +22,8 @@ import {
   BudgetExceededError,
   GuardrailBlockedError,
 } from '../core/errors.js';
+import { realtimeDeliveryManager } from '../../notification/realtime/realtime.delivery.js';
+import { notificationService } from '../../notification/notification.service.js';
 
 const logger = createLogger({ name: 'agent-run-worker' });
 
@@ -69,6 +71,7 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
 
         const ctx = buildRunContext(run, DEFAULT_RUN_LIMITS);
         await repo.setRunning(runId);
+        emitRunStarted(run);
         logger.info({ runId }, 'Resuming run after approval');
 
         try {
@@ -76,15 +79,18 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
 
           if (result.interrupted) {
             await repo.setAwaitingApproval(runId);
+            emitRunAwaitingApproval(run);
             return;
           }
 
           await repo.setSucceeded(runId, result.output, result.tokensIn, result.tokensOut, result.costUsd, result.traceId);
+          emitRunSucceeded(run, result.costUsd);
           logger.info({ runId }, 'Resumed run succeeded');
         } catch (err: unknown) {
           const message = classifyError(err);
           logger.error({ runId, err }, 'Resumed run failed');
           await repo.setFailed(runId, message);
+          emitRunFailed(run, message);
           if (!isLimitError(err)) throw err;
         }
         return;
@@ -101,6 +107,7 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
 
       // ── 4. Transition → RUNNING ───────────────────────────────────────────
       await repo.setRunning(runId);
+      emitRunStarted(run);
       logger.info({ runId, agent: ctx.agent, threadId: ctx.threadId }, 'Run marked RUNNING');
 
       // ── 5. Execute via runner ─────────────────────────────────────────────
@@ -112,6 +119,7 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
           // Status transition to AWAITING_APPROVAL; the approval.service
           // (Chunk 6) will resume the graph after a decision is made.
           await repo.setAwaitingApproval(runId);
+          emitRunAwaitingApproval(run);
           logger.info({ runId }, 'Run paused — awaiting approval');
           return;
         }
@@ -124,6 +132,7 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
           result.costUsd,
           result.traceId,
         );
+        emitRunSucceeded(run, result.costUsd);
 
         logger.info(
           { runId, tokensIn: result.tokensIn, tokensOut: result.tokensOut, costUsd: result.costUsd },
@@ -145,6 +154,7 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
           undefined,
           undefined,
         );
+        emitRunFailed(run, message);
 
         // Re-throw limit errors so PgBoss marks the job FAILED (gives visibility in the queue UI).
         // For unexpected errors we also re-throw — PgBoss will not retry (retryLimit: 0).
@@ -156,6 +166,88 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
   );
 
   logger.info('Registered AI module agent-run PgBoss worker');
+}
+
+function emitRunStarted(run: { id: string; createdBy: string; organizationId: string; agent: string; projectId: string | null }): void {
+  realtimeDeliveryManager.broadcastToUser(run.createdBy, run.organizationId, {
+    type: 'ai.run.started',
+    runId: run.id,
+    agent: run.agent,
+    projectId: run.projectId,
+  });
+}
+
+function emitRunAwaitingApproval(run: { id: string; createdBy: string; organizationId: string; agent: string; projectId: string | null }): void {
+  realtimeDeliveryManager.broadcastToTenant(run.organizationId, {
+    type: 'ai.approval.requested',
+    runId: run.id,
+    agent: run.agent,
+    projectId: run.projectId,
+  });
+  void notificationService.createNotification({
+    organizationId: run.organizationId,
+    recipientId: run.createdBy,
+    projectId: run.projectId,
+    eventType: 'ai.approval.requested',
+    channel: 'IN_APP',
+    payload: {
+      runId: run.id,
+      agent: run.agent,
+      message: `AI agent (${run.agent}) requested human approval.`,
+    },
+  }).catch((err) => logger.warn({ runId: run.id, err }, 'Failed to create in-app approval notification'));
+}
+
+function emitRunSucceeded(
+  run: { id: string; createdBy: string; organizationId: string; agent: string; projectId: string | null },
+  costUsd?: string,
+): void {
+  realtimeDeliveryManager.broadcastToUser(run.createdBy, run.organizationId, {
+    type: 'ai.run.completed',
+    runId: run.id,
+    agent: run.agent,
+    projectId: run.projectId,
+    costUsd,
+  });
+  void notificationService.createNotification({
+    organizationId: run.organizationId,
+    recipientId: run.createdBy,
+    projectId: run.projectId,
+    eventType: 'ai.run.completed',
+    channel: 'IN_APP',
+    payload: {
+      runId: run.id,
+      agent: run.agent,
+      message: `AI agent run (${run.agent}) completed successfully.`,
+      costUsd,
+    },
+  }).catch((err) => logger.warn({ runId: run.id, err }, 'Failed to create in-app success notification'));
+}
+
+function emitRunFailed(
+  run: { id: string; createdBy: string; organizationId: string; agent: string; projectId: string | null },
+  errorMessage: string,
+): void {
+  realtimeDeliveryManager.broadcastToUser(run.createdBy, run.organizationId, {
+    type: 'ai.run.failed',
+    runId: run.id,
+    agent: run.agent,
+    projectId: run.projectId,
+    error: errorMessage,
+  });
+  void notificationService.createNotification({
+    organizationId: run.organizationId,
+    recipientId: run.createdBy,
+    projectId: run.projectId,
+    eventType: 'ai.run.failed',
+    channel: 'IN_APP',
+    payload: {
+      runId: run.id,
+      agent: run.agent,
+      message: `AI agent run (${run.agent}) failed: ${errorMessage}`,
+      error: errorMessage,
+    },
+  }).catch((err) => logger.warn({ runId: run.id, err }, 'Failed to create in-app failure notification'));
 }
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────

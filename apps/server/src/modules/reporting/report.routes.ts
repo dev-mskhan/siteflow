@@ -3,7 +3,7 @@
 
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../auth/auth.middleware.js';
-import { organizationContext } from '../rbac/permission.middleware.js';
+import { organizationContext, requirePermission } from '../rbac/permission.middleware.js';
 import {
   projectContext,
   requireProjectPermission,
@@ -43,7 +43,7 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/reports/portfolio',
     {
       schema: getPortfolioReportSchemaDoc,
-      preHandler: [authenticate, organizationContext],
+      preHandler: [authenticate, organizationContext, requirePermission('project:read')],
     },
     getPortfolioReportHandler,
   );
