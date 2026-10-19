@@ -53,6 +53,13 @@ import { ProjectBaselinesPage } from '../pages/ProjectBaselinesPage';
 import { ProjectCalendarPage } from '../pages/ProjectCalendarPage';
 import { ProjectSubcontractorsPage } from '../pages/ProjectSubcontractorsPage';
 import { ProcurementShell } from '../pages/procurement/ProcurementShell';
+import { PreconstructionShell } from '../pages/preconstruction/PreconstructionShell';
+import { ProposalsPage } from '../pages/preconstruction/ProposalsPage';
+import { EstimatesPage } from '../pages/preconstruction/EstimatesPage';
+import { BOQPage } from '../pages/preconstruction/BOQPage';
+import { TakeoffsPage } from '../pages/preconstruction/TakeoffsPage';
+import { PricingPage } from '../pages/preconstruction/PricingPage';
+import { TendersPage } from '../pages/app/TendersPage';
 import { MaterialRequestsPage } from '../pages/procurement/MaterialRequestsPage';
 import { QuotesPage } from '../pages/procurement/QuotesPage';
 import { PurchaseOrdersPage } from '../pages/procurement/PurchaseOrdersPage';
@@ -179,6 +186,7 @@ export const router = createBrowserRouter([
       { path: 'subcontractors', element: <SubcontractorsPage /> },
       { path: 'subcontractors/:subcontractorId', element: <SubcontractorDetailPage /> },
       { path: 'materials', element: <MaterialsPage /> },
+      { path: 'tenders', element: <TendersPage /> },
 
       // Project detail — ProjectShell owns the sub-nav + loads active project
       {
@@ -199,6 +207,17 @@ export const router = createBrowserRouter([
           { path: 'baselines', element: <ProjectBaselinesPage /> },
           { path: 'calendar', element: <ProjectCalendarPage /> },
           { path: 'subcontractors', element: <ProjectSubcontractorsPage /> },
+          {
+            path: 'preconstruction',
+            element: <PreconstructionShell />,
+            children: [
+              { path: 'proposals', element: <ProposalsPage /> },
+              { path: 'estimates', element: <EstimatesPage /> },
+              { path: 'boq', element: <BOQPage /> },
+              { path: 'takeoffs', element: <TakeoffsPage /> },
+              { path: 'pricing', element: <PricingPage /> },
+            ],
+          },
           {
             path: 'procurement',
             element: <ProcurementShell />,

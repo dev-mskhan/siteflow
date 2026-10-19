@@ -120,6 +120,7 @@ export const ProjectShell: React.FC = () => {
             <Tab to={`${base}/issues`} label="Issues" />
             <Tab to={`${base}/tasks`} label="Tasks" />
             <Tab to={`${base}/subcontractors`} label="Subcontractors" />
+            <Tab to={`${base}/preconstruction/proposals`} label="Pre-construction" />
             <Tab to={`${base}/procurement/requests`} label="Procurement" />
             <Tab to={`${base}/inventory`} label="Inventory" />
             <Tab to={`${base}/settings`} label="Settings" />
