@@ -11,6 +11,8 @@ import {
   type ProjectMemberRoleChangedPayload,
   type ProjectMemberRemovedPayload,
 } from './project.jobs.js';
+import { realtimeDeliveryManager } from '../../notification/realtime/realtime.delivery.js';
+import { notificationService } from '../../notification/notification.service.js';
 
 const logger = createLogger({ name: 'project-worker' });
 const tracer = trace.getTracer('project-worker');
@@ -33,6 +35,13 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
           { organizationId, projectId, projectNumber, actorUserId, correlationId },
           'Processed project created event',
         );
+
+        realtimeDeliveryManager.broadcastToTenant(organizationId, {
+          type: 'project.created',
+          organizationId,
+          projectId,
+          projectNumber,
+        });
 
         span.setAttribute('job.idempotency_key', idempotencyKey);
       });
@@ -58,6 +67,15 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
           'Processed project status changed event',
         );
 
+        realtimeDeliveryManager.broadcastToTenant(organizationId, {
+          type: 'project.status_changed',
+          organizationId,
+          projectId,
+          fromStatus,
+          toStatus,
+          transition,
+        });
+
         span.setAttribute('job.idempotency_key', idempotencyKey);
       });
     },
@@ -78,6 +96,12 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
           { organizationId, projectId, actorUserId, correlationId },
           'Processed project updated event',
         );
+
+        realtimeDeliveryManager.broadcastToTenant(organizationId, {
+          type: 'project.updated',
+          organizationId,
+          projectId,
+        });
       });
     },
   );
@@ -98,6 +122,33 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
           { organizationId, projectId, targetUserId, role, actorUserId, correlationId },
           'Processed project member added event',
         );
+
+        try {
+          await notificationService.createNotification({
+            organizationId,
+            recipientId: targetUserId,
+            eventType: 'project.member_added',
+            channel: 'IN_APP',
+            projectId,
+            payload: { role, projectId },
+          });
+        } catch (err) {
+          logger.warn({ err, organizationId, projectId, targetUserId }, 'Failed to create in-app notification for member added');
+        }
+
+        realtimeDeliveryManager.broadcastToUser(targetUserId, organizationId, {
+          type: 'project.member_added',
+          organizationId,
+          projectId,
+          role,
+        });
+        realtimeDeliveryManager.broadcastToTenant(organizationId, {
+          type: 'project.member_added',
+          organizationId,
+          projectId,
+          targetUserId,
+          role,
+        });
       });
     },
   );
@@ -119,6 +170,27 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
           { organizationId, projectId, targetUserId, fromRole, toRole, actorUserId, correlationId },
           'Processed project member role changed event',
         );
+
+        try {
+          await notificationService.createNotification({
+            organizationId,
+            recipientId: targetUserId,
+            eventType: 'project.member_role_changed',
+            channel: 'IN_APP',
+            projectId,
+            payload: { fromRole, toRole, projectId },
+          });
+        } catch (err) {
+          logger.warn({ err, organizationId, projectId, targetUserId }, 'Failed to create in-app notification for member role changed');
+        }
+
+        realtimeDeliveryManager.broadcastToUser(targetUserId, organizationId, {
+          type: 'project.member_role_changed',
+          organizationId,
+          projectId,
+          fromRole,
+          toRole,
+        });
       });
     },
   );
@@ -139,6 +211,13 @@ export async function registerProjectWorkers(boss: PgBoss): Promise<void> {
           { organizationId, projectId, targetUserId, actorUserId, correlationId },
           'Processed project member removed event',
         );
+
+        realtimeDeliveryManager.broadcastToTenant(organizationId, {
+          type: 'project.member_removed',
+          organizationId,
+          projectId,
+          targetUserId,
+        });
       });
     },
   );

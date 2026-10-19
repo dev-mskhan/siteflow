@@ -92,10 +92,18 @@ function eventDescription(eventType: string): string {
       return 'Your organization subscription entered its billing grace period.';
     case 'billing.grace.ended':
       return 'Your organization subscription billing grace period ended.';
+    case 'rfi.submitted':
+      return 'A new RFI has been submitted.';
     case 'rfi.responded':
       return 'An RFI received a response.';
+    case 'rfi.closed':
+      return 'An RFI has been closed.';
+    case 'submittal.submitted':
+      return 'A new submittal has been submitted.';
     case 'submittal.reviewed':
       return 'A submittal was reviewed.';
+    case 'submittal.closed':
+      return 'A submittal has been closed.';
     default:
       return 'Your organization has a new update.';
   }
@@ -106,10 +114,12 @@ export async function processEventNotification(
   data: EventNotificationPayload,
 ): Promise<void> {
   if (!data.organizationId) throw new Error(`organizationId is required for ${eventType}`);
-  const recipients =
-    data.projectId && (eventType === 'rfi.responded' || eventType === 'submittal.reviewed')
-      ? await getProjectMembers(data.organizationId, data.projectId)
-      : await getOrgAdminsAndOwner(data.organizationId);
+  const isProjectScoped =
+    data.projectId &&
+    (eventType.startsWith('rfi.') || eventType.startsWith('submittal.'));
+  const recipients = isProjectScoped
+    ? await getProjectMembers(data.organizationId, data.projectId!)
+    : await getOrgAdminsAndOwner(data.organizationId);
   const eventId = data.outboxEventId ?? null;
   const description = eventDescription(eventType);
   const realtimeEvent = {

@@ -19,6 +19,7 @@ import { eq, and, gt } from 'drizzle-orm';
 import type { Invitation } from '@siteflow/database/schema';
 import { invitations, organizationMemberships, users, roles } from '@siteflow/database/schema';
 import { entitlementService } from '../billing/entitlement.service.js';
+import { realtimeDeliveryManager } from '../notification/realtime/realtime.delivery.js';
 
 const logger = createLogger({ name: 'invitation-service' });
 const tracer = trace.getTracer('invitation-service');
@@ -301,11 +302,30 @@ export class InvitationService {
           },
           tx,
         );
+        await writeOutboxEvent(
+          tx,
+          'member.joined',
+          {
+            organizationId: invite.organizationId,
+            userId,
+            roleId: invite.roleId,
+            invitationId: invite.id,
+          },
+          invite.organizationId,
+        );
       });
 
       // Synchronous org list and RBAC permission cache invalidation AFTER transaction commit
       await new OrganizationCacheService().invalidateUserOrgList(userId);
       await new RbacCacheService().invalidate(invite.organizationId, userId);
+
+      // Realtime notification to all connected tenant operators/members
+      realtimeDeliveryManager.broadcastToTenant(invite.organizationId, {
+        type: 'member.joined',
+        organizationId: invite.organizationId,
+        userId,
+        roleId: invite.roleId,
+      });
     });
   }
 }

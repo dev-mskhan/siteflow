@@ -5,6 +5,10 @@ export const NOTIFICATION_EVENT_QUEUES = {
   BILLING_ENTITLEMENT_CHANGED: 'billing.entitlement.changed',
   BILLING_GRACE_STARTED: 'billing.grace.started',
   BILLING_GRACE_ENDED: 'billing.grace.ended',
+  RFI_SUBMITTED: 'rfi.submitted',
   RFI_RESPONDED: 'rfi.responded',
+  RFI_CLOSED: 'rfi.closed',
+  SUBMITTAL_SUBMITTED: 'submittal.submitted',
   SUBMITTAL_REVIEWED: 'submittal.reviewed',
+  SUBMITTAL_CLOSED: 'submittal.closed',
 } as const;

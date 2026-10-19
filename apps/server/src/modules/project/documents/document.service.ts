@@ -9,6 +9,7 @@ import { DOCUMENT_QUEUES } from './document.jobs.js';
 import { getStorageService } from '../../../lib/storage/index.js';
 import { calculateObjectSha256 } from '../../../lib/storage/storage.service.js';
 import { DocumentRepository } from './document.repository.js';
+import { realtimeDeliveryManager } from '../../notification/realtime/realtime.delivery.js';
 import {
   DocumentAccessDeniedError,
   DocumentInvalidCursorError,
@@ -719,6 +720,16 @@ export class DocumentService {
         tx,
       );
     });
+
+    realtimeDeliveryManager.broadcastToTenant(organizationId, {
+      type: checksumMatches ? 'document.processing_completed' : 'document.processing_failed',
+      organizationId,
+      projectId,
+      documentId,
+      versionNumber,
+      status: checksumMatches ? 'COMPLETED' : 'FAILED',
+    });
+
     if (!checksumMatches) {
       throw new DocumentUploadIncompleteError();
     }

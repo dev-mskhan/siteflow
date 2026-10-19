@@ -13,6 +13,7 @@ import { registerLifecycleWorker } from './modules/billing/lifecycle.worker.js';
 import { registerAgentRunWorkers } from './modules/ai/workers/agent-run.worker.js';
 import { registerPlatformAccountNoticeWorkers } from './modules/platform/platform-account-notice.worker.js';
 import { registerEventNotificationWorkers } from './modules/notification/event-notification.worker.js';
+import { registerDocumentWorkers } from './modules/project/documents/document.worker.js';
 import {
   registerOperationsRemindersWorker,
   OPERATIONS_REMINDER_QUEUES,
@@ -32,6 +33,7 @@ export async function registerWorkers(boss: PgBoss): Promise<void> {
   await registerAgentRunWorkers(boss);
   await registerPlatformAccountNoticeWorkers(boss);
   await registerEventNotificationWorkers(boss);
+  await registerDocumentWorkers(boss);
   await registerOperationsRemindersWorker(boss);
 
   await boss.schedule(AUTH_QUEUES.CLEANUP_EXPIRED_SESSIONS, '0 2 * * *', {});
