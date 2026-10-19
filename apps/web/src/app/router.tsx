@@ -54,6 +54,16 @@ import { ProjectCalendarPage } from '../pages/ProjectCalendarPage';
 import { ProjectSubcontractorsPage } from '../pages/ProjectSubcontractorsPage';
 import { ProcurementShell } from '../pages/procurement/ProcurementShell';
 import { PreconstructionShell } from '../pages/preconstruction/PreconstructionShell';
+import { CommercialShell } from '../pages/commercial/CommercialShell';
+import { ChangeOrdersPage } from '../pages/commercial/ChangeOrdersPage';
+import { SOVPage } from '../pages/commercial/SOVPage';
+import { PaymentApplicationsPage } from '../pages/commercial/PaymentApplicationsPage';
+import { InvoicesPage } from '../pages/commercial/InvoicesPage';
+import { PaymentsPage } from '../pages/commercial/PaymentsPage';
+import { RetainagePage } from '../pages/commercial/RetainagePage';
+import { CostTransactionsPage } from '../pages/commercial/CostTransactionsPage';
+import { CommercialSummaryPage } from '../pages/commercial/CommercialSummaryPage';
+import { FinancialSummaryPage } from '../pages/commercial/FinancialSummaryPage';
 import { ProposalsPage } from '../pages/preconstruction/ProposalsPage';
 import { EstimatesPage } from '../pages/preconstruction/EstimatesPage';
 import { BOQPage } from '../pages/preconstruction/BOQPage';
@@ -211,6 +221,21 @@ export const router = createBrowserRouter([
           { path: 'baselines', element: <ProjectBaselinesPage /> },
           { path: 'calendar', element: <ProjectCalendarPage /> },
           { path: 'subcontractors', element: <ProjectSubcontractorsPage /> },
+          {
+            path: 'commercial',
+            element: <CommercialShell />,
+            children: [
+              { path: 'change-orders', element: <ChangeOrdersPage /> },
+              { path: 'sov', element: <SOVPage /> },
+              { path: 'payment-applications', element: <PaymentApplicationsPage /> },
+              { path: 'invoices', element: <InvoicesPage /> },
+              { path: 'payments', element: <PaymentsPage /> },
+              { path: 'retainage', element: <RetainagePage /> },
+              { path: 'cost-transactions', element: <CostTransactionsPage /> },
+              { path: 'commercial-summary', element: <CommercialSummaryPage /> },
+              { path: 'financial-summary', element: <FinancialSummaryPage /> },
+            ],
+          },
           {
             path: 'preconstruction',
             element: <PreconstructionShell />,
