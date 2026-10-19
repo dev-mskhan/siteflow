@@ -172,6 +172,8 @@ const documentResult = {
   required: ['document'],
 };
 
+const MAX_DOCUMENT_FILE_SIZE_BYTES = 52_428_800; // 50 MB
+
 const uploadBody = {
   type: 'object',
   properties: {
@@ -179,7 +181,7 @@ const uploadBody = {
     category: { type: 'string', enum: documentCategories },
     fileName: { type: 'string', minLength: 1, maxLength: 255 },
     contentType: { type: 'string', minLength: 3, maxLength: 255, pattern: '^[\\w.+-]+/[\\w.+-]+$' },
-    fileSize: { type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER },
+    fileSize: { type: 'integer', minimum: 1, maximum: MAX_DOCUMENT_FILE_SIZE_BYTES },
     description: { type: 'string', maxLength: 10000 },
     accessPolicy: { type: 'string', enum: documentAccessPolicies },
     expiryDate: { type: 'string', format: 'date' },
@@ -198,7 +200,7 @@ const versionBody = {
   properties: {
     fileName: { type: 'string', minLength: 1, maxLength: 255 },
     contentType: { type: 'string', minLength: 3, maxLength: 255, pattern: '^[\\w.+-]+/[\\w.+-]+$' },
-    fileSize: { type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER },
+    fileSize: { type: 'integer', minimum: 1, maximum: MAX_DOCUMENT_FILE_SIZE_BYTES },
     notes: { type: 'string', maxLength: 10000 },
   },
   required: ['fileName', 'contentType', 'fileSize'],

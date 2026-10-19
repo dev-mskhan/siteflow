@@ -304,6 +304,7 @@ export class AuthService {
       if (sessionId) {
         await this.repo.revokeSession(sessionId);
         await this.cacheService.invalidateSession(sessionId);
+        await this.cacheService.markSessionRevoked(sessionId);
       }
       if (userId) {
         await this.cacheService.invalidateUserSessions(userId);

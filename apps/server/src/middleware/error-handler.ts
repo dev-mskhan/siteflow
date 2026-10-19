@@ -25,6 +25,15 @@ function resolveErrorCode(error: FastifyError | Error | AuthError, statusCode: n
   if (error instanceof AuthError) return error.code;
   if ((error as any).code === '22P02') return 'VALIDATION_ERROR';
 
+  // Support domain errors defining custom code property
+  if (
+    typeof (error as any).code === 'string' &&
+    !(error as any).code.startsWith('FST_ERR_') &&
+    !(error as any).code.startsWith('ERR_')
+  ) {
+    return (error as any).code;
+  }
+
   const map: Record<number, string> = {
     400: 'BAD_REQUEST',
     401: 'UNAUTHORIZED',
@@ -84,9 +93,11 @@ export function registerErrorHandlers(app: FastifyInstance): void {
       // 3. Standardised response payload
       const details = isZodError && 'issues' in error
         ? (error as any).issues
-        : serverEnv.NODE_ENV === 'development'
-          ? error.stack
-          : undefined;
+        : (error as any).details !== undefined
+          ? (error as any).details
+          : serverEnv.NODE_ENV === 'development'
+            ? error.stack
+            : undefined;
 
       const responsePayload = createErrorResponse(
         errorCode,

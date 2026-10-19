@@ -38,18 +38,38 @@ const fileNameSchema = z
   .max(255)
   .refine((value) => !/[\\/\\0]/.test(value), 'File name must not contain a path');
 
+export const MAX_DOCUMENT_FILE_SIZE_BYTES = 52_428_800; // 50 MB
+
+export const BLOCKED_MIME_TYPES = new Set([
+  'text/html',
+  'application/xhtml+xml',
+  'application/javascript',
+  'text/javascript',
+  'application/x-javascript',
+  'application/x-msdownload',
+  'application/x-sh',
+  'application/x-csh',
+  'application/bat',
+  'application/x-bat',
+  'application/vnd.microsoft.portable-executable',
+]);
+
 const contentTypeSchema = z
   .string()
   .min(3)
   .max(255)
-  .regex(/^[\w.+-]+\/[\w.+-]+$/);
+  .regex(/^[\w.+-]+\/[\w.+-]+$/)
+  .refine(
+    (value) => !BLOCKED_MIME_TYPES.has(value.toLowerCase()),
+    'Executable or script MIME types are not allowed for security reasons',
+  );
 
 export const createDocumentSchema = z.object({
   title: z.string().trim().min(1).max(500),
   category: documentCategorySchema,
   fileName: fileNameSchema,
   contentType: contentTypeSchema,
-  fileSize: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  fileSize: z.number().int().positive().max(MAX_DOCUMENT_FILE_SIZE_BYTES),
   description: z.string().max(10000).optional(),
   accessPolicy: documentAccessSchema.optional(),
   expiryDate: dateSchema.optional(),
@@ -78,7 +98,7 @@ export const updateDocumentSchema = z
 export const createDocumentVersionSchema = z.object({
   fileName: fileNameSchema,
   contentType: contentTypeSchema,
-  fileSize: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  fileSize: z.number().int().positive().max(MAX_DOCUMENT_FILE_SIZE_BYTES),
   notes: z.string().max(10000).optional(),
 });
 

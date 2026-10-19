@@ -2,6 +2,8 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { verifyAccessToken, type AccessTokenPayload } from './token.service.js';
 import { UnauthorizedError, ForbiddenError } from './auth.errors.js';
+import { authCacheService } from './auth.cache.service.js';
+import { serverEnv } from '../../config/env.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -17,14 +19,14 @@ declare module 'fastify' {
 export async function authenticate(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
   let token: string | undefined;
 
-  // 1. Check HttpOnly cookie (signed or raw)
+  // 1. Check HttpOnly cookie (signed or raw in test)
   if (request.cookies && request.cookies['access_token']) {
     const rawCookie = request.cookies['access_token'];
     const unsigned = request.unsignCookie(rawCookie);
     if (unsigned.valid && unsigned.value) {
       token = unsigned.value;
-    } else if (!rawCookie.startsWith('s:')) {
-      // Fallback for unsigned cookie in direct/test requests
+    } else if (serverEnv.NODE_ENV === 'test' && !rawCookie.startsWith('s:')) {
+      // Fallback for unsigned cookie in direct unit/integration tests
       token = rawCookie;
     }
   }
@@ -42,6 +44,20 @@ export async function authenticate(request: FastifyRequest, _reply: FastifyReply
 
   if (payload.status === 'SUSPENDED') {
     throw new ForbiddenError('Account is suspended');
+  }
+
+  // Validate session status against fast Redis revocation cache
+  if (payload.sessionId) {
+    const isRevoked = await authCacheService.isSessionRevoked(payload.sessionId);
+    if (isRevoked) {
+      throw new UnauthorizedError('Session has been revoked');
+    }
+  }
+
+  const tokenIssuedAtMs = payload.iat ? payload.iat * 1000 : undefined;
+  const isUserRevoked = await authCacheService.isUserRevoked(payload.sub, tokenIssuedAtMs);
+  if (isUserRevoked) {
+    throw new UnauthorizedError('Session has been revoked');
   }
 
   // Attach payload to request context

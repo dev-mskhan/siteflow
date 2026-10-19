@@ -28,10 +28,14 @@ export async function realtimePlugin(app: FastifyInstance): Promise<void> {
         return reply.status(403).send({ error: authResult.reason });
       }
 
+      // Hijack response for manual SSE lifecycle management
+      reply.hijack();
+
       // Configure SSE Headers
       reply.raw.setHeader('Content-Type', 'text/event-stream');
-      reply.raw.setHeader('Cache-Control', 'no-cache');
+      reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
       reply.raw.setHeader('Connection', 'keep-alive');
+      reply.raw.setHeader('X-Accel-Buffering', 'no');
       reply.raw.flushHeaders();
 
       const connectionId = generateId();
@@ -40,6 +44,19 @@ export async function realtimePlugin(app: FastifyInstance): Promise<void> {
         userId: request.orgContext!.userId,
         organizationId: request.orgContext!.organizationId,
         reply,
+      });
+
+      // Keepalive heartbeat to prevent idle proxy or client socket termination
+      const heartbeatTimer = setInterval(() => {
+        try {
+          reply.raw.write(': ping\n\n');
+        } catch {
+          clearInterval(heartbeatTimer);
+        }
+      }, 15000);
+
+      reply.raw.on('close', () => {
+        clearInterval(heartbeatTimer);
       });
 
       // Send initial connection event

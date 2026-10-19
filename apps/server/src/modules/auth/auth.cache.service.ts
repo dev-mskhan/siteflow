@@ -250,4 +250,71 @@ export class AuthCacheService {
       logger.warn({ err }, 'Redis invalidateAllUserCaches failed');
     }
   }
+
+  // ─── Session Revocation & Reuse Detection ──────────────────────────────
+
+  async markSessionRevoked(sessionId: string, ttlSeconds = 900): Promise<void> {
+    try {
+      const client = await ensureRedisConnected();
+      await client.set(`auth:revoked_session:${sessionId}`, '1', 'EX', ttlSeconds);
+    } catch (err) {
+      logger.warn({ err, sessionId }, 'Redis markSessionRevoked failed');
+    }
+  }
+
+  async isSessionRevoked(sessionId: string): Promise<boolean> {
+    try {
+      const client = await ensureRedisConnected();
+      const val = await client.get(`auth:revoked_session:${sessionId}`);
+      return val === '1';
+    } catch (err) {
+      logger.warn({ err, sessionId }, 'Redis isSessionRevoked check failed');
+      return false;
+    }
+  }
+
+  async markUserSessionsRevoked(userId: string, ttlSeconds = 900): Promise<void> {
+    try {
+      const client = await ensureRedisConnected();
+      await client.set(`auth:user_revoked_at:${userId}`, Date.now().toString(), 'EX', ttlSeconds);
+    } catch (err) {
+      logger.warn({ err, userId }, 'Redis markUserSessionsRevoked failed');
+    }
+  }
+
+  async isUserRevoked(userId: string, tokenIssuedAtMs?: number): Promise<boolean> {
+    try {
+      const client = await ensureRedisConnected();
+      const val = await client.get(`auth:user_revoked_at:${userId}`);
+      if (!val) return false;
+      const revokedAt = parseInt(val, 10);
+      if (!tokenIssuedAtMs) return true;
+      return tokenIssuedAtMs <= revokedAt;
+    } catch (err) {
+      logger.warn({ err, userId }, 'Redis isUserRevoked check failed');
+      return false;
+    }
+  }
+
+  async recordUsedRefreshToken(tokenHash: string, userId: string, ttlSeconds = 86400): Promise<void> {
+    try {
+      const client = await ensureRedisConnected();
+      await client.set(`auth:used_refresh_token:${tokenHash}`, userId, 'EX', ttlSeconds);
+    } catch (err) {
+      logger.warn({ err }, 'Redis recordUsedRefreshToken failed');
+    }
+  }
+
+  async getUsedRefreshTokenUserId(tokenHash: string): Promise<string | null> {
+    try {
+      const client = await ensureRedisConnected();
+      return await client.get(`auth:used_refresh_token:${tokenHash}`);
+    } catch (err) {
+      logger.warn({ err }, 'Redis getUsedRefreshTokenUserId failed');
+      return null;
+    }
+  }
 }
+
+export const authCacheService = new AuthCacheService();
+

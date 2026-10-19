@@ -3,11 +3,18 @@ import { AuthRepository } from './auth.repository.js';
 import { generateRefreshToken, hashRefreshToken } from './token.service.js';
 import { serverEnv } from '../../config/env.js';
 import { UnauthorizedError, NotFoundError } from './auth.errors.js';
+import { authCacheService, type AuthCacheService } from './auth.cache.service.js';
+import { createLogger } from '@siteflow/observability/server';
 import type { Session, User } from '@siteflow/database/schema';
 import type { SessionDTO } from '@siteflow/shared';
 
+const logger = createLogger({ name: 'session-service' });
+
 export class SessionService {
-  constructor(private repo: AuthRepository = new AuthRepository()) {}
+  constructor(
+    private repo: AuthRepository = new AuthRepository(),
+    private cacheService: AuthCacheService = authCacheService,
+  ) {}
 
   /**
    * Creates a new session in PostgreSQL for a user.
@@ -48,12 +55,25 @@ export class SessionService {
     const session = await this.repo.findValidSessionByHash(hash);
 
     if (!session) {
+      // RFC 6749 / OAuth 2.0 Security BCP: Refresh Token Reuse Detection
+      const compromisedUserId = await this.cacheService.getUsedRefreshTokenUserId(hash);
+      if (compromisedUserId) {
+        logger.error(
+          { userId: compromisedUserId },
+          'SECURITY ALERT: Reused refresh token detected! Revoking all sessions for compromised account.',
+        );
+        await this.repo.revokeAllUserSessions(compromisedUserId);
+        await this.cacheService.invalidateAllUserCaches(compromisedUserId);
+        await this.cacheService.markUserSessionsRevoked(compromisedUserId);
+        throw new UnauthorizedError('Token reuse detected. All sessions revoked for security.');
+      }
       throw new UnauthorizedError('Invalid or expired refresh token');
     }
 
     const user = await this.repo.findUserById(session.userId);
     if (!user || user.status === 'SUSPENDED') {
       await this.repo.revokeSession(session.id);
+      await this.cacheService.markSessionRevoked(session.id);
       throw new UnauthorizedError('User account is invalid or suspended');
     }
 
@@ -67,6 +87,9 @@ export class SessionService {
     if (!updatedSession) {
       throw new UnauthorizedError('Failed to rotate session');
     }
+
+    // Record previously valid token hash so future re-use triggers automatic account breach mitigation
+    await this.cacheService.recordUsedRefreshToken(hash, session.userId);
 
     // Update IP/UserAgent if present
     if (ipAddress || userAgent) {
@@ -85,13 +108,16 @@ export class SessionService {
       throw new NotFoundError('Session not found');
     }
     await this.repo.revokeSession(sessionId);
+    await this.cacheService.markSessionRevoked(sessionId);
   }
 
   /**
    * Revokes all active sessions for a user (Optionally preserving current session).
    */
   async revokeAllUserSessions(userId: string, exceptSessionId?: string): Promise<number> {
-    return this.repo.revokeAllUserSessions(userId, exceptSessionId);
+    const count = await this.repo.revokeAllUserSessions(userId, exceptSessionId);
+    await this.cacheService.markUserSessionsRevoked(userId);
+    return count;
   }
 
   /**

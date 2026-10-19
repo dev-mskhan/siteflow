@@ -137,4 +137,15 @@ export const serverEnv = createEnv({
   emptyStringAsUndefined: true,
 });
 
+if (serverEnv.NODE_ENV === 'production') {
+  const DEFAULT_JWT_SECRET = 'change-me-please-at-least-32-chars-long!!';
+  const DEFAULT_COOKIE_SECRET = 'change-me-cookie-secret-32-chars!!';
+  if (serverEnv.JWT_SECRET === DEFAULT_JWT_SECRET) {
+    throw new Error('FATAL CONFIGURATION ERROR: JWT_SECRET cannot use the placeholder default in production mode.');
+  }
+  if (serverEnv.COOKIE_SECRET === DEFAULT_COOKIE_SECRET) {
+    throw new Error('FATAL CONFIGURATION ERROR: COOKIE_SECRET cannot use the placeholder default in production mode.');
+  }
+}
+
 export type ServerEnv = typeof serverEnv;

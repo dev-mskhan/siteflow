@@ -47,10 +47,13 @@ export class MinioStorageService implements StorageService {
     return minioClient.presignedPutObject(serverEnv.MINIO_BUCKET_DOCUMENTS, key, expiresInSeconds);
   }
 
-  async getPresignedUrl(key: string, expiresInSeconds: number): Promise<string> {
+  async getPresignedUrl(key: string, expiresInSeconds: number, fileName?: string): Promise<string> {
     validateObjectKey(key);
     validateExpiry(expiresInSeconds);
-    return minioClient.presignedGetObject(serverEnv.MINIO_BUCKET_DOCUMENTS, key, expiresInSeconds);
+    const respHeaders = fileName
+      ? { 'response-content-disposition': `attachment; filename="${encodeURIComponent(fileName)}"` }
+      : undefined;
+    return minioClient.presignedGetObject(serverEnv.MINIO_BUCKET_DOCUMENTS, key, expiresInSeconds, respHeaders);
   }
 
   async deleteObject(key: string): Promise<void> {

@@ -30,7 +30,7 @@ function setAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: 
   });
 
   reply.setCookie('refresh_token', refreshToken, {
-    path: '/',
+    path: '/api/v1/auth',
     httpOnly: true,
     signed: true,
     secure: isProd,
@@ -41,6 +41,7 @@ function setAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: 
 
 function clearAuthCookies(reply: FastifyReply) {
   reply.clearCookie('access_token', { path: '/' });
+  reply.clearCookie('refresh_token', { path: '/api/v1/auth' });
   reply.clearCookie('refresh_token', { path: '/' });
 }
 
@@ -170,7 +171,7 @@ export async function handleRefresh(request: FastifyRequest, reply: FastifyReply
     const unsigned = request.unsignCookie(rawCookie);
     if (unsigned.valid && unsigned.value) {
       refreshToken = unsigned.value;
-    } else if (!rawCookie.startsWith('s:')) {
+    } else if (serverEnv.NODE_ENV === 'test' && !rawCookie.startsWith('s:')) {
       refreshToken = rawCookie;
     }
   } else if (request.body && typeof request.body === 'object' && 'refreshToken' in request.body) {

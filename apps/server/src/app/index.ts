@@ -157,6 +157,9 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'exports', description: 'Report export generation and presigned downloads' },
         { name: 'notifications', description: 'Notifications, channels, preferences, and realtime streams' },
         { name: 'billing', description: 'SaaS Billing, subscriptions, and trials' },
+        { name: 'platform', description: 'Platform operator actions and tenant management' },
+        { name: 'ai-runs', description: 'AI Agent runs and execution control' },
+        { name: 'ai-approvals', description: 'AI Agent human approval gates' },
       ],
     },
   });

@@ -184,6 +184,22 @@ import {
   getProjectSchemaDoc,
   updateProjectSchemaDoc,
   lifecycleSchemaDoc,
+  listMembersSchemaDoc,
+  addMemberSchemaDoc,
+  updateMemberRoleSchemaDoc,
+  removeMemberSchemaDoc,
+  getSettingsSchemaDoc,
+  updateSettingsSchemaDoc,
+  listPhasesSchemaDoc,
+  createPhaseSchemaDoc,
+  updatePhaseSchemaDoc,
+  archivePhaseSchemaDoc,
+  reorderPhasesSchemaDoc,
+  listCostCodesSchemaDoc,
+  createCostCodeSchemaDoc,
+  updateCostCodeSchemaDoc,
+  deactivateCostCodeSchemaDoc,
+  listProjectAuditSchemaDoc,
 } from './docs/project.api.schemas.js';
 import {
   createTaskSchemaDoc,
@@ -400,90 +416,90 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     // ── Member routes ─────────────────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/members',
-      { preHandler: [requireProjectPermission('project:read')] },
+      { schema: listMembersSchemaDoc, preHandler: [requireProjectPermission('project:read')] },
       handleListMembers,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/members',
-      { preHandler: [requireProjectPermission('project:member:manage')] },
+      { schema: addMemberSchemaDoc, preHandler: [requireProjectPermission('project:member:manage')] },
       handleAddMember,
     );
     projectScoped.patch(
       '/:organizationId/projects/:projectId/members/:userId',
-      { preHandler: [requireProjectPermission('project:member:manage')] },
+      { schema: updateMemberRoleSchemaDoc, preHandler: [requireProjectPermission('project:member:manage')] },
       handleUpdateMemberRole,
     );
     projectScoped.delete(
       '/:organizationId/projects/:projectId/members/:userId',
-      { preHandler: [requireProjectPermission('project:member:manage')] },
+      { schema: removeMemberSchemaDoc, preHandler: [requireProjectPermission('project:member:manage')] },
       handleRemoveMember,
     );
 
     // ── Settings routes ───────────────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/settings',
-      { preHandler: [requireProjectPermission('project:read')] },
+      { schema: getSettingsSchemaDoc, preHandler: [requireProjectPermission('project:read')] },
       handleGetSettings,
     );
     projectScoped.patch(
       '/:organizationId/projects/:projectId/settings',
-      { preHandler: [requireProjectPermission('project:settings:update')] },
+      { schema: updateSettingsSchemaDoc, preHandler: [requireProjectPermission('project:settings:update')] },
       handleUpdateSettings,
     );
 
     // ── Phase routes ──────────────────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/phases',
-      { preHandler: [requireProjectPermission('project:read')] },
+      { schema: listPhasesSchemaDoc, preHandler: [requireProjectPermission('project:read')] },
       handleListPhases,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/phases',
-      { preHandler: [requireProjectPermission('project:phase:manage')] },
+      { schema: createPhaseSchemaDoc, preHandler: [requireProjectPermission('project:phase:manage')] },
       handleCreatePhase,
     );
     projectScoped.patch(
       '/:organizationId/projects/:projectId/phases/:phaseId',
-      { preHandler: [requireProjectPermission('project:phase:manage')] },
+      { schema: updatePhaseSchemaDoc, preHandler: [requireProjectPermission('project:phase:manage')] },
       handleUpdatePhase,
     );
     projectScoped.delete(
       '/:organizationId/projects/:projectId/phases/:phaseId',
-      { preHandler: [requireProjectPermission('project:phase:manage')] },
+      { schema: archivePhaseSchemaDoc, preHandler: [requireProjectPermission('project:phase:manage')] },
       handleArchivePhase,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/phases/reorder',
-      { preHandler: [requireProjectPermission('project:phase:manage')] },
+      { schema: reorderPhasesSchemaDoc, preHandler: [requireProjectPermission('project:phase:manage')] },
       handleReorderPhases,
     );
 
     // ── Cost-Code routes ──────────────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/cost-codes',
-      { preHandler: [requireProjectPermission('project:read')] },
+      { schema: listCostCodesSchemaDoc, preHandler: [requireProjectPermission('project:read')] },
       handleListCostCodes,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/cost-codes',
-      { preHandler: [requireProjectPermission('project:cost-code:manage')] },
+      { schema: createCostCodeSchemaDoc, preHandler: [requireProjectPermission('project:cost-code:manage')] },
       handleCreateCostCode,
     );
     projectScoped.patch(
       '/:organizationId/projects/:projectId/cost-codes/:codeId',
-      { preHandler: [requireProjectPermission('project:cost-code:manage')] },
+      { schema: updateCostCodeSchemaDoc, preHandler: [requireProjectPermission('project:cost-code:manage')] },
       handleUpdateCostCode,
     );
     projectScoped.delete(
       '/:organizationId/projects/:projectId/cost-codes/:codeId',
-      { preHandler: [requireProjectPermission('project:cost-code:manage')] },
+      { schema: deactivateCostCodeSchemaDoc, preHandler: [requireProjectPermission('project:cost-code:manage')] },
       handleDeactivateCostCode,
     );
 
     // ── Audit route ───────────────────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/audit',
-      { preHandler: [requireProjectPermission('project:audit:read')] },
+      { schema: listProjectAuditSchemaDoc, preHandler: [requireProjectPermission('project:audit:read')] },
       handleListProjectAudit,
     );
 

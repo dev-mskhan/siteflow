@@ -311,90 +311,97 @@ export class OutboxService {
    * Fetches and dispatches pending or failed retryable outbox events to the queue
    * using FOR UPDATE SKIP LOCKED for concurrent worker safety and FIFO processing.
    */
+  /**
+   * Fetches and dispatches pending or failed retryable outbox events to the queue
+   * using FOR UPDATE SKIP LOCKED within an explicit database transaction for
+   * concurrent worker safety and FIFO processing.
+   */
   async publishPendingEvents(batchSize = 100): Promise<number> {
-    const pendingEvents = await this.db
-      .select()
-      .from(outboxEvents)
-      .where(
-        or(
-          eq(outboxEvents.status, 'PENDING'),
-          and(
-            eq(outboxEvents.status, 'FAILED'),
-            lt(outboxEvents.retryCount, MAX_OUTBOX_RETRIES),
+    return await this.db.transaction(async (tx) => {
+      const pendingEvents = await tx
+        .select()
+        .from(outboxEvents)
+        .where(
+          or(
+            eq(outboxEvents.status, 'PENDING'),
+            and(
+              eq(outboxEvents.status, 'FAILED'),
+              lt(outboxEvents.retryCount, MAX_OUTBOX_RETRIES),
+            ),
           ),
-        ),
-      )
-      .orderBy(outboxEvents.createdAt)
-      .limit(batchSize)
-      .for('update', { skipLocked: true });
+        )
+        .orderBy(outboxEvents.createdAt)
+        .limit(batchSize)
+        .for('update', { skipLocked: true });
 
-    if (pendingEvents.length === 0) {
-      return 0;
-    }
-
-    logger.info({ count: pendingEvents.length }, 'Processing pending outbox events batch');
-    let processedCount = 0;
-
-    for (const event of pendingEvents) {
-      try {
-        const validatedOrganizationId = validateOutboxPayload(
-          event.eventType,
-          event.payload as Record<string, unknown>,
-          event.organizationId ?? undefined,
-        );
-        if (validatedOrganizationId !== event.organizationId) {
-          throw new Error('Outbox organizationId does not match the validated payload scope');
-        }
-
-        const hasWorker = supportedQueueNames.has(event.eventType);
-        const auditOnly = queueContracts.get(event.eventType)?.auditOnly === true || !hasWorker;
-        if (!auditOnly) {
-          await sendJob(
-            event.eventType,
-            { ...(event.payload as Record<string, unknown>), outboxEventId: event.id },
-            getOutboxSendOptions(event.id, event.payload as Record<string, unknown>),
-          );
-        }
-
-        // Mark as PROCESSED on success
-        await this.db
-          .update(outboxEvents)
-          .set({
-            status: 'PROCESSED',
-            processedAt: new Date(),
-            updatedAt: new Date(),
-            lastError: null,
-          })
-          .where(eq(outboxEvents.id, event.id));
-
-        processedCount++;
-        logger.debug(
-          { eventId: event.id, eventType: event.eventType, hasWorker },
-          auditOnly ? 'Audit-only outbox event processed' : 'Outbox event dispatched successfully',
-        );
-      } catch (err: any) {
-        const nextRetryCount = event.retryCount + 1;
-        const nextStatus = nextRetryCount >= MAX_OUTBOX_RETRIES ? 'FAILED' : 'PENDING';
-        const errorMessage = err?.message || String(err);
-
-        logger.error(
-          { eventId: event.id, eventType: event.eventType, retryCount: nextRetryCount, err },
-          'Failed to dispatch outbox event to queue',
-        );
-
-        await this.db
-          .update(outboxEvents)
-          .set({
-            status: nextStatus as any,
-            retryCount: nextRetryCount,
-            lastError: errorMessage,
-            updatedAt: new Date(),
-          })
-          .where(eq(outboxEvents.id, event.id));
+      if (pendingEvents.length === 0) {
+        return 0;
       }
-    }
 
-    return processedCount;
+      logger.info({ count: pendingEvents.length }, 'Processing pending outbox events batch');
+      let processedCount = 0;
+
+      for (const event of pendingEvents) {
+        try {
+          const validatedOrganizationId = validateOutboxPayload(
+            event.eventType,
+            event.payload as Record<string, unknown>,
+            event.organizationId ?? undefined,
+          );
+          if (validatedOrganizationId !== event.organizationId) {
+            throw new Error('Outbox organizationId does not match the validated payload scope');
+          }
+
+          const hasWorker = supportedQueueNames.has(event.eventType);
+          const auditOnly = queueContracts.get(event.eventType)?.auditOnly === true || !hasWorker;
+          if (!auditOnly) {
+            await sendJob(
+              event.eventType,
+              { ...(event.payload as Record<string, unknown>), outboxEventId: event.id },
+              getOutboxSendOptions(event.id, event.payload as Record<string, unknown>),
+            );
+          }
+
+          // Mark as PROCESSED on success
+          await tx
+            .update(outboxEvents)
+            .set({
+              status: 'PROCESSED',
+              processedAt: new Date(),
+              updatedAt: new Date(),
+              lastError: null,
+            })
+            .where(eq(outboxEvents.id, event.id));
+
+          processedCount++;
+          logger.debug(
+            { eventId: event.id, eventType: event.eventType, hasWorker },
+            auditOnly ? 'Audit-only outbox event processed' : 'Outbox event dispatched successfully',
+          );
+        } catch (err: any) {
+          const nextRetryCount = event.retryCount + 1;
+          const nextStatus = nextRetryCount >= MAX_OUTBOX_RETRIES ? 'FAILED' : 'PENDING';
+          const errorMessage = err?.message || String(err);
+
+          logger.error(
+            { eventId: event.id, eventType: event.eventType, retryCount: nextRetryCount, err },
+            'Failed to dispatch outbox event to queue',
+          );
+
+          await tx
+            .update(outboxEvents)
+            .set({
+              status: nextStatus as any,
+              retryCount: nextRetryCount,
+              lastError: errorMessage,
+              updatedAt: new Date(),
+            })
+            .where(eq(outboxEvents.id, event.id));
+        }
+      }
+
+      return processedCount;
+    });
   }
 
   /**
@@ -409,10 +416,19 @@ export class OutboxService {
       const client = new pg.Client({ connectionString: connStr });
       await client.connect();
       await client.query('LISTEN siteflow_outbox');
-      client.on('notification', async (msg) => {
+      let sweepTimeout: NodeJS.Timeout | null = null;
+      client.on('notification', (msg) => {
         if (msg.channel === 'siteflow_outbox') {
-          logger.debug('Received siteflow_outbox NOTIFY signal, running immediate outbox sweep');
-          await this.publishPendingEvents();
+          logger.debug('Received siteflow_outbox NOTIFY signal, debouncing sweep');
+          if (sweepTimeout) return;
+          sweepTimeout = setTimeout(async () => {
+            sweepTimeout = null;
+            try {
+              await this.publishPendingEvents();
+            } catch (err) {
+              logger.error({ err }, 'Error during debounced outbox sweep from notification');
+            }
+          }, 50);
         }
       });
       client.on('error', (err) => {

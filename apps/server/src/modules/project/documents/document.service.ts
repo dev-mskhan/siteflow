@@ -364,7 +364,7 @@ export class DocumentService {
     }
     assertAccessPolicy(row, access);
     const expiresIn = serverEnv.STORAGE_PRESIGN_EXPIRY_SECONDS;
-    const downloadUrl = await this.storage.getPresignedUrl(row.storageKey, expiresIn);
+    const downloadUrl = await this.storage.getPresignedUrl(row.storageKey, expiresIn, row.fileName);
 
     await this.db.transaction(async (tx) => {
       const locked = await this.repo.findByIdForUpdate(

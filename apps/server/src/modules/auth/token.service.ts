@@ -12,6 +12,8 @@ export interface AccessTokenPayload {
   email: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   sessionId?: string;
+  iat?: number;
+  exp?: number;
 }
 
 /**
