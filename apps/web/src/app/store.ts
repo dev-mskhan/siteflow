@@ -18,6 +18,7 @@ import { issueApi } from '../api/issueApi';
 import { taskApi } from '../api/taskApi';
 import { procurementApi } from '../api/procurementApi';
 import { subcontractorApi } from '../api/subcontractorApi';
+import { preconstructionApi } from '../api/preconstructionApi';
 import { ROLE_PERMISSIONS } from '../lib/permissions';
 
 // ── Dev bypass — seed state synchronously at store creation ──────────────────
@@ -90,6 +91,7 @@ export const store = configureStore({
     [taskApi.reducerPath]: taskApi.reducer,
     [procurementApi.reducerPath]: procurementApi.reducer,
     [subcontractorApi.reducerPath]: subcontractorApi.reducer,
+    [preconstructionApi.reducerPath]: preconstructionApi.reducer,
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
@@ -112,6 +114,7 @@ export const store = configureStore({
       taskApi.middleware,
       procurementApi.middleware,
       subcontractorApi.middleware,
+      preconstructionApi.middleware,
     ),
   devTools: import.meta.env.DEV,
 });
