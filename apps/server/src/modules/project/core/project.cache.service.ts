@@ -32,12 +32,12 @@ export class ProjectCacheService {
     return crypto.createHash('sha256').update(JSON.stringify(sorted)).digest('hex').substring(0, 16);
   }
 
-  // ─── Cache-Aside: Single Project (`project:{projectId}`) ──────────────────
+  // ─── Cache-Aside: Single Project (`org:{orgId}:project:{projectId}`) ────────
 
-  async getProject(projectId: string): Promise<ProjectDTO | null> {
+  async getProject(orgId: string, projectId: string): Promise<ProjectDTO | null> {
     try {
       const client = await ensureRedisConnected();
-      const key = `project:${projectId}`;
+      const key = `org:${orgId}:project:${projectId}`;
       const cached = await client.get(key);
       if (cached) {
         return JSON.parse(cached) as ProjectDTO;
@@ -48,10 +48,10 @@ export class ProjectCacheService {
     return null;
   }
 
-  async setProject(projectId: string, projectDto: ProjectDTO, baseTtlSeconds = 300): Promise<void> {
+  async setProject(orgId: string, projectId: string, projectDto: ProjectDTO, baseTtlSeconds = 300): Promise<void> {
     try {
       const client = await ensureRedisConnected();
-      const key = `project:${projectId}`;
+      const key = `org:${orgId}:project:${projectId}`;
       const ttl = ProjectCacheService.getJitteredTTL(baseTtlSeconds, 30); // 270s-330s jittered
       await client.set(key, JSON.stringify(projectDto), 'EX', ttl);
     } catch (err) {
@@ -59,10 +59,10 @@ export class ProjectCacheService {
     }
   }
 
-  async invalidateProject(projectId: string): Promise<void> {
+  async invalidateProject(orgId: string, projectId: string): Promise<void> {
     try {
       const client = await ensureRedisConnected();
-      const key = `project:${projectId}`;
+      const key = `org:${orgId}:project:${projectId}`;
       await client.del(key);
     } catch (err) {
       logger.warn({ err, projectId }, 'Redis invalidateProject failed');
@@ -123,7 +123,7 @@ export class ProjectCacheService {
   // ─── Invalidate Single Project + Org Project Lists ───────────────────────
 
   async invalidateProjectAndOrgLists(orgId: string, projectId: string): Promise<void> {
-    await this.invalidateProject(projectId);
+    await this.invalidateProject(orgId, projectId);
     await this.invalidateOrgProjectLists(orgId);
   }
 }

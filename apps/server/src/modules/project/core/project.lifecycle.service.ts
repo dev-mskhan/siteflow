@@ -7,6 +7,7 @@ import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { auditService } from '../../audit/audit.service.js';
 import { ProjectRepository } from './project.repository.js';
 import { ProjectCacheService } from './project.cache.service.js';
+import { entitlementService } from '../../billing/entitlement.service.js';
 import { ProjectInvalidTransitionError } from './project.errors.js';
 import { VALID_TRANSITIONS, TRANSITION_TO_STATUS } from './project.types.js';
 import { toProjectDTO } from './project.mapper.js';
@@ -40,6 +41,9 @@ export class ProjectLifecycleService {
       span.setAttribute('project.transition', transition);
 
       const updated = await this.db.transaction(async (tx) => {
+        // 0. Entitlement gate — assert organization is allowed to modify projects (D-09)
+        await entitlementService.assertCanModifyProject(orgId, tx);
+
         // 1. Pessimistic lock — prevents concurrent double-transitions
         const project = await this.projectRepo.lockForUpdate(tx, orgId, projectId);
         const fromStatus = project.status as ProjectStatus;

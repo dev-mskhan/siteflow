@@ -146,8 +146,8 @@ export class ProjectService {
       span.setAttribute('organization.id', orgId);
       span.setAttribute('project.id', projectId);
 
-      // Cache-aside pattern for single project (project:{projectId}, 5 min TTL jittered)
-      const cached = await this.cacheService.getProject(projectId);
+      // Cache-aside pattern for single project (org:{orgId}:project:{projectId}, 5 min TTL jittered)
+      const cached = await this.cacheService.getProject(orgId, projectId);
       if (cached) {
         return cached;
       }
@@ -155,7 +155,7 @@ export class ProjectService {
       const project = await this.projectRepo.findByIdOrThrow(orgId, projectId);
       const dto = toProjectDTO(project);
 
-      await this.cacheService.setProject(projectId, dto, 300);
+      await this.cacheService.setProject(orgId, projectId, dto, 300);
       return dto;
     });
   }

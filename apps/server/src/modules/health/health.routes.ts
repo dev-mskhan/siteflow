@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { sql } from 'drizzle-orm';
 import { getDb } from '../../lib/db/index.js';
 import { ensureRedisConnected } from '../../lib/redis/redis.js';
+import { getStorageService } from '../../lib/storage/index.js';
 import { createSuccessResponse } from '../../shared/response.js';
 import { createLogger } from '@siteflow/observability/server';
 
@@ -48,12 +49,12 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  // ── GET /health/ready — readiness probe (checks DB + Redis) ─────────────────
+  // ── GET /health/ready — readiness probe (checks DB + Redis + Storage) ───────
   app.get(
     '/ready',
     {
       schema: {
-        description: 'Readiness check — verifies DB and Redis connectivity',
+        description: 'Readiness check — verifies DB, Redis, and Storage connectivity',
         tags: ['health'],
         response: {
           200: {
@@ -69,6 +70,7 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
                     properties: {
                       db: { type: 'string', enum: ['ok', 'fail'] },
                       redis: { type: 'string', enum: ['ok', 'fail'] },
+                      storage: { type: 'string', enum: ['ok', 'fail'] },
                     },
                   },
                 },
@@ -88,6 +90,7 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
                     properties: {
                       db: { type: 'string', enum: ['ok', 'fail'] },
                       redis: { type: 'string', enum: ['ok', 'fail'] },
+                      storage: { type: 'string', enum: ['ok', 'fail'] },
                     },
                   },
                 },
@@ -98,7 +101,11 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
       },
     },
     async (_request, reply) => {
-      const checks = { db: 'ok' as 'ok' | 'fail', redis: 'ok' as 'ok' | 'fail' };
+      const checks = {
+        db: 'ok' as 'ok' | 'fail',
+        redis: 'ok' as 'ok' | 'fail',
+        storage: 'ok' as 'ok' | 'fail',
+      };
 
       // Ping PostgreSQL
       try {
@@ -118,7 +125,15 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
         checks.redis = 'fail';
       }
 
-      const isReady = checks.db === 'ok' && checks.redis === 'ok';
+      // Ping MinIO / object storage (presigned URL generation is a lightweight connectivity probe)
+      try {
+        await getStorageService().putPresignedUrl('health/probe.tmp', 'application/octet-stream', 10);
+      } catch (err) {
+        logger.warn({ err }, 'Readiness check: Storage ping failed');
+        checks.storage = 'fail';
+      }
+
+      const isReady = checks.db === 'ok' && checks.redis === 'ok' && checks.storage === 'ok';
       const status = isReady ? 'ready' : 'degraded';
       const httpStatus = isReady ? 200 : 503;
 
