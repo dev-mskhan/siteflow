@@ -60,6 +60,9 @@ import { BOQPage } from '../pages/preconstruction/BOQPage';
 import { TakeoffsPage } from '../pages/preconstruction/TakeoffsPage';
 import { PricingPage } from '../pages/preconstruction/PricingPage';
 import { TendersPage } from '../pages/app/TendersPage';
+import { TenderDetailPage } from '../pages/app/TenderDetailPage';
+import { ProposalDetailPage } from '../pages/preconstruction/ProposalDetailPage';
+import { EstimateDetailPage } from '../pages/preconstruction/EstimateDetailPage';
 import { MaterialRequestsPage } from '../pages/procurement/MaterialRequestsPage';
 import { QuotesPage } from '../pages/procurement/QuotesPage';
 import { PurchaseOrdersPage } from '../pages/procurement/PurchaseOrdersPage';
@@ -187,6 +190,7 @@ export const router = createBrowserRouter([
       { path: 'subcontractors/:subcontractorId', element: <SubcontractorDetailPage /> },
       { path: 'materials', element: <MaterialsPage /> },
       { path: 'tenders', element: <TendersPage /> },
+      { path: 'tenders/:tenderId', element: <TenderDetailPage /> },
 
       // Project detail — ProjectShell owns the sub-nav + loads active project
       {
@@ -212,7 +216,9 @@ export const router = createBrowserRouter([
             element: <PreconstructionShell />,
             children: [
               { path: 'proposals', element: <ProposalsPage /> },
+              { path: 'proposals/:proposalId', element: <ProposalDetailPage /> },
               { path: 'estimates', element: <EstimatesPage /> },
+              { path: 'estimates/:estimateId', element: <EstimateDetailPage /> },
               { path: 'boq', element: <BOQPage /> },
               { path: 'takeoffs', element: <TakeoffsPage /> },
               { path: 'pricing', element: <PricingPage /> },

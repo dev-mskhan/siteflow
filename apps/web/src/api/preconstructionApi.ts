@@ -695,6 +695,94 @@ export const preconstructionApi = createApi({
       invalidatesTags: (_r, _e, { projectId, sheetId }) => [{ type: 'TakeoffSheet', id: sheetId }, { type: 'TakeoffSheet', id: projectId }],
     }),
 
+    // ══ PROPOSAL EXTRAS ═════════════════════════════════════════════════════
+
+    listProposalRevisions: build.query<{ items: Array<{ id: string; proposalId: string; revisionNumber: number; status: string; createdBy: string; createdAt: string; submittedAt: string | null; approvedAt: string | null }>, nextCursor: string | null }, { orgId: string; projectId: string; proposalId: string }>({
+      queryFn: async ({ proposalId }) => {
+        await delay(120);
+        // Return a minimal revision list from the proposal's current data
+        const proposal = Object.values(MOCK_PROPOSALS).flat().find((p) => p.id === proposalId);
+        if (!proposal) return { data: { items: [], nextCursor: null } };
+        const items = Array.from({ length: proposal.currentRevisionNumber }, (_, i) => ({
+          id: `proprev_${proposalId}_${i + 1}`,
+          proposalId,
+          revisionNumber: i + 1,
+          status: i + 1 === proposal.currentRevisionNumber ? proposal.revision?.status ?? 'DRAFT' : 'SUPERSEDED',
+          createdBy: proposal.createdBy,
+          createdAt: proposal.createdAt,
+          submittedAt: proposal.submittedAt,
+          approvedAt: proposal.approvedAt,
+        }));
+        return { data: { items, nextCursor: null } };
+      },
+      providesTags: (_r, _e, { proposalId }) => [{ type: 'Proposal', id: `revisions_${proposalId}` }],
+    }),
+
+    listClientEvents: build.query<{ events: Array<{ id: string; proposalId: string; proposalRevisionId: string; event: string; clientSignatoryName: string | null; responseReference: string | null; notes: string | null; recordedBy: string; recordedAt: string }> }, { orgId: string; projectId: string; proposalId: string }>({
+      queryFn: async ({ proposalId }) => {
+        await delay(100);
+        return { data: { events: [] } };
+      },
+      providesTags: (_r, _e, { proposalId }) => [{ type: 'Proposal', id: `events_${proposalId}` }],
+    }),
+
+    recordClientResponse: build.mutation<object, { orgId: string; projectId: string; proposalId: string; expectedVersion: number; event: 'ACCEPTED' | 'REJECTED'; clientSignatoryName?: string; responseReference?: string; notes?: string }>({
+      queryFn: async ({ projectId, proposalId, expectedVersion, event }) => {
+        await delay(180);
+        const list = MOCK_PROPOSALS[projectId] ?? [];
+        const p = list.find((x) => x.id === proposalId);
+        if (!p) return { error: { status: 404, error: 'PROPOSAL_NOT_FOUND' } };
+        if (p.version !== expectedVersion) return { error: { status: 409, error: 'VERSION_CONFLICT' } };
+        if (p.status !== 'ISSUED') return { error: { status: 409, error: 'PROPOSAL_NOT_ISSUED' } };
+        const now = new Date().toISOString();
+        const updated = {
+          ...p,
+          status: event === 'ACCEPTED' ? 'ACCEPTED' : ('REJECTED' as ProposalDTO['status']),
+          version: p.version + 1,
+          updatedAt: now,
+          acceptedAt: event === 'ACCEPTED' ? now : null,
+          clientResponseEvent: event,
+          clientResponseAt: now,
+        };
+        MOCK_PROPOSALS[projectId] = list.map((x) => x.id === proposalId ? updated : x);
+        return { data: { proposal: updated } };
+      },
+      invalidatesTags: (_r, _e, { projectId, proposalId }) => [
+        { type: 'Proposal', id: proposalId },
+        { type: 'Proposal', id: projectId },
+        { type: 'Proposal', id: `events_${proposalId}` },
+      ],
+    }),
+
+    convertProposal: build.mutation<{ conversion: { id: string; proposalId: string; proposalRevisionId: string; status: string; linkedProjectId: string | null; createdBy: string; createdAt: string; completedAt: string | null; failureReason: string | null; alreadyConverted: boolean }; alreadyConverted: boolean }, { orgId: string; projectId: string; proposalId: string; expectedVersion: number; idempotencyKey: string; projectName: string; projectType?: string; plannedStartDate?: string }>({
+      queryFn: async ({ projectId, proposalId, expectedVersion, projectName }) => {
+        await delay(300);
+        const list = MOCK_PROPOSALS[projectId] ?? [];
+        const p = list.find((x) => x.id === proposalId);
+        if (!p) return { error: { status: 404, error: 'PROPOSAL_NOT_FOUND' } };
+        if (p.version !== expectedVersion) return { error: { status: 409, error: 'VERSION_CONFLICT' } };
+        if (p.status !== 'ACCEPTED') return { error: { status: 409, error: 'PROPOSAL_NOT_ACCEPTED' } };
+        const now = new Date().toISOString();
+        const conversion = {
+          id: `conv_${Date.now()}`,
+          proposalId,
+          proposalRevisionId: p.revision?.id ?? '',
+          status: 'PENDING',
+          linkedProjectId: null,
+          createdBy: 'usr_01',
+          createdAt: now,
+          completedAt: null,
+          failureReason: null,
+          alreadyConverted: false,
+        };
+        return { data: { conversion, alreadyConverted: false } };
+      },
+      invalidatesTags: (_r, _e, { projectId, proposalId }) => [
+        { type: 'Proposal', id: proposalId },
+        { type: 'Proposal', id: projectId },
+      ],
+    }),
+
     // ══ PRICING RATES ════════════════════════════════════════════════════════
 
     listRateVersions: build.query<MaterialRateVersionDTO[], { orgId: string; projectId: string; materialId: string }>({
@@ -788,6 +876,10 @@ export const {
   useGetProposalQuery,
   useCreateProposalMutation,
   useTransitionProposalMutation,
+  useListProposalRevisionsQuery,
+  useListClientEventsQuery,
+  useRecordClientResponseMutation,
+  useConvertProposalMutation,
   useListEstimatesQuery,
   useGetEstimateQuery,
   useCreateEstimateMutation,
