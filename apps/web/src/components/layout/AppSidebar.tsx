@@ -26,6 +26,7 @@ import {
   Package,
   HardHat,
   FileSearch,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Logo } from '../ui/Logo';
@@ -228,6 +229,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
 
               <NavItem to={`/org/${orgId}/tenders`} icon={FileSearch} label="Tenders" />
 
+              <NavItem
+                to={`/org/${orgId}/reports/portfolio`}
+                icon={BarChart3}
+                label="Portfolio report"
+              />
+
               <PermissionGate require="member:read">
                 <NavItem to={`/org/${orgId}/members`} icon={Users} label="Members" />
               </PermissionGate>
@@ -306,6 +313,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
                   <NavItem to={`/org/${orgId}/materials`} icon={Package} label="Materials" />
                 </PermissionGate>
                 <NavItem to={`/org/${orgId}/tenders`} icon={FileSearch} label="Tenders" />
+                <NavItem
+                  to={`/org/${orgId}/reports/portfolio`}
+                  icon={BarChart3}
+                  label="Portfolio report"
+                />
                 <PermissionGate require="member:read">
                   <NavItem to={`/org/${orgId}/members`} icon={Users} label="Members" />
                 </PermissionGate>

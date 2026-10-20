@@ -86,6 +86,22 @@ import { SubcontractorsPage } from '../pages/app/SubcontractorsPage';
 import { SubcontractorDetailPage } from '../pages/app/SubcontractorDetailPage';
 import { MaterialsPage } from '../pages/app/MaterialsPage';
 
+// ── Groups 9-13 pages ─────────────────────────────────────────────────────────
+import { ProjectDocumentsPage } from '../pages/ProjectDocumentsPage';
+import { ProjectSafetyPage } from '../pages/hse/ProjectSafetyPage';
+import { ProjectQualityPage } from '../pages/hse/ProjectQualityPage';
+import { ProjectCompliancePage } from '../pages/hse/ProjectCompliancePage';
+import { ProjectRFIsPage } from '../pages/ProjectRFIsPage';
+import { ProjectSubmittalsPage } from '../pages/ProjectSubmittalsPage';
+import { ProjectReportsShell } from '../pages/reports/ProjectReportsShell';
+import { ProjectHealthReportPage } from '../pages/reports/ProjectHealthReportPage';
+import { ProjectScheduleReportPage } from '../pages/reports/ProjectScheduleReportPage';
+import { ProjectCostReportPage } from '../pages/reports/ProjectCostReportPage';
+import { ProjectProcurementReportPage } from '../pages/reports/ProjectProcurementReportPage';
+import { ProjectSubcontractorReportPage } from '../pages/reports/ProjectSubcontractorReportPage';
+import { ProjectExecutiveReportPage } from '../pages/reports/ProjectExecutiveReportPage';
+import { PortfolioReportPage } from '../pages/PortfolioReportPage';
+
 // ── Marketing pages ───────────────────────────────────────────────────────────
 import { HomePage } from '../pages/HomePage';
 import { FeaturesOverviewPage } from '../pages/FeaturesOverviewPage';
@@ -201,6 +217,7 @@ export const router = createBrowserRouter([
       { path: 'materials', element: <MaterialsPage /> },
       { path: 'tenders', element: <TendersPage /> },
       { path: 'tenders/:tenderId', element: <TenderDetailPage /> },
+      { path: 'reports/portfolio', element: <PortfolioReportPage /> },
 
       // Project detail — ProjectShell owns the sub-nav + loads active project
       {
@@ -263,6 +280,29 @@ export const router = createBrowserRouter([
           },
           { path: 'inventory', element: <InventoryLedgerPage /> },
           { path: 'settings', element: <ProjectSettingsPage /> },
+          // Group 9 — Documents
+          { path: 'documents', element: <ProjectDocumentsPage /> },
+          // Group 10 — HSE
+          { path: 'safety', element: <ProjectSafetyPage /> },
+          { path: 'quality', element: <ProjectQualityPage /> },
+          { path: 'compliance', element: <ProjectCompliancePage /> },
+          // Group 11 — RFI / Submittals
+          { path: 'rfis', element: <ProjectRFIsPage /> },
+          { path: 'submittals', element: <ProjectSubmittalsPage /> },
+          // Group 12 — Reports
+          {
+            path: 'reports',
+            element: <ProjectReportsShell />,
+            children: [
+              { index: true, element: <Navigate to="health" replace /> },
+              { path: 'health', element: <ProjectHealthReportPage /> },
+              { path: 'schedule', element: <ProjectScheduleReportPage /> },
+              { path: 'cost', element: <ProjectCostReportPage /> },
+              { path: 'procurement', element: <ProjectProcurementReportPage /> },
+              { path: 'subcontractor', element: <ProjectSubcontractorReportPage /> },
+              { path: 'executive', element: <ProjectExecutiveReportPage /> },
+            ],
+          },
         ],
       },
 

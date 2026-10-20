@@ -20,6 +20,11 @@ import { procurementApi } from '../api/procurementApi';
 import { subcontractorApi } from '../api/subcontractorApi';
 import { preconstructionApi } from '../api/preconstructionApi';
 import { commercialApi } from '../api/commercialApi';
+import { documentApi } from '../api/documentApi';
+import { hseApi } from '../api/hseApi';
+import { rfiApi } from '../api/rfiApi';
+import { reportApi } from '../api/reportApi';
+import { notificationApi } from '../api/notificationApi';
 import { ROLE_PERMISSIONS } from '../lib/permissions';
 
 // ── Dev bypass — seed state synchronously at store creation ──────────────────
@@ -94,6 +99,11 @@ export const store = configureStore({
     [subcontractorApi.reducerPath]: subcontractorApi.reducer,
     [preconstructionApi.reducerPath]: preconstructionApi.reducer,
     [commercialApi.reducerPath]: commercialApi.reducer,
+    [documentApi.reducerPath]: documentApi.reducer,
+    [hseApi.reducerPath]: hseApi.reducer,
+    [rfiApi.reducerPath]: rfiApi.reducer,
+    [reportApi.reducerPath]: reportApi.reducer,
+    [notificationApi.reducerPath]: notificationApi.reducer,
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
@@ -118,6 +128,11 @@ export const store = configureStore({
       subcontractorApi.middleware,
       preconstructionApi.middleware,
       commercialApi.middleware,
+      documentApi.middleware,
+      hseApi.middleware,
+      rfiApi.middleware,
+      reportApi.middleware,
+      notificationApi.middleware,
     ),
   devTools: import.meta.env.DEV,
 });
