@@ -10,6 +10,7 @@ import { registerWorker } from '../../../lib/queue/worker-factory.js';
 import { teardownCheckpointer } from '../graph/checkpointer.js';
 import { executeRun, resumeRun } from '../graph/runner.js';
 import { ApprovalRepository } from '../approvals/approval.repository.js';
+import { ConversationService } from '../conversations/conversation.service.js';
 import { AI_QUEUES, type AgentRunJobPayload } from '../ai.jobs.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { buildRunContext } from '../core/run-context.js';
@@ -33,6 +34,7 @@ const logger = createLogger({ name: 'agent-run-worker' });
 export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
   const repo = new AgentRunRepository();
   const approvalRepo = new ApprovalRepository();
+  const convService = new ConversationService();
 
   await registerWorker<AgentRunJobPayload>(
     boss,
@@ -97,6 +99,17 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
 
           await repo.setSucceeded(runId, result.output, result.tokensIn, result.tokensOut, result.costUsd, result.traceId);
           emitRunSucceeded(run, result.costUsd);
+
+          const conversationId = (run.inputSnapshot as Record<string, unknown>)?.conversationId;
+          if (typeof conversationId === 'string') {
+            await convService.saveAssistantReply(
+              conversationId,
+              run.organizationId,
+              result.output.summary ?? 'Run completed.',
+              runId,
+              (run.channel as 'chat' | 'voice') ?? 'chat',
+            );
+          }
           logger.info({ runId }, 'Resumed run succeeded');
         } catch (err: unknown) {
           const message = classifyError(err);
@@ -157,6 +170,17 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
           result.traceId,
         );
         emitRunSucceeded(run, result.costUsd);
+
+        const conversationId = (run.inputSnapshot as Record<string, unknown>)?.conversationId;
+        if (typeof conversationId === 'string') {
+          await convService.saveAssistantReply(
+            conversationId,
+            run.organizationId,
+            result.output.summary ?? 'Run completed.',
+            runId,
+            (run.channel as 'chat' | 'voice') ?? 'chat',
+          );
+        }
 
         logger.info(
           { runId, tokensIn: result.tokensIn, tokensOut: result.tokensOut, costUsd: result.costUsd },

@@ -9,4 +9,5 @@ import './core/agent-registry.js';
 
 export { agentRunRoutes } from './runs/agent-run.routes.js';
 export { approvalRoutes } from './approvals/approval.routes.js';
+export { conversationRoutes } from './conversations/conversation.routes.js';
 export { registerAgentRunWorkers } from './workers/agent-run.worker.js';

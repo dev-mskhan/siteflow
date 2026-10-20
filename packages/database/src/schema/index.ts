@@ -33,3 +33,4 @@ export * from './saas-reminder-delivery.schema.js';
 export * from './saas-refund-history.schema.js';
 export * from './platform.schema.js';
 export * from './ai.schema.js';
+export * from './ai-chat.schema.js';
