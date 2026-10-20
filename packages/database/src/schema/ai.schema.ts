@@ -73,6 +73,13 @@ export const agentRuns = appSchema.table(
     // Final structured output (agent's Zod-validated answer)
     output: jsonb('output'),
     error: text('error'),
+    // Multi-provider tracking & routing (H10)
+    provider: text('provider'),                          // e.g. 'openai' | 'google' | 'fake'
+    model: text('model'),                                // concrete model name used for the run
+    channel: text('channel'),                            // 'api' | 'chat' | 'voice'
+    conversationId: text('conversation_id'),             // thread / conversation context
+    parentRunId: text('parent_run_id'),                  // for subagent / child runs
+    promptVersion: text('prompt_version'),               // prompt registry version
     // Cost accounting
     tokensIn: integer('tokens_in').notNull().default(0),
     tokensOut: integer('tokens_out').notNull().default(0),

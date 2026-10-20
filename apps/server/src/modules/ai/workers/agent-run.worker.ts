@@ -14,6 +14,7 @@ import { AI_QUEUES, type AgentRunJobPayload } from '../ai.jobs.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { buildRunContext } from '../core/run-context.js';
 import { DEFAULT_RUN_LIMITS } from '../core/types.js';
+import { serverEnv } from '../../../config/env.js';
 import {
   MaxStepsExceededError,
   MaxTokensExceededError,
@@ -115,7 +116,11 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
       // ── 4. Atomic QUEUED → RUNNING transition (idempotency guard) ─────────
       // Use a conditional UPDATE so that if two workers race (PgBoss retry after crash),
       // only the first one proceeds. The second finds the row no longer QUEUED and skips.
-      const claimed = await repo.setRunningIfQueued(runId);
+      const claimed = await repo.setRunningIfQueued(runId, {
+        provider: serverEnv.AI_PROVIDER,
+        model: serverEnv.AI_MODEL_CHEAP,
+        channel: 'api',
+      });
       if (!claimed) {
         logger.warn({ runId }, 'Run already claimed by another worker — skipping');
         return;

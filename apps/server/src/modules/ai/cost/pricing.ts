@@ -37,6 +37,17 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   'o1-mini-2024-09-12':          { inputPer1k: 0.001100, outputPer1k: 0.004400 },
   'o1-preview':                  { inputPer1k: 0.015000, outputPer1k: 0.060000 },
   'o3-mini':                     { inputPer1k: 0.001100, outputPer1k: 0.004400 },
+  // ── Google Gemini models (H10 multi-provider) ──────────────────────────
+  'gemini-2.5-flash':            { inputPer1k: 0.000075, outputPer1k: 0.000300 },
+  'gemini-2.5-flash-002':        { inputPer1k: 0.000075, outputPer1k: 0.000300 },
+  'gemini-2.5-pro':              { inputPer1k: 0.001250, outputPer1k: 0.010000 },
+  'gemini-2.0-flash':            { inputPer1k: 0.000100, outputPer1k: 0.000400 },
+  'gemini-1.5-flash':            { inputPer1k: 0.000075, outputPer1k: 0.000300 },
+  'gemini-1.5-pro':              { inputPer1k: 0.001250, outputPer1k: 0.005000 },
+
+  // ── Fake test model ──────────────────────────────────────────────────────
+  'fake':                        { inputPer1k: 0.000000, outputPer1k: 0.000000 },
+  'fake-chat-model':             { inputPer1k: 0.000000, outputPer1k: 0.000000 },
 };
 
 /**

@@ -101,10 +101,20 @@ export class AgentRunRepository {
    *
    * This prevents double-execution when PgBoss retries a job after a worker crash.
    */
-  async setRunningIfQueued(id: string): Promise<boolean> {
+  async setRunningIfQueued(
+    id: string,
+    meta?: { provider?: string; model?: string; channel?: string },
+  ): Promise<boolean> {
     const result = await this.db
       .update(agentRuns)
-      .set({ status: 'RUNNING', startedAt: new Date(), updatedAt: new Date() })
+      .set({
+        status: 'RUNNING',
+        startedAt: new Date(),
+        updatedAt: new Date(),
+        ...(meta?.provider && { provider: meta.provider }),
+        ...(meta?.model && { model: meta.model }),
+        ...(meta?.channel && { channel: meta.channel }),
+      })
       .where(and(eq(agentRuns.id, id), eq(agentRuns.status, 'QUEUED')))
       .returning({ id: agentRuns.id });
     return result.length > 0;

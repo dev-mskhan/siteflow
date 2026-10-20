@@ -62,7 +62,9 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
 
   // Model bound with tools — "cheap" tier for multi-step reasoning
   const model = createModel('cheap', { accumulator: acc });
-  const modelWithTools = model.bindTools(langchainTools);
+  const modelWithTools = typeof (model as any).bindTools === 'function'
+    ? (model as any).bindTools(langchainTools)
+    : model;
 
   // ── Nodes ──────────────────────────────────────────────────────────────────
 

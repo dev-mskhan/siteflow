@@ -111,7 +111,10 @@ export const serverEnv = createEnv({
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 
     // AI / LLM
+    /** AI model provider ('openai' | 'google' | 'fake') */
+    AI_PROVIDER: z.enum(['openai', 'google', 'fake']).default('openai'),
     OPENAI_API_KEY: z.string().optional(),
+    GOOGLE_API_KEY: z.string().optional(),
     /** Concrete model name for the "cheap" tier (fast, low cost) */
     AI_MODEL_CHEAP: z.string().default('gpt-4o-mini'),
     /** Concrete model name for the "strong" tier (capable, higher cost) */
@@ -132,6 +135,12 @@ export const serverEnv = createEnv({
     LANGFUSE_SECRET_KEY: z.string().optional(),
     /** Langfuse host — defaults to Langfuse Cloud */
     LANGFUSE_HOST: z.string().url().optional(),
+
+    // STT / VoiceStudio (Audio)
+    VOICESTUDIO_URL: z.string().url().optional(),
+    VOICESTUDIO_API_KEY: z.string().optional(),
+    VOICE_MAX_FILE_BYTES: z.coerce.number().int().positive().default(26214400),
+    VOICE_MAX_DURATION_SECS: z.coerce.number().int().positive().default(120),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
