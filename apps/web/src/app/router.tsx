@@ -107,6 +107,14 @@ import { ProjectSubcontractorReportPage } from '../pages/reports/ProjectSubcontr
 import { ProjectExecutiveReportPage } from '../pages/reports/ProjectExecutiveReportPage';
 import { PortfolioReportPage } from '../pages/PortfolioReportPage';
 
+// ── Platform admin console ──────────────────────────────────────────────────
+import { PlatformLayout } from '../components/layout/PlatformLayout';
+import { PlatformOrganizationsPage } from '../pages/platform/PlatformOrganizationsPage';
+import { PlatformAccountsPage } from '../pages/platform/PlatformAccountsPage';
+import { PlatformDiagnosticsPage } from '../pages/platform/PlatformDiagnosticsPage';
+import { PlatformBillingPage } from '../pages/platform/PlatformBillingPage';
+import { PlatformSupportGrantsPage } from '../pages/platform/PlatformSupportGrantsPage';
+
 // ── Marketing pages ───────────────────────────────────────────────────────────
 import { HomePage } from '../pages/HomePage';
 import { FeaturesOverviewPage } from '../pages/FeaturesOverviewPage';
@@ -327,6 +335,24 @@ export const router = createBrowserRouter([
           { path: 'notifications', element: <NotificationPreferencesPage /> },
         ],
       },
+    ],
+  },
+
+  // ── Platform admin console (/platform/*) — separate from org app ──────────
+  {
+    path: '/platform',
+    element: (
+      <RequireAuth>
+        <PlatformLayout />
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <Navigate to="organizations" replace /> },
+      { path: 'organizations', element: <PlatformOrganizationsPage /> },
+      { path: 'accounts', element: <PlatformAccountsPage /> },
+      { path: 'diagnostics', element: <PlatformDiagnosticsPage /> },
+      { path: 'billing', element: <PlatformBillingPage /> },
+      { path: 'support-grants', element: <PlatformSupportGrantsPage /> },
     ],
   },
 

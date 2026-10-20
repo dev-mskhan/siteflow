@@ -27,6 +27,7 @@ import { reportApi } from '../api/reportApi';
 import { notificationApi } from '../api/notificationApi';
 import { billingApi } from '../api/billingApi';
 import { exportApi } from '../api/exportApi';
+import { platformApi } from '../api/platformApi';
 import { ROLE_PERMISSIONS } from '../lib/permissions';
 
 // ── Dev bypass — seed state synchronously at store creation ──────────────────
@@ -108,6 +109,7 @@ export const store = configureStore({
     [notificationApi.reducerPath]: notificationApi.reducer,
     [billingApi.reducerPath]: billingApi.reducer,
     [exportApi.reducerPath]: exportApi.reducer,
+    [platformApi.reducerPath]: platformApi.reducer,
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
@@ -139,6 +141,7 @@ export const store = configureStore({
       notificationApi.middleware,
       billingApi.middleware,
       exportApi.middleware,
+      platformApi.middleware,
     ),
   devTools: import.meta.env.DEV,
 });
