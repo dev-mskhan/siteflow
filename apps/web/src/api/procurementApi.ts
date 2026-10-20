@@ -65,7 +65,7 @@ export const procurementApi = createApi({
   reducerPath: 'procurementApi',
   baseQuery: mockBaseQuery,
   tagTypes: [
-    'MR', 'Quote', 'PO', 'Approval', 'Delivery', 'Receipt', 'CommittedCost', 'Inventory',
+    'MR', 'Quote', 'PO', 'Approval', 'Delivery', 'Receipt', 'CommittedCost', 'Inventory', 'Performance',
   ],
   endpoints: (build) => ({
 
@@ -794,6 +794,31 @@ export const procurementApi = createApi({
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Inventory', id: projectId }],
     }),
 
+    // ── Performance (supplier + subcontractor) ────────────────────────────────
+
+    getSupplierPerformance: build.query<{ items: Array<{ id: string; eventType: string; eventTypeLabel: string; recordedAt: string; details: Record<string, unknown> }> }, { orgId: string; projectId: string; supplierId: string }>({
+      queryFn: async ({ supplierId }) => {
+        await delay(150);
+        return { data: { items: [
+          { id: `pe_${supplierId}_1`, eventType: 'DELIVERY', eventTypeLabel: 'Delivery on time', recordedAt: '2024-03-15T10:00:00.000Z', details: { poNumber: 'PO-2024-001', daysEarly: 2 } },
+          { id: `pe_${supplierId}_2`, eventType: 'DELIVERY', eventTypeLabel: 'Delivery late', recordedAt: '2024-04-20T14:00:00.000Z', details: { poNumber: 'PO-2024-003', daysLate: 3 } },
+          { id: `pe_${supplierId}_3`, eventType: 'RECEIPT_REJECTION', eventTypeLabel: 'Receipt rejection', recordedAt: '2024-04-20T15:00:00.000Z', details: { rejectionRate: '2.5%', reason: 'Damaged packaging' } },
+        ] } };
+      },
+      providesTags: ['Performance'],
+    }),
+
+    getSubcontractorPerformance: build.query<{ items: Array<{ id: string; eventType: string; eventTypeLabel: string; recordedAt: string; details: Record<string, unknown> }> }, { orgId: string; projectId: string; subcontractorId: string }>({
+      queryFn: async ({ subcontractorId }) => {
+        await delay(150);
+        return { data: { items: [
+          { id: `pe_${subcontractorId}_1`, eventType: 'TASK_COMPLETED', eventTypeLabel: 'Task completed', recordedAt: '2024-03-28T16:00:00.000Z', details: { taskName: 'Foundation pour', onTime: true } },
+          { id: `pe_${subcontractorId}_2`, eventType: 'TASK_LATE', eventTypeLabel: 'Task late', recordedAt: '2024-06-01T10:00:00.000Z', details: { taskName: 'Superstructure Level 1', daysLate: 14 } },
+        ] } };
+      },
+      providesTags: ['Performance'],
+    }),
+
   }),
 });
 
@@ -838,4 +863,6 @@ export const {
   useListInventoryQuery,
   useListInventoryTransactionsQuery,
   useAdjustInventoryMutation,
+  useGetSupplierPerformanceQuery,
+  useGetSubcontractorPerformanceQuery,
 } = procurementApi;

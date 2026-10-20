@@ -25,6 +25,8 @@ import { hseApi } from '../api/hseApi';
 import { rfiApi } from '../api/rfiApi';
 import { reportApi } from '../api/reportApi';
 import { notificationApi } from '../api/notificationApi';
+import { billingApi } from '../api/billingApi';
+import { exportApi } from '../api/exportApi';
 import { ROLE_PERMISSIONS } from '../lib/permissions';
 
 // ── Dev bypass — seed state synchronously at store creation ──────────────────
@@ -104,6 +106,8 @@ export const store = configureStore({
     [rfiApi.reducerPath]: rfiApi.reducer,
     [reportApi.reducerPath]: reportApi.reducer,
     [notificationApi.reducerPath]: notificationApi.reducer,
+    [billingApi.reducerPath]: billingApi.reducer,
+    [exportApi.reducerPath]: exportApi.reducer,
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
@@ -133,6 +137,8 @@ export const store = configureStore({
       rfiApi.middleware,
       reportApi.middleware,
       notificationApi.middleware,
+      billingApi.middleware,
+      exportApi.middleware,
     ),
   devTools: import.meta.env.DEV,
 });

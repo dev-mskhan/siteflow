@@ -33,6 +33,9 @@ import { GeneralSettingsPage } from '../pages/app/settings/GeneralSettingsPage';
 import { ProfileSettingsPage } from '../pages/app/settings/ProfileSettingsPage';
 import { SequenceSettingsPage } from '../pages/app/settings/SequenceSettingsPage';
 import { AuditLogPage } from '../pages/app/settings/AuditLogPage';
+import { BillingPage } from '../pages/app/settings/BillingPage';
+import { ExportsPage } from '../pages/app/settings/ExportsPage';
+import { NotificationPreferencesPage } from '../pages/app/settings/NotificationPreferencesPage';
 
 // ── Project pages ─────────────────────────────────────────────────────────────
 import { ProjectListPage } from '../pages/app/ProjectListPage';
@@ -43,6 +46,8 @@ import { ProjectCostCodesPage } from '../pages/app/project/ProjectCostCodesPage'
 import { ProjectBudgetPage } from '../pages/app/project/ProjectBudgetPage';
 import { ProjectTeamPage } from '../pages/app/project/ProjectTeamPage';
 import { ProjectSettingsPage } from '../pages/app/project/ProjectSettingsPage';
+import { ProjectAuditPage } from '../pages/app/project/ProjectAuditPage';
+import { ProjectScheduleHistoryPage } from '../pages/app/project/ProjectScheduleHistoryPage';
 import { ProjectFieldLogsPage } from '../pages/ProjectFieldLogsPage';
 import { ProjectFieldLogDetailPage } from '../pages/ProjectFieldLogDetailPage';
 import { ProjectIssuesPage } from '../pages/ProjectIssuesPage';
@@ -280,6 +285,8 @@ export const router = createBrowserRouter([
           },
           { path: 'inventory', element: <InventoryLedgerPage /> },
           { path: 'settings', element: <ProjectSettingsPage /> },
+          { path: 'audit', element: <ProjectAuditPage /> },
+          { path: 'schedule-history', element: <ProjectScheduleHistoryPage /> },
           // Group 9 — Documents
           { path: 'documents', element: <ProjectDocumentsPage /> },
           // Group 10 — HSE
@@ -315,6 +322,9 @@ export const router = createBrowserRouter([
           { path: 'profile', element: <ProfileSettingsPage /> },
           { path: 'sequences', element: <SequenceSettingsPage /> },
           { path: 'audit', element: <AuditLogPage /> },
+          { path: 'billing', element: <BillingPage /> },
+          { path: 'exports', element: <ExportsPage /> },
+          { path: 'notifications', element: <NotificationPreferencesPage /> },
         ],
       },
     ],

@@ -51,7 +51,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 export const taskApi = createApi({
   reducerPath: 'taskApi',
   baseQuery: mockBaseQuery,
-  tagTypes: ['Task', 'Baseline', 'Calendar', 'Dependency', 'ScheduleMetrics'],
+  tagTypes: ['Task', 'Baseline', 'Calendar', 'Dependency', 'ScheduleMetrics', 'ScheduleHistory'],
   endpoints: (build) => ({
 
     // ── Tasks ──────────────────────────────────────────────────────────────
@@ -420,6 +420,23 @@ export const taskApi = createApi({
       ],
     }),
 
+    // ── Schedule History ───────────────────────────────────────────────────
+
+    listScheduleHistory: build.query<{ items: Array<{ id: string; taskId: string; taskName: string; field: string; oldValue: string | null; newValue: string | null; changedBy: string; changedAt: string; reason: string | null }> }, { orgId: string; projectId: string; taskId?: string }>({
+      queryFn: async ({ projectId, taskId }) => {
+        await delay(150);
+        const mock: Array<{ id: string; taskId: string; taskName: string; field: string; oldValue: string | null; newValue: string | null; changedBy: string; changedAt: string; reason: string | null }> = [
+          { id: 'sh_01', taskId: 'task_01', taskName: 'Site mobilisation', field: 'currentStartDate', oldValue: '2024-01-20', newValue: '2024-01-20', changedBy: 'Tariq Mehmood', changedAt: '2024-01-15T09:00:00.000Z', reason: 'Initial scheduling' },
+          { id: 'sh_02', taskId: 'task_05', taskName: 'Superstructure Level 1', field: 'currentFinishDate', oldValue: '2024-06-30', newValue: '2024-07-14', changedBy: 'Tariq Mehmood', changedAt: '2024-06-01T10:00:00.000Z', reason: 'Weather delay — 14 days variance' },
+          { id: 'sh_03', taskId: 'task_08', taskName: 'MEP Rough-in', field: 'currentStartDate', oldValue: '2024-07-01', newValue: '2024-07-15', changedBy: 'Tariq Mehmood', changedAt: '2024-06-28T14:00:00.000Z', reason: 'Dependency shift from superstructure' },
+        ];
+        let items = mock;
+        if (taskId) items = items.filter((e) => e.taskId === taskId);
+        return { data: { items } };
+      },
+      providesTags: (_r, _e, { projectId }) => [{ type: 'ScheduleHistory', id: projectId }],
+    }),
+
   }),
 });
 
@@ -445,4 +462,5 @@ export const {
   useDeleteDependencyMutation,
   useGetScheduleMetricsQuery,
   useRecalculateScheduleMutation,
+  useListScheduleHistoryQuery,
 } = taskApi;

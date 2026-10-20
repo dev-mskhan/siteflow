@@ -47,6 +47,9 @@ export const OrgSettingsLayout: React.FC = () => {
         <PermissionGate require="audit:read">
           <Tab to={`${base}/audit`} label="Audit log" />
         </PermissionGate>
+        <Tab to={`${base}/billing`} label="Billing" />
+        <Tab to={`${base}/exports`} label="Exports" />
+        <Tab to={`${base}/notifications`} label="Notifications" />
       </div>
 
       <Outlet />

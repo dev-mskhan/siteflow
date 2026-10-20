@@ -76,6 +76,41 @@ export const notificationApi = createApi({
         { type: 'Notification', id: `count_${orgId}` },
       ],
     }),
+
+    // ── Preferences ─────────────────────────────────────────────────────────
+
+    getNotificationPreferences: build.query<{ preferences: Array<{ eventType: string; channel: string; enabled: boolean }> }, { orgId: string }>({
+      queryFn: async () => {
+        await delay(100);
+        return {
+          data: {
+            preferences: [
+              { eventType: 'RfiOverdue', channel: 'IN_APP', enabled: true },
+              { eventType: 'RfiOverdue', channel: 'EMAIL', enabled: true },
+              { eventType: 'DocumentExpiring', channel: 'IN_APP', enabled: true },
+              { eventType: 'DocumentExpiring', channel: 'EMAIL', enabled: true },
+              { eventType: 'project.task.overdue', channel: 'IN_APP', enabled: true },
+              { eventType: 'project.task.overdue', channel: 'EMAIL', enabled: false },
+              { eventType: 'procurement.purchase_order.approved', channel: 'IN_APP', enabled: true },
+              { eventType: 'procurement.purchase_order.approved', channel: 'EMAIL', enabled: true },
+              { eventType: 'project.change_order.effected', channel: 'IN_APP', enabled: true },
+              { eventType: 'project.change_order.effected', channel: 'EMAIL', enabled: true },
+              { eventType: 'safety.event.reported', channel: 'IN_APP', enabled: true },
+              { eventType: 'safety.event.reported', channel: 'EMAIL', enabled: true },
+            ],
+          },
+        };
+      },
+      providesTags: (_r, _e, { orgId }) => [{ type: 'Notification', id: `prefs_${orgId}` }],
+    }),
+
+    updateNotificationPreference: build.mutation<{ preference: { eventType: string; channel: string; enabled: boolean } }, { orgId: string; eventType: string; channel: 'EMAIL' | 'IN_APP' | 'REALTIME' | 'WHATSAPP'; enabled: boolean }>({
+      queryFn: async ({ eventType, channel, enabled }) => {
+        await delay(100);
+        return { data: { preference: { eventType, channel, enabled } } };
+      },
+      invalidatesTags: (_r, _e, { orgId }) => [{ type: 'Notification', id: `prefs_${orgId}` }],
+    }),
   }),
 });
 
@@ -84,4 +119,6 @@ export const {
   useGetUnreadCountQuery,
   useMarkNotificationReadMutation,
   useMarkAllReadMutation,
+  useGetNotificationPreferencesQuery,
+  useUpdateNotificationPreferenceMutation,
 } = notificationApi;

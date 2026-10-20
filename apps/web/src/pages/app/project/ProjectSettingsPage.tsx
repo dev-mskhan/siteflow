@@ -6,12 +6,15 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
-import { Save } from 'lucide-react';
+import { Save, Play, Pause, RotateCcw, CheckCircle, XCircle, Archive } from 'lucide-react';
 import {
   useGetProjectSettingsQuery,
   useUpdateProjectSettingsMutation,
 } from '../../../features/project/projectSettingsApi';
-import { useUpdateProjectMutation } from '../../../features/project/projectApi';
+import {
+  useUpdateProjectMutation,
+  useTransitionProjectMutation,
+} from '../../../features/project/projectApi';
 import { useActiveProject } from '../../../features/project/useActiveProject';
 import { FormField, inputCls } from '../../../components/ui/FormField';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
@@ -52,6 +55,7 @@ export const ProjectSettingsPage: React.FC = () => {
     useUpdateProjectSettingsMutation();
   const [updateProject, { isLoading: savingProject, error: projectError }] =
     useUpdateProjectMutation();
+  const [transitionProject, { isLoading: transitioning }] = useTransitionProjectMutation();
 
   // ── Project metadata form ────────────────────────────────────────────────
   const {
@@ -280,6 +284,116 @@ export const ProjectSettingsPage: React.FC = () => {
             {savingSettings ? 'Saving…' : 'Save settings'}
           </button>
         </form>
+      </section>
+
+      {/* Project lifecycle */}
+      <section className="space-y-4">
+        <div className="border-b border-[var(--hairline-2)] pb-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+            Lifecycle
+          </p>
+          <p className="text-xs text-[var(--muted)] mt-0.5">
+            Current status: <span className="font-mono uppercase">{activeProject.status}</span>
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {activeProject.status === 'DRAFT' && (
+            <button
+              type="button"
+              disabled={transitioning}
+              onClick={() =>
+                transitionProject({ orgId: orgId!, projectId: projectId!, transition: 'activate' })
+                  .unwrap()
+                  .then(() => toastOk('Project activated', ''))
+                  .catch((e) => toastErr('Failed', toastErrorMessage(e as never)))
+              }
+              className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534] px-3 py-1.5 hover:bg-[#dcfce7] disabled:opacity-50"
+            >
+              <Play className="h-3 w-3" strokeWidth={2} /> Activate
+            </button>
+          )}
+          {activeProject.status === 'ACTIVE' && (
+            <>
+              <button
+                type="button"
+                disabled={transitioning}
+                onClick={() =>
+                  transitionProject({ orgId: orgId!, projectId: projectId!, transition: 'hold' })
+                    .unwrap()
+                    .then(() => toastOk('Project on hold', ''))
+                    .catch((e) => toastErr('Failed', toastErrorMessage(e as never)))
+                }
+                className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase border border-[#fde68a] bg-[#fffbeb] text-[#92400e] px-3 py-1.5 hover:bg-[#fef3c7] disabled:opacity-50"
+              >
+                <Pause className="h-3 w-3" strokeWidth={2} /> Hold
+              </button>
+              <button
+                type="button"
+                disabled={transitioning}
+                onClick={() => {
+                  if (confirm('Mark this project as completed?'))
+                    transitionProject({
+                      orgId: orgId!,
+                      projectId: projectId!,
+                      transition: 'complete',
+                    })
+                      .unwrap()
+                      .then(() => toastOk('Project completed', ''))
+                      .catch((e) => toastErr('Failed', toastErrorMessage(e as never)));
+                }}
+                className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534] px-3 py-1.5 hover:bg-[#dcfce7] disabled:opacity-50"
+              >
+                <CheckCircle className="h-3 w-3" strokeWidth={2} /> Complete
+              </button>
+            </>
+          )}
+          {activeProject.status === 'ON_HOLD' && (
+            <button
+              type="button"
+              disabled={transitioning}
+              onClick={() =>
+                transitionProject({ orgId: orgId!, projectId: projectId!, transition: 'resume' })
+                  .unwrap()
+                  .then(() => toastOk('Project resumed', ''))
+                  .catch((e) => toastErr('Failed', toastErrorMessage(e as never)))
+              }
+              className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase border border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af] px-3 py-1.5 hover:bg-[#dbeafe] disabled:opacity-50"
+            >
+              <RotateCcw className="h-3 w-3" strokeWidth={2} /> Resume
+            </button>
+          )}
+          {['ACTIVE', 'ON_HOLD', 'DRAFT'].includes(activeProject.status) && (
+            <button
+              type="button"
+              disabled={transitioning}
+              onClick={() => {
+                if (confirm('Cancel this project? This cannot be undone.'))
+                  transitionProject({ orgId: orgId!, projectId: projectId!, transition: 'cancel' })
+                    .unwrap()
+                    .then(() => toastOk('Project cancelled', ''))
+                    .catch((e) => toastErr('Failed', toastErrorMessage(e as never)));
+              }}
+              className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase border border-[#fecaca] text-[#991b1b] px-3 py-1.5 hover:bg-[#fef2f2] disabled:opacity-50"
+            >
+              <XCircle className="h-3 w-3" strokeWidth={2} /> Cancel
+            </button>
+          )}
+          {['COMPLETED', 'CANCELLED'].includes(activeProject.status) && (
+            <button
+              type="button"
+              disabled={transitioning}
+              onClick={() =>
+                transitionProject({ orgId: orgId!, projectId: projectId!, transition: 'archive' })
+                  .unwrap()
+                  .then(() => toastOk('Project archived', ''))
+                  .catch((e) => toastErr('Failed', toastErrorMessage(e as never)))
+              }
+              className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase border border-[var(--hairline-2)] text-[var(--muted)] px-3 py-1.5 hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              <Archive className="h-3 w-3" strokeWidth={2} /> Archive
+            </button>
+          )}
+        </div>
       </section>
     </div>
   );
