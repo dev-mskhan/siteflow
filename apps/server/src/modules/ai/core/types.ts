@@ -22,8 +22,12 @@ export type {
 // Add to this union when registering a new agent. Keeping it strict ensures
 // the job payload and agent-run rows always reference a known agent.
 
-export type AgentName = 'cost-financial';
-// future: | 'schedule-advisor' | 'procurement-assistant'
+export type AgentName =
+  | 'cost-financial'
+  | 'echo'
+  | 'echo-approval'
+  | 'echo-loop'
+  | 'echo-slow';
 
 // ── Model tiers ───────────────────────────────────────────────────────────────
 // Code always refers to tiers; model-factory.ts resolves tier → concrete model.

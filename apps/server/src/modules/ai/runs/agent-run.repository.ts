@@ -68,6 +68,16 @@ export class AgentRunRepository {
     return result[0];
   }
 
+  /** Checks if a run has been set to CANCELLED mid-execution. */
+  async isCancelled(id: string): Promise<boolean> {
+    const result = await this.db
+      .select({ status: agentRuns.status })
+      .from(agentRuns)
+      .where(eq(agentRuns.id, id))
+      .limit(1);
+    return result[0]?.status === 'CANCELLED';
+  }
+
   async list(opts: ListRunsOptions): Promise<AgentRun[]> {
     const { organizationId, projectId, agent, status, limit = 20, cursor } = opts;
 

@@ -14,12 +14,14 @@ import { AI_QUEUES, type AgentRunJobPayload } from '../ai.jobs.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { buildRunContext } from '../core/run-context.js';
 import { DEFAULT_RUN_LIMITS } from '../core/types.js';
+import { getAgent } from '../core/agent-registry.js';
 import { serverEnv } from '../../../config/env.js';
 import {
   MaxStepsExceededError,
   MaxTokensExceededError,
   MaxToolCallsExceededError,
   RunTimeoutError,
+  RunCancelledError,
   BudgetExceededError,
   GuardrailBlockedError,
 } from '../core/errors.js';
@@ -73,7 +75,9 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
           return;
         }
 
-        const ctx = buildRunContext(run, DEFAULT_RUN_LIMITS);
+        const manifest = getAgent(run.agent);
+        const limits = { ...DEFAULT_RUN_LIMITS, ...manifest?.limitOverrides };
+        const ctx = buildRunContext(run, limits);
         await repo.setRunning(runId);
         emitRunStarted(run);
         logger.info({ runId }, 'Resuming run after approval');
@@ -111,7 +115,9 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
 
       // ── 3. Build frozen RunContext from the DB row ────────────────────────
       // IDs come from the DB row, never from the job payload.
-      const ctx = buildRunContext(run, DEFAULT_RUN_LIMITS);
+      const manifest = getAgent(run.agent);
+      const limits = { ...DEFAULT_RUN_LIMITS, ...manifest?.limitOverrides };
+      const ctx = buildRunContext(run, limits);
 
       // ── 4. Atomic QUEUED → RUNNING transition (idempotency guard) ─────────
       // Use a conditional UPDATE so that if two workers race (PgBoss retry after crash),
@@ -158,6 +164,11 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
         );
 
       } catch (err: unknown) {
+        if (err instanceof RunCancelledError) {
+          logger.info({ runId }, 'Agent run was cancelled cooperatively — halted execution');
+          return;
+        }
+
         const message = classifyError(err);
         const isLimit = isLimitError(err);
 

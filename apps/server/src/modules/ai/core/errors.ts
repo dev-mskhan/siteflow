@@ -67,6 +67,15 @@ export class RunTimeoutError extends AiError {
   }
 }
 
+export class RunCancelledError extends AiError {
+  readonly runId: string;
+  constructor(runId: string) {
+    super('RUN_CANCELLED', `Run ${runId} was cancelled cooperatively`);
+    this.name = 'RunCancelledError';
+    this.runId = runId;
+  }
+}
+
 // ── Guardrail ─────────────────────────────────────────────────────────────────
 
 export class GuardrailBlockedError extends AiError {

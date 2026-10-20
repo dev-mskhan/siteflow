@@ -4,13 +4,14 @@ import { z } from 'zod';
 import { AgentRunService } from './agent-run.service.js';
 import { createSuccessResponse } from '../../../shared/response.js';
 import type { AgentName, AgentRunStatus } from '../core/types.js';
+import { getAgent } from '../core/agent-registry.js';
 
 const runService = new AgentRunService();
 
 // ── Zod schemas (inline — no shared package dep for now) ─────────────────────
 
 const startRunBodySchema = z.object({
-  agent: z.enum(['cost-financial']),
+  agent: z.string(),
   projectId: z.string().uuid().optional(),
   input: z.record(z.unknown()).default({}),
 });
@@ -44,6 +45,18 @@ export async function handleStartRun(
   const { organizationId } = request.params as { organizationId: string };
   const body = startRunBodySchema.parse(request.body);
   const userId = request.user!.sub;
+
+  const manifest = getAgent(body.agent);
+  if (!manifest) {
+    return reply.status(400).send({ error: `Unknown agent: ${body.agent}` });
+  }
+  if (!manifest.supportedChannels.includes('api')) {
+    return reply.status(400).send({ error: `Agent "${body.agent}" does not support API channel` });
+  }
+  const inputValidation = manifest.inputSchema.safeParse(body.input);
+  if (!inputValidation.success) {
+    return reply.status(422).send({ error: inputValidation.error.format() });
+  }
 
   const { runId } = await runService.startRun({
     organizationId,

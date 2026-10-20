@@ -17,7 +17,13 @@ import { getCheckpointer } from './checkpointer.js';
 import { UsageAccumulator } from '../cost/usage.service.js';
 import { BudgetGuard } from '../guardrails/budget-guard.js';
 import { buildTraceHandle } from '../observability/tracing.js';
-import { AgentNotFoundError, MaxStepsExceededError, RunTimeoutError } from '../core/errors.js';
+import {
+  AgentNotFoundError,
+  MaxStepsExceededError,
+  RunTimeoutError,
+  RunCancelledError,
+} from '../core/errors.js';
+import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import type { RunContext } from '../core/run-context.js';
 import type { AgentRunOutput, AgentName } from '../core/types.js';
 
@@ -26,6 +32,9 @@ import type { AgentRunOutput, AgentName } from '../core/types.js';
 
 import { buildEchoGraph } from '../agents/echo/graph.js';
 import { buildCostFinancialGraph } from '../agents/cost-financial/graph.js';
+import { buildEchoApprovalGraph } from '../agents/echo-approval/graph.js';
+import { buildEchoLoopGraph } from '../agents/echo-loop/graph.js';
+import { buildEchoSlowGraph } from '../agents/echo-slow/graph.js';
 
 interface CompiledGraphLike {
   stream(input: unknown, config: unknown): Promise<AsyncIterable<unknown>>;
@@ -38,9 +47,12 @@ type GraphBuilder = (ctx: RunContext, acc: UsageAccumulator) => {
 
 // LangGraph's StateGraph types don't structurally match CompiledGraphLike, so the
 // builders are cast at the registry boundary; runtime shape is identical.
-const GRAPH_REGISTRY: Record<AgentName | 'echo', GraphBuilder> = {
+const GRAPH_REGISTRY: Record<AgentName, GraphBuilder> = {
   'echo':            (ctx) => buildEchoGraph(ctx) as unknown as ReturnType<GraphBuilder>,
   'cost-financial':  (ctx, acc) => buildCostFinancialGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
+  'echo-approval':   (ctx) => buildEchoApprovalGraph(ctx) as unknown as ReturnType<GraphBuilder>,
+  'echo-loop':       (ctx) => buildEchoLoopGraph(ctx) as unknown as ReturnType<GraphBuilder>,
+  'echo-slow':       (ctx) => buildEchoSlowGraph(ctx) as unknown as ReturnType<GraphBuilder>,
 };
 
 // ── Result type ───────────────────────────────────────────────────────────────
@@ -91,6 +103,7 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
 
   // ── 6. Step counter — enforced via streamEvents ───────────────────────────
   let stepCount = 0;
+  const repo = new AgentRunRepository();
 
   try {
     // Initial budget check before any LLM call
@@ -113,6 +126,14 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
       stepCount++;
       if (stepCount > limits.maxSteps) {
         throw new MaxStepsExceededError(runId, limits.maxSteps);
+      }
+
+      // Check cooperative cancellation every 2 steps
+      if (stepCount % 2 === 0) {
+        const cancelled = await repo.isCancelled(runId);
+        if (cancelled) {
+          throw new RunCancelledError(runId);
+        }
       }
 
       // Check budget after every node that could have triggered an LLM call
@@ -155,9 +176,10 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
 
     if (
       err instanceof MaxStepsExceededError ||
-      err instanceof RunTimeoutError
+      err instanceof RunTimeoutError ||
+      err instanceof RunCancelledError
     ) {
-      throw err; // worker handles these as FAILED transitions
+      throw err; // worker handles these as terminal transitions
     }
 
     // Timeout from AbortSignal comes as a DOMException with name 'TimeoutError'
