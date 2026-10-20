@@ -159,6 +159,11 @@ export const agentApprovals = appSchema.table(
     decidedAt: timestamp('decided_at', { withTimezone: true }),
     decisionNote: text('decision_note'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    // Exact-action binding: the approval is scoped to this specific tool invocation.
+    // approvedToolName + approvedArgsHash prevent an approval for action A from
+    // authorising a different BINDING call B later in the same run.
+    approvedToolName: text('approved_tool_name'),        // tool name the approval was created for
+    approvedArgsHash: text('approved_args_hash'),        // SHA-256 hex of JSON.stringify(sortedArgs)
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()

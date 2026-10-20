@@ -3,7 +3,8 @@
 // Wraps every tool execution with:
 //   1. Registry lookup — throws if the tool is unknown
 //   2. RBAC check — resolves user's org permissions, throws ToolPermissionDeniedError
-//   3. Tier gate — BINDING tools require an APPROVED agent_approvals row
+//   3. Tier gate — BINDING tools require an APPROVED agent_approvals row that was
+//      created for this exact tool name + argument hash (exact-action binding)
 //   4. Tenant assertion — result is checked for cross-org data leaks
 //   5. Audit log — every call (success or error) written to agent_tool_calls
 //   6. ToolResult envelope — typed ok/error return, never throws to the graph
@@ -12,6 +13,7 @@
 
 import { trace } from '@opentelemetry/api';
 import { withSpan } from '@siteflow/observability/server';
+import { createHash } from 'node:crypto';
 import { rbacService } from '../../rbac/rbac.service.js';
 import { getTool } from './tool-registry.js';
 import { ToolCallRepository } from './tool-call.repository.js';
@@ -27,14 +29,42 @@ const toolCallRepo = new ToolCallRepository();
 
 // ── Approval gate ─────────────────────────────────────────────────────────────
 // BINDING tools require an APPROVED agent_approvals row for the current run.
+// The approval is bound to the exact tool name and argument hash that triggered
+// the interrupt — prevents approval for action A from authorising action B.
 
 import { ApprovalRepository } from '../approvals/approval.repository.js';
 const approvalRepo = new ApprovalRepository();
 
-async function checkApprovalGate(ctx: RunContext, toolName: string): Promise<void> {
-  const approval = await approvalRepo.findPendingForRun(ctx.runId);
+async function checkApprovalGate(
+  ctx: RunContext,
+  toolName: string,
+  parsedArgs: unknown,
+): Promise<void> {
+  // Use findLatestForRun (not findPendingForRun): on resume the row is already APPROVED,
+  // so a PENDING-only query returns undefined and silently drops the resume (ARC-02).
+  const approval = await approvalRepo.findLatestForRun(ctx.runId);
   if (!approval || approval.status !== 'APPROVED') {
     throw new ApprovalRequiredError(toolName, ctx.runId);
+  }
+
+  // Exact-action binding: verify the approval was issued for this specific tool + args.
+  // approvedToolName / approvedArgsHash are null on rows created before this fix,
+  // so we skip the check when they are absent (backward-compatible).
+  if (approval.approvedToolName && approval.approvedToolName !== toolName) {
+    throw new ApprovalRequiredError(toolName, ctx.runId);
+  }
+
+  if (approval.approvedArgsHash) {
+    const sortedArgs = JSON.stringify(
+      parsedArgs,
+      parsedArgs && typeof parsedArgs === 'object'
+        ? Object.keys(parsedArgs as Record<string, unknown>).sort()
+        : undefined,
+    );
+    const argsHash = createHash('sha256').update(sortedArgs).digest('hex');
+    if (approval.approvedArgsHash !== argsHash) {
+      throw new ApprovalRequiredError(toolName, ctx.runId);
+    }
   }
 }
 
@@ -174,7 +204,7 @@ export async function executeTool<T = unknown>(
     // ── 4. Tier gate ────────────────────────────────────────────────────────
     if (tool.riskTier === 'BINDING') {
       try {
-        await checkApprovalGate(ctx, toolName);
+        await checkApprovalGate(ctx, toolName, parsedArgs);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Approval required';
         await toolCallRepo.log({

@@ -6,6 +6,7 @@ import { ApprovalRepository } from './approval.repository.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { AI_QUEUES } from '../ai.jobs.js';
 import type { AgentApproval } from '@siteflow/database/schema';
+import type { AgentName } from '../core/types.js';
 
 const tracer = trace.getTracer('ai-approval-service');
 
@@ -15,6 +16,8 @@ export interface CreateApprovalInput {
   proposalType: string;
   proposal: Record<string, unknown>;
   expiresInMs?: number;
+  approvedToolName?: string;
+  approvedArgsHash?: string;
 }
 
 export class ApprovalService {
@@ -34,6 +37,8 @@ export class ApprovalService {
         proposal: input.proposal,
         status: 'PENDING',
         expiresAt,
+        approvedToolName: input.approvedToolName ?? null,
+        approvedArgsHash: input.approvedArgsHash ?? null,
       });
     });
   }
@@ -59,6 +64,12 @@ export class ApprovalService {
       await getDb().transaction(async (tx) => {
         await this.approvalRepo.approve(id, userId, note, tx);
 
+        // Load the run to get its actual agent name and projectId.
+        // ARC-03: previously hardcoded agent: 'cost-financial' and projectId: undefined,
+        // which would route the resume to the wrong agent for any other agent type.
+        const run = await this.runRepo.findByIdInternal(approval.runId);
+        if (!run) throw new Error(`Agent run ${approval.runId} not found — cannot resume`);
+
         // Resume the run atomically by enqueuing the runId via transactional outbox
         // Worker will detect the APPROVED approval and call resumeRun()
         await writeOutboxEvent(
@@ -67,8 +78,8 @@ export class ApprovalService {
           {
             runId: approval.runId,
             organizationId: approval.organizationId,
-            projectId: undefined,
-            agent: 'cost-financial',
+            projectId: run.projectId ?? undefined,
+            agent: run.agent as AgentName,
             createdBy: userId,
           },
           approval.organizationId,

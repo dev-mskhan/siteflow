@@ -43,11 +43,17 @@ export interface GuardedText {
  * Scan a string for injection patterns.
  * - TRUSTED sources (e.g. system fields from the DB): skip scan, return as-is
  * - EXTERNAL sources (e.g. API responses from partners): scan, log flags, allow
- * - UNTRUSTED sources (e.g. uploaded docs, user freetext): scan, block on match
+ * - UNTRUSTED sources:
+ *     - If opts?.hardBlock === true (e.g. uploaded documents, raw voice transcripts): scan and block
+ *     - Otherwise (regular user chat/text): scan, flag, and wrap — do not block legitimate user phrasing
  *
- * @throws GuardrailBlockedError if trustLevel is UNTRUSTED and a pattern matches
+ * @throws GuardrailBlockedError if trustLevel is UNTRUSTED and opts?.hardBlock is true and a pattern matches
  */
-export function guardInput(text: string, trustLevel: TrustLevel): GuardedText {
+export function guardInput(
+  text: string,
+  trustLevel: TrustLevel,
+  opts?: { hardBlock?: boolean },
+): GuardedText {
   // Trusted content (DB values, structured API data) — skip scan entirely
   if (trustLevel === 'TRUSTED') {
     return { text, trustLevel, flagged: false, flags: [] };
@@ -65,14 +71,14 @@ export function guardInput(text: string, trustLevel: TrustLevel): GuardedText {
     return { text, trustLevel, flagged: false, flags: [] };
   }
 
-  // EXTERNAL: log and continue — useful for auditing partner data
-  if (trustLevel === 'EXTERNAL') {
-    logger.warn({ trustLevel, flags }, 'Injection patterns detected in EXTERNAL text — allowing with warning');
+  // EXTERNAL or UNTRUSTED without hardBlock: log and continue — flag and wrap, do not block regular user chat
+  if (trustLevel === 'EXTERNAL' || !opts?.hardBlock) {
+    logger.warn({ trustLevel, flags }, 'Injection patterns detected — flagging, not blocking');
     return { text, trustLevel, flagged: true, flags };
   }
 
-  // UNTRUSTED: block
-  logger.warn({ trustLevel, flags }, 'Injection attempt detected in UNTRUSTED text — blocking');
+  // UNTRUSTED with hardBlock: block (transcripts, uploaded raw documents)
+  logger.warn({ trustLevel, flags }, 'Injection attempt detected in hard-block content — blocking');
   throw new GuardrailBlockedError(`Injection pattern detected: ${flags.join(', ')}`);
 }
 

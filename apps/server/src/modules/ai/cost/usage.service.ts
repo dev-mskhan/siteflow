@@ -37,7 +37,14 @@ export class UsageAccumulator {
   private _tokensOut = 0;
   private _calls: UsageRecord[] = [];
 
-  constructor(private readonly ctx: RunContext) {}
+  constructor(
+    private readonly ctx: RunContext,
+    initialTokensIn = 0,
+    initialTokensOut = 0,
+  ) {
+    this._tokensIn = initialTokensIn;
+    this._tokensOut = initialTokensOut;
+  }
 
   /**
    * Record a completed LLM call.

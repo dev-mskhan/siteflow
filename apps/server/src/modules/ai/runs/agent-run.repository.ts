@@ -94,6 +94,34 @@ export class AgentRunRepository {
       .where(eq(agentRuns.id, id));
   }
 
+  /**
+   * Atomically transitions a run from QUEUED → RUNNING using a conditional update.
+   * Returns true if the transition succeeded (this worker owns the run).
+   * Returns false if another worker already claimed it — caller should skip.
+   *
+   * This prevents double-execution when PgBoss retries a job after a worker crash.
+   */
+  async setRunningIfQueued(id: string): Promise<boolean> {
+    const result = await this.db
+      .update(agentRuns)
+      .set({ status: 'RUNNING', startedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(agentRuns.id, id), eq(agentRuns.status, 'QUEUED')))
+      .returning({ id: agentRuns.id });
+    return result.length > 0;
+  }
+
+  /**
+   * Persists running token totals mid-run so limits are preserved across process
+   * restarts and resume cycles (otherwise a new process starts with 0 counters).
+   * Called after each successful tool invocation.
+   */
+  async updateRunningTokens(id: string, tokensIn: number, tokensOut: number): Promise<void> {
+    await this.db
+      .update(agentRuns)
+      .set({ tokensIn, tokensOut, updatedAt: new Date() })
+      .where(eq(agentRuns.id, id));
+  }
+
   async setAwaitingApproval(id: string): Promise<void> {
     await this.db
       .update(agentRuns)

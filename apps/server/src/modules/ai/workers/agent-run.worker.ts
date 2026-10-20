@@ -59,13 +59,16 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
       // AWAITING_APPROVAL → an approval was just decided; check and resume
       // Anything else → already processed, skip
       if (run.status === 'AWAITING_APPROVAL') {
-        const approval = await approvalRepo.findPendingForRun(runId);
+        // Use findLatestForRun (not findPendingForRun): by the time the worker picks up
+        // the resume job the approval row is already APPROVED, so a PENDING-only query
+        // returns undefined and silently deadlocks the run in AWAITING_APPROVAL (ARC-02).
+        const approval = await approvalRepo.findLatestForRun(runId);
         if (!approval) {
-          logger.warn({ runId }, 'Resuming run but no pending approval found — skipping');
+          logger.warn({ runId }, 'Resuming run but no approval row found — skipping');
           return;
         }
         if (approval.status !== 'APPROVED') {
-          logger.warn({ runId, approvalStatus: approval.status }, 'Approval not APPROVED — skipping');
+          logger.warn({ runId, approvalStatus: approval.status }, 'Latest approval is not APPROVED — skipping');
           return;
         }
 
@@ -75,7 +78,11 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
         logger.info({ runId }, 'Resuming run after approval');
 
         try {
-          const result = await resumeRun(ctx, { approved: true, approvalId: approval.id });
+          const result = await resumeRun(
+            ctx,
+            { approved: true, approvalId: approval.id, proposal: approval.proposal },
+            { tokensIn: run.tokensIn, tokensOut: run.tokensOut },
+          );
 
           if (result.interrupted) {
             await repo.setAwaitingApproval(runId);
@@ -105,8 +112,14 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
       // IDs come from the DB row, never from the job payload.
       const ctx = buildRunContext(run, DEFAULT_RUN_LIMITS);
 
-      // ── 4. Transition → RUNNING ───────────────────────────────────────────
-      await repo.setRunning(runId);
+      // ── 4. Atomic QUEUED → RUNNING transition (idempotency guard) ─────────
+      // Use a conditional UPDATE so that if two workers race (PgBoss retry after crash),
+      // only the first one proceeds. The second finds the row no longer QUEUED and skips.
+      const claimed = await repo.setRunningIfQueued(runId);
+      if (!claimed) {
+        logger.warn({ runId }, 'Run already claimed by another worker — skipping');
+        return;
+      }
       emitRunStarted(run);
       logger.info({ runId, agent: ctx.agent, threadId: ctx.threadId }, 'Run marked RUNNING');
 

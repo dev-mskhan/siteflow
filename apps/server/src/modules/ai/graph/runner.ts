@@ -173,12 +173,14 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
  * Resume a graph that was paused at an interrupt() (AWAITING_APPROVAL).
  * Called by approval.service after an APPROVED decision.
  *
- * @param ctx       — same RunContext as the original run
- * @param resumeVal — the value to inject as the interrupt result
+ * @param ctx          — same RunContext as the original run
+ * @param resumeVal    — the value to inject as the interrupt result
+ * @param initialUsage — previous tokens consumed before pause, so limits are not reset
  */
 export async function resumeRun(
   ctx: RunContext,
   resumeVal: unknown,
+  initialUsage?: { tokensIn: number; tokensOut: number },
 ): Promise<RunResult> {
   const { runId, threadId, limits } = ctx;
   logger.info({ runId }, 'Runner: resuming interrupted graph');
@@ -186,7 +188,11 @@ export async function resumeRun(
   const builder = GRAPH_REGISTRY[ctx.agent as keyof typeof GRAPH_REGISTRY];
   if (!builder) throw new AgentNotFoundError(ctx.agent);
 
-  const accumulator = new UsageAccumulator(ctx);
+  const accumulator = new UsageAccumulator(
+    ctx,
+    initialUsage?.tokensIn ?? 0,
+    initialUsage?.tokensOut ?? 0,
+  );
   const budgetGuard = new BudgetGuard(ctx, accumulator);
   const checkpointer = await getCheckpointer();
   const compiledGraph = builder(ctx, accumulator).compile({ checkpointer });

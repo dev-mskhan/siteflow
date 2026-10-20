@@ -1,5 +1,6 @@
 // apps/server/src/modules/ai/approvals/approval.repository.ts
 import { eq, and, desc, lt } from 'drizzle-orm';
+
 import { getDb } from '../../../lib/db/index.js';
 import { generateId } from '../../../lib/id.js';
 import {
@@ -43,6 +44,22 @@ export class ApprovalRepository {
       .select()
       .from(agentApprovals)
       .where(and(eq(agentApprovals.runId, runId), eq(agentApprovals.status, 'PENDING')))
+      .limit(1);
+    return result[0];
+  }
+
+  /**
+   * Fetches the most-recently-created approval for a run regardless of status.
+   * Use this on the resume path — by the time the worker resumes, the approval
+   * row has already transitioned from PENDING → APPROVED (or REJECTED), so
+   * findPendingForRun would return undefined and silently drop the resume.
+   */
+  async findLatestForRun(runId: string): Promise<AgentApproval | undefined> {
+    const result = await this.db
+      .select()
+      .from(agentApprovals)
+      .where(eq(agentApprovals.runId, runId))
+      .orderBy(desc(agentApprovals.createdAt))
       .limit(1);
     return result[0];
   }
