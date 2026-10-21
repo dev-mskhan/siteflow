@@ -121,7 +121,7 @@ import { FeaturesOverviewPage } from '../pages/FeaturesOverviewPage';
 import { FeaturePage } from '../pages/FeaturePage';
 import { PersonaPage } from '../pages/PersonaPage';
 import { CountryPage } from '../pages/CountryPage';
-import { PricingPage } from '../pages/PricingPage';
+import { PricingPage as MarketingPricingPage } from '../pages/PricingPage';
 import { ContactPage } from '../pages/ContactPage';
 import { AboutPage } from '../pages/AboutPage';
 import { SecurityPage } from '../pages/SecurityPage';
@@ -367,7 +367,7 @@ export const router = createBrowserRouter([
       { path: 'for/:personaSlug', element: <PersonaPage /> },
       { path: 'construction-software-pakistan', element: <CountryPage /> },
       { path: 'construction-software-us', element: <CountryPage /> },
-      { path: 'pricing', element: <PricingPage /> },
+      { path: 'pricing', element: <MarketingPricingPage /> },
       { path: 'contact', element: <ContactPage /> },
       { path: 'about', element: <AboutPage /> },
       { path: 'security', element: <SecurityPage /> },
