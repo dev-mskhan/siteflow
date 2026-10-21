@@ -30,7 +30,7 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 // ─── Raw base query (cookies, no retry logic) ─────────────────────────────────
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000/api/v1',
+  baseUrl: (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1',
   // Server uses HttpOnly signed cookies for access_token + refresh_token.
   // credentials: 'include' is REQUIRED — the browser won't send cookies otherwise.
   credentials: 'include',
@@ -99,7 +99,11 @@ export const baseApi = createApi({
     'Invitation',
     'AuditLog',
     'Project',
+    'Phase',
     'CostCode',
+    'Budget',
+    'ProjectMember',
+    'ProjectSettings',
     'FieldLog',
     'PurchaseOrder',
     'MaterialRequest',

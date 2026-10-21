@@ -1,54 +1,42 @@
 /**
  * projectSettingsApi — Effective project settings (read + update).
+ * LIVE INTEGRATION: uses baseApi.injectEndpoints with real HTTP endpoints.
+ *
+ * Server: apps/server/src/modules/project/project.routes.ts
+ *   GET   /organizations/:orgId/projects/:projectId/settings
+ *   PATCH /organizations/:orgId/projects/:projectId/settings
+ *
  * EffectiveProjectSettings is a MERGED view: project_settings row overrides
  * fall back to org_settings, with currency always from the project row.
- * MOCK PHASE: queryFn returns MOCK_PROJECT_SETTINGS fixture data.
  */
-import { createApi } from '@reduxjs/toolkit/query/react';
+import { baseApi } from '../../services/baseApi';
 import type { EffectiveProjectSettings } from './projectTypes';
-import { MOCK_PROJECT_SETTINGS } from '../../mocks/project.fixtures';
 
 interface Args { orgId: string; projectId: string }
 interface SettingsResponse { settings: EffectiveProjectSettings }
 
-export const projectSettingsApi = createApi({
-  reducerPath: 'projectSettingsApi',
-  baseQuery: async () => ({ data: undefined as unknown }),
-  tagTypes: ['ProjectSettings'],
-  endpoints: (b) => ({
+export const projectSettingsApi = baseApi.injectEndpoints({
+  endpoints: (build) => ({
 
-    // REAL: query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/settings`
-    getProjectSettings: b.query<SettingsResponse, Args>({
-      queryFn: ({ projectId }) => ({
-        data: {
-          settings: MOCK_PROJECT_SETTINGS[projectId] ?? {
-            timezone: 'Asia/Karachi', locale: 'en-PK',
-            dateFormat: 'DD_MM_YYYY', timeFormat: 'H12',
-            unitSystem: 'METRIC', weekStartsOn: 1, currency: 'PKR',
-          },
-        },
-      }),
-      providesTags: (_r, _e, { projectId }) => [{ type: 'ProjectSettings', id: projectId }],
+    getProjectSettings: build.query<SettingsResponse, Args>({
+      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/settings`,
+      transformResponse: (raw: { data: SettingsResponse }) => raw.data,
+      providesTags: (_result, _error, { projectId }) => [{ type: 'ProjectSettings' as const, id: projectId }],
     }),
 
-    // REAL: query: ({ orgId, projectId, body }) => ({ url: `.../settings`, method: 'PATCH', body })
-    updateProjectSettings: b.mutation<SettingsResponse, Args & {
+    updateProjectSettings: build.mutation<SettingsResponse, Args & {
       body: Partial<Omit<EffectiveProjectSettings, 'currency'>>;
     }>({
-      queryFn: ({ projectId, body }) => {
-        const current = MOCK_PROJECT_SETTINGS[projectId] ?? {
-          timezone: 'Asia/Karachi', locale: 'en-PK',
-          dateFormat: 'DD_MM_YYYY' as const, timeFormat: 'H12' as const,
-          unitSystem: 'METRIC' as const, weekStartsOn: 1, currency: 'PKR',
-        };
-        const updated = { ...current, ...body };
-        MOCK_PROJECT_SETTINGS[projectId] = updated;
-        return { data: { settings: updated } };
-      },
-      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'ProjectSettings', id: projectId }],
+      query: ({ orgId, projectId, body }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/settings`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (raw: { data: SettingsResponse }) => raw.data,
+      invalidatesTags: (_result, _error, { projectId }) => [{ type: 'ProjectSettings' as const, id: projectId }],
     }),
-
   }),
+  overrideExisting: false,
 });
 
 export const { useGetProjectSettingsQuery, useUpdateProjectSettingsMutation } = projectSettingsApi;

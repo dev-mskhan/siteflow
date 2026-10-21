@@ -88,12 +88,9 @@ const devPreloadedState = bypass
 export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
-    [projectApi.reducerPath]: projectApi.reducer,
-    [phaseApi.reducerPath]: phaseApi.reducer,
-    [costCodeApi.reducerPath]: costCodeApi.reducer,
-    [budgetApi.reducerPath]: budgetApi.reducer,
-    [projectMemberApi.reducerPath]: projectMemberApi.reducer,
-    [projectSettingsApi.reducerPath]: projectSettingsApi.reducer,
+    // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi
+    // are now injected into baseApi — their reducerPath/reducer/middleware are all
+    // the same as baseApi, so no separate entries needed.
     [supplierApi.reducerPath]: supplierApi.reducer,
     [materialApi.reducerPath]: materialApi.reducer,
     [fieldLogApi.reducerPath]: fieldLogApi.reducer,
@@ -121,12 +118,8 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       baseApi.middleware,
-      projectApi.middleware,
-      phaseApi.middleware,
-      costCodeApi.middleware,
-      budgetApi.middleware,
-      projectMemberApi.middleware,
-      projectSettingsApi.middleware,
+      // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi
+      // are now injected into baseApi — no separate middleware needed.
       supplierApi.middleware,
       materialApi.middleware,
       fieldLogApi.middleware,
