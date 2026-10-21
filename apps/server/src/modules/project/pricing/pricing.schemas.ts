@@ -99,7 +99,7 @@ const errorResponses = {
 
 export const pricingRouteDocs = {
   create: {
-    tags: ['Pricing'],
+    tags: ['pricing'],
     summary: 'Create a draft material rate version',
     params: pathParams,
     body: versionBody,
@@ -109,7 +109,7 @@ export const pricingRouteDocs = {
     },
   },
   list: {
-    tags: ['Pricing'],
+    tags: ['pricing'],
     summary: 'List rate versions for a material',
     params: pathParams,
     querystring: {
@@ -126,7 +126,7 @@ export const pricingRouteDocs = {
     },
   },
   get: {
-    tags: ['Pricing'],
+    tags: ['pricing'],
     summary: 'Get a material rate version',
     params: rateIdParam,
     response: {
@@ -137,7 +137,7 @@ export const pricingRouteDocs = {
     },
   },
   approve: {
-    tags: ['Pricing'],
+    tags: ['pricing'],
     summary: 'Approve a draft rate version',
     params: rateIdParam,
     response: {
@@ -146,7 +146,7 @@ export const pricingRouteDocs = {
     },
   },
   retire: {
-    tags: ['Pricing'],
+    tags: ['pricing'],
     summary: 'Retire an approved rate version from an effective date',
     params: rateIdParam,
     body: {
@@ -161,7 +161,7 @@ export const pricingRouteDocs = {
     },
   },
   resolve: {
-    tags: ['Pricing'],
+    tags: ['pricing'],
     summary: 'Resolve the effective material rate for a project and date',
     params: pathParams,
     querystring: {

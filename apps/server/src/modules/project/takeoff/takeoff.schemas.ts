@@ -141,7 +141,7 @@ const sheetIdParam = pathParams;
 
 export const takeoffRouteDocs = {
   create: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Create a quantity takeoff sheet',
     params: pathParams,
     body: {
@@ -162,7 +162,7 @@ export const takeoffRouteDocs = {
     },
   },
   list: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'List takeoff sheets for a project',
     params: pathParams,
     querystring: {
@@ -182,7 +182,7 @@ export const takeoffRouteDocs = {
     },
   },
   get: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Get a takeoff sheet',
     params: sheetIdParam,
     response: {
@@ -193,7 +193,7 @@ export const takeoffRouteDocs = {
     },
   },
   update: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Update takeoff sheet metadata (DRAFT only)',
     params: sheetIdParam,
     body: {
@@ -216,7 +216,7 @@ export const takeoffRouteDocs = {
     },
   },
   transition: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Submit or approve a takeoff sheet revision',
     params: sheetIdParam,
     body: versionBody,
@@ -230,7 +230,7 @@ export const takeoffRouteDocs = {
     },
   },
   reject: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Reject a pending takeoff sheet revision with a reason',
     params: sheetIdParam,
     body: {
@@ -252,7 +252,7 @@ export const takeoffRouteDocs = {
     },
   },
   createRevision: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Create a new revision from the current approved or rejected revision',
     params: sheetIdParam,
     body: versionBody,
@@ -266,7 +266,7 @@ export const takeoffRouteDocs = {
     },
   },
   listRevisions: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'List revisions for a takeoff sheet',
     params: sheetIdParam,
     response: {
@@ -277,7 +277,7 @@ export const takeoffRouteDocs = {
     },
   },
   compareRevisions: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Compare two revisions of a takeoff sheet by stable measurement key',
     params: sheetIdParam,
     querystring: {
@@ -298,7 +298,7 @@ export const takeoffRouteDocs = {
     },
   },
   listMeasurements: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'List measurements for a revision (defaults to the current revision)',
     params: sheetIdParam,
     querystring: {
@@ -315,7 +315,7 @@ export const takeoffRouteDocs = {
     },
   },
   createMeasurement: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Create a manual or formula measurement on the current DRAFT revision',
     params: sheetIdParam,
     body: {
@@ -349,7 +349,7 @@ export const takeoffRouteDocs = {
     },
   },
   updateMeasurement: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Update a measurement on the current DRAFT revision',
     params: pathParams,
     body: {
@@ -384,7 +384,7 @@ export const takeoffRouteDocs = {
     },
   },
   listSources: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'List document sources linked to a takeoff sheet',
     params: sheetIdParam,
     querystring: {
@@ -401,7 +401,7 @@ export const takeoffRouteDocs = {
     },
   },
   createSource: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Link an active project document version as a source on the current DRAFT revision',
     params: sheetIdParam,
     body: {
@@ -425,7 +425,7 @@ export const takeoffRouteDocs = {
     },
   },
   previewFormula: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Evaluate a takeoff formula against sample inputs without saving',
     params: pathParams,
     body: {
@@ -452,7 +452,7 @@ export const takeoffRouteDocs = {
     },
   },
   summary: {
-    tags: ['Takeoff'],
+    tags: ['takeoff'],
     summary: 'Summarise quantities across approved takeoff sheets',
     params: pathParams,
     querystring: {

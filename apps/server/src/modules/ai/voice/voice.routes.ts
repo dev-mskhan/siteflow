@@ -5,6 +5,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../../rbac/permission.middleware.js';
 import { handleVoiceMessage } from './voice.handler.js';
+import { voiceMessageSchemaDoc } from '../docs/ai.api.schemas.js';
 
 export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authenticate);
@@ -12,7 +13,10 @@ export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     '/:organizationId/ai/conversations/:conversationId/voice',
-    { preHandler: [requirePermission('ai.runs.create')] },
+    {
+      schema: voiceMessageSchemaDoc,
+      preHandler: [requirePermission('ai.runs.create')],
+    },
     handleVoiceMessage,
   );
 };

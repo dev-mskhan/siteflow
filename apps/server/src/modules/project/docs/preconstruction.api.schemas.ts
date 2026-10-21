@@ -291,7 +291,7 @@ function successOf(dataSchema: Record<string, unknown>) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const createTenderSchemaDoc = {
-  tags: ['Tenders'],
+  tags: ['tenders'],
   summary: 'Create a tender opportunity',
   params: orgParams,
   body: {
@@ -320,7 +320,7 @@ export const createTenderSchemaDoc = {
 } as const;
 
 export const listTendersSchemaDoc = {
-  tags: ['Tenders'],
+  tags: ['tenders'],
   summary: 'List tender opportunities for an organization',
   params: orgParams,
   querystring: {
@@ -345,7 +345,7 @@ export const listTendersSchemaDoc = {
 } as const;
 
 export const getTenderSchemaDoc = {
-  tags: ['Tenders'],
+  tags: ['tenders'],
   summary: 'Get a tender opportunity',
   params: {
     ...orgParams,
@@ -359,7 +359,7 @@ export const getTenderSchemaDoc = {
 } as const;
 
 export const updateTenderSchemaDoc = {
-  tags: ['Tenders'],
+  tags: ['tenders'],
   summary: 'Update a tender opportunity',
   params: {
     type: 'object',
@@ -398,25 +398,25 @@ const tenderTransitionParams = {
 const tenderResponse = successOf({ type: 'object', properties: { tender: tenderDTOSchema }, required: ['tender'] });
 
 export const submitTenderSchemaDoc = {
-  tags: ['Tenders'], summary: 'Mark tender as submitted (OPEN→SUBMITTED)',
+  tags: ['tenders'], summary: 'Mark tender as submitted (OPEN→SUBMITTED)',
   params: tenderTransitionParams, body: tenderTransitionBody,
   response: { 200: tenderResponse, ...stdResponses },
 } as const;
 
 export const awardTenderSchemaDoc = {
-  tags: ['Tenders'], summary: 'Mark tender as awarded (SUBMITTED→AWARDED)',
+  tags: ['tenders'], summary: 'Mark tender as awarded (SUBMITTED→AWARDED)',
   params: tenderTransitionParams, body: tenderTransitionBody,
   response: { 200: tenderResponse, ...stdResponses },
 } as const;
 
 export const lostTenderSchemaDoc = {
-  tags: ['Tenders'], summary: 'Mark tender as lost (SUBMITTED→LOST)',
+  tags: ['tenders'], summary: 'Mark tender as lost (SUBMITTED→LOST)',
   params: tenderTransitionParams, body: tenderTransitionBody,
   response: { 200: tenderResponse, ...stdResponses },
 } as const;
 
 export const withdrawTenderSchemaDoc = {
-  tags: ['Tenders'], summary: 'Withdraw a tender (OPEN|SUBMITTED→WITHDRAWN)',
+  tags: ['tenders'], summary: 'Withdraw a tender (OPEN|SUBMITTED→WITHDRAWN)',
   params: tenderTransitionParams, body: tenderTransitionBody,
   response: { 200: tenderResponse, ...stdResponses },
 } as const;
@@ -444,7 +444,7 @@ const proposalTransitionBody = {
 const proposalDetailResponse = successOf(proposalDetailDTOSchema);
 
 export const createProposalSchemaDoc = {
-  tags: ['Proposals'],
+  tags: ['proposals'],
   summary: 'Create a proposal (DRAFT)',
   params: orgProjectParams,
   body: {
@@ -484,7 +484,7 @@ export const createProposalSchemaDoc = {
 } as const;
 
 export const listProposalsSchemaDoc = {
-  tags: ['Proposals'],
+  tags: ['proposals'],
   summary: 'List proposals for a project',
   params: orgProjectParams,
   querystring: {
@@ -513,12 +513,12 @@ export const listProposalsSchemaDoc = {
 } as const;
 
 export const getProposalSchemaDoc = {
-  tags: ['Proposals'], summary: 'Get a proposal with current revision and lines',
+  tags: ['proposals'], summary: 'Get a proposal with current revision and lines',
   params: proposalParams, response: { 200: proposalDetailResponse, ...stdResponses },
 } as const;
 
 export const updateProposalSchemaDoc = {
-  tags: ['Proposals'], summary: 'Update a draft/rejected proposal (creates new revision)',
+  tags: ['proposals'], summary: 'Update a draft/rejected proposal (creates new revision)',
   params: proposalParams,
   body: {
     type: 'object',
@@ -534,19 +534,19 @@ export const updateProposalSchemaDoc = {
 } as const;
 
 export const submitProposalSchemaDoc = {
-  tags: ['Proposals'], summary: 'Submit proposal for internal approval (DRAFT→PENDING_APPROVAL)',
+  tags: ['proposals'], summary: 'Submit proposal for internal approval (DRAFT→PENDING_APPROVAL)',
   params: proposalParams, body: proposalTransitionBody,
   response: { 200: proposalDetailResponse, ...stdResponses },
 } as const;
 
 export const approveProposalSchemaDoc = {
-  tags: ['Proposals'], summary: 'Internally approve a proposal (PENDING_APPROVAL→APPROVED)',
+  tags: ['proposals'], summary: 'Internally approve a proposal (PENDING_APPROVAL→APPROVED)',
   params: proposalParams, body: proposalTransitionBody,
   response: { 200: proposalDetailResponse, ...stdResponses },
 } as const;
 
 export const rejectProposalSchemaDoc = {
-  tags: ['Proposals'], summary: 'Internally reject a proposal (PENDING_APPROVAL→REJECTED)',
+  tags: ['proposals'], summary: 'Internally reject a proposal (PENDING_APPROVAL→REJECTED)',
   params: proposalParams,
   body: {
     type: 'object',
@@ -560,7 +560,7 @@ export const rejectProposalSchemaDoc = {
 } as const;
 
 export const issueProposalSchemaDoc = {
-  tags: ['Proposals'], summary: 'Issue an approved proposal to the client (APPROVED→ISSUED)',
+  tags: ['proposals'], summary: 'Issue an approved proposal to the client (APPROVED→ISSUED)',
   params: proposalParams,
   body: {
     type: 'object',
@@ -575,7 +575,7 @@ export const issueProposalSchemaDoc = {
 } as const;
 
 export const recordClientResponseSchemaDoc = {
-  tags: ['Proposals'],
+  tags: ['proposals'],
   summary: 'Record a verified client response on an issued proposal (ISSUED→ACCEPTED|REJECTED)',
   params: proposalParams,
   body: {
@@ -593,7 +593,7 @@ export const recordClientResponseSchemaDoc = {
 } as const;
 
 export const withdrawProposalSchemaDoc = {
-  tags: ['Proposals'], summary: 'Withdraw a proposal',
+  tags: ['proposals'], summary: 'Withdraw a proposal',
   params: proposalParams,
   body: {
     type: 'object',
@@ -607,7 +607,7 @@ export const withdrawProposalSchemaDoc = {
 } as const;
 
 export const listProposalRevisionsSchemaDoc = {
-  tags: ['Proposals'], summary: 'List all revisions of a proposal',
+  tags: ['proposals'], summary: 'List all revisions of a proposal',
   params: proposalParams,
   querystring: {
     type: 'object',
@@ -630,7 +630,7 @@ export const listProposalRevisionsSchemaDoc = {
 } as const;
 
 export const getProposalRevisionSchemaDoc = {
-  tags: ['Proposals'], summary: 'Get a specific proposal revision with its lines',
+  tags: ['proposals'], summary: 'Get a specific proposal revision with its lines',
   params: {
     type: 'object',
     required: ['organizationId', 'projectId', 'proposalId', 'revisionId'],
@@ -655,7 +655,7 @@ export const getProposalRevisionSchemaDoc = {
 } as const;
 
 export const listClientEventsSchemaDoc = {
-  tags: ['Proposals'], summary: 'List all client response events for a proposal',
+  tags: ['proposals'], summary: 'List all client response events for a proposal',
   params: proposalParams,
   response: {
     200: successOf({
@@ -668,7 +668,7 @@ export const listClientEventsSchemaDoc = {
 } as const;
 
 export const convertProposalSchemaDoc = {
-  tags: ['Proposals'],
+  tags: ['proposals'],
   summary: 'Start idempotent conversion of an accepted proposal into a project (202 = pending, 200 = already converted)',
   params: proposalParams,
   body: {

@@ -10,6 +10,14 @@ import {
   handleSendMessage,
   handleListMessages,
 } from './conversation.handler.js';
+import {
+  createConversationSchemaDoc,
+  listConversationsSchemaDoc,
+  getConversationSchemaDoc,
+  archiveConversationSchemaDoc,
+  sendMessageSchemaDoc,
+  listMessagesSchemaDoc,
+} from '../docs/ai.api.schemas.js';
 
 export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authenticate);
@@ -18,38 +26,56 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
   // Conversations
   fastify.post(
     '/:organizationId/ai/conversations',
-    { preHandler: [requirePermission('ai.runs.create')] },
+    {
+      schema: createConversationSchemaDoc,
+      preHandler: [requirePermission('ai.runs.create')],
+    },
     handleCreateConversation,
   );
 
   fastify.get(
     '/:organizationId/ai/conversations',
-    { preHandler: [requirePermission('ai.runs.read')] },
+    {
+      schema: listConversationsSchemaDoc,
+      preHandler: [requirePermission('ai.runs.read')],
+    },
     handleListConversations,
   );
 
   fastify.get(
     '/:organizationId/ai/conversations/:conversationId',
-    { preHandler: [requirePermission('ai.runs.read')] },
+    {
+      schema: getConversationSchemaDoc,
+      preHandler: [requirePermission('ai.runs.read')],
+    },
     handleGetConversation,
   );
 
   fastify.delete(
     '/:organizationId/ai/conversations/:conversationId',
-    { preHandler: [requirePermission('ai.runs.create')] },
+    {
+      schema: archiveConversationSchemaDoc,
+      preHandler: [requirePermission('ai.runs.create')],
+    },
     handleArchiveConversation,
   );
 
   // Messages
   fastify.post(
     '/:organizationId/ai/conversations/:conversationId/messages',
-    { preHandler: [requirePermission('ai.runs.create')] },
+    {
+      schema: sendMessageSchemaDoc,
+      preHandler: [requirePermission('ai.runs.create')],
+    },
     handleSendMessage,
   );
 
   fastify.get(
     '/:organizationId/ai/conversations/:conversationId/messages',
-    { preHandler: [requirePermission('ai.runs.read')] },
+    {
+      schema: listMessagesSchemaDoc,
+      preHandler: [requirePermission('ai.runs.read')],
+    },
     handleListMessages,
   );
 };

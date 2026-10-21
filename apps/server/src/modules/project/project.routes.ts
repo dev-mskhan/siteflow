@@ -640,7 +640,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     // ── Field Log routes ──────────────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/field-logs',
-      { preHandler: [requireProjectPermission('project.field-log.read')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'List daily field execution logs', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.read')],
+      },
       handleListFieldLogs,
     );
     projectScoped.post(
@@ -653,46 +656,70 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     );
     projectScoped.get(
       '/:organizationId/projects/:projectId/field-logs/:logId',
-      { preHandler: [requireProjectPermission('project.field-log.read')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'Get a daily field execution log', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.read')],
+      },
       handleGetFieldLog,
     );
     projectScoped.patch(
       '/:organizationId/projects/:projectId/field-logs/:logId',
-      { preHandler: [requireProjectPermission('project.field-log.update')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'Update a daily field execution log', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.update')],
+      },
       handleUpdateFieldLog,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/field-logs/:logId/submit',
-      { preHandler: [requireProjectPermission('project.field-log.submit')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'Submit field log for review', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.submit')],
+      },
       handleSubmitFieldLog,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/field-logs/:logId/lock',
-      { preHandler: [requireProjectPermission('project.field-log.lock')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'Lock a field log after approval', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.lock')],
+      },
       handleLockFieldLog,
     );
 
     // ── Field Log Amendment routes ─────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/field-logs/:logId/amendments',
-      { preHandler: [requireProjectPermission('project.field-log.read')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'List amendments for a field log', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.read')],
+      },
       handleListAmendments,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/field-logs/:logId/amendments',
-      { preHandler: [requireProjectPermission('project.field-log.lock')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'Create a field log amendment', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.lock')],
+      },
       handleCreateAmendment,
     );
     projectScoped.get(
       '/:organizationId/projects/:projectId/field-logs/:logId/amendments/:amendmentId',
-      { preHandler: [requireProjectPermission('project.field-log.read')] },
+      {
+        schema: { tags: ['field-logs'], summary: 'Get a specific field log amendment', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.field-log.read')],
+      },
       handleGetAmendment,
     );
 
     // ── Issue routes ──────────────────────────────────────────────────────────
     projectScoped.get(
       '/:organizationId/projects/:projectId/issues',
-      { preHandler: [requireProjectPermission('project.issue.read')] },
+      {
+        schema: { tags: ['issues'], summary: 'List project issues', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.issue.read')],
+      },
       handleListIssues,
     );
     projectScoped.post(
@@ -705,17 +732,26 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
     );
     projectScoped.get(
       '/:organizationId/projects/:projectId/issues/:issueId',
-      { preHandler: [requireProjectPermission('project.issue.read')] },
+      {
+        schema: { tags: ['issues'], summary: 'Get a project issue', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.issue.read')],
+      },
       handleGetIssue,
     );
     projectScoped.patch(
       '/:organizationId/projects/:projectId/issues/:issueId',
-      { preHandler: [requireProjectPermission('project.issue.update')] },
+      {
+        schema: { tags: ['issues'], summary: 'Update a project issue', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.issue.update')],
+      },
       handleUpdateIssue,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/issues/:issueId/transition',
-      { preHandler: [requireProjectPermission('project.issue.transition')] },
+      {
+        schema: { tags: ['issues'], summary: 'Transition issue status', security: [{ bearerAuth: [] }] },
+        preHandler: [requireProjectPermission('project.issue.transition')],
+      },
       handleTransitionIssue,
     );
 

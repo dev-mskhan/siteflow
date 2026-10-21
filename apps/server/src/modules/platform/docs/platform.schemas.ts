@@ -65,7 +65,7 @@ const accountSummarySchema = {
 } as const;
 
 export const listPlatformOrganizationsSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'List organizations (platform operators only)',
   description:
     'Requires a platform role with read:organizations. Organization members do not receive platform access. Keyset-paginated, newest first.',
@@ -120,7 +120,7 @@ const lifecycleResultDoc = {
 } as const;
 
 export const accountLifecycleSchemaDoc = (action: 'suspend' | 'reactivate') => ({
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: `${action === 'suspend' ? 'Suspend' : 'Reactivate'} a user account`,
   description:
     'Requires write:organization_lifecycle and password re-entry. Conditional transition; repeated requests return 409. Sessions are revoked on suspend.',
@@ -129,7 +129,7 @@ export const accountLifecycleSchemaDoc = (action: 'suspend' | 'reactivate') => (
 });
 
 export const requestOrgSuspensionSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Request organization suspension (second operator approval required)',
   body: lifecycleBodyDoc,
   response: {
@@ -148,14 +148,14 @@ export const requestOrgSuspensionSchemaDoc = {
 } as const;
 
 export const approveOrgSuspensionSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Approve a pending organization suspension (different operator)',
   body: lifecycleBodyDoc,
   response: lifecycleResultDoc,
 } as const;
 
 export const reactivateOrgSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Reactivate an organization (status only; billing and entitlements enforced separately)',
   body: lifecycleBodyDoc,
   response: lifecycleResultDoc,
@@ -185,7 +185,7 @@ const supportGrantResultDoc = {
 } as const;
 
 export const requestSupportGrantSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Request a time-limited support grant for one organization (requires manage:support_grants)',
   description:
     'Body: password, reasonCode, reasonNote (min 10 chars), operatorUserId, organizationId, scopes (1-3 of read:org_summary, read:org_subscription, read:org_entitlements). Input is validated after authentication and permission checks.',
@@ -193,21 +193,21 @@ export const requestSupportGrantSchemaDoc = {
 } as const;
 
 export const approveSupportGrantSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Approve a pending support grant (approver must differ from requester)',
   description: 'Body: password, durationMinutes (integer 1-1440).',
   response: supportGrantResultDoc,
 } as const;
 
 export const revokeSupportGrantSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Revoke a pending or active support grant',
   description: 'Body: password (re-authentication).',
   response: supportGrantResultDoc,
 } as const;
 
 export const useSupportGrantSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Read granted organization data as the named support operator (audited)',
   description:
     'Query: scope (one of the granted scopes). Returns organizationId, scope and the scope payload: read:org_summary (lifecycle status, owner user ID, non-removed member count), read:org_subscription (subscription summary), read:org_entitlements (effective entitlements). No emails, password hashes or tokens. Denials are audited and return 403. Grants past expiresAt are marked expired by the sweep and denied.',
@@ -215,7 +215,7 @@ export const useSupportGrantSchemaDoc = {
 } as const;
 
 export const organizationBillingSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Organization billing view (subscription, recent invoices; no Stripe secrets or payment data)',
   description: 'Requires a platform role with read:billing. Does not grant access to tenant project or financial records.',
   response: {
@@ -231,7 +231,7 @@ export const organizationBillingSchemaDoc = {
 } as const;
 
 export const webhookInboxSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Stripe webhook inbox status counts (platform-wide, not tenant-scoped)',
   description: 'Requires a platform role with read:billing.',
   response: {
@@ -251,7 +251,7 @@ export const webhookInboxSchemaDoc = {
 } as const;
 
 export const webhookRecoverySchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Re-run bounded, idempotent Stripe webhook inbox recovery (password re-entry required)',
   description: 'Requires write:billing_sync. Safe to retry: recovery re-fetches Stripe state under a lease.',
   body: lifecycleBodyDoc,
@@ -270,7 +270,7 @@ export const webhookRecoverySchemaDoc = {
 } as const;
 
 export const diagnosticsHealthSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Application and database health (no secrets, no PII)',
   description: 'Requires read:diagnostics. Runs SELECT 1 and reports its latency.',
   response: {
@@ -298,7 +298,7 @@ export const diagnosticsHealthSchemaDoc = {
 } as const;
 
 export const diagnosticsQueueSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'PgBoss queue state counts and oldest waiting job age (bounded window)',
   description:
     'Requires read:diagnostics. Counts jobs created within windowHours (1-24, default 24). Aggregated; no job payloads are returned. Webhook inbox counts are included.',
@@ -348,7 +348,7 @@ export const diagnosticsQueueSchemaDoc = {
 } as const;
 
 export const outboxReplaySchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Replay one failed outbox event',
   description: 'Requires write:outbox_replay. Requeues only a FAILED event, resets its retry counter, and audits the replay.',
   response: {
@@ -366,7 +366,7 @@ export const outboxReplaySchemaDoc = {
 } as const;
 
 export const diagnosticsOrganizationSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'Organization notification delivery counts and aggregate storage bytes',
   description:
     'Requires read:diagnostics. Scoped to a single organization. Returns 404 for an unknown organization.',
@@ -389,7 +389,7 @@ export const diagnosticsOrganizationSchemaDoc = {
 } as const;
 
 export const listPlatformAccountsSchemaDoc = {
-  tags: ['Platform'],
+  tags: ['platform'],
   summary: 'List user accounts (platform operators only)',
   description:
     'Requires a platform role with read:organizations. Returns minimal identity fields only; email is masked and credentials are never returned.',

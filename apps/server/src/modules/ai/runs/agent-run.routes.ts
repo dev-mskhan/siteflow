@@ -8,6 +8,12 @@ import {
   handleListRuns,
   handleCancelRun,
 } from './agent-run.handler.js';
+import {
+  startRunSchemaDoc,
+  listRunsSchemaDoc,
+  getRunSchemaDoc,
+  cancelRunSchemaDoc,
+} from '../docs/ai.api.schemas.js';
 
 /**
  * Agent run routes — all scoped under /:organizationId/ai/runs
@@ -26,25 +32,37 @@ export const agentRunRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     '/:organizationId/ai/runs',
-    { preHandler: [requirePermission('ai.runs.create')] },
+    {
+      schema: startRunSchemaDoc,
+      preHandler: [requirePermission('ai.runs.create')],
+    },
     handleStartRun,
   );
 
   fastify.get(
     '/:organizationId/ai/runs',
-    { preHandler: [requirePermission('ai.runs.read')] },
+    {
+      schema: listRunsSchemaDoc,
+      preHandler: [requirePermission('ai.runs.read')],
+    },
     handleListRuns,
   );
 
   fastify.get(
     '/:organizationId/ai/runs/:runId',
-    { preHandler: [requirePermission('ai.runs.read')] },
+    {
+      schema: getRunSchemaDoc,
+      preHandler: [requirePermission('ai.runs.read')],
+    },
     handleGetRun,
   );
 
   fastify.delete(
     '/:organizationId/ai/runs/:runId',
-    { preHandler: [requirePermission('ai.runs.cancel')] },
+    {
+      schema: cancelRunSchemaDoc,
+      preHandler: [requirePermission('ai.runs.cancel')],
+    },
     handleCancelRun,
   );
 };
