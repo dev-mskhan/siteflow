@@ -5,6 +5,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import sensible from '@fastify/sensible';
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -32,7 +33,7 @@ import { invoiceRoutes } from '../modules/billing/invoice.routes.js';
 import { lifecycleRoutes } from '../modules/billing/lifecycle.routes.js';
 import { webhookRoutes } from '../modules/billing/webhook.routes.js';
 import { platformRoutes } from '../modules/platform/platform.routes.js';
-import { agentRunRoutes, approvalRoutes, conversationRoutes } from '../modules/ai/index.js';
+import { agentRunRoutes, approvalRoutes, conversationRoutes, voiceRoutes } from '../modules/ai/index.js';
 
 /**
  * Creates and configures the Fastify application instance.
@@ -103,6 +104,13 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(cookie, {
     secret: cookieSigner,
+  });
+
+  await app.register(multipart, {
+    limits: {
+      fileSize: serverEnv.VOICE_MAX_FILE_BYTES,
+      files: 1,
+    },
   });
 
   // ─── OpenAPI / Swagger ──────────────────────────────────────────────────────
@@ -209,6 +217,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(agentRunRoutes, { prefix: '/api/v1/organizations' });
   await app.register(approvalRoutes, { prefix: '/api/v1/organizations' });
   await app.register(conversationRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(voiceRoutes, { prefix: '/api/v1/organizations' });
 
   // ─── Realtime SSE Notifications ─────────────────────────────────────────────
   const { realtimePlugin } = await import('../modules/notification/realtime/realtime.plugin.js');

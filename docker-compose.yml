@@ -130,6 +130,8 @@ services:
       mc alias set myminio http://minio:9000 minioadmin minioadmin;
       mc mb myminio/siteflow-documents --ignore-existing;
       mc anonymous set none myminio/siteflow-documents;
+      mc mb myminio/siteflow-audio --ignore-existing;
+      mc anonymous set none myminio/siteflow-audio;
       exit 0;
       "
 
@@ -333,4 +335,16 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+    restart: unless-stopped
+
+  voicestudio:
+    profiles: ['ai-voice']
+    image: ghcr.io/debpalash/voicestudio:stable
+    container_name: siteflow-voicestudio
+    ports:
+      - '3900:3900'
+    environment:
+      - OMNIVOICE_API_KEY=${OMNIVOICE_API_KEY}
+    networks:
+      - siteflow-net
     restart: unless-stopped

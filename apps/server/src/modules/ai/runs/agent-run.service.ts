@@ -17,6 +17,9 @@ export interface StartRunInput {
   agent: AgentName;
   trigger?: AgentRunTrigger;
   triggerRef?: string;
+  channel?: 'api' | 'chat' | 'voice';
+  conversationId?: string;
+  correlationId?: string;
   input: Record<string, unknown>;
   createdBy: string; // userId — resolved from request.user server-side
 }
@@ -49,6 +52,9 @@ export class AgentRunService {
         agent: input.agent,
         trigger: input.trigger ?? 'USER',
         triggerRef: input.triggerRef ?? null,
+        channel: input.channel ?? 'api',
+        conversationId: input.conversationId ?? null,
+        correlationId: input.correlationId ?? null,
         status: 'QUEUED',
         inputSnapshot: input.input,
         createdBy: input.createdBy,

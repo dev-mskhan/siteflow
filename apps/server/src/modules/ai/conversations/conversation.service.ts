@@ -22,6 +22,7 @@ export interface SendMessageInput {
   conversationId: string;
   content: string;
   userId: string;
+  channel?: 'chat' | 'voice';
 }
 
 export class ConversationService {
@@ -68,6 +69,8 @@ export class ConversationService {
       if (!conv) throw new Error('Conversation not found');
       if (conv.archivedAt) throw new Error('Conversation is archived and cannot receive messages');
 
+      const channel = input.channel ?? 'chat';
+
       // 1. Guard user message text (flag + wrap)
       guardInput(input.content, 'UNTRUSTED');
 
@@ -76,7 +79,7 @@ export class ConversationService {
         conversationId: input.conversationId,
         organizationId: input.organizationId,
         role: 'user',
-        channel: 'chat',
+        channel,
         content: input.content,
       });
 
@@ -85,6 +88,8 @@ export class ConversationService {
         organizationId: input.organizationId,
         projectId: conv.projectId ?? undefined,
         agent: conv.agent as any,
+        channel,
+        conversationId: input.conversationId,
         input: {
           question: input.content,
           conversationId: input.conversationId,

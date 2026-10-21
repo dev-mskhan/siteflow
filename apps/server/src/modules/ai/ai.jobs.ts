@@ -7,6 +7,8 @@ import type { AgentName } from './core/types.js';
 export const AI_QUEUES = {
   /** Execute an agent run end-to-end (the main async job) */
   AGENT_RUN: 'ai:agent-run',
+  /** Asynchronously transcribe audio from storage */
+  TRANSCRIBE: 'ai:transcribe',
 } as const;
 
 export type AiQueueName = (typeof AI_QUEUES)[keyof typeof AI_QUEUES];
