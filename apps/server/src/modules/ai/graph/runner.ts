@@ -157,6 +157,7 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
 
     // Flush usage to daily aggregate (non-fatal)
     await accumulator.flush();
+    traceHandle.end(finalOutput, interrupted ? 'DEFAULT' : 'DEFAULT');
 
     return {
       output: finalOutput ?? {
@@ -173,6 +174,7 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
   } catch (err) {
     // Flush whatever usage we accumulated before failing
     await accumulator.flush();
+    traceHandle.end(err, 'ERROR');
 
     if (
       err instanceof MaxStepsExceededError ||
@@ -216,6 +218,7 @@ export async function resumeRun(
     initialUsage?.tokensOut ?? 0,
   );
   const budgetGuard = new BudgetGuard(ctx, accumulator);
+  const traceHandle = buildTraceHandle(ctx);
   const checkpointer = await getCheckpointer();
   const compiledGraph = builder(ctx, accumulator).compile({ checkpointer });
 
@@ -256,6 +259,7 @@ export async function resumeRun(
     }
 
     await accumulator.flush();
+    traceHandle.end(finalOutput);
 
     // Check if still interrupted (e.g. multiple approval steps)
     const currentState = await compiledGraph.getState(lgConfig);
@@ -266,11 +270,12 @@ export async function resumeRun(
       tokensIn:  accumulator.tokensIn,
       tokensOut: accumulator.tokensOut,
       costUsd:   accumulator.totalCostUsd,
-      traceId:   undefined,
+      traceId:   traceHandle.getTraceId(),
       interrupted,
     };
   } catch (err) {
     await accumulator.flush();
+    traceHandle.end(err, 'ERROR');
     if (err instanceof Error && err.name === 'TimeoutError') {
       throw new RunTimeoutError(runId, limits.timeoutMs);
     }

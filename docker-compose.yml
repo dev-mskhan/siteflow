@@ -348,3 +348,53 @@ services:
     networks:
       - siteflow-net
     restart: unless-stopped
+
+  langfuse-db-init:
+    profiles: ['ai-ops']
+    image: postgres:16-alpine
+    container_name: siteflow-langfuse-db-init
+    command: >
+      sh -c "PGPASSWORD=siteflow psql -h postgres -U siteflow -c 'CREATE DATABASE langfuse;' || true"
+    networks:
+      - siteflow-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  langfuse:
+    profiles: ['ai-ops']
+    image: langfuse/langfuse:3
+    container_name: siteflow-langfuse
+    ports:
+      - '3020:3000'
+    environment:
+      - DATABASE_URL=postgresql://siteflow:siteflow@postgres:5432/langfuse
+      - NEXTAUTH_URL=http://localhost:3020
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET:-langfuse-dev-secret-32chars!!!!!}
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+      - LANGFUSE_INIT_ORG_ID=siteflow
+      - LANGFUSE_INIT_PROJECT_ID=siteflow-ai
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - siteflow-net
+    depends_on:
+      - langfuse-db-init
+      - redis
+    restart: unless-stopped
+
+  langfuse-worker:
+    profiles: ['ai-ops']
+    image: langfuse/langfuse-worker:3
+    container_name: siteflow-langfuse-worker
+    environment:
+      - DATABASE_URL=postgresql://siteflow:siteflow@postgres:5432/langfuse
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - siteflow-net
+    depends_on:
+      - langfuse
+    restart: unless-stopped

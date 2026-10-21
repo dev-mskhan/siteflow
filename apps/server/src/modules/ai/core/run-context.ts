@@ -27,6 +27,12 @@ export interface RunContext {
   readonly userId: string;
   /** Which agent graph to execute */
   readonly agent: AgentName;
+  /** Optional correlation ID propagated across service boundaries */
+  readonly correlationId?: string;
+  /** Model provider name (e.g. openai, google, fake) */
+  readonly provider?: string;
+  /** Underlying model name */
+  readonly model?: string;
   /** Hard resource limits for this run */
   readonly limits: RunLimits;
   /** ISO timestamp when the worker picked up the job — used for timeout tracking */
@@ -46,7 +52,8 @@ export interface RunContext {
  *                   Defaults to DEFAULT_RUN_LIMITS when not provided
  */
 export function buildRunContext(
-  run: Pick<AgentRun, 'id' | 'organizationId' | 'projectId' | 'agent' | 'createdBy'>,
+  run: Pick<AgentRun, 'id' | 'organizationId' | 'projectId' | 'agent' | 'createdBy'> &
+    Partial<Pick<AgentRun, 'correlationId' | 'provider' | 'model'>>,
   limits: RunLimits = DEFAULT_RUN_LIMITS,
 ): RunContext {
   const ctx: RunContext = {
@@ -55,6 +62,9 @@ export function buildRunContext(
     projectId: run.projectId ?? undefined,
     userId: run.createdBy,
     agent: run.agent as AgentName,
+    correlationId: run.correlationId ?? undefined,
+    provider: run.provider ?? undefined,
+    model: run.model ?? undefined,
     limits,
     startedAt: new Date(),
     threadId: run.id, // One checkpoint thread per run; resume uses the same ID
@@ -68,16 +78,20 @@ export function buildRunContext(
 
 /**
  * Asserts that a data object's organizationId matches the RunContext.
+ * Also verifies project scope when both run and resource specify projectId.
  * Call this in every tool wrapper before returning data to the graph.
  * Throws TenantLeakError (imported lazily to avoid circular deps).
  */
 export function assertTenantScope(
   ctx: RunContext,
-  data: { organizationId?: string | null } | null | undefined,
+  data: { organizationId?: string | null; projectId?: string | null } | null | undefined,
   toolName: string,
 ): void {
   if (!data) return;
   if (data.organizationId && data.organizationId !== ctx.organizationId) {
     throw new TenantLeakError(ctx.runId, toolName);
+  }
+  if (ctx.projectId && data.projectId && data.projectId !== ctx.projectId) {
+    throw new TenantLeakError(ctx.runId, `${toolName}:project_mismatch`);
   }
 }

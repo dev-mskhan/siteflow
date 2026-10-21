@@ -58,10 +58,13 @@ export async function handleStartRun(
     return reply.status(422).send({ error: inputValidation.error.format() });
   }
 
+  const correlationId = (request.headers['x-correlation-id'] || request.headers['x-request-id']) as string | undefined;
+
   const { runId } = await runService.startRun({
     organizationId,
     agent: body.agent as AgentName,
     projectId: body.projectId,
+    correlationId,
     input: body.input,
     createdBy: userId,
     trigger: 'USER',

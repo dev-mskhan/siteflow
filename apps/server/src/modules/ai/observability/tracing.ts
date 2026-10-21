@@ -1,99 +1,111 @@
 // apps/server/src/modules/ai/observability/tracing.ts
-//
-// Wires Langfuse (LLM-level tracing) into every LangChain invocation via a
-// callback handler, and correlates Langfuse trace IDs with the existing OTel
-// trace context so both systems show the same run.
-//
-// Design:
-//   - If LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY are absent, tracing is a no-op.
-//     Never throw at startup — optional feature, never a hard dependency.
-//   - getTraceCallback(runId, ctx) returns a LangChain BaseCallbackHandler.
-//     Pass it alongside the UsageAccumulator callback in model-factory.ts.
-//   - extractTraceId(handler) returns the Langfuse trace ID after the run ends.
-//     The runner stores this in agent_runs.trace_id.
+// Langfuse LLM-level tracing and correlation integration.
 
 import { trace } from '@opentelemetry/api';
 import { createLogger } from '@siteflow/observability/server';
-import { serverEnv } from '../../../config/env.js';
+import { getLangfuseClient } from './langfuse-client.js';
 import type { RunContext } from '../core/run-context.js';
 
 const logger = createLogger({ name: 'ai-tracing' });
 
-export interface AiTraceHandle {
-  /** LangChain callback to pass into model.invoke() / graph.stream() */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  callback: any;
-  /** Resolves to the Langfuse trace ID after the run completes — may be undefined */
-  getTraceId: () => string | undefined;
+export interface GenerationHandle {
+  end(output: unknown, usage?: { inputTokens: number; outputTokens: number }): void;
+}
+
+export interface RunTraceHandle {
+  traceId: string;
+  startGeneration(name: string, input: unknown): GenerationHandle;
+  end(output: unknown, level?: 'DEFAULT' | 'WARNING' | 'ERROR'): void;
+  getTraceId(): string | undefined;
 }
 
 /**
- * Returns a tracing handle for a run.
- * If Langfuse env vars are absent the callback is a harmless no-op object.
+ * Builds a trace handle for a given RunContext.
+ * If Langfuse is not configured, returns a lightweight no-op implementation.
  */
-export function buildTraceHandle(ctx: RunContext): AiTraceHandle {
-  const { LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST } = serverEnv;
+export function buildTraceHandle(ctx: RunContext): RunTraceHandle {
+  const lf = getLangfuseClient();
+  const traceId = ctx.correlationId ?? ctx.runId;
 
-  // ── No-op path ────────────────────────────────────────────────────────────
-  if (!LANGFUSE_PUBLIC_KEY || !LANGFUSE_SECRET_KEY) {
+  if (!lf) {
     return {
-      callback: null,
+      traceId,
+      startGeneration: (_name, _input) => ({ end: () => {} }),
+      end: () => {},
       getTraceId: () => undefined,
     };
   }
 
-  // ── Langfuse path ─────────────────────────────────────────────────────────
-  // Dynamic import so the module doesn't hard-fail if the package isn't installed.
-  let traceId: string | undefined;
+  try {
+    const activeSpan = trace.getActiveSpan();
+    const otelTraceId = activeSpan?.spanContext().traceId;
 
-  const callbackPromise: Promise<unknown> = (async () => {
-    try {
-      // langfuse-langchain is the official LangChain integration package
-      // Specifier kept in a variable so the optional package is not resolved at compile time.
-      const langfuseModule = 'langfuse-langchain';
-      const { CallbackHandler } = (await import(/* @vite-ignore */ langfuseModule)) as {
-        CallbackHandler: new (opts: Record<string, unknown>) => any;
-      };
+    const langfuseTrace = lf.trace({
+      id: traceId,
+      name: `agent:${ctx.agent}`,
+      userId: ctx.userId,
+      sessionId: ctx.runId,
+      metadata: {
+        runId: ctx.runId,
+        organizationId: ctx.organizationId,
+        projectId: ctx.projectId ?? null,
+        provider: ctx.provider ?? null,
+        model: ctx.model ?? null,
+        otelTraceId: otelTraceId ?? null,
+      },
+    });
 
-      const handler = new CallbackHandler({
-        publicKey:  LANGFUSE_PUBLIC_KEY,
-        secretKey:  LANGFUSE_SECRET_KEY,
-        baseUrl:    LANGFUSE_HOST ?? 'https://cloud.langfuse.com',
-        // Use runId as the Langfuse trace ID so every run is one trace
-        sessionId:     ctx.runId,
-        userId:        ctx.userId,
-        // Correlate with OTel active span
-        metadata: {
-          organizationId: ctx.organizationId,
-          projectId:      ctx.projectId ?? null,
-          agent:          ctx.agent,
-          otelTraceId:    trace.getActiveSpan()?.spanContext().traceId,
-        },
-      });
-
-      // Capture the traceId when the first LLM call finishes
-      const originalHandleLLMEnd = handler.handleLLMEnd?.bind(handler);
-      if (originalHandleLLMEnd) {
-        handler.handleLLMEnd = async (...args: Parameters<typeof originalHandleLLMEnd>) => {
-          try {
-            // Langfuse JS SDK exposes traceId on the handler after first flush
-            traceId = (handler as any).traceId ?? ctx.runId;
-          } catch { /* ignore */ }
-          return originalHandleLLMEnd(...args);
-        };
-      }
-
-      return handler;
-    } catch (err) {
-      logger.warn({ err }, 'Langfuse callback handler unavailable — tracing disabled');
-      return null;
-    }
-  })();
-
-  // Expose a synchronous getter backed by the async init
-  // (traceId is set during handleLLMEnd which fires before getTraceId is called)
-  return {
-    callback: callbackPromise, // runner spreads this into the callbacks array
-    getTraceId: () => traceId ?? ctx.runId,
-  };
+    return {
+      traceId,
+      startGeneration: (name: string, input: unknown) => {
+        try {
+          const gen = langfuseTrace.generation({
+            name,
+            input,
+            model: ctx.model ?? undefined,
+          });
+          return {
+            end: (output: unknown, usage?: { inputTokens: number; outputTokens: number }) => {
+              try {
+                gen.end({
+                  output,
+                  usage: usage
+                    ? {
+                        input: usage.inputTokens,
+                        output: usage.outputTokens,
+                        total: usage.inputTokens + usage.outputTokens,
+                      }
+                    : undefined,
+                });
+              } catch (err) {
+                logger.warn({ err }, 'Failed to record generation end in Langfuse');
+              }
+            },
+          };
+        } catch (err) {
+          logger.warn({ err }, 'Failed to start generation in Langfuse');
+          return { end: () => {} };
+        }
+      },
+      end: (output: unknown, level: 'DEFAULT' | 'WARNING' | 'ERROR' = 'DEFAULT') => {
+        try {
+          langfuseTrace.update({
+            output,
+            metadata: { level },
+          });
+        } catch (err) {
+          logger.warn({ err }, 'Failed to end Langfuse trace');
+        }
+      },
+      getTraceId: () => traceId,
+    };
+  } catch (err) {
+    logger.warn({ err }, 'Failed to initialize Langfuse trace handle');
+    return {
+      traceId,
+      startGeneration: (_name, _input) => ({ end: () => {} }),
+      end: () => {},
+      getTraceId: () => undefined,
+    };
+  }
 }

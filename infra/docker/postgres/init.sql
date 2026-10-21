@@ -13,3 +13,6 @@ CREATE SCHEMA IF NOT EXISTS app;
 
 -- Set default search path so the app schema is found automatically
 ALTER DATABASE siteflow SET search_path TO app, public;
+
+-- Langfuse LLM tracing database (used when ai-ops profile is active)
+CREATE DATABASE langfuse;
