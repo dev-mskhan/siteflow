@@ -109,9 +109,7 @@ const NavGroup: React.FC<{
     });
   });
 
-  const hasActiveChild = items.some((item) =>
-    location.pathname.startsWith(item.to),
-  );
+  const hasActiveChild = items.some((item) => location.pathname.startsWith(item.to));
 
   return (
     <div>
@@ -128,7 +126,9 @@ const NavGroup: React.FC<{
         <GroupIcon
           className={cn(
             'h-4 w-4 shrink-0',
-            hasActiveChild ? 'text-[var(--ink)]' : 'text-[var(--muted)] group-hover:text-[var(--ink)]',
+            hasActiveChild
+              ? 'text-[var(--ink)]'
+              : 'text-[var(--muted)] group-hover:text-[var(--ink)]',
           )}
           strokeWidth={1.75}
         />
@@ -145,7 +145,11 @@ const NavGroup: React.FC<{
         {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1, transition: { duration: 0.14, ease: [0.16, 1, 0.3, 1] as const } }}
+            animate={{
+              height: 'auto',
+              opacity: 1,
+              transition: { duration: 0.14, ease: [0.16, 1, 0.3, 1] as const },
+            }}
             exit={{ height: 0, opacity: 0, transition: { duration: 0.1 } }}
             className="overflow-hidden"
           >
@@ -173,12 +177,7 @@ const NavContent: React.FC = () => {
   return (
     <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
       {/* Dashboard — always flat at top */}
-      <NavItem
-        to={`/org/${orgId}/dashboard`}
-        icon={LayoutDashboard}
-        label="Dashboard"
-        exact
-      />
+      <NavItem to={`/org/${orgId}/dashboard`} icon={LayoutDashboard} label="Dashboard" exact />
 
       {/* Projects — flat */}
       <PermissionGate require="project:read">
@@ -190,9 +189,24 @@ const NavContent: React.FC = () => {
         label="Catalog"
         icon={Boxes}
         items={[
-          { to: `/org/${orgId}/suppliers`, icon: Building, label: 'Suppliers', permission: 'supplier:read' },
-          { to: `/org/${orgId}/subcontractors`, icon: HardHatIcon, label: 'Subcontractors', permission: 'project.subcontractor.read' },
-          { to: `/org/${orgId}/materials`, icon: Package, label: 'Materials', permission: 'material:read' },
+          {
+            to: `/org/${orgId}/suppliers`,
+            icon: Building,
+            label: 'Suppliers',
+            permission: 'supplier:read',
+          },
+          {
+            to: `/org/${orgId}/subcontractors`,
+            icon: HardHatIcon,
+            label: 'Subcontractors',
+            permission: 'project.subcontractor.read',
+          },
+          {
+            to: `/org/${orgId}/materials`,
+            icon: Package,
+            label: 'Materials',
+            permission: 'material:read',
+          },
         ]}
       />
 
@@ -200,9 +214,7 @@ const NavContent: React.FC = () => {
       <NavGroup
         label="Pre-construction"
         icon={FileSearch}
-        items={[
-          { to: `/org/${orgId}/tenders`, icon: FileSearch, label: 'Tenders' },
-        ]}
+        items={[{ to: `/org/${orgId}/tenders`, icon: FileSearch, label: 'Tenders' }]}
       />
 
       {/* Reports group */}
@@ -220,10 +232,30 @@ const NavContent: React.FC = () => {
         icon={Settings}
         items={[
           { to: `/org/${orgId}/members`, icon: Users, label: 'Members', permission: 'member:read' },
-          { to: `/org/${orgId}/settings`, icon: Settings, label: 'Settings', permission: 'settings:read' },
-          { to: `/org/${orgId}/settings/billing`, icon: CreditCard, label: 'Billing', permission: 'settings:read' },
-          { to: `/org/${orgId}/settings/exports`, icon: Download, label: 'Exports', permission: 'settings:read' },
-          { to: `/org/${orgId}/settings/notifications`, icon: Bell, label: 'Notifications', permission: 'settings:read' },
+          {
+            to: `/org/${orgId}/settings`,
+            icon: Settings,
+            label: 'Settings',
+            permission: 'settings:read',
+          },
+          {
+            to: `/org/${orgId}/settings/billing`,
+            icon: CreditCard,
+            label: 'Billing',
+            permission: 'settings:read',
+          },
+          {
+            to: `/org/${orgId}/settings/exports`,
+            icon: Download,
+            label: 'Exports',
+            permission: 'settings:read',
+          },
+          {
+            to: `/org/${orgId}/settings/notifications`,
+            icon: Bell,
+            label: 'Notifications',
+            permission: 'settings:read',
+          },
         ]}
       />
     </nav>
@@ -385,7 +417,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ open, onClose }) => {
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] as const }
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] as const }}
               className="md:hidden fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-[var(--hairline-2)] bg-[var(--surface)]"
             >
               <div className="flex items-center justify-between border-b border-[var(--hairline-2)] px-3 py-3.5">
