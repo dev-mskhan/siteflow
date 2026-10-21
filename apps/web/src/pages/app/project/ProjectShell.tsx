@@ -42,12 +42,14 @@ export const ProjectShell: React.FC = () => {
   const navigate = useNavigate();
   const { activeProject } = useActiveProject();
 
-  // When bypass is active the API will fail (no server) — fall back to fixtures
+  // When bypass is active the API may fail (no server) — fall back to fixtures on error.
+  // Key change: we NO LONGER skip the query when bypass is true. We always try the
+  // live API first, and only fall back to fixtures if the API call fails.
   const bypass = import.meta.env.VITE_DEV_BYPASS === 'true';
 
   const { data, isLoading, isError } = useGetProjectQuery(
     { orgId: orgId!, projectId: projectId! },
-    { skip: !orgId || !projectId || bypass },
+    { skip: !orgId || !projectId },
   );
 
   useEffect(() => {
@@ -57,25 +59,30 @@ export const ProjectShell: React.FC = () => {
     };
   }, [projectId, dispatch]);
 
+  // Load from live API response
   useEffect(() => {
-    if (bypass && projectId) {
-      // Seed from fixture directly — no network call needed
-      const project = MOCK_PROJECTS.find((p) => p.id === projectId);
-      if (project) {
-        dispatch(projectLoaded({ project, version: MOCK_PROJECT_VERSIONS[projectId] ?? 1 }));
-      } else {
-        navigate(`/org/${orgId}/projects`, { replace: true });
-      }
-      return;
-    }
     if (data) {
       dispatch(projectLoaded({ project: data.project, version: data._version }));
     }
-  }, [data, bypass, projectId, orgId, navigate, dispatch]);
+  }, [data, dispatch]);
 
+  // Handle errors: in bypass mode, fall back to fixtures; in live mode, redirect
   useEffect(() => {
-    if (!bypass && isError) navigate(`/org/${orgId}/projects`, { replace: true });
-  }, [isError, bypass, navigate, orgId]);
+    if (isError) {
+      if (bypass) {
+        // API failed (server not running) — fall back to fixture data
+        const project = MOCK_PROJECTS.find((p) => p.id === projectId);
+        if (project) {
+          dispatch(projectLoaded({ project, version: (projectId ? MOCK_PROJECT_VERSIONS[projectId] : undefined) ?? 1 }));
+        } else {
+          navigate(`/org/${orgId}/projects`, { replace: true });
+        }
+      } else {
+        // Live mode — redirect to projects list on error
+        navigate(`/org/${orgId}/projects`, { replace: true });
+      }
+    }
+  }, [isError, bypass, projectId, orgId, navigate, dispatch]);
 
   const base = `/org/${orgId}/projects/${projectId}`;
 

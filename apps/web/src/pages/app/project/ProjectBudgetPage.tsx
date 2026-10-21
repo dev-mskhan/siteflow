@@ -411,7 +411,7 @@ export const ProjectBudgetPage: React.FC = () => {
             New budget
           </p>
           {isInlineError(createErr) && (
-            <InlineAlert variant="error" message={getServerError(createErr).message} />
+            <InlineAlert variant="error" message={getServerError(createErr)?.message ?? ''} />
           )}
           <LineEditor
             lines={draftLines}
@@ -448,7 +448,7 @@ export const ProjectBudgetPage: React.FC = () => {
             Edit budget lines
           </p>
           {isInlineError(updateErr) && (
-            <InlineAlert variant="error" message={getServerError(updateErr).message} />
+            <InlineAlert variant="error" message={getServerError(updateErr)?.message ?? ''} />
           )}
           <LineEditor
             lines={draftLines}

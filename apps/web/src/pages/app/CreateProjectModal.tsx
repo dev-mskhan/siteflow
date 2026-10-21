@@ -20,7 +20,7 @@ import { useToast } from '../../components/ui/Toast';
 const schema = z.object({
   name: z.string().min(1, 'Project name is required').max(200),
   description: z.string().max(2000).optional(),
-  projectType: z.enum(['COMMERCIAL', 'RESIDENTIAL', 'INDUSTRIAL', 'INFRASTRUCTURE', 'OTHER']).optional(),
+  projectType: z.enum(['COMMERCIAL', 'RESIDENTIAL', 'INDUSTRIAL', 'INFRASTRUCTURE', 'OTHER']).optional().or(z.literal('')),
   contractValue: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, 'Enter a valid decimal amount e.g. 5000000.00')

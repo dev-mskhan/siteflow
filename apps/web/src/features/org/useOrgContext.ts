@@ -11,5 +11,10 @@ export interface OrgContext {
 }
 
 export function useOrgContext(): OrgContext {
-  return useAppSelector((s) => s.org);
+  const org = useAppSelector((s) => s.org.activeOrg);
+  const membership = useAppSelector((s) => s.org.membership);
+  const permissions = useAppSelector((s) => s.org.permissions);
+  const isOrgInitialized = useAppSelector((s) => s.org.isOrgInitialized);
+  const isOrgLoading = useAppSelector((s) => s.org.isOrgLoading);
+  return { org, membership, permissions, isOrgInitialized, isOrgLoading };
 }

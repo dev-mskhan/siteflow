@@ -228,7 +228,7 @@ const AddMemberPanel: React.FC<{
       </div>
 
       {isInlineError(addErr) && (
-        <InlineAlert variant="error" message={getServerError(addErr).message} />
+        <InlineAlert variant="error" message={getServerError(addErr)?.message ?? ''} />
       )}
 
       {isLoading ? (
