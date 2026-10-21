@@ -5,6 +5,7 @@ import { baseApi } from '../services/baseApi';
 import authReducer from '../features/auth/authSlice';
 import orgReducer from '../features/org/orgSlice';
 import projectReducer from '../features/project/projectSlice';
+import { notificationReducer as sseNotificationReducer } from '../features/notification/notificationSlice';
 import { projectApi } from '../features/project/projectApi';
 import { phaseApi } from '../features/project/phaseApi';
 import { costCodeApi } from '../features/project/costCodeApi';
@@ -113,6 +114,7 @@ export const store = configureStore({
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
+    sseNotification: sseNotificationReducer,
   },
   // Synchronous pre-seed: state is correct on render #1 — guards never block
   preloadedState: devPreloadedState,
