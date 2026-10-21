@@ -13,3 +13,4 @@ export { conversationRoutes } from './conversations/conversation.routes.js';
 export { voiceRoutes } from './voice/voice.routes.js';
 export { registerAgentRunWorkers } from './workers/agent-run.worker.js';
 export { registerAiTranscribeWorker } from './voice/transcribe.worker.js';
+export { registerAiReaperWorker, runReaperSweep } from './workers/reaper.worker.js';

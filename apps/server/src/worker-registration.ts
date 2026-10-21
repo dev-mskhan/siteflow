@@ -10,7 +10,11 @@ import { registerComplianceWorkers } from './modules/project/compliance/expiry-s
 import { registerExportWorkers } from './modules/reporting/exports/export.worker.js';
 import { registerStripeWebhookWorker } from './modules/billing/webhook.worker.js';
 import { registerLifecycleWorker } from './modules/billing/lifecycle.worker.js';
-import { registerAgentRunWorkers } from './modules/ai/workers/agent-run.worker.js';
+import {
+  registerAgentRunWorkers,
+  registerAiTranscribeWorker,
+  registerAiReaperWorker,
+} from './modules/ai/index.js';
 import { registerPlatformAccountNoticeWorkers } from './modules/platform/platform-account-notice.worker.js';
 import { registerEventNotificationWorkers } from './modules/notification/event-notification.worker.js';
 import { registerDocumentWorkers } from './modules/project/documents/document.worker.js';
@@ -31,6 +35,8 @@ export async function registerWorkers(boss: PgBoss): Promise<void> {
   await registerStripeWebhookWorker(boss);
   await registerLifecycleWorker(boss);
   await registerAgentRunWorkers(boss);
+  await registerAiTranscribeWorker(boss);
+  await registerAiReaperWorker(boss);
   await registerPlatformAccountNoticeWorkers(boss);
   await registerEventNotificationWorkers(boss);
   await registerDocumentWorkers(boss);
