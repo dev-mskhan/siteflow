@@ -39,10 +39,12 @@ import { COMPLIANCE_QUEUES, type ExpiryScanJobPayload } from '../../modules/proj
 import { PLATFORM_QUEUES } from '../../modules/platform/platform.jobs.js';
 import { AI_QUEUES as AI_QUEUE_NAMES } from '../../modules/ai/ai.jobs.js';
 import { NOTIFICATION_EVENT_QUEUES } from '../../modules/notification/notification.jobs.js';
-import { OPERATIONS_REMINDER_QUEUES } from '../../modules/project/operations-reminders/operations-reminders.worker.js';
+import { OPERATIONS_REMINDER_QUEUES } from '../../modules/project/operations-reminders/operations-reminders.jobs.js';
 import { EXPORT_QUEUES } from '../../modules/reporting/exports/export.jobs.js';
-import { STRIPE_WEBHOOK_RECOVERY_QUEUE } from '../../modules/billing/webhook.worker.js';
-import { BILLING_LIFECYCLE_QUEUE } from '../../modules/billing/lifecycle.worker.js';
+import {
+  STRIPE_WEBHOOK_RECOVERY_QUEUE,
+  BILLING_LIFECYCLE_QUEUE,
+} from '../../modules/billing/billing.jobs.js';
 
 // ─── Queue job names ─────────────────────────────────────────────────────────
 export const QUEUES = {

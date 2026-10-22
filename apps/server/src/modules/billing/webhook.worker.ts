@@ -17,7 +17,8 @@ import {
 
 const logger = createLogger({ name: 'stripe-webhook-recovery-worker' });
 
-export const STRIPE_WEBHOOK_RECOVERY_QUEUE = 'billing:stripe-webhook-recovery';
+import { STRIPE_WEBHOOK_RECOVERY_QUEUE } from './billing.jobs.js';
+export { STRIPE_WEBHOOK_RECOVERY_QUEUE };
 export const STRIPE_WEBHOOK_RECOVERY_CRON = '* * * * *';
 export const STRIPE_WEBHOOK_RECOVERY_INTERVAL = '1 minute';
 export const STRIPE_WEBHOOK_RECOVERY_SCHEDULE_ID =

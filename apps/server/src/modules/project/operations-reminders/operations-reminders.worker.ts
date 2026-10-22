@@ -8,9 +8,8 @@ import { registerWorker } from '../../../lib/queue/worker-factory.js';
 
 const logger = createLogger({ name: 'operations-reminders-worker' });
 
-export const OPERATIONS_REMINDER_QUEUES = {
-  SCAN: 'operations:reminders_scan',
-} as const;
+import { OPERATIONS_REMINDER_QUEUES } from './operations-reminders.jobs.js';
+export { OPERATIONS_REMINDER_QUEUES };
 
 export interface OperationsRemindersJobData {
   organizationId?: string;

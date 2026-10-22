@@ -6,7 +6,8 @@ import { dispatchDueGraceReminders } from './lifecycle.service.js';
 
 const logger = createLogger({ name: 'billing-lifecycle-worker' });
 
-export const BILLING_LIFECYCLE_QUEUE = 'billing:grace-reminder-dispatch';
+import { BILLING_LIFECYCLE_QUEUE } from './billing.jobs.js';
+export { BILLING_LIFECYCLE_QUEUE };
 export const BILLING_LIFECYCLE_CRON = '*/15 * * * *';
 export const BILLING_LIFECYCLE_SCHEDULE_ID = 'siteflow-billing-grace-reminder-dispatch-v1';
 const ORG_CONCURRENCY = 4;

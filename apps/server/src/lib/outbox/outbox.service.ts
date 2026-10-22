@@ -193,7 +193,13 @@ const queueContracts = new Map<
     { schema: PlatformSupportGrantPayloadSchema, tenantScoped: true, auditOnly: true },
   ],
 ]);
-const supportedQueueNames = new Set<string>(Object.values(QUEUES));
+let _supportedQueueNames: Set<string> | null = null;
+function getSupportedQueueNames(): Set<string> {
+  if (!_supportedQueueNames) {
+    _supportedQueueNames = new Set<string>(Object.values(QUEUES));
+  }
+  return _supportedQueueNames;
+}
 
 function validateOutboxPayload(
   eventType: string,
@@ -230,7 +236,7 @@ function validateOutboxPayload(
     return typeof orgId === 'string' ? orgId : null;
   }
 
-  if (eventType.includes(':') && !supportedQueueNames.has(eventType)) {
+  if (eventType.includes(':') && !getSupportedQueueNames().has(eventType)) {
     throw new Error(`Unsupported outbox queue: ${eventType}`);
   }
 
@@ -352,7 +358,7 @@ export class OutboxService {
             throw new Error('Outbox organizationId does not match the validated payload scope');
           }
 
-          const hasWorker = supportedQueueNames.has(event.eventType);
+          const hasWorker = getSupportedQueueNames().has(event.eventType);
           const auditOnly = queueContracts.get(event.eventType)?.auditOnly === true || !hasWorker;
           if (!auditOnly) {
             await sendJob(
