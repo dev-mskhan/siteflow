@@ -29,6 +29,9 @@ export const serverEnv = createEnv({
     // Redis
     REDIS_URL: z.string().url().default('redis://localhost:6379'),
 
+    // Auth endpoints: attempts allowed per IP per 15 minutes (raise for E2E runs)
+    AUTH_RATE_LIMIT_MAX: z.coerce.number().default(10),
+
     // MinIO / S3
     MINIO_ENDPOINT: z.string().default('localhost'),
     MINIO_PORT: z.coerce.number().default(9000),

@@ -204,9 +204,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(
     async (authScope) => {
       await authScope.register(rateLimit, {
-        max: 10,
+        max: serverEnv.AUTH_RATE_LIMIT_MAX,
         timeWindow: '15 minutes',
         keyGenerator: (req) => req.ip,
+        // Session bootstrap is read-only and runs on every protected page load.
+        // Counting it against the auth-attempt budget locks out local clients
+        // after a few normal navigations and E2E runs.
+        allowList: (req) => req.method === 'GET' && req.url.endsWith('/me'),
       });
       await authScope.register(authRoutes);
     },

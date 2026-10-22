@@ -4,8 +4,8 @@
  *
  * Flow:
  *   1. Register via direct API POST (faster than UI)
- *   2. Navigate to login page and authenticate via UI (sets HttpOnly cookies)
- *   3. Wait for redirect to app/dashboard
+ *   2. Authenticate via the live API (sets HttpOnly cookies)
+ *   3. Persist the authenticated API context as Playwright storage state
  *   4. Save storageState to e2e/.auth/user.json
  */
 import { test as setup, expect } from '@playwright/test';
@@ -38,7 +38,7 @@ async function markEmailVerified(email: string): Promise<void> {
   }
 }
 
-setup('authenticate user and store state', async ({ page, request }) => {
+setup('authenticate user and store state', async ({ request }) => {
   const email = `e2e_${Date.now()}@siteflow.test`;
   const password = 'TestPassword123!';
 
@@ -54,15 +54,17 @@ setup('authenticate user and store state', async ({ page, request }) => {
   expect(regRes.ok()).toBeTruthy();
   await markEmailVerified(email);
 
-  // 2. Navigate to login page and authenticate via UI
-  await page.goto('/login');
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
+  // 2. Authenticate through the same-origin Vite proxy. The request fixture
+  // retains the HttpOnly cookies returned by the server.
+  const loginRes = await request.post('/api/v1/auth/login', {
+    data: { email, password },
+  });
+  const loginBody = await loginRes.text();
+  expect(
+    loginRes.status(),
+    `POST /auth/login response: ${loginBody}`,
+  ).toBe(200);
 
-  // 3. Wait for redirect — either to onboarding or dashboard
-  await page.waitForURL(/\/(onboarding|dashboard|org)/, { timeout: 15_000 });
-
-  // 4. Save the authenticated session state (cookies)
-  await page.context().storageState({ path: authFile });
+  // 3. Save the authenticated session state (cookies)
+  await request.storageState({ path: authFile });
 });

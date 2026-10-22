@@ -15,6 +15,12 @@ test.describe('Project lifecycle', () => {
     const orgBody = (await orgRes.json()) as { data: { organization: { id: string } } };
     const orgId = orgBody.data.organization.id;
 
+    // Project creation requires an entitlement; provision the real no-card trial first.
+    const trialRes = await request.post(`/api/v1/organizations/${orgId}/billing/trial`, {
+      data: {},
+    });
+    expect(trialRes.status()).toBe(201);
+
     await page.goto(`/org/${orgId}/projects`);
 
     await page.getByRole('button', { name: 'New project' }).click();
@@ -42,6 +48,6 @@ test.describe('Project lifecycle', () => {
     );
     await page.goto(`/org/${orgId}/projects/${projectId}/phases`);
     await phasesCall;
-    await expect(page.getByPlaceholder('Phase name').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add phase' }).first()).toBeVisible();
   });
 });
