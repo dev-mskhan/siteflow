@@ -12,16 +12,24 @@ import { costCodeApi } from '../features/project/costCodeApi';
 import { budgetApi } from '../features/project/budgetApi';
 import { projectMemberApi } from '../features/project/projectMemberApi';
 import { projectSettingsApi } from '../features/project/projectSettingsApi';
+import { taskApi } from '../features/project/taskApi';
+import { fieldLogApi } from '../features/project/fieldLogApi';
+import { issueApi } from '../features/project/issueApi';
 import { supplierApi } from '../features/supplier/supplierApi';
 import { materialApi } from '../features/material/materialApi';
-import { fieldLogApi } from '../api/fieldLogApi';
-import { issueApi } from '../api/issueApi';
-import { taskApi } from '../api/taskApi';
 import { procurementApi } from '../api/procurementApi';
 import { subcontractorApi } from '../api/subcontractorApi';
-import { preconstructionApi } from '../api/preconstructionApi';
-import { commercialApi } from '../api/commercialApi';
-import { documentApi } from '../api/documentApi';
+import { preconstructionApi } from '../features/project/preconstructionApi';
+import { procurementApi } from '../features/project/procurementApi';
+import { commercialApi } from '../features/project/commercialApi';
+import { documentApi } from '../features/project/documentApi';
+import { rfiApi } from '../features/project/rfiApi';
+import { hseApi } from '../features/project/hseApi';
+import { reportApi } from '../features/reporting/reportApi';
+import { exportApi } from '../features/reporting/exportApi';
+import { billingApi } from '../features/billing/billingApi';
+import { platformApi } from '../features/platform/platformApi';
+import { notificationApi } from '../api/notificationApi';
 import { hseApi } from '../api/hseApi';
 import { rfiApi } from '../api/rfiApi';
 import { reportApi } from '../api/reportApi';
@@ -88,26 +96,12 @@ const devPreloadedState = bypass
 export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
-    // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi
-    // are now injected into baseApi — their reducerPath/reducer/middleware are all
-    // the same as baseApi, so no separate entries needed.
-    [supplierApi.reducerPath]: supplierApi.reducer,
-    [materialApi.reducerPath]: materialApi.reducer,
-    [fieldLogApi.reducerPath]: fieldLogApi.reducer,
-    [issueApi.reducerPath]: issueApi.reducer,
-    [taskApi.reducerPath]: taskApi.reducer,
-    [procurementApi.reducerPath]: procurementApi.reducer,
+    // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi,
+    // supplierApi, materialApi, taskApi, fieldLogApi, issueApi, commercialApi, 
+    // preconstructionApi, procurementApi, documentApi, rfiApi, hseApi,
+    // reportApi, exportApi, billingApi, platformApi are now injected into baseApi
     [subcontractorApi.reducerPath]: subcontractorApi.reducer,
-    [preconstructionApi.reducerPath]: preconstructionApi.reducer,
-    [commercialApi.reducerPath]: commercialApi.reducer,
-    [documentApi.reducerPath]: documentApi.reducer,
-    [hseApi.reducerPath]: hseApi.reducer,
-    [rfiApi.reducerPath]: rfiApi.reducer,
-    [reportApi.reducerPath]: reportApi.reducer,
     [notificationApi.reducerPath]: notificationApi.reducer,
-    [billingApi.reducerPath]: billingApi.reducer,
-    [exportApi.reducerPath]: exportApi.reducer,
-    [platformApi.reducerPath]: platformApi.reducer,
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
@@ -118,25 +112,12 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       baseApi.middleware,
-      // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi
-      // are now injected into baseApi — no separate middleware needed.
-      supplierApi.middleware,
-      materialApi.middleware,
-      fieldLogApi.middleware,
-      issueApi.middleware,
-      taskApi.middleware,
-      procurementApi.middleware,
+      // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi,
+      // supplierApi, materialApi, taskApi, fieldLogApi, issueApi, commercialApi,
+      // preconstructionApi, procurementApi, documentApi, rfiApi, hseApi,
+      // reportApi, exportApi, billingApi, platformApi are now injected into baseApi
       subcontractorApi.middleware,
-      preconstructionApi.middleware,
-      commercialApi.middleware,
-      documentApi.middleware,
-      hseApi.middleware,
-      rfiApi.middleware,
-      reportApi.middleware,
       notificationApi.middleware,
-      billingApi.middleware,
-      exportApi.middleware,
-      platformApi.middleware,
     ),
   devTools: import.meta.env.DEV,
 });
