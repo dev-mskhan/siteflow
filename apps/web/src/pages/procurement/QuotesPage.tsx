@@ -15,16 +15,21 @@ import { useListSuppliersQuery } from '../../features/supplier/supplierApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
-import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../lib/authErrors';
+import {
+  getServerError,
+  isInlineError,
+  isToastError,
+  toastErrorMessage,
+} from '../../lib/authErrors';
 import { MOCK_SUPPLIER_NAMES } from '../../fixtures/procurement.fixtures';
 import type { QuoteStatus } from '../../types/procurementTypes';
 
 const STATUS_BADGE: Record<QuoteStatus, string> = {
-  DRAFT:     'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
+  DRAFT: 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
   SUBMITTED: 'border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af]',
-  ACCEPTED:  'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
-  REJECTED:  'border-[#fecaca] bg-[#fef2f2] text-[#991b1b]',
-  EXPIRED:   'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
+  ACCEPTED: 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
+  REJECTED: 'border-[#fecaca] bg-[#fef2f2] text-[#991b1b]',
+  EXPIRED: 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
 };
 
 const FILTERS = ['ALL', 'DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED'] as const;
@@ -35,7 +40,7 @@ export const QuotesPage: React.FC = () => {
   const canCreate = usePermission('project.quote.create');
   const { success: toastOk, error: toastErr } = useToast();
 
-  const [filter, setFilter] = useState<typeof FILTERS[number]>('ALL');
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('ALL');
   const [showCreate, setShowCreate] = useState(false);
   const [supplierId, setSupplierId] = useState('');
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split('T')[0]!);
@@ -50,11 +55,21 @@ export const QuotesPage: React.FC = () => {
   const [rejectQuote] = useRejectQuoteMutation();
 
   const onCreate = async () => {
-    if (!supplierId) { toastErr('Supplier required', 'Select a supplier.'); return; }
+    if (!supplierId) {
+      toastErr('Supplier required', 'Select a supplier.');
+      return;
+    }
     try {
       const result = await createQuote({
-        orgId: orgId!, projectId: projectId!,
-        input: { supplierId, quoteDate, validUntil: validUntil || undefined, currencyCode, items: [] },
+        orgId: orgId!,
+        projectId: projectId!,
+        input: {
+          supplierId,
+          quoteDate,
+          validUntil: validUntil || undefined,
+          currencyCode,
+          items: [],
+        },
       }).unwrap();
       toastOk('Quote created', '');
       setShowCreate(false);
@@ -66,10 +81,12 @@ export const QuotesPage: React.FC = () => {
 
   const act = (fn: () => Promise<any>, label: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    fn().then(() => toastOk(label, '')).catch((err) => toastErr(`${label} failed`, toastErrorMessage(err)));
+    fn()
+      .then(() => toastOk(label, ''))
+      .catch((err) => toastErr(`${label} failed`, toastErrorMessage(err)));
   };
 
-  const all = data?.data ?? [];
+  const all = data ?? [];
   const rows = filter === 'ALL' ? all : all.filter((q) => q.status === filter);
 
   return (
@@ -77,11 +94,16 @@ export const QuotesPage: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-medium tracking-[-0.03em]">Quotes</h2>
-          <p className="mt-0.5 text-sm text-[var(--muted)]">{all.length} quote{all.length !== 1 ? 's' : ''}</p>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">
+            {all.length} quote{all.length !== 1 ? 's' : ''}
+          </p>
         </div>
         {canCreate && !showCreate && (
-          <button type="button" onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 min-h-9 bg-[var(--ink)] px-4 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0">
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-2 min-h-9 bg-[var(--ink)] px-4 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0"
+          >
             <Plus className="h-4 w-4" strokeWidth={2} /> New quote
           </button>
         )}
@@ -89,47 +111,92 @@ export const QuotesPage: React.FC = () => {
 
       {showCreate && (
         <div className="mb-6 border border-[var(--hairline-2)] bg-[var(--paper)] p-6 space-y-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">New quote</p>
-          {isInlineError(createErr) && <InlineAlert variant="error" message={getServerError(createErr)?.message ?? 'Error'} />}
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+            New quote
+          </p>
+          {isInlineError(createErr) && (
+            <InlineAlert variant="error" message={getServerError(createErr)?.message ?? 'Error'} />
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Supplier *</label>
-              <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}
-                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]">
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Supplier *
+              </label>
+              <select
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              >
                 <option value="">Select supplier…</option>
-                {(suppliersData?.suppliers ?? []).map((s) => <option key={s.id} value={s.id}>{s.displayName}</option>)}
+                {(suppliersData?.suppliers ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.displayName}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Currency</label>
-              <input type="text" value={currencyCode} onChange={(e) => setCurrencyCode(e.target.value.toUpperCase())} maxLength={3}
-                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]" />
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Currency
+              </label>
+              <input
+                type="text"
+                value={currencyCode}
+                onChange={(e) => setCurrencyCode(e.target.value.toUpperCase())}
+                maxLength={3}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
             </div>
             <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Quote date *</label>
-              <input type="date" value={quoteDate} onChange={(e) => setQuoteDate(e.target.value)}
-                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]" />
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Quote date *
+              </label>
+              <input
+                type="date"
+                value={quoteDate}
+                onChange={(e) => setQuoteDate(e.target.value)}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
             </div>
             <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Valid until</label>
-              <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)}
-                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]" />
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Valid until
+              </label>
+              <input
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
             </div>
           </div>
           <div className="flex items-center gap-3 pt-2 border-t border-[var(--hairline-2)]">
-            <button onClick={onCreate} disabled={creating}
-              className="inline-flex items-center gap-2 min-h-10 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0">
+            <button
+              onClick={onCreate}
+              disabled={creating}
+              className="inline-flex items-center gap-2 min-h-10 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0"
+            >
               {creating ? 'Creating…' : 'Create quote'}
             </button>
-            <button type="button" onClick={() => setShowCreate(false)} className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">Cancel</button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
       <div className="flex border-b border-[var(--hairline-2)] mb-6">
         {FILTERS.map((f) => (
-          <button key={f} type="button" onClick={() => setFilter(f)}
-            className={`px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.12em] border-b-2 transition-colors ${filter === f ? 'border-[var(--ink)] text-[var(--ink)]' : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'}`}>
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            className={`px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.12em] border-b-2 transition-colors ${filter === f ? 'border-[var(--ink)] text-[var(--ink)]' : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'}`}
+          >
             {f}
           </button>
         ))}
@@ -138,11 +205,21 @@ export const QuotesPage: React.FC = () => {
       <div className="border border-[var(--hairline-2)]">
         <div className="grid grid-cols-[130px_2fr_90px_90px_110px_160px] gap-4 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]">
           {['Number', 'Supplier', 'Status', 'Total', 'Valid until', ''].map((h) => (
-            <p key={h} className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">{h}</p>
+            <p
+              key={h}
+              className="font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]"
+            >
+              {h}
+            </p>
           ))}
         </div>
         {isLoading ? (
-          [1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse bg-[var(--surface-2)] border-b border-[var(--hairline-2)]" />)
+          [1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-12 animate-pulse bg-[var(--surface-2)] border-b border-[var(--hairline-2)]"
+            />
+          ))
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 bg-[var(--paper)]">
             <FileText className="h-10 w-10 text-[var(--muted)] mb-3" strokeWidth={1.5} />
@@ -150,24 +227,69 @@ export const QuotesPage: React.FC = () => {
           </div>
         ) : (
           rows.map((q) => (
-            <div key={q.id} onClick={() => navigate(`/org/${orgId}/projects/${projectId}/procurement/quotes/${q.id}`)}
-              className="grid grid-cols-[130px_2fr_90px_90px_110px_160px] gap-4 items-center px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)] hover:bg-[var(--surface-2)] cursor-pointer transition-colors">
+            <div
+              key={q.id}
+              onClick={() =>
+                navigate(`/org/${orgId}/projects/${projectId}/procurement/quotes/${q.id}`)
+              }
+              className="grid grid-cols-[130px_2fr_90px_90px_110px_160px] gap-4 items-center px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)] hover:bg-[var(--surface-2)] cursor-pointer transition-colors"
+            >
               <p className="font-mono text-[10px] text-[var(--muted)]">{q.quoteNumber}</p>
-              <p className="text-sm truncate">{MOCK_SUPPLIER_NAMES[q.supplierId] ?? q.supplierId}</p>
-              <span className={`inline-block font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 w-fit ${STATUS_BADGE[q.status]}`}>{q.status}</span>
-              <p className="font-mono text-[11px]">{q.currencyCode} {parseFloat(q.totalAmount).toLocaleString()}</p>
+              <p className="text-sm truncate">
+                {MOCK_SUPPLIER_NAMES[q.supplierId] ?? q.supplierId}
+              </p>
+              <span
+                className={`inline-block font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 w-fit ${STATUS_BADGE[q.status]}`}
+              >
+                {q.status}
+              </span>
+              <p className="font-mono text-[11px]">
+                {q.currencyCode} {parseFloat(q.totalAmount).toLocaleString()}
+              </p>
               <p className="font-mono text-[10px] text-[var(--muted)]">{q.validUntil ?? '—'}</p>
               <div className="flex gap-1.5 justify-end" onClick={(e) => e.stopPropagation()}>
                 {q.status === 'DRAFT' && (
-                  <button onClick={(e) => act(() => submitQuote({ orgId: orgId!, projectId: projectId!, quoteId: q.id }), 'Submitted', e)}
-                    className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[var(--hairline-2)] px-2 py-1 hover:bg-[var(--surface-2)]">Submit</button>
+                  <button
+                    onClick={(e) =>
+                      act(
+                        () => submitQuote({ orgId: orgId!, projectId: projectId!, quoteId: q.id }),
+                        'Submitted',
+                        e,
+                      )
+                    }
+                    className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[var(--hairline-2)] px-2 py-1 hover:bg-[var(--surface-2)]"
+                  >
+                    Submit
+                  </button>
                 )}
                 {q.status === 'SUBMITTED' && (
                   <>
-                    <button onClick={(e) => act(() => acceptQuote({ orgId: orgId!, projectId: projectId!, quoteId: q.id }), 'Accepted', e)}
-                      className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534] px-2 py-1 hover:bg-[#dcfce7]">Accept</button>
-                    <button onClick={(e) => act(() => rejectQuote({ orgId: orgId!, projectId: projectId!, quoteId: q.id }), 'Rejected', e)}
-                      className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[var(--hairline-2)] px-2 py-1 text-[#991b1b] hover:bg-[#fef2f2]">Reject</button>
+                    <button
+                      onClick={(e) =>
+                        act(
+                          () =>
+                            acceptQuote({ orgId: orgId!, projectId: projectId!, quoteId: q.id }),
+                          'Accepted',
+                          e,
+                        )
+                      }
+                      className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534] px-2 py-1 hover:bg-[#dcfce7]"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={(e) =>
+                        act(
+                          () =>
+                            rejectQuote({ orgId: orgId!, projectId: projectId!, quoteId: q.id }),
+                          'Rejected',
+                          e,
+                        )
+                      }
+                      className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[var(--hairline-2)] px-2 py-1 text-[#991b1b] hover:bg-[#fef2f2]"
+                    >
+                      Reject
+                    </button>
                   </>
                 )}
               </div>

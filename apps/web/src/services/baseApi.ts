@@ -89,6 +89,7 @@ export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
   tagTypes: [
+    // Auth & Org
     'User',
     'Session',
     'Organization',
@@ -98,19 +99,65 @@ export const baseApi = createApi({
     'Member',
     'Invitation',
     'AuditLog',
+    // Project core
     'Project',
     'Phase',
     'CostCode',
     'Budget',
     'ProjectMember',
     'ProjectSettings',
+    // Field ops
     'FieldLog',
+    'Task',
+    'Issue',
+    // Procurement
     'PurchaseOrder',
     'MaterialRequest',
+    'Quote',
+    'ProcurementApproval',
+    'Delivery',
+    'Receipt',
+    'Inventory',
+    'CommittedCost',
+    // Supplier & Material
     'Supplier',
+    'SupplierContact',
     'Material',
+    'MaterialCategory',
+    // Preconstruction
+    'Tender',
+    'Proposal',
+    'Estimate',
+    'BOQ',
+    'Takeoff',
+    // Commercial & Financial
+    'ChangeOrder',
+    'SOV',
+    'PaymentApplication',
+    'Invoice',
+    'Payment',
+    'Retainage',
+    'CostTransaction',
+    'FinancialSummary',
+    // Documents
+    'Document',
+    'DocumentFolder',
+    // RFI & Submittals
+    'RFI',
+    'Submittal',
+    // HSE & Quality
+    'SafetyEvent',
+    'QualityInspection',
+    'Permit',
+    'Compliance',
+    // Reporting & Export
     'Report',
+    'Export',
+    // Billing & Platform
     'Billing',
+    'Platform',
+    'Subcontractor',
+    'SubcontractorContract',
   ],
   endpoints: () => ({}),
 });
