@@ -1,0 +1,5032 @@
+﻿{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--reporter=json"
+    ],
+    "configFile": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\playwright.config.ts",
+    "rootDir": "D:/summer/agentic-ai/siteflow/apps/web/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/summer/agentic-ai/siteflow/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/summer/agentic-ai/siteflow/apps/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/summer/agentic-ai/siteflow/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/summer/agentic-ai/siteflow/apps/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "setup",
+        "testDir": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e",
+        "snapshotDir": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 45000,
+        "use": {
+          "baseURL": "http://localhost:3001",
+          "trace": "on-first-retry",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "setup"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "chromium",
+        "testDir": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e",
+        "snapshotDir": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 45000,
+        "use": {
+          "baseURL": "http://localhost:3001",
+          "trace": "on-first-retry",
+          "screenshot": "only-on-failure",
+          "video": "retain-on-failure",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "screen": {
+            "width": 1920,
+            "height": 1080
+          },
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "defaultBrowserType": "chromium",
+          "storageState": "./e2e/.auth/user.json"
+        },
+        "dependencies": [
+          "setup"
+        ],
+        "ignoreSnapshots": false,
+        "__projectId": "chromium"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "auth.setup.ts",
+      "file": "auth.setup.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "authenticate user and store state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "setup",
+              "projectName": "setup",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6000,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Γ£ô New auth session created\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-26T15:08:54.015Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "17e3fe6f4d9d8bd79c6b-2e856cb6076018990a3b",
+          "file": "auth.setup.ts",
+          "line": 41,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "commercial.spec.ts",
+      "file": "commercial.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Commercial: Change Orders Workflow",
+          "file": "commercial.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates and lists change orders",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 47,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Project creation failed, skipping tests\n"
+                        },
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:04.152Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-fdecc01647bcfd1a3068",
+              "file": "commercial.spec.ts",
+              "line": 50,
+              "column": 3
+            },
+            {
+              "title": "gets change order detail",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 59,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:06.639Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-d1912c7d915660fa22f4",
+              "file": "commercial.spec.ts",
+              "line": 99,
+              "column": 3
+            },
+            {
+              "title": "updates change order",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 94,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:06.779Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-1b0c7e2eddfbe7946107",
+              "file": "commercial.spec.ts",
+              "line": 117,
+              "column": 3
+            },
+            {
+              "title": "submits change order (transition)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 41,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:07.007Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-7aab18a6f756a063e413",
+              "file": "commercial.spec.ts",
+              "line": 134,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Commercial: Payment Applications Workflow",
+          "file": "commercial.spec.ts",
+          "line": 151,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates payment application",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 20,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:07.200Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-4ab7b9e47e4ccd785478",
+              "file": "commercial.spec.ts",
+              "line": 179,
+              "column": 3
+            },
+            {
+              "title": "lists payment applications",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 12,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:08.164Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-c838efa356ac61c166d3",
+              "file": "commercial.spec.ts",
+              "line": 205,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Commercial: Invoices & Payments Workflow",
+          "file": "commercial.spec.ts",
+          "line": 218,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates invoice",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 39,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:08.235Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-056a2724eccc1934b162",
+              "file": "commercial.spec.ts",
+              "line": 246,
+              "column": 3
+            },
+            {
+              "title": "lists invoices",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 249,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:09.455Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-3efe3e5cf40ae5e43054",
+              "file": "commercial.spec.ts",
+              "line": 277,
+              "column": 3
+            },
+            {
+              "title": "gets invoice detail",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 87,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:09.746Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-8244ffb3c3746745fd03",
+              "file": "commercial.spec.ts",
+              "line": 289,
+              "column": 3
+            },
+            {
+              "title": "submits invoice (transition)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 32,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:10.023Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-163a12b089c56738a5e0",
+              "file": "commercial.spec.ts",
+              "line": 301,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Commercial: Cost Transactions",
+          "file": "commercial.spec.ts",
+          "line": 317,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates cost transaction",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 20,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:10.112Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-730159d997104f782376",
+              "file": "commercial.spec.ts",
+              "line": 344,
+              "column": 3
+            },
+            {
+              "title": "lists cost transactions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 21,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:11.200Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-ccaa1577baf53ea3dcfb",
+              "file": "commercial.spec.ts",
+              "line": 366,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Commercial: API Smoke Tests",
+          "file": "commercial.spec.ts",
+          "line": 379,
+          "column": 6,
+          "specs": [
+            {
+              "title": "commercial endpoints are registered",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 902,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Project creation failed, testing routes exist\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:11.270Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0cace22ba481f327a60b-7b57952a76ce6aa8a4ee",
+              "file": "commercial.spec.ts",
+              "line": 380,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "field-ops.spec.ts",
+      "file": "field-ops.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Field Operations: Tasks, Field Logs, Issues",
+          "file": "field-ops.spec.ts",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates task and transitions status",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 0,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\field-ops.spec.ts:16:29",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\field-ops.spec.ts",
+                          "column": 29,
+                          "line": 16
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 14 |\u001b[39m       data\u001b[33m:\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m`E2E Field Ops ${Date.now()}`\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 15 |\u001b[39m     })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 16 |\u001b[39m     expect(orgRes\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m201\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 17 |\u001b[39m     \u001b[36mconst\u001b[39m orgBody \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m orgRes\u001b[33m.\u001b[39mjson()\u001b[33m;\u001b[39m\n \u001b[90m 18 |\u001b[39m     orgId \u001b[33m=\u001b[39m orgBody\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39mid\u001b[33m;\u001b[39m\n \u001b[90m 19 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\field-ops.spec.ts",
+                            "column": 29,
+                            "line": 16
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n\n  14 |       data: { name: `E2E Field Ops ${Date.now()}` },\n  15 |     });\n> 16 |     expect(orgRes.status()).toBe(201);\n     |                             ^\n  17 |     const orgBody = await orgRes.json();\n  18 |     orgId = orgBody.data.id;\n  19 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\field-ops.spec.ts:16:29"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:12.368Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\field-ops-Field-Operations-8c86e-task-and-transitions-status-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\field-ops.spec.ts",
+                        "column": 29,
+                        "line": 16
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "362bd1286c3e0edb53ad-55f79a9c605d2708ff59",
+              "file": "field-ops.spec.ts",
+              "line": 33,
+              "column": 3
+            },
+            {
+              "title": "creates field log and submits it",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:12.575Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "362bd1286c3e0edb53ad-cb7b93661f456c8db339",
+              "file": "field-ops.spec.ts",
+              "line": 62,
+              "column": 3
+            },
+            {
+              "title": "creates issue and transitions it",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:12.575Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "362bd1286c3e0edb53ad-a3fdeda2bd165b91e7d9",
+              "file": "field-ops.spec.ts",
+              "line": 89,
+              "column": 3
+            },
+            {
+              "title": "lists tasks, field logs, and issues",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:12.575Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "362bd1286c3e0edb53ad-6d79fe9a514f6dc18c64",
+              "file": "field-ops.spec.ts",
+              "line": 116,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "hse.spec.ts",
+      "file": "hse.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "HSE: Safety Event Workflow",
+          "file": "hse.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates safety event",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 36,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:17.195Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-e9892ca6e0564ad84d20",
+              "file": "hse.spec.ts",
+              "line": 36,
+              "column": 3
+            },
+            {
+              "title": "investigates safety event",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 25,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:17.886Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-20e282c244a811ed0efe",
+              "file": "hse.spec.ts",
+              "line": 67,
+              "column": 3
+            },
+            {
+              "title": "closes safety event",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:17.959Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-cea6851e5af8299707d6",
+              "file": "hse.spec.ts",
+              "line": 85,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "HSE: Quality Workflow",
+          "file": "hse.spec.ts",
+          "line": 103,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates quality inspection",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 14,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.051Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-0f83e6951a7ec1104922",
+              "file": "hse.spec.ts",
+              "line": 132,
+              "column": 3
+            },
+            {
+              "title": "starts quality inspection",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 18,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.232Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-faf7c38ac39293d13399",
+              "file": "hse.spec.ts",
+              "line": 159,
+              "column": 3
+            },
+            {
+              "title": "completes quality inspection",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 41,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.291Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-cf78cb1ecb0fc8f0256c",
+              "file": "hse.spec.ts",
+              "line": 172,
+              "column": 3
+            },
+            {
+              "title": "creates quality deficiency",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 23,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.367Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-87726cf0a96196ca77a7",
+              "file": "hse.spec.ts",
+              "line": 191,
+              "column": 3
+            },
+            {
+              "title": "resolves quality deficiency",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.423Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-46cb565376a73c84d2d5",
+              "file": "hse.spec.ts",
+              "line": 219,
+              "column": 3
+            },
+            {
+              "title": "closes quality deficiency",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 20,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.478Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-d3bbca0b5567cfc039cc",
+              "file": "hse.spec.ts",
+              "line": 232,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "HSE: Compliance Workflow",
+          "file": "hse.spec.ts",
+          "line": 246,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates permit",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 14,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.542Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-2db297c87902e3de57f6",
+              "file": "hse.spec.ts",
+              "line": 275,
+              "column": 3
+            },
+            {
+              "title": "transitions permit status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 15,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.683Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-1d834b3f25538b47686d",
+              "file": "hse.spec.ts",
+              "line": 303,
+              "column": 3
+            },
+            {
+              "title": "creates compliance record",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 13,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.733Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-3a4f30c7b0fc53fbb5f1",
+              "file": "hse.spec.ts",
+              "line": 318,
+              "column": 3
+            },
+            {
+              "title": "verifies compliance record",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 23,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.774Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-d00ad6f506b9aebaee8e",
+              "file": "hse.spec.ts",
+              "line": 345,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "HSE: API Smoke Tests",
+          "file": "hse.spec.ts",
+          "line": 361,
+          "column": 6,
+          "specs": [
+            {
+              "title": "HSE endpoints are registered",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 102,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\hse.spec.ts:371:36",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\hse.spec.ts",
+                          "column": 36,
+                          "line": 371
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 369 |\u001b[39m         \u001b[32m'/api/v1/organizations/org_test/projects/proj_test/safety-events'\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 370 |\u001b[39m       )\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 371 |\u001b[39m       expect([\u001b[35m200\u001b[39m\u001b[33m,\u001b[39m \u001b[35m401\u001b[39m\u001b[33m,\u001b[39m \u001b[35m403\u001b[39m\u001b[33m,\u001b[39m \u001b[35m404\u001b[39m])\u001b[33m.\u001b[39mtoContain(testRes\u001b[33m.\u001b[39mstatus())\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 372 |\u001b[39m       \u001b[36mreturn\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 373 |\u001b[39m     }\n \u001b[90m 374 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\hse.spec.ts",
+                            "column": 36,
+                            "line": 371
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n\n  369 |         '/api/v1/organizations/org_test/projects/proj_test/safety-events',\n  370 |       );\n> 371 |       expect([200, 401, 403, 404]).toContain(testRes.status());\n      |                                    ^\n  372 |       return;\n  373 |     }\n  374 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\hse.spec.ts:371:36"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "Org creation blocked, testing with placeholder IDs\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:18.828Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\hse-HSE-API-Smoke-Tests-HSE-endpoints-are-registered-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\hse.spec.ts",
+                        "column": 36,
+                        "line": 371
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "17bf9d7ae122980e1975-294142874279990e56f6",
+              "file": "hse.spec.ts",
+              "line": 362,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "master-data.spec.ts",
+      "file": "master-data.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Master Data: Suppliers & Materials",
+          "file": "master-data.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates supplier with contact and retrieves it",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\master-data.spec.ts:16:29",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\master-data.spec.ts",
+                          "column": 29,
+                          "line": 16
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 14 |\u001b[39m       data\u001b[33m:\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m`E2E Master Data Org ${Date.now()}`\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 15 |\u001b[39m     })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 16 |\u001b[39m     expect(orgRes\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m201\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 17 |\u001b[39m     \u001b[36mconst\u001b[39m orgBody \u001b[33m=\u001b[39m (\u001b[36mawait\u001b[39m orgRes\u001b[33m.\u001b[39mjson()) \u001b[36mas\u001b[39m { data\u001b[33m:\u001b[39m { organization\u001b[33m:\u001b[39m { id\u001b[33m:\u001b[39m string } } }\u001b[33m;\u001b[39m\n \u001b[90m 18 |\u001b[39m     orgId \u001b[33m=\u001b[39m orgBody\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39morganization\u001b[33m.\u001b[39mid\u001b[33m;\u001b[39m\n \u001b[90m 19 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\master-data.spec.ts",
+                            "column": 29,
+                            "line": 16
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n\n  14 |       data: { name: `E2E Master Data Org ${Date.now()}` },\n  15 |     });\n> 16 |     expect(orgRes.status()).toBe(201);\n     |                             ^\n  17 |     const orgBody = (await orgRes.json()) as { data: { organization: { id: string } } };\n  18 |     orgId = orgBody.data.organization.id;\n  19 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\master-data.spec.ts:16:29"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:22.970Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\master-data-Master-Data-Su-c8e03-th-contact-and-retrieves-it-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\master-data.spec.ts",
+                        "column": 29,
+                        "line": 16
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "2e7f00fbf956772c28c1-e35bfca378ebcefa4698",
+              "file": "master-data.spec.ts",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "creates material and retrieves it",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:23.824Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2e7f00fbf956772c28c1-3589b3879c7228ff67a3",
+              "file": "master-data.spec.ts",
+              "line": 71,
+              "column": 3
+            },
+            {
+              "title": "updates supplier status and verifies change",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:23.824Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2e7f00fbf956772c28c1-64490d2e8a2c4b79c853",
+              "file": "master-data.spec.ts",
+              "line": 107,
+              "column": 3
+            },
+            {
+              "title": "filters suppliers by status",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:23.824Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2e7f00fbf956772c28c1-ef6a28ccd1af16cef520",
+              "file": "master-data.spec.ts",
+              "line": 137,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "notifications.spec.ts",
+      "file": "notifications.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Notifications API",
+          "file": "notifications.spec.ts",
+          "line": 20,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should list notifications",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 163,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:29.009Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-f9c11f89d4e18c07d813",
+              "file": "notifications.spec.ts",
+              "line": 22,
+              "column": 3
+            },
+            {
+              "title": "should get unread count",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 62,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:29.356Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-83f3c1140be5664f6285",
+              "file": "notifications.spec.ts",
+              "line": 36,
+              "column": 3
+            },
+            {
+              "title": "should handle mark notification read (may not exist)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 80,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:29.459Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-b7219b9d1019f8285323",
+              "file": "notifications.spec.ts",
+              "line": 49,
+              "column": 3
+            },
+            {
+              "title": "should mark all notifications as read",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 74,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:29.584Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-4402bbf6af0963819131",
+              "file": "notifications.spec.ts",
+              "line": 65,
+              "column": 3
+            },
+            {
+              "title": "should get notification preferences",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 56,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:29.701Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-721fe486801c31307b6b",
+              "file": "notifications.spec.ts",
+              "line": 78,
+              "column": 3
+            },
+            {
+              "title": "should update notification preference",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 110,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:29.827Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-3c5d04f4dcc1e386eabe",
+              "file": "notifications.spec.ts",
+              "line": 99,
+              "column": 3
+            },
+            {
+              "title": "should validate notification preference input",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 50,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:29.979Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-dbf4eeda5b47fd44ed71",
+              "file": "notifications.spec.ts",
+              "line": 120,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Notification Integration (UI)",
+          "file": "notifications.spec.ts",
+          "line": 135,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should load dashboard with SSE connection (verify no errors)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2855,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Skipping UI test: User has no organization\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:30.060Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-e7b363639f8e99323b18",
+              "file": "notifications.spec.ts",
+              "line": 137,
+              "column": 3
+            },
+            {
+              "title": "should handle SSE connection in multiple tabs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 293,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:33.702Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-13ea35a6d6e5dd8a2790",
+              "file": "notifications.spec.ts",
+              "line": 163,
+              "column": 3
+            },
+            {
+              "title": "should reconnect SSE after navigation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1297,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:34.035Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-9123eea57bb4dad5a7bb",
+              "file": "notifications.spec.ts",
+              "line": 189,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Notification UI Components",
+          "file": "notifications.spec.ts",
+          "line": 214,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display notification preferences page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1804,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Skipping UI test: User has no organization\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:35.373Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "be7d0958780d1a4666e5-766fd1a8b1e7e5f937f0",
+              "file": "notifications.spec.ts",
+              "line": 216,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "preconstruction.spec.ts",
+      "file": "preconstruction.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Preconstruction: Tender Workflow",
+          "file": "preconstruction.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates tender",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 31,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Org creation failed (trial limit), skipping tests\n"
+                        },
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:37.339Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-d682022aa671aa9c1537",
+              "file": "preconstruction.spec.ts",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "lists tenders",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 49,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:37.634Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-f958a4945a6d560b3413",
+              "file": "preconstruction.spec.ts",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "gets tender detail",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 57,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:37.766Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-1c9753ec9439dc8cd184",
+              "file": "preconstruction.spec.ts",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "updates tender",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 27,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:37.876Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-89d633f8efee66ab9263",
+              "file": "preconstruction.spec.ts",
+              "line": 84,
+              "column": 3
+            },
+            {
+              "title": "submits tender",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 28,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:37.934Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-abecccde42308a3eeb40",
+              "file": "preconstruction.spec.ts",
+              "line": 99,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Preconstruction: Proposal Workflow",
+          "file": "preconstruction.spec.ts",
+          "line": 115,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates proposal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 13,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:38.029Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-66d9289f59401ee09e2e",
+              "file": "preconstruction.spec.ts",
+              "line": 143,
+              "column": 3
+            },
+            {
+              "title": "lists proposals",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 16,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:38.236Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-ab8faecae5b4c6066000",
+              "file": "preconstruction.spec.ts",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "gets proposal detail",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 86,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:38.339Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-181b6e8242fcfd2aee0e",
+              "file": "preconstruction.spec.ts",
+              "line": 196,
+              "column": 3
+            },
+            {
+              "title": "submits proposal for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:38.492Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-ef063f55e6e03ce6dcc2",
+              "file": "preconstruction.spec.ts",
+              "line": 208,
+              "column": 3
+            },
+            {
+              "title": "approves proposal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 180,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:38.616Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-b835bb5e660a5e6c5d9b",
+              "file": "preconstruction.spec.ts",
+              "line": 223,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Preconstruction: Estimate Workflow",
+          "file": "preconstruction.spec.ts",
+          "line": 239,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates estimate",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 14,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:38.928Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-58a9c7db49550ed61078",
+              "file": "preconstruction.spec.ts",
+              "line": 267,
+              "column": 3
+            },
+            {
+              "title": "lists estimates",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.070Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-77cfbc6a5084b828b3c9",
+              "file": "preconstruction.spec.ts",
+              "line": 310,
+              "column": 3
+            },
+            {
+              "title": "submits estimate for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 25,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.218Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-ca7af4bd20da2b72b4b5",
+              "file": "preconstruction.spec.ts",
+              "line": 322,
+              "column": 3
+            },
+            {
+              "title": "approves estimate",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 18,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.303Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-476cbd68613ec4006901",
+              "file": "preconstruction.spec.ts",
+              "line": 337,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Preconstruction: BOQ Workflow",
+          "file": "preconstruction.spec.ts",
+          "line": 353,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates BOQ",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 14,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.359Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-d769ad484394c24352af",
+              "file": "preconstruction.spec.ts",
+              "line": 381,
+              "column": 3
+            },
+            {
+              "title": "lists BOQs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 37,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.525Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-1a7ac1190643afe87ab7",
+              "file": "preconstruction.spec.ts",
+              "line": 423,
+              "column": 3
+            },
+            {
+              "title": "submits BOQ for approval",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.622Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-e1b9373722e2103b84cb",
+              "file": "preconstruction.spec.ts",
+              "line": 435,
+              "column": 3
+            },
+            {
+              "title": "approves BOQ",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 19,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.686Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-f821369ccfc6c7c29e54",
+              "file": "preconstruction.spec.ts",
+              "line": 450,
+              "column": 3
+            },
+            {
+              "title": "locks BOQ",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 15,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.750Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-04a917df549f0a8c95ab",
+              "file": "preconstruction.spec.ts",
+              "line": 465,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Preconstruction: API Smoke Tests",
+          "file": "preconstruction.spec.ts",
+          "line": 481,
+          "column": 6,
+          "specs": [
+            {
+              "title": "preconstruction endpoints are registered",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 117,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\preconstruction.spec.ts:489:36",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\preconstruction.spec.ts",
+                          "column": 36,
+                          "line": 489
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 487 |\u001b[39m       console\u001b[33m.\u001b[39mlog(\u001b[32m'Org creation blocked, testing with placeholder IDs'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 488 |\u001b[39m       \u001b[36mconst\u001b[39m testRes \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m request\u001b[33m.\u001b[39m\u001b[36mget\u001b[39m(\u001b[32m'/api/v1/organizations/org_test/tenders'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 489 |\u001b[39m       expect([\u001b[35m200\u001b[39m\u001b[33m,\u001b[39m \u001b[35m401\u001b[39m\u001b[33m,\u001b[39m \u001b[35m403\u001b[39m\u001b[33m,\u001b[39m \u001b[35m404\u001b[39m])\u001b[33m.\u001b[39mtoContain(testRes\u001b[33m.\u001b[39mstatus())\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 490 |\u001b[39m       \u001b[36mreturn\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 491 |\u001b[39m     }\n \u001b[90m 492 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\preconstruction.spec.ts",
+                            "column": 36,
+                            "line": 489
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n\n  487 |       console.log('Org creation blocked, testing with placeholder IDs');\n  488 |       const testRes = await request.get('/api/v1/organizations/org_test/tenders');\n> 489 |       expect([200, 401, 403, 404]).toContain(testRes.status());\n      |                                    ^\n  490 |       return;\n  491 |     }\n  492 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\preconstruction.spec.ts:489:36"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "Org creation blocked, testing with placeholder IDs\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:39.802Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\preconstruction-Preconstru-1db6c-on-endpoints-are-registered-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\preconstruction.spec.ts",
+                        "column": 36,
+                        "line": 489
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "fd1f1f2aeb4b7b657ad0-b2f07c8bdafcd4e31ef6",
+              "file": "preconstruction.spec.ts",
+              "line": 482,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "project-lifecycle.spec.ts",
+      "file": "project-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Project lifecycle",
+          "file": "project-lifecycle.spec.ts",
+          "line": 9,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates a project via the modal and opens its phases page",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1074,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-lifecycle.spec.ts:14:29",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-lifecycle.spec.ts",
+                          "column": 29,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 12 |\u001b[39m       data\u001b[33m:\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m`E2E Org ${Date.now()}`\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 13 |\u001b[39m     })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 14 |\u001b[39m     expect(orgRes\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m201\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 15 |\u001b[39m     \u001b[36mconst\u001b[39m orgBody \u001b[33m=\u001b[39m (\u001b[36mawait\u001b[39m orgRes\u001b[33m.\u001b[39mjson()) \u001b[36mas\u001b[39m { data\u001b[33m:\u001b[39m { organization\u001b[33m:\u001b[39m { id\u001b[33m:\u001b[39m string } } }\u001b[33m;\u001b[39m\n \u001b[90m 16 |\u001b[39m     \u001b[36mconst\u001b[39m orgId \u001b[33m=\u001b[39m orgBody\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39morganization\u001b[33m.\u001b[39mid\u001b[33m;\u001b[39m\n \u001b[90m 17 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-lifecycle.spec.ts",
+                            "column": 29,
+                            "line": 14
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n\n  12 |       data: { name: `E2E Org ${Date.now()}` },\n  13 |     });\n> 14 |     expect(orgRes.status()).toBe(201);\n     |                             ^\n  15 |     const orgBody = (await orgRes.json()) as { data: { organization: { id: string } } };\n  16 |     const orgId = orgBody.data.organization.id;\n  17 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-lifecycle.spec.ts:14:29"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:45.421Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\project-lifecycle-Project--f2440-l-and-opens-its-phases-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\project-lifecycle-Project--f2440-l-and-opens-its-phases-page-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\project-lifecycle-Project--f2440-l-and-opens-its-phases-page-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-lifecycle.spec.ts",
+                        "column": 29,
+                        "line": 14
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "4cf092e5592a764182cd-b061c36ed6fedeb3bb5a",
+              "file": "project-lifecycle.spec.ts",
+              "line": 10,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "project-settings.spec.ts",
+      "file": "project-settings.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Projects live integration",
+          "file": "project-settings.spec.ts",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "org projects page calls the live projects endpoint",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1055,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-settings.spec.ts:12:32",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-settings.spec.ts",
+                          "column": 32,
+                          "line": 12
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 10 |\u001b[39m       data\u001b[33m:\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m`E2E Org ${Date.now()}`\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 11 |\u001b[39m     })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 12 |\u001b[39m     expect(createRes\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m201\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 13 |\u001b[39m     \u001b[36mconst\u001b[39m body \u001b[33m=\u001b[39m (\u001b[36mawait\u001b[39m createRes\u001b[33m.\u001b[39mjson()) \u001b[36mas\u001b[39m { data\u001b[33m:\u001b[39m { organization\u001b[33m:\u001b[39m { id\u001b[33m:\u001b[39m string } } }\u001b[33m;\u001b[39m\n \u001b[90m 14 |\u001b[39m     \u001b[36mconst\u001b[39m orgId \u001b[33m=\u001b[39m body\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39morganization\u001b[33m.\u001b[39mid\u001b[33m;\u001b[39m\n \u001b[90m 15 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-settings.spec.ts",
+                            "column": 32,
+                            "line": 12
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n\n  10 |       data: { name: `E2E Org ${Date.now()}` },\n  11 |     });\n> 12 |     expect(createRes.status()).toBe(201);\n     |                                ^\n  13 |     const body = (await createRes.json()) as { data: { organization: { id: string } } };\n  14 |     const orgId = body.data.organization.id;\n  15 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-settings.spec.ts:12:32"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:53.750Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\project-settings-Projects--a491c--the-live-projects-endpoint-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\project-settings-Projects--a491c--the-live-projects-endpoint-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\project-settings-Projects--a491c--the-live-projects-endpoint-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\project-settings.spec.ts",
+                        "column": 32,
+                        "line": 12
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "3bad687041b75fb33b7c-cb177adf224654fafc60",
+              "file": "project-settings.spec.ts",
+              "line": 8,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "rfi-submittals.spec.ts",
+      "file": "rfi-submittals.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "RFI: Complete Workflow",
+          "file": "rfi-submittals.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates RFI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 29,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:09:59.530Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-3010a22c94423a692e3b",
+              "file": "rfi-submittals.spec.ts",
+              "line": 36,
+              "column": 3
+            },
+            {
+              "title": "lists RFIs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 173,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:00.234Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-cd1949f8135ac51d11f7",
+              "file": "rfi-submittals.spec.ts",
+              "line": 67,
+              "column": 3
+            },
+            {
+              "title": "gets RFI detail",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 40,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:00.446Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-7c298bb3f8eb4c7f8b9f",
+              "file": "rfi-submittals.spec.ts",
+              "line": 84,
+              "column": 3
+            },
+            {
+              "title": "updates RFI draft",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 38,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:00.687Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-885803761824a62a8eff",
+              "file": "rfi-submittals.spec.ts",
+              "line": 101,
+              "column": 3
+            },
+            {
+              "title": "submits RFI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 39,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:00.779Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-dbb210298fe097271de0",
+              "file": "rfi-submittals.spec.ts",
+              "line": 118,
+              "column": 3
+            },
+            {
+              "title": "responds to RFI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 12,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:00.901Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-c60c4a4336bbbad3c418",
+              "file": "rfi-submittals.spec.ts",
+              "line": 137,
+              "column": 3
+            },
+            {
+              "title": "closes RFI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 43,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:00.961Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-728ffb231b83206a14ed",
+              "file": "rfi-submittals.spec.ts",
+              "line": 161,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "RFI: Cancellation Flow",
+          "file": "rfi-submittals.spec.ts",
+          "line": 175,
+          "column": 6,
+          "specs": [
+            {
+              "title": "cancels RFI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 17,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:01.052Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-efe7dfe88a91cf878291",
+              "file": "rfi-submittals.spec.ts",
+              "line": 221,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Submittal: Complete Workflow",
+          "file": "rfi-submittals.spec.ts",
+          "line": 235,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates submittal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 27,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:01.200Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-cb8110d9f5c0df81d7ef",
+              "file": "rfi-submittals.spec.ts",
+              "line": 263,
+              "column": 3
+            },
+            {
+              "title": "lists submittals",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 84,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:01.461Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-8d664b0b5fb904e99c31",
+              "file": "rfi-submittals.spec.ts",
+              "line": 293,
+              "column": 3
+            },
+            {
+              "title": "gets submittal detail",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 46,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:01.600Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-76fee5727f07ab922439",
+              "file": "rfi-submittals.spec.ts",
+              "line": 310,
+              "column": 3
+            },
+            {
+              "title": "updates submittal draft",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 55,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:01.731Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-9fbcfda5146d55af8765",
+              "file": "rfi-submittals.spec.ts",
+              "line": 322,
+              "column": 3
+            },
+            {
+              "title": "submits submittal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 49,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:01.879Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-a8ea5c35dfbc9fc5b6ac",
+              "file": "rfi-submittals.spec.ts",
+              "line": 339,
+              "column": 3
+            },
+            {
+              "title": "reviews submittal - approved",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:01.988Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-0ef0e2a585bd0a1e2afb",
+              "file": "rfi-submittals.spec.ts",
+              "line": 358,
+              "column": 3
+            },
+            {
+              "title": "closes submittal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 18,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:02.093Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-f215fd99d6f2b0bdc2a7",
+              "file": "rfi-submittals.spec.ts",
+              "line": 382,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Submittal: Resubmission Flow",
+          "file": "rfi-submittals.spec.ts",
+          "line": 396,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates and submits submittal for resubmission",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 17,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:02.176Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-1e2fe6a7b26341ba3d3c",
+              "file": "rfi-submittals.spec.ts",
+              "line": 424,
+              "column": 3
+            },
+            {
+              "title": "reviews submittal - revise and resubmit",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 55,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:02.380Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-6a3706dea70479cc574f",
+              "file": "rfi-submittals.spec.ts",
+              "line": 457,
+              "column": 3
+            },
+            {
+              "title": "resubmits submittal after revisions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 27,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:02.503Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-98e4060e40e7fe8a28c1",
+              "file": "rfi-submittals.spec.ts",
+              "line": 475,
+              "column": 3
+            },
+            {
+              "title": "lists submittal revisions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 71,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:02.596Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-76be004bb7c77a291253",
+              "file": "rfi-submittals.spec.ts",
+              "line": 488,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "RFI & Submittal: API Smoke Tests",
+          "file": "rfi-submittals.spec.ts",
+          "line": 501,
+          "column": 6,
+          "specs": [
+            {
+              "title": "RFI and Submittal endpoints are registered",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 131,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\rfi-submittals.spec.ts:511:36",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\rfi-submittals.spec.ts",
+                          "column": 36,
+                          "line": 511
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 509 |\u001b[39m         \u001b[32m'/api/v1/organizations/org_test/projects/proj_test/rfis'\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 510 |\u001b[39m       )\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 511 |\u001b[39m       expect([\u001b[35m200\u001b[39m\u001b[33m,\u001b[39m \u001b[35m401\u001b[39m\u001b[33m,\u001b[39m \u001b[35m403\u001b[39m\u001b[33m,\u001b[39m \u001b[35m404\u001b[39m])\u001b[33m.\u001b[39mtoContain(testRes\u001b[33m.\u001b[39mstatus())\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 512 |\u001b[39m       \u001b[36mreturn\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 513 |\u001b[39m     }\n \u001b[90m 514 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\rfi-submittals.spec.ts",
+                            "column": 36,
+                            "line": 511
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n\n  509 |         '/api/v1/organizations/org_test/projects/proj_test/rfis',\n  510 |       );\n> 511 |       expect([200, 401, 403, 404]).toContain(testRes.status());\n      |                                    ^\n  512 |       return;\n  513 |     }\n  514 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\rfi-submittals.spec.ts:511:36"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "Org creation blocked, testing with placeholder IDs\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:02.750Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\rfi-submittals-RFI-Submitt-ca3d7-al-endpoints-are-registered-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\rfi-submittals.spec.ts",
+                        "column": 36,
+                        "line": 511
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "9c8b92e502bdb0e22ab7-98a8ec7b90e9fc75f2c0",
+              "file": "rfi-submittals.spec.ts",
+              "line": 502,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "schedule.spec.ts",
+      "file": "schedule.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Schedule: Dependencies",
+          "file": "schedule.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates dependency",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 30,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Org creation failed (trial limit), skipping tests\n"
+                        },
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:05.978Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-154475cc6377dc6d0c23",
+              "file": "schedule.spec.ts",
+              "line": 85,
+              "column": 3
+            },
+            {
+              "title": "lists dependencies",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 60,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:06.650Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-de45b31238f107039f90",
+              "file": "schedule.spec.ts",
+              "line": 114,
+              "column": 3
+            },
+            {
+              "title": "lists dependencies filtered by taskId",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 34,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:06.805Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-d78979ea88519187e4a8",
+              "file": "schedule.spec.ts",
+              "line": 131,
+              "column": 3
+            },
+            {
+              "title": "deletes dependency",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 54,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:06.938Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-128639306d3995c8ebad",
+              "file": "schedule.spec.ts",
+              "line": 148,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Schedule: Baselines",
+          "file": "schedule.spec.ts",
+          "line": 161,
+          "column": 6,
+          "specs": [
+            {
+              "title": "creates baseline",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 24,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:07.063Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-91fd9ef8d956d50f28f0",
+              "file": "schedule.spec.ts",
+              "line": 189,
+              "column": 3
+            },
+            {
+              "title": "lists baselines",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 30,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:07.380Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-9257da8af0fa30cc2cc1",
+              "file": "schedule.spec.ts",
+              "line": 214,
+              "column": 3
+            },
+            {
+              "title": "gets baseline detail",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 60,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:07.516Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-9f65c0615b309e57c51f",
+              "file": "schedule.spec.ts",
+              "line": 231,
+              "column": 3
+            },
+            {
+              "title": "activates baseline",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 43,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:07.666Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-aafd5af877df275aff9e",
+              "file": "schedule.spec.ts",
+              "line": 248,
+              "column": 3
+            },
+            {
+              "title": "compares baseline with current",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 28,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:07.800Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-3c74013e53bafbc587b4",
+              "file": "schedule.spec.ts",
+              "line": 266,
+              "column": 3
+            },
+            {
+              "title": "deletes baseline",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 17,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:07.887Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-19240c0dc08562dd2887",
+              "file": "schedule.spec.ts",
+              "line": 284,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Schedule: Calendar",
+          "file": "schedule.spec.ts",
+          "line": 297,
+          "column": 6,
+          "specs": [
+            {
+              "title": "gets project calendar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 23,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:07.963Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-3a5ef11794e5197ba9b4",
+              "file": "schedule.spec.ts",
+              "line": 325,
+              "column": 3
+            },
+            {
+              "title": "updates calendar settings",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 14,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:08.105Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-777337ffd362fec618eb",
+              "file": "schedule.spec.ts",
+              "line": 343,
+              "column": 3
+            },
+            {
+              "title": "adds calendar exception (holiday)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:08.148Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-194ded20639ff3b50cc7",
+              "file": "schedule.spec.ts",
+              "line": 370,
+              "column": 3
+            },
+            {
+              "title": "removes calendar exception",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 16,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Prerequisite test failed, skipping\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:08.185Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-7762c47f97d72b075234",
+              "file": "schedule.spec.ts",
+              "line": 400,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Schedule: Operations",
+          "file": "schedule.spec.ts",
+          "line": 413,
+          "column": 6,
+          "specs": [
+            {
+              "title": "recalculates project schedule",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 18,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:08.234Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-71ca664da6c1049007c8",
+              "file": "schedule.spec.ts",
+              "line": 440,
+              "column": 3
+            },
+            {
+              "title": "gets schedule metrics",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 10,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:08.361Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-4e3d1151c904a09d95ef",
+              "file": "schedule.spec.ts",
+              "line": 461,
+              "column": 3
+            },
+            {
+              "title": "lists schedule history",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 17,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Setup failed, skipping test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:08.402Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-bd0d61f9af516c69fdd8",
+              "file": "schedule.spec.ts",
+              "line": 480,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Schedule: API Smoke Tests",
+          "file": "schedule.spec.ts",
+          "line": 498,
+          "column": 6,
+          "specs": [
+            {
+              "title": "schedule endpoints are registered",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 108,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\schedule.spec.ts:509:36",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\schedule.spec.ts",
+                          "column": 36,
+                          "line": 509
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 507 |\u001b[39m         \u001b[32m'/api/v1/organizations/org_test/projects/proj_test/dependencies'\u001b[39m\u001b[33m,\u001b[39m\n \u001b[90m 508 |\u001b[39m       )\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 509 |\u001b[39m       expect([\u001b[35m200\u001b[39m\u001b[33m,\u001b[39m \u001b[35m401\u001b[39m\u001b[33m,\u001b[39m \u001b[35m403\u001b[39m\u001b[33m,\u001b[39m \u001b[35m404\u001b[39m])\u001b[33m.\u001b[39mtoContain(testRes\u001b[33m.\u001b[39mstatus())\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 510 |\u001b[39m       \u001b[36mreturn\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 511 |\u001b[39m     }\n \u001b[90m 512 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\schedule.spec.ts",
+                            "column": 36,
+                            "line": 509
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m422\u001b[39m\nReceived array: \u001b[31m[200, 401, 403, 404]\u001b[39m\n\n  507 |         '/api/v1/organizations/org_test/projects/proj_test/dependencies',\n  508 |       );\n> 509 |       expect([200, 401, 403, 404]).toContain(testRes.status());\n      |                                    ^\n  510 |       return;\n  511 |     }\n  512 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\schedule.spec.ts:509:36"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "Org creation blocked, testing with placeholder IDs\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:08.447Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\schedule-Schedule-API-Smok-ea9f8-le-endpoints-are-registered-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\schedule.spec.ts",
+                        "column": 36,
+                        "line": 509
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "0c763654641d7f9e8f11-ea015bf55a2c6d44614d",
+              "file": "schedule.spec.ts",
+              "line": 499,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "subcontractors.spec.ts",
+      "file": "subcontractors.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Subcontractors: Project Assignment & Task Management",
+          "file": "subcontractors.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "lists project subcontractors (empty initially)",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\subcontractors.spec.ts:18:29",
+                        "location": {
+                          "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\subcontractors.spec.ts",
+                          "column": 29,
+                          "line": 18
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 16 |\u001b[39m       data\u001b[33m:\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m`E2E Subcontractors Org ${Date.now()}`\u001b[39m }\u001b[33m,\u001b[39m\n \u001b[90m 17 |\u001b[39m     })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 18 |\u001b[39m     expect(orgRes\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m201\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 19 |\u001b[39m     \u001b[36mconst\u001b[39m orgBody \u001b[33m=\u001b[39m (\u001b[36mawait\u001b[39m orgRes\u001b[33m.\u001b[39mjson()) \u001b[36mas\u001b[39m { data\u001b[33m:\u001b[39m { organization\u001b[33m:\u001b[39m { id\u001b[33m:\u001b[39m string } } }\u001b[33m;\u001b[39m\n \u001b[90m 20 |\u001b[39m     orgId \u001b[33m=\u001b[39m orgBody\u001b[33m.\u001b[39mdata\u001b[33m.\u001b[39morganization\u001b[33m.\u001b[39mid\u001b[33m;\u001b[39m\n \u001b[90m 21 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\subcontractors.spec.ts",
+                            "column": 29,
+                            "line": 18
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m201\u001b[39m\nReceived: \u001b[31m403\u001b[39m\n\n  16 |       data: { name: `E2E Subcontractors Org ${Date.now()}` },\n  17 |     });\n> 18 |     expect(orgRes.status()).toBe(201);\n     |                             ^\n  19 |     const orgBody = (await orgRes.json()) as { data: { organization: { id: string } } };\n  20 |     orgId = orgBody.data.organization.id;\n  21 |\n    at D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\subcontractors.spec.ts:18:29"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:13.785Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\test-results\\subcontractors-Subcontract-5b277-ontractors-empty-initially--chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\subcontractors.spec.ts",
+                        "column": 29,
+                        "line": 18
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "1f4ac4cc6d6b7b380736-8e9809f80fc151883fc8",
+              "file": "subcontractors.spec.ts",
+              "line": 53,
+              "column": 3
+            },
+            {
+              "title": "assigns subcontractor to project (skip - no org-level subcontractor CRUD)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "D:\\summer\\agentic-ai\\siteflow\\apps\\web\\e2e\\subcontractors.spec.ts",
+                        "line": 67,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:14.117Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1f4ac4cc6d6b7b380736-bf0ded872cc4f58cca7c",
+              "file": "subcontractors.spec.ts",
+              "line": 67,
+              "column": 8
+            },
+            {
+              "title": "creates subcontractor contact",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:14.117Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1f4ac4cc6d6b7b380736-596dd1a62e4a200308cf",
+              "file": "subcontractors.spec.ts",
+              "line": 90,
+              "column": 3
+            },
+            {
+              "title": "assigns task to subcontractor",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:14.117Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1f4ac4cc6d6b7b380736-7b347560350c229f0311",
+              "file": "subcontractors.spec.ts",
+              "line": 108,
+              "column": 3
+            },
+            {
+              "title": "API endpoint structure is correct",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:14.117Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1f4ac4cc6d6b7b380736-142c12880ba5fb920bd5",
+              "file": "subcontractors.spec.ts",
+              "line": 148,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Subcontractors: Smoke Test (Verify Integration Wiring)",
+          "file": "subcontractors.spec.ts",
+          "line": 163,
+          "column": 6,
+          "specs": [
+            {
+              "title": "API endpoints respond correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 441,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Org creation blocked (likely trial limit), skipping smoke test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-26T15:10:17.221Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1f4ac4cc6d6b7b380736-809ab5c55c494448ccbf",
+              "file": "subcontractors.spec.ts",
+              "line": 164,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-26T15:08:43.591Z",
+    "duration": 94590.141,
+    "expected": 94,
+    "skipped": 10,
+    "unexpected": 9,
+    "flaky": 0
+  }
+}

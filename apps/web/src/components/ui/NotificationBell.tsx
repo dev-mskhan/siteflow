@@ -15,12 +15,10 @@ import {
   useGetUnreadCountQuery,
   useListNotificationsQuery,
   useMarkNotificationReadMutation,
-  useMarkAllReadMutation,
-} from '../../api/notificationApi';
-import { useSSENotifications } from '../../hooks/useSSENotifications';
-import { useAppSelector } from '../../app/store';
-import type { SSEConnectionStatus } from '../../features/notification/notificationSlice';
-import type { NotificationRecord } from '../../types/reportTypes';
+  useMarkAllNotificationsReadMutation,
+} from '../../features/notification/notificationApi';
+import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications';
+import type { NotificationRecord } from '../../features/notification/notificationApi';
 
 // Human-readable event type labels
 function eventLabel(eventType: string): string {
@@ -68,12 +66,7 @@ export const NotificationBell: React.FC = () => {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Wire SSE — auto-invalidates RTK tags on new events + shows toasts
-  useSSENotifications(orgId);
-
-  // Read SSE connection status from Redux for the indicator dot
-  const sseStatus: SSEConnectionStatus = useAppSelector(
-    (state) => state.sseNotification?.connectionStatus ?? 'idle',
-  );
+  const { status: sseStatus } = useRealtimeNotifications(orgId || '', !!orgId);
 
   const { data: countData } = useGetUnreadCountQuery(
     { orgId: orgId! },
@@ -85,7 +78,7 @@ export const NotificationBell: React.FC = () => {
   );
 
   const [markRead] = useMarkNotificationReadMutation();
-  const [markAllRead, { isLoading: markingAll }] = useMarkAllReadMutation();
+  const [markAllRead, { isLoading: markingAll }] = useMarkAllNotificationsReadMutation();
 
   const unread = countData?.unreadCount ?? 0;
   const notifs = listData?.notifications ?? [];
@@ -126,22 +119,16 @@ export const NotificationBell: React.FC = () => {
       >
         <Bell className="h-5 w-5" strokeWidth={1.75} />
         {/* SSE connection status indicator */}
-        {sseStatus === 'connected' && (
+        {sseStatus.connected && (
           <span
             className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-[#166534] border border-[var(--surface)]"
             title="Real-time connected"
           />
         )}
-        {sseStatus === 'connecting' && (
+        {!sseStatus.connected && sseStatus.reconnectAttempts > 0 && (
           <span
             className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-[#92400e] border border-[var(--surface)] animate-pulse"
             title="Connecting…"
-          />
-        )}
-        {sseStatus === 'disconnected' && (
-          <span
-            className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-[#991b1b] border border-[var(--surface)]"
-            title="Real-time disconnected — using polling"
           />
         )}
         {hasUnread && (
@@ -178,27 +165,23 @@ export const NotificationBell: React.FC = () => {
                 <span
                   className={cn(
                     'inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.1em] px-1.5 py-0.5 border',
-                    sseStatus === 'connected'
+                    sseStatus.connected
                       ? 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]'
-                      : sseStatus === 'connecting'
+                      : sseStatus.reconnectAttempts > 0
                         ? 'border-[#fde68a] bg-[#fffbeb] text-[#92400e]'
-                        : sseStatus === 'disconnected'
-                          ? 'border-[#fecaca] bg-[#fef2f2] text-[#991b1b]'
-                          : 'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
+                        : 'border-[#fecaca] bg-[#fef2f2] text-[#991b1b]',
                   )}
                 >
-                  {sseStatus === 'connected' && <Wifi className="h-2.5 w-2.5" strokeWidth={2} />}
-                  {sseStatus === 'disconnected' && (
+                  {sseStatus.connected && <Wifi className="h-2.5 w-2.5" strokeWidth={2} />}
+                  {!sseStatus.connected && sseStatus.reconnectAttempts === 0 && (
                     <WifiOff className="h-2.5 w-2.5" strokeWidth={2} />
                   )}
-                  {sseStatus === 'connecting' && '…'}
-                  {sseStatus === 'connected'
+                  {sseStatus.reconnectAttempts > 0 && '…'}
+                  {sseStatus.connected
                     ? 'live'
-                    : sseStatus === 'disconnected'
-                      ? 'polling'
-                      : sseStatus === 'connecting'
-                        ? 'connecting'
-                        : 'idle'}
+                    : sseStatus.reconnectAttempts > 0
+                      ? 'connecting'
+                      : 'polling'}
                 </span>
               </div>
               {hasUnread && (
