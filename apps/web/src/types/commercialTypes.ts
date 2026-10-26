@@ -499,3 +499,33 @@ export interface FinancialAuditPageDTO {
   events: FinancialAuditEventDTO[];
   nextCursor: string | null;
 }
+
+// ── Transition Inputs (Common) ────────────────────────────────────────────────
+
+export interface TransitionInput {
+  expectedVersion: number;
+}
+
+export interface RejectInput {
+  expectedVersion: number;
+  reason: string;
+}
+
+export interface UpdateChangeOrderInput {
+  title?: string;
+  description?: string;
+  reason?: string;
+}
+
+export interface UpdateSOVInput {
+  description?: string;
+}
+
+export interface UpdatePaymentApplicationInput {
+  notes?: string;
+}
+
+export interface UpdateInvoiceInput {
+  description?: string;
+  notes?: string;
+}
