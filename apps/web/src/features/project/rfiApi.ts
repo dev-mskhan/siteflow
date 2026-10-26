@@ -59,19 +59,38 @@ export const rfiApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/rfis`,
         method: 'POST',
         body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: RFIDTO }) => raw.data,
+      transformResponse: (raw: { data: { rfi: RFIDTO } }) => raw.data.rfi,
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'RFI', id: projectId }],
     }),
 
-    submitRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string; expectedVersion: number }>({
-      query: ({ orgId, projectId, rfiId, expectedVersion }) => ({
+    updateRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string; input: Partial<CreateRFIInput> }>({
+      query: ({ orgId, projectId, rfiId, input }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}`,
+        method: 'PATCH',
+        body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { rfi: RFIDTO } }) => raw.data.rfi,
+      invalidatesTags: (_r, _e, { rfiId, projectId }) => [
+        { type: 'RFI', id: rfiId },
+        { type: 'RFI', id: projectId },
+      ],
+    }),
+
+    submitRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string }>({
+      query: ({ orgId, projectId, rfiId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}/submit`,
         method: 'POST',
-        body: { expectedVersion },
+        body: {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: RFIDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { rfiId }) => [{ type: 'RFI', id: rfiId }],
+      transformResponse: (raw: { data: { rfi: RFIDTO } }) => raw.data.rfi,
+      invalidatesTags: (_r, _e, { rfiId, projectId }) => [
+        { type: 'RFI', id: rfiId },
+        { type: 'RFI', id: projectId },
+      ],
     }),
 
     respondRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string; input: RespondRFIInput }>({
@@ -79,18 +98,50 @@ export const rfiApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}/respond`,
         method: 'POST',
         body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: RFIDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { rfiId }) => [{ type: 'RFI', id: rfiId }],
+      transformResponse: (raw: { data: { rfi: RFIDTO } }) => raw.data.rfi,
+      invalidatesTags: (_r, _e, { rfiId, projectId }) => [
+        { type: 'RFI', id: rfiId },
+        { type: 'RFI', id: projectId },
+      ],
     }),
 
-    closeRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string; expectedVersion: number }>({
-      query: ({ orgId, projectId, rfiId, expectedVersion }) => ({
+    closeRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string }>({
+      query: ({ orgId, projectId, rfiId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}/close`,
         method: 'POST',
-        body: { expectedVersion },
+        body: {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: RFIDTO }) => raw.data,
+      transformResponse: (raw: { data: { rfi: RFIDTO } }) => raw.data.rfi,
+      invalidatesTags: (_r, _e, { rfiId, projectId }) => [
+        { type: 'RFI', id: rfiId },
+        { type: 'RFI', id: projectId },
+      ],
+    }),
+
+    cancelRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string }>({
+      query: ({ orgId, projectId, rfiId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}/cancel`,
+        method: 'POST',
+        body: {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { rfi: RFIDTO } }) => raw.data.rfi,
+      invalidatesTags: (_r, _e, { rfiId, projectId }) => [
+        { type: 'RFI', id: rfiId },
+        { type: 'RFI', id: projectId },
+      ],
+    }),
+
+    attachRFIDocument: build.mutation<void, OrgProjectArgs & { rfiId: string; documentId: string }>({
+      query: ({ orgId, projectId, rfiId, documentId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}/documents`,
+        method: 'POST',
+        body: { documentId },
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
       invalidatesTags: (_r, _e, { rfiId }) => [{ type: 'RFI', id: rfiId }],
     }),
 
@@ -126,22 +177,38 @@ export const rfiApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/submittals`,
         method: 'POST',
         body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: SubmittalDTO }) => raw.data,
+      transformResponse: (raw: { data: { submittal: SubmittalDTO } }) => raw.data.submittal,
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Submittal', id: projectId }],
     }),
 
-    submitSubmittal: build.mutation<
-      SubmittalDTO,
-      OrgProjectArgs & { submittalId: string; expectedVersion: number }
-    >({
-      query: ({ orgId, projectId, submittalId, expectedVersion }) => ({
+    updateSubmittal: build.mutation<SubmittalDTO, OrgProjectArgs & { submittalId: string; input: Partial<CreateSubmittalInput> }>({
+      query: ({ orgId, projectId, submittalId, input }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}`,
+        method: 'PATCH',
+        body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { submittal: SubmittalDTO } }) => raw.data.submittal,
+      invalidatesTags: (_r, _e, { submittalId, projectId }) => [
+        { type: 'Submittal', id: submittalId },
+        { type: 'Submittal', id: projectId },
+      ],
+    }),
+
+    submitSubmittal: build.mutation<SubmittalDTO, OrgProjectArgs & { submittalId: string }>({
+      query: ({ orgId, projectId, submittalId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/submit`,
         method: 'POST',
-        body: { expectedVersion },
+        body: {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: SubmittalDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { submittalId }) => [{ type: 'Submittal', id: submittalId }],
+      transformResponse: (raw: { data: { submittal: SubmittalDTO } }) => raw.data.submittal,
+      invalidatesTags: (_r, _e, { submittalId, projectId }) => [
+        { type: 'Submittal', id: submittalId },
+        { type: 'Submittal', id: projectId },
+      ],
     }),
 
     reviewSubmittal: build.mutation<
@@ -152,18 +219,73 @@ export const rfiApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/review`,
         method: 'POST',
         body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: SubmittalDTO }) => raw.data,
+      transformResponse: (raw: { data: { submittal: SubmittalDTO } }) => raw.data.submittal,
+      invalidatesTags: (_r, _e, { submittalId, projectId }) => [
+        { type: 'Submittal', id: submittalId },
+        { type: 'Submittal', id: projectId },
+      ],
+    }),
+
+    resubmitSubmittal: build.mutation<SubmittalDTO, OrgProjectArgs & { submittalId: string }>({
+      query: ({ orgId, projectId, submittalId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/resubmit`,
+        method: 'POST',
+        body: {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { submittal: SubmittalDTO } }) => raw.data.submittal,
+      invalidatesTags: (_r, _e, { submittalId, projectId }) => [
+        { type: 'Submittal', id: submittalId },
+        { type: 'Submittal', id: projectId },
+      ],
+    }),
+
+    closeSubmittal: build.mutation<SubmittalDTO, OrgProjectArgs & { submittalId: string }>({
+      query: ({ orgId, projectId, submittalId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/close`,
+        method: 'POST',
+        body: {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { submittal: SubmittalDTO } }) => raw.data.submittal,
+      invalidatesTags: (_r, _e, { submittalId, projectId }) => [
+        { type: 'Submittal', id: submittalId },
+        { type: 'Submittal', id: projectId },
+      ],
+    }),
+
+    attachSubmittalDocument: build.mutation<void, OrgProjectArgs & { submittalId: string; documentId: string }>({
+      query: ({ orgId, projectId, submittalId, documentId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/documents`,
+        method: 'POST',
+        body: { documentId },
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
       invalidatesTags: (_r, _e, { submittalId }) => [{ type: 'Submittal', id: submittalId }],
     }),
 
     // ── Submittal Revisions ────────────────────────────────────────────────
 
     listSubmittalRevisions: build.query<SubmittalRevisionDTO[], OrgProjectArgs & { submittalId: string }>({
-      query: ({ orgId, projectId, submittalId }) =>
-        `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/revisions`,
-      transformResponse: (raw: { data: SubmittalRevisionDTO[] }) => raw.data,
+      query: ({ orgId, projectId, submittalId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/revisions`,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { revisions: SubmittalRevisionDTO[] } }) => raw.data.revisions,
       providesTags: (_r, _e, { submittalId }) => [{ type: 'SubmittalRevision', id: submittalId }],
+    }),
+
+    getSubmittalRevision: build.query<SubmittalRevisionDTO, OrgProjectArgs & { submittalId: string; revisionId: string }>({
+      query: ({ orgId, projectId, submittalId, revisionId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/revisions/${revisionId}`,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { revision: SubmittalRevisionDTO } }) => raw.data.revision,
+      providesTags: (_r, _e, { submittalId, revisionId }) => [
+        { type: 'SubmittalRevision', id: `${submittalId}_${revisionId}` },
+      ],
     }),
 
   }),
@@ -171,16 +293,27 @@ export const rfiApi = baseApi.injectEndpoints({
 });
 
 export const {
+  // RFIs
   useListRFIsQuery,
   useGetRFIQuery,
   useCreateRFIMutation,
+  useUpdateRFIMutation,
   useSubmitRFIMutation,
   useRespondRFIMutation,
   useCloseRFIMutation,
+  useCancelRFIMutation,
+  useAttachRFIDocumentMutation,
+  // Submittals
   useListSubmittalsQuery,
   useGetSubmittalQuery,
   useCreateSubmittalMutation,
+  useUpdateSubmittalMutation,
   useSubmitSubmittalMutation,
   useReviewSubmittalMutation,
+  useResubmitSubmittalMutation,
+  useCloseSubmittalMutation,
+  useAttachSubmittalDocumentMutation,
+  // Submittal Revisions
   useListSubmittalRevisionsQuery,
+  useGetSubmittalRevisionQuery,
 } = rfiApi;
