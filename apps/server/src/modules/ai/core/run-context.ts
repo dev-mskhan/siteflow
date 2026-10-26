@@ -33,6 +33,8 @@ export interface RunContext {
   readonly provider?: string;
   /** Underlying model name */
   readonly model?: string;
+  /** Initial input snapshot provided when the run was created */
+  readonly input?: Record<string, unknown>;
   /** Hard resource limits for this run */
   readonly limits: RunLimits;
   /** ISO timestamp when the worker picked up the job — used for timeout tracking */
@@ -53,7 +55,7 @@ export interface RunContext {
  */
 export function buildRunContext(
   run: Pick<AgentRun, 'id' | 'organizationId' | 'projectId' | 'agent' | 'createdBy'> &
-    Partial<Pick<AgentRun, 'correlationId' | 'provider' | 'model'>>,
+    Partial<Pick<AgentRun, 'correlationId' | 'provider' | 'model' | 'inputSnapshot'>>,
   limits: RunLimits = DEFAULT_RUN_LIMITS,
 ): RunContext {
   const ctx: RunContext = {
@@ -65,6 +67,7 @@ export function buildRunContext(
     correlationId: run.correlationId ?? undefined,
     provider: run.provider ?? undefined,
     model: run.model ?? undefined,
+    input: (run.inputSnapshot as Record<string, unknown>) ?? undefined,
     limits,
     startedAt: new Date(),
     threadId: run.id, // One checkpoint thread per run; resume uses the same ID

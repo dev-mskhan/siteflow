@@ -71,7 +71,7 @@ export interface RunResult {
 
 const logger = createLogger({ name: 'ai-runner' });
 
-export async function executeRun(ctx: RunContext): Promise<RunResult> {
+export async function executeRun(ctx: RunContext, initialInput?: Record<string, unknown>): Promise<RunResult> {
   const { runId, threadId, limits } = ctx;
 
   logger.info({ runId, agent: ctx.agent }, 'Runner: starting graph execution');
@@ -113,8 +113,9 @@ export async function executeRun(ctx: RunContext): Promise<RunResult> {
     let interrupted = false;
 
     // stream('values') yields the full state after each node completes
+    const runInput = initialInput ?? ctx.input ?? {};
     const stream = await compiledGraph.stream(
-      { input: {} }, // input populated per-agent
+      { input: runInput },
       { ...lgConfig, signal: abort },
     );
 

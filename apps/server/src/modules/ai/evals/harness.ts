@@ -97,7 +97,7 @@ export async function runEval(
         createdBy: evalCase.context.userId,
       });
 
-      const result = await executeRun(ctx);
+      const result = await executeRun(ctx, evalCase.input);
       output = result.output;
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
