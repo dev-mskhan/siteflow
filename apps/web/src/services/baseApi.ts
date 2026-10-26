@@ -162,8 +162,17 @@ export const baseApi = createApi({
     // Billing & Platform
     'Billing',
     'Platform',
+    'PlatformOrg',
+    'PlatformAccount',
+    'PlatformBilling',
+    'PlatformDiagnostics',
+    'SupportGrant',
     'Subcontractor',
     'SubcontractorContract',
+    // Notifications & Realtime
+    'Notification',
+    'NotificationPreference',
+    'AgentRun', // For AI events via SSE
   ],
   endpoints: () => ({}),
 });

@@ -6,7 +6,6 @@ import authReducer from '../features/auth/authSlice';
 import orgReducer from '../features/org/orgSlice';
 import projectReducer from '../features/project/projectSlice';
 import { notificationReducer as sseNotificationReducer } from '../features/notification/notificationSlice';
-import { notificationApi } from '../api/notificationApi';
 import { ROLE_PERMISSIONS } from '../lib/permissions';
 
 // ── Dev bypass — seed state synchronously at store creation ──────────────────
@@ -66,11 +65,11 @@ const devPreloadedState = bypass
 export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
-    // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi,
-    // supplierApi, materialApi, taskApi, fieldLogApi, issueApi, commercialApi, 
-    // preconstructionApi, procurementApi, subcontractorApi, documentApi, rfiApi, hseApi,
-    // reportApi, exportApi, billingApi, platformApi are now injected into baseApi
-    [notificationApi.reducerPath]: notificationApi.reducer,
+    // All API modules now injected into baseApi: projectApi, phaseApi, costCodeApi, budgetApi,
+    // projectMemberApi, projectSettingsApi, supplierApi, materialApi, taskApi, fieldLogApi,
+    // issueApi, commercialApi, preconstructionApi, procurementApi, subcontractorApi,
+    // documentApi, rfiApi, hseApi, reportApi, exportApi, billingApi, platformApi,
+    // notificationApi (NEW - migrated from mock)
     auth: authReducer,
     org: orgReducer,
     project: projectReducer,
@@ -81,11 +80,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       baseApi.middleware,
-      // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi,
-      // supplierApi, materialApi, taskApi, fieldLogApi, issueApi, commercialApi,
-      // preconstructionApi, procurementApi, subcontractorApi, documentApi, rfiApi, hseApi,
-      // reportApi, exportApi, billingApi, platformApi are now injected into baseApi
-      notificationApi.middleware,
+      // All API modules now use baseApi.middleware (single middleware for all)
     ),
   devTools: import.meta.env.DEV,
 });
