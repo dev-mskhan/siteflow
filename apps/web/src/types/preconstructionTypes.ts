@@ -65,6 +65,30 @@ export interface CreateTenderInput {
   expectedVersion?: number;         // required on update only
 }
 
+export interface UpdateTenderInput {
+  title?: string;
+  description?: string;
+  clientReference?: string;
+  issuerName?: string;
+  submissionDeadline?: string;
+  submissionTimezone?: string;
+  requirements?: string;
+  requiredDocuments?: string[];
+  estimatedValue?: string;
+  currencyCode?: string;
+  notes?: string;
+  expectedVersion: number;
+}
+
+export interface TenderTransitionInput {
+  expectedVersion: number;
+  notes?: string;
+}
+
+export interface AwardTenderInput extends TenderTransitionInput {
+  projectId?: string;
+}
+
 // ── Proposal ─────────────────────────────────────────────────────────────────
 
 export type ProposalStatus =
@@ -193,6 +217,33 @@ export interface ProposalLineInput {
   amount: string;
   currency: string;
   costCodeId?: string;
+}
+
+export interface ProposalTransitionInput {
+  expectedVersion: number;
+  notes?: string;
+}
+
+export interface UpdateProposalInput extends CreateProposalInput {
+  expectedVersion: number;
+}
+
+export interface RejectProposalInput extends ProposalTransitionInput {
+  reason: string;
+}
+
+export interface IssueProposalInput extends ProposalTransitionInput {
+  deliveryMethod: 'EMAIL' | 'PORTAL' | 'MANUAL';
+  recipientEmails?: string[];
+}
+
+export interface RecordClientResponseInput extends ProposalTransitionInput {
+  responseType: 'ACCEPTED' | 'REJECTED' | 'NEGOTIATION';
+  feedback?: string;
+}
+
+export interface ConvertProposalInput extends ProposalTransitionInput {
+  targetType: 'PROJECT' | 'CHANGE_ORDER';
 }
 
 // ── Estimate ──────────────────────────────────────────────────────────────────
@@ -549,4 +600,56 @@ export interface CreateRateVersionInput {
   currencyCode: string;         // 3-char uppercase
   effectiveFrom: string;        // YYYY-MM-DD
   effectiveTo?: string;         // YYYY-MM-DD; must be after effectiveFrom
+}
+
+// ── Estimate Transition Types ────────────────────────────────────────────────
+
+export interface EstimateTransitionInput {
+  expectedVersion: number;
+  notes?: string;
+}
+
+export interface UpdateEstimateInput extends CreateEstimateInput {
+  expectedVersion: number;
+}
+
+export interface RejectEstimateInput extends EstimateTransitionInput {
+  reason: string;
+}
+
+export interface EstimateComparisonResult {
+  estimateId: string;
+  estimate: {
+    totalAmount: string;
+    directCostTotal: string;
+    overheadAmount: string;
+    contingencyAmount: string;
+  };
+  actuals: {
+    totalCommitted: string;
+    totalSpent: string;
+    remainingBudget: string;
+  };
+  variance: {
+    amount: string;
+    percent: string;
+  };
+}
+
+// ── BOQ Transition Types ──────────────────────────────────────────────────────
+
+export interface BoqTransitionInput {
+  expectedVersion: number;
+  notes?: string;
+}
+
+export interface BoqMapItemInput {
+  costCodeId?: string;
+  materialId?: string;
+  taskId?: string;
+}
+
+export interface BoqImportCommitInput {
+  importKey: string;
+  mappings?: Record<string, BoqMapItemInput>;
 }
