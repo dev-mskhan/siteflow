@@ -110,6 +110,12 @@ export const baseApi = createApi({
     'FieldLog',
     'Task',
     'Issue',
+    // Schedule Engine
+    'Dependency',
+    'Baseline',
+    'Calendar',
+    'ScheduleMetrics',
+    'ScheduleHistory',
     // Procurement
     'PurchaseOrder',
     'MaterialRequest',
