@@ -342,15 +342,16 @@ services:
   # ─────────────────────────────────────────────────────────────────────────────
 
   whisper:
-    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    # hwdsl2/whisper-server — ~190 MB image, OpenAI-compatible /v1/audio/transcriptions
+    # Model (tiny/base/small) downloads on first use and caches in the volume.
+    image: hwdsl2/whisper-server
     container_name: siteflow-whisper
     ports:
-      - '3900:8000'
+      - '3900:9000'
     environment:
-      - WHISPER__MODEL=Systran/faster-whisper-base.en
-      - WHISPER__INFERENCE_DEVICE=cpu
+      - WHISPER_MODEL=base
     volumes:
-      - whisper_cache:/home/ubuntu/.cache/huggingface/hub
+      - whisper_cache:/var/lib/whisper
     networks:
       - siteflow-net
     restart: unless-stopped
