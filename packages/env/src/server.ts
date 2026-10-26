@@ -142,6 +142,7 @@ export const serverEnv = createEnv({
     // STT / VoiceStudio (Audio)
     VOICESTUDIO_URL: z.string().url().optional(),
     VOICESTUDIO_API_KEY: z.string().optional(),
+    VOICE_MODEL: z.string().default('whisper-1'),
     VOICE_MAX_FILE_BYTES: z.coerce.number().int().positive().default(26214400),
     VOICE_MAX_DURATION_SECS: z.coerce.number().int().positive().default(120),
   },

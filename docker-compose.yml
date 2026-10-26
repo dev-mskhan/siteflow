@@ -27,6 +27,7 @@ volumes:
   signoz_data:
   clickhouse_data:
   zookeeper_data:
+  whisper_cache:
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. APP INFRASTRUCTURE  (always started)
@@ -336,34 +337,25 @@ services:
       clickhouse:
         condition: service_healthy
     restart: unless-stopped
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 4. AI FOUNDATION (Whisper STT + Langfuse Observability)
+  # ─────────────────────────────────────────────────────────────────────────────
 
-  voicestudio:
-    profiles: ['ai-voice']
-    image: ghcr.io/debpalash/voicestudio:stable
-    container_name: siteflow-voicestudio
+  whisper:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    container_name: siteflow-whisper
     ports:
-      - '3900:3900'
+      - '3900:8000'
     environment:
-      - OMNIVOICE_API_KEY=${OMNIVOICE_API_KEY}
+      - WHISPER__MODEL=Systran/faster-whisper-base.en
+      - WHISPER__INFERENCE_DEVICE=cpu
+    volumes:
+      - whisper_cache:/home/ubuntu/.cache/huggingface/hub
     networks:
       - siteflow-net
     restart: unless-stopped
 
-  langfuse-db-init:
-    profiles: ['ai-ops']
-    image: postgres:16-alpine
-    container_name: siteflow-langfuse-db-init
-    command: >
-      sh -c "PGPASSWORD=siteflow psql -h postgres -U siteflow -c 'CREATE DATABASE langfuse;' || true"
-    networks:
-      - siteflow-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: on-failure
-
   langfuse:
-    profiles: ['ai-ops']
     image: langfuse/langfuse:3
     container_name: siteflow-langfuse
     ports:
@@ -374,18 +366,26 @@ services:
       - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET:-langfuse-dev-secret-32chars!!!!!}
       - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
       - LANGFUSE_INIT_ORG_ID=siteflow
+      - LANGFUSE_INIT_ORG_NAME=SiteFlow
       - LANGFUSE_INIT_PROJECT_ID=siteflow-ai
+      - LANGFUSE_INIT_PROJECT_NAME=SiteFlow AI
+      - LANGFUSE_INIT_PROJECT_PUBLIC_KEY=pk-lf-siteflow-dev
+      - LANGFUSE_INIT_PROJECT_SECRET_KEY=sk-lf-siteflow-dev
+      - LANGFUSE_INIT_USER_EMAIL=dev@siteflow.dev
+      - LANGFUSE_INIT_USER_NAME=SiteFlow Developer
+      - LANGFUSE_INIT_USER_PASSWORD=siteflow-dev-password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     networks:
       - siteflow-net
     depends_on:
-      - langfuse-db-init
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   langfuse-worker:
-    profiles: ['ai-ops']
     image: langfuse/langfuse-worker:3
     container_name: siteflow-langfuse-worker
     environment:

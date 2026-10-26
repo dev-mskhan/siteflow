@@ -22,6 +22,7 @@ export function getSttProvider(): SttProvider {
   cachedProvider = new VoiceStudioProvider({
     baseUrl: serverEnv.VOICESTUDIO_URL,
     apiKey: serverEnv.VOICESTUDIO_API_KEY,
+    model: serverEnv.VOICE_MODEL,
   });
 
   return cachedProvider;

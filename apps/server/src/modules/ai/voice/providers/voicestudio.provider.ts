@@ -6,6 +6,7 @@ import type { SttProvider, TranscriptionResult } from '../stt-provider.js';
 export interface VoiceStudioConfig {
   baseUrl: string;
   apiKey?: string;
+  model?: string;
 }
 
 export class VoiceStudioProvider implements SttProvider {
@@ -21,7 +22,7 @@ export class VoiceStudioProvider implements SttProvider {
     const formData = new FormData();
     const blob = new Blob([buffer], { type: mimeType });
     formData.append('file', blob, filename);
-    formData.append('model', 'whisper-1');
+    formData.append('model', this.config.model || 'whisper-1');
     formData.append('response_format', 'json');
 
     const headers: Record<string, string> = {};
