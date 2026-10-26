@@ -17,10 +17,7 @@ import { fieldLogApi } from '../features/project/fieldLogApi';
 import { issueApi } from '../features/project/issueApi';
 import { supplierApi } from '../features/supplier/supplierApi';
 import { materialApi } from '../features/material/materialApi';
-import { procurementApi } from '../api/procurementApi';
-import { subcontractorApi } from '../api/subcontractorApi';
-import { preconstructionApi } from '../features/project/preconstructionApi';
-import { procurementApi } from '../features/project/procurementApi';
+import { notificationApi } from '../features/notification/notificationApi';
 import { commercialApi } from '../features/project/commercialApi';
 import { documentApi } from '../features/project/documentApi';
 import { rfiApi } from '../features/project/rfiApi';
@@ -98,9 +95,8 @@ export const store = configureStore({
     [baseApi.reducerPath]: baseApi.reducer,
     // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi,
     // supplierApi, materialApi, taskApi, fieldLogApi, issueApi, commercialApi, 
-    // preconstructionApi, procurementApi, documentApi, rfiApi, hseApi,
+    // preconstructionApi, procurementApi, subcontractorApi, documentApi, rfiApi, hseApi,
     // reportApi, exportApi, billingApi, platformApi are now injected into baseApi
-    [subcontractorApi.reducerPath]: subcontractorApi.reducer,
     [notificationApi.reducerPath]: notificationApi.reducer,
     auth: authReducer,
     org: orgReducer,
@@ -114,9 +110,8 @@ export const store = configureStore({
       baseApi.middleware,
       // projectApi, phaseApi, costCodeApi, budgetApi, projectMemberApi, projectSettingsApi,
       // supplierApi, materialApi, taskApi, fieldLogApi, issueApi, commercialApi,
-      // preconstructionApi, procurementApi, documentApi, rfiApi, hseApi,
+      // preconstructionApi, procurementApi, subcontractorApi, documentApi, rfiApi, hseApi,
       // reportApi, exportApi, billingApi, platformApi are now injected into baseApi
-      subcontractorApi.middleware,
       notificationApi.middleware,
     ),
   devTools: import.meta.env.DEV,
