@@ -1,12 +1,15 @@
 /**
- * subcontractorApi — LIVE integration for project subcontractor management.
- * LIVE INTEGRATION: Connected to real backend via baseApi.injectEndpoints.
+ * subcontractorApi — LIVE integration for subcontractor management.
  *
  * Backend routes: apps/server/src/modules/project/subcontractor/
- * Note: Only PROJECT-scoped routes exist (no org-level subcontractor master data).
+ * Org-level directory (/organizations/:orgId/subcontractors) and project-scoped assignments.
  */
 import { baseApi } from '../../services/baseApi';
 import type {
+  SubcontractorDTO,
+  CreateSubcontractorInput,
+  UpdateSubcontractorInput,
+  PartnerPerformanceEventDTO,
   ProjectSubcontractorDTO,
   SubcontractorContactDTO,
   SubcontractorTaskAssignmentDTO,
@@ -24,6 +27,124 @@ interface OrgProjectArgs {
 
 export const subcontractorApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+
+    // ── Org-level directory ────────────────────────────────────────────────
+
+    listSubcontractors: build.query<
+      { data: SubcontractorDTO[]; nextCursor: string | null },
+      { orgId: string; status?: string; cursor?: string; limit?: number }
+    >({
+      query: ({ orgId, ...params }) => ({
+        url: `/organizations/${orgId}/subcontractors`,
+        params,
+      }),
+      transformResponse: (raw: { data: SubcontractorDTO[]; meta?: { nextCursor?: string | null } }) => ({
+        data: raw.data,
+        nextCursor: raw.meta?.nextCursor ?? null,
+      }),
+      providesTags: [{ type: 'Subcontractor', id: 'LIST' }],
+    }),
+
+    getSubcontractor: build.query<SubcontractorDTO, { orgId: string; subcontractorId: string }>({
+      query: ({ orgId, subcontractorId }) => `/organizations/${orgId}/subcontractors/${subcontractorId}`,
+      transformResponse: (raw: { data: SubcontractorDTO }) => raw.data,
+      providesTags: (_r, _e, { subcontractorId }) => [{ type: 'Subcontractor', id: subcontractorId }],
+    }),
+
+    createSubcontractor: build.mutation<
+      SubcontractorDTO,
+      { orgId: string; input: CreateSubcontractorInput }
+    >({
+      query: ({ orgId, input }) => ({
+        url: `/organizations/${orgId}/subcontractors`,
+        method: 'POST',
+        body: input,
+        headers: { 'idempotency-key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: SubcontractorDTO }) => raw.data,
+      invalidatesTags: [{ type: 'Subcontractor', id: 'LIST' }],
+    }),
+
+    updateSubcontractor: build.mutation<
+      SubcontractorDTO,
+      { orgId: string; subcontractorId: string; input: UpdateSubcontractorInput }
+    >({
+      query: ({ orgId, subcontractorId, input }) => ({
+        url: `/organizations/${orgId}/subcontractors/${subcontractorId}`,
+        method: 'PATCH',
+        body: input,
+      }),
+      transformResponse: (raw: { data: SubcontractorDTO }) => raw.data,
+      invalidatesTags: (_r, _e, { subcontractorId }) => [
+        { type: 'Subcontractor', id: 'LIST' },
+        { type: 'Subcontractor', id: subcontractorId },
+      ],
+    }),
+
+    listContacts: build.query<SubcontractorContactDTO[], { orgId: string; subcontractorId: string }>({
+      query: ({ orgId, subcontractorId }) =>
+        `/organizations/${orgId}/subcontractors/${subcontractorId}/contacts`,
+      transformResponse: (raw: { data: SubcontractorContactDTO[] }) => raw.data,
+      providesTags: (_r, _e, { subcontractorId }) => [
+        { type: 'SubcontractorContact', id: subcontractorId },
+      ],
+    }),
+
+    createContact: build.mutation<
+      SubcontractorContactDTO,
+      { orgId: string; subcontractorId: string; input: CreateContactInput }
+    >({
+      query: ({ orgId, subcontractorId, input }) => ({
+        url: `/organizations/${orgId}/subcontractors/${subcontractorId}/contacts`,
+        method: 'POST',
+        body: input,
+        headers: { 'idempotency-key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: SubcontractorContactDTO }) => raw.data,
+      invalidatesTags: (_r, _e, { subcontractorId }) => [
+        { type: 'SubcontractorContact', id: subcontractorId },
+      ],
+    }),
+
+    updateContact: build.mutation<
+      SubcontractorContactDTO,
+      { orgId: string; subcontractorId: string; contactId: string; input: UpdateContactInput }
+    >({
+      query: ({ orgId, subcontractorId, contactId, input }) => ({
+        url: `/organizations/${orgId}/subcontractors/${subcontractorId}/contacts/${contactId}`,
+        method: 'PATCH',
+        body: input,
+      }),
+      transformResponse: (raw: { data: SubcontractorContactDTO }) => raw.data,
+      invalidatesTags: (_r, _e, { subcontractorId }) => [
+        { type: 'SubcontractorContact', id: subcontractorId },
+      ],
+    }),
+
+    // ── Project task assignments + performance ─────────────────────────────
+
+    listTaskAssignments: build.query<
+      SubcontractorTaskAssignmentDTO[],
+      OrgProjectArgs & { subcontractorId: string }
+    >({
+      query: ({ orgId, projectId, subcontractorId }) =>
+        `/organizations/${orgId}/projects/${projectId}/subcontractors/${subcontractorId}/task-assignments`,
+      transformResponse: (raw: { data: SubcontractorTaskAssignmentDTO[] }) => raw.data,
+      providesTags: (_r, _e, { subcontractorId }) => [
+        { type: 'SubcontractorContract', id: subcontractorId },
+      ],
+    }),
+
+    getSubcontractorPerformance: build.query<
+      { data: PartnerPerformanceEventDTO[]; nextCursor: string | null },
+      OrgProjectArgs & { subcontractorId: string }
+    >({
+      query: ({ orgId, projectId, subcontractorId }) =>
+        `/organizations/${orgId}/projects/${projectId}/performance/subcontractors/${subcontractorId}`,
+      transformResponse: (raw: {
+        data: { items: PartnerPerformanceEventDTO[]; nextCursor: string | null };
+      }) => ({ data: raw.data.items, nextCursor: raw.data.nextCursor }),
+    }),
 
     // ── Project Subcontractors ─────────────────────────────────────────────
 
@@ -146,6 +267,15 @@ export const subcontractorApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useListSubcontractorsQuery,
+  useGetSubcontractorQuery,
+  useCreateSubcontractorMutation,
+  useUpdateSubcontractorMutation,
+  useListContactsQuery,
+  useCreateContactMutation,
+  useUpdateContactMutation,
+  useListTaskAssignmentsQuery,
+  useGetSubcontractorPerformanceQuery,
   useListProjectSubcontractorsQuery,
   useGetProjectSubcontractorQuery,
   useAssignSubcontractorToProjectMutation,

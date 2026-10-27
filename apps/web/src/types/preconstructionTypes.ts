@@ -591,6 +591,20 @@ export interface ResolvedRateDTO {
   rateVersion?: MaterialRateVersionDTO;
 }
 
+export interface ProposalClientEventDTO {
+  id: string;
+  proposalId: string;
+  proposalRevisionId: string;
+  organizationId: string;
+  projectId: string;
+  event: 'ACCEPTED' | 'REJECTED';
+  clientSignatoryName: string | null;
+  responseReference: string | null;
+  notes: string | null;
+  recordedBy: string;
+  recordedAt: string;
+}
+
 export interface CreateRateVersionInput {
   materialId: string;
   scope: PricingRateScope;

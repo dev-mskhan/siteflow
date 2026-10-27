@@ -73,8 +73,11 @@ export const supplierApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // Note: Backend does not have GET /suppliers/:id/contacts endpoint yet.
-    // Contacts are managed via POST and PATCH only.
+    listSupplierContacts: b.query<ListContactsResponse, SupplierArgs>({
+      query: ({ orgId, supplierId }) => `/organizations/${orgId}/suppliers/${supplierId}/contacts`,
+      transformResponse: (raw: { data: SupplierContactDTO[] }) => ({ contacts: raw.data }),
+      providesTags: (_r, _e, { supplierId }) => [{ type: 'SupplierContact', id: supplierId }],
+    }),
 
     createSupplierContact: b.mutation<SupplierContactDTO, SupplierArgs & { body: CreateSupplierContactInput }>({
       query: ({ orgId, supplierId, body }) => ({
@@ -111,6 +114,7 @@ export const {
   useGetSupplierQuery,
   useCreateSupplierMutation,
   useUpdateSupplierMutation,
+  useListSupplierContactsQuery,
   useCreateSupplierContactMutation,
   useUpdateSupplierContactMutation,
 } = supplierApi;

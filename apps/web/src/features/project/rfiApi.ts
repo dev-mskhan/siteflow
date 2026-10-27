@@ -24,6 +24,9 @@ interface OrgProjectArgs {
   projectId: string;
 }
 
+export type RFITransitionAction = 'submit' | 'respond' | 'close' | 'cancel';
+export type SubmittalTransitionAction = 'submit' | 'review' | 'resubmit' | 'close';
+
 export const rfiApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
 
@@ -143,6 +146,20 @@ export const rfiApi = baseApi.injectEndpoints({
         headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
       invalidatesTags: (_r, _e, { rfiId }) => [{ type: 'RFI', id: rfiId }],
+    }),
+
+    transitionRFI: build.mutation<RFIDTO, OrgProjectArgs & { rfiId: string; action: RFITransitionAction; respondInput?: RespondRFIInput }>({
+      query: ({ orgId, projectId, rfiId, action, respondInput }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}/${action}`,
+        method: 'POST',
+        body: action === 'respond' && respondInput ? respondInput : {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { rfi: RFIDTO } }) => raw.data.rfi,
+      invalidatesTags: (_r, _e, { rfiId, projectId }) => [
+        { type: 'RFI', id: rfiId },
+        { type: 'RFI', id: projectId },
+      ],
     }),
 
     // ── Submittals ─────────────────────────────────────────────────────────
@@ -266,6 +283,23 @@ export const rfiApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, { submittalId }) => [{ type: 'Submittal', id: submittalId }],
     }),
 
+    transitionSubmittal: build.mutation<
+      SubmittalDTO,
+      OrgProjectArgs & { submittalId: string; action: SubmittalTransitionAction; reviewInput?: ReviewSubmittalInput }
+    >({
+      query: ({ orgId, projectId, submittalId, action, reviewInput }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}/${action}`,
+        method: 'POST',
+        body: action === 'review' && reviewInput ? reviewInput : {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { submittal: SubmittalDTO } }) => raw.data.submittal,
+      invalidatesTags: (_r, _e, { submittalId, projectId }) => [
+        { type: 'Submittal', id: submittalId },
+        { type: 'Submittal', id: projectId },
+      ],
+    }),
+
     // ── Submittal Revisions ────────────────────────────────────────────────
 
     listSubmittalRevisions: build.query<SubmittalRevisionDTO[], OrgProjectArgs & { submittalId: string }>({
@@ -303,6 +337,7 @@ export const {
   useCloseRFIMutation,
   useCancelRFIMutation,
   useAttachRFIDocumentMutation,
+  useTransitionRFIMutation,
   // Submittals
   useListSubmittalsQuery,
   useGetSubmittalQuery,
@@ -313,6 +348,7 @@ export const {
   useResubmitSubmittalMutation,
   useCloseSubmittalMutation,
   useAttachSubmittalDocumentMutation,
+  useTransitionSubmittalMutation,
   // Submittal Revisions
   useListSubmittalRevisionsQuery,
   useGetSubmittalRevisionQuery,

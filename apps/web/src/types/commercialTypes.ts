@@ -162,7 +162,29 @@ export interface SOVLineInput {
 // ── Payment Application ───────────────────────────────────────────────────────
 
 export type PaymentApplicationStatus =
-  | 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'VOID';
+  | 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'PARTIALLY_APPROVED' | 'REJECTED' | 'VOID';
+
+export interface PaymentApplicationLineDTO {
+  id: string;
+  paymentApplicationId: string;
+  organizationId: string;
+  projectId: string;
+  scheduleOfValueLineId: string;
+  lineNumber: number;
+  priorApprovedGross: string;
+  retainagePercent: string;
+  currentWork: string;
+  storedMaterials: string;
+  grossCompleted: string;
+  retainageRequested: string;
+  requestedAmount: string;
+  approvedCurrentWork: string;
+  approvedStoredMaterials: string;
+  approvedGross: string;
+  approvedRetainage: string;
+  approvedAmount: string;
+  createdAt: string;
+}
 
 export interface PaymentApplicationDTO {
   id: string;
@@ -183,6 +205,7 @@ export interface PaymentApplicationDTO {
   totalRetainageHeld: string;
   netAmountDue: string;
   approvedAmount: string | null;
+  lines: PaymentApplicationLineDTO[];
   currencyCode: string;
   version: number;
   createdBy: string;
@@ -330,34 +353,34 @@ export interface CreatePaymentInput {
 
 // ── Retainage ─────────────────────────────────────────────────────────────────
 
-export type RetainageStatus = 'HELD' | 'PARTIALLY_RELEASED' | 'FULLY_RELEASED';
+export type RetainageStatus = 'HELD' | 'PARTIALLY_RELEASED' | 'RELEASED';
 
 export interface RetainageDTO {
   id: string;
   organizationId: string;
   projectId: string;
-  paymentApplicationId: string;
-  heldAmount: string;
+  paymentApplicationLineId: string;
+  retainagePercent: string;
+  accruedAmount: string;
   releasedAmount: string;
   remainingAmount: string;
   currencyCode: string;
   status: RetainageStatus;
   version: number;
-  heldBy: string;
-  heldAt: string;
+  createdBy: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface RetainageReleaseDTO {
   id: string;
-  retainageId: string;
+  organizationId: string;
+  projectId: string;
+  retainageRecordId: string;
   amount: string;
-  currencyCode: string;
   reason: string;
   releasedBy: string;
   releasedAt: string;
-  createdAt: string;
 }
 
 // ── Cost Transaction ──────────────────────────────────────────────────────────

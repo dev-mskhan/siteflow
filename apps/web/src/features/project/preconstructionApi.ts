@@ -10,6 +10,7 @@ import type {
   ProposalDTO,
   EstimateDTO,
   BoqDTO,
+  BoqItemDTO,
   TakeoffSheetDTO,
   MaterialRateVersionDTO,
   CreateTenderInput,
@@ -38,7 +39,15 @@ import type {
   CreateRateVersionInput,
   ProposalRevisionDTO,
   BoqRevisionDTO,
+  ProposalClientEventDTO,
 } from '../../types/preconstructionTypes';
+
+const TENDER_TRANSITION_PATH: Record<string, string> = {
+  SUBMITTED: 'submit',
+  AWARDED: 'award',
+  LOST: 'lost',
+  WITHDRAWN: 'withdraw',
+};
 
 interface OrgProjectArgs {
   orgId: string;
@@ -50,23 +59,26 @@ export const preconstructionApi = baseApi.injectEndpoints({
 
     // ── Tenders ────────────────────────────────────────────────────────────
 
-    listTenders: build.query<TenderDTO[], OrgProjectArgs>({
-      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/tenders`,
-      transformResponse: (raw: { data: TenderDTO[] }) => raw.data,
-      providesTags: (_r, _e, { projectId }) => [{ type: 'Tender', id: projectId }],
+    listTenders: build.query<TenderDTO[], { orgId: string; status?: string }>({
+      query: ({ orgId, status }) => ({
+        url: `/organizations/${orgId}/tenders`,
+        params: status ? { status } : undefined,
+      }),
+      transformResponse: (raw: { data: { items: TenderDTO[]; nextCursor: string | null } }) => raw.data,
+      providesTags: [{ type: 'Tender', id: 'LIST' }],
     }),
 
-    createTender: build.mutation<TenderDTO, OrgProjectArgs & { input: CreateTenderInput }>({
-      query: ({ orgId, projectId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/tenders`,
+    createTender: build.mutation<TenderDTO, { orgId: string; input: CreateTenderInput }>({
+      query: ({ orgId, input }) => ({
+        url: `/organizations/${orgId}/tenders`,
         method: 'POST',
         body: input,
         headers: {
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: TenderDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Tender', id: projectId }],
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
+      invalidatesTags: [{ type: 'Tender', id: 'LIST' }],
     }),
 
     getTender: build.query<TenderDTO, { orgId: string; tenderId: string }>({
@@ -77,7 +89,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: TenderDTO }) => raw.data,
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
       providesTags: (_r, _e, { tenderId }) => [{ type: 'Tender', id: tenderId }],
     }),
 
@@ -90,7 +102,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: TenderDTO }) => raw.data,
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
       invalidatesTags: (_r, _e, { tenderId }) => [
         { type: 'Tender', id: tenderId },
         { type: 'Tender', id: 'LIST' },
@@ -106,7 +118,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: TenderDTO }) => raw.data,
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
       invalidatesTags: (_r, _e, { tenderId }) => [
         { type: 'Tender', id: tenderId },
         { type: 'Tender', id: 'LIST' },
@@ -122,7 +134,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: TenderDTO }) => raw.data,
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
       invalidatesTags: (_r, _e, { tenderId }) => [
         { type: 'Tender', id: tenderId },
         { type: 'Tender', id: 'LIST' },
@@ -139,7 +151,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: TenderDTO }) => raw.data,
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
       invalidatesTags: (_r, _e, { tenderId }) => [
         { type: 'Tender', id: tenderId },
         { type: 'Tender', id: 'LIST' },
@@ -155,10 +167,30 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: TenderDTO }) => raw.data,
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
       invalidatesTags: (_r, _e, { tenderId }) => [
         { type: 'Tender', id: tenderId },
         { type: 'Tender', id: 'LIST' },
+      ],
+    }),
+
+    transitionTender: build.mutation<
+      TenderDTO,
+      { orgId: string; tenderId: string; status: string; expectedVersion: number }
+    >({
+      query: ({ orgId, tenderId, status, expectedVersion }) => ({
+        url: `/organizations/${orgId}/tenders/${tenderId}/${TENDER_TRANSITION_PATH[status]}`,
+        method: 'POST',
+        body: { expectedVersion },
+        headers: {
+          'X-Idempotency-Key': crypto.randomUUID(),
+        },
+      }),
+      transformResponse: (raw: { data: { tender: TenderDTO } }) => raw.data.tender,
+      invalidatesTags: (_r, _e, { tenderId, status }) => [
+        { type: 'Tender', id: tenderId },
+        { type: 'Tender', id: 'LIST' },
+        ...(status === 'AWARDED' ? [{ type: 'Project' as const, id: 'LIST' }] : []),
       ],
     }),
 
@@ -166,7 +198,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
 
     listProposals: build.query<ProposalDTO[], OrgProjectArgs>({
       query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/proposals`,
-      transformResponse: (raw: { data: ProposalDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { items: ProposalDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'Proposal', id: projectId }],
     }),
 
@@ -179,7 +211,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Proposal', id: projectId }],
     }),
 
@@ -191,7 +223,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       providesTags: (_r, _e, { proposalId }) => [{ type: 'Proposal', id: proposalId }],
     }),
 
@@ -204,7 +236,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Proposal', id: 'LIST' },
@@ -220,7 +252,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Proposal', id: 'LIST' },
@@ -236,7 +268,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Proposal', id: 'LIST' },
@@ -252,7 +284,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Proposal', id: 'LIST' },
@@ -268,7 +300,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Proposal', id: 'LIST' },
@@ -284,7 +316,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Proposal', id: 'LIST' },
@@ -300,7 +332,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalDTO }) => raw.data,
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Proposal', id: 'LIST' },
@@ -315,7 +347,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalRevisionDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { items: ProposalRevisionDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { proposalId }) => [{ type: 'Proposal', id: `${proposalId}_REVISIONS` }],
     }),
 
@@ -327,13 +359,13 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: ProposalRevisionDTO }) => raw.data,
+      transformResponse: (raw: { data: { revision: ProposalRevisionDTO } }) => raw.data.revision,
       providesTags: (_r, _e, { proposalId, revisionId }) => [
         { type: 'Proposal', id: `${proposalId}_REV_${revisionId}` },
       ],
     }),
 
-    convertProposal: build.mutation<{ projectId?: string; changeOrderId?: string }, OrgProjectArgs & { proposalId: string; input: ConvertProposalInput }>({
+    convertProposal: build.mutation<{ conversion: { id: string; status: string; linkedProjectId: string | null }; alreadyConverted: boolean }, OrgProjectArgs & { proposalId: string; input: ConvertProposalInput }>({
       query: ({ orgId, projectId, proposalId, input }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/proposals/${proposalId}/convert`,
         method: 'POST',
@@ -342,7 +374,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: { projectId?: string; changeOrderId?: string } }) => raw.data,
+      transformResponse: (raw: { data: { conversion: { id: string; status: string; linkedProjectId: string | null }; alreadyConverted: boolean } }) => raw.data,
       invalidatesTags: (_r, _e, { proposalId }) => [
         { type: 'Proposal', id: proposalId },
         { type: 'Project', id: 'LIST' },
@@ -354,7 +386,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
 
     listEstimates: build.query<EstimateDTO[], OrgProjectArgs>({
       query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/estimates`,
-      transformResponse: (raw: { data: EstimateDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { items: EstimateDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'Estimate', id: projectId }],
     }),
 
@@ -367,7 +399,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: EstimateDTO }) => raw.data,
+      transformResponse: (raw: { data: { estimate: EstimateDTO } }) => raw.data.estimate,
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Estimate', id: projectId }],
     }),
 
@@ -379,7 +411,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: EstimateDTO }) => raw.data,
+      transformResponse: (raw: { data: { estimate: EstimateDTO } }) => raw.data.estimate,
       providesTags: (_r, _e, { estimateId }) => [{ type: 'Estimate', id: estimateId }],
     }),
 
@@ -392,7 +424,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: EstimateDTO }) => raw.data,
+      transformResponse: (raw: { data: { estimate: EstimateDTO } }) => raw.data.estimate,
       invalidatesTags: (_r, _e, { estimateId }) => [
         { type: 'Estimate', id: estimateId },
         { type: 'Estimate', id: 'LIST' },
@@ -408,7 +440,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: EstimateDTO }) => raw.data,
+      transformResponse: (raw: { data: { estimate: EstimateDTO } }) => raw.data.estimate,
       invalidatesTags: (_r, _e, { estimateId }) => [
         { type: 'Estimate', id: estimateId },
         { type: 'Estimate', id: 'LIST' },
@@ -424,7 +456,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: EstimateDTO }) => raw.data,
+      transformResponse: (raw: { data: { estimate: EstimateDTO } }) => raw.data.estimate,
       invalidatesTags: (_r, _e, { estimateId }) => [
         { type: 'Estimate', id: estimateId },
         { type: 'Estimate', id: 'LIST' },
@@ -441,7 +473,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: EstimateDTO }) => raw.data,
+      transformResponse: (raw: { data: { estimate: EstimateDTO } }) => raw.data.estimate,
       invalidatesTags: (_r, _e, { estimateId }) => [
         { type: 'Estimate', id: estimateId },
         { type: 'Estimate', id: 'LIST' },
@@ -463,8 +495,8 @@ export const preconstructionApi = baseApi.injectEndpoints({
     // ── BOQ (Bill of Quantities) ───────────────────────────────────────────
 
     listBoqs: build.query<BoqDTO[], OrgProjectArgs>({
-      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/boq`,
-      transformResponse: (raw: { data: BoqDTO[] }) => raw.data,
+      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/boqs`,
+      transformResponse: (raw: { data: { items: BoqDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'BOQ', id: projectId }],
     }),
 
@@ -477,7 +509,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'BOQ', id: projectId }],
     }),
 
@@ -489,7 +521,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
       providesTags: (_r, _e, { boqId }) => [{ type: 'BOQ', id: boqId }],
     }),
 
@@ -502,7 +534,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
       invalidatesTags: (_r, _e, { boqId }) => [
         { type: 'BOQ', id: boqId },
         { type: 'BOQ', id: 'LIST' },
@@ -518,7 +550,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
       invalidatesTags: (_r, _e, { boqId }) => [
         { type: 'BOQ', id: boqId },
         { type: 'BOQ', id: 'LIST' },
@@ -534,7 +566,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
       invalidatesTags: (_r, _e, { boqId }) => [
         { type: 'BOQ', id: boqId },
         { type: 'BOQ', id: 'LIST' },
@@ -550,7 +582,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
       invalidatesTags: (_r, _e, { boqId }) => [
         { type: 'BOQ', id: boqId },
         { type: 'BOQ', id: 'LIST' },
@@ -565,7 +597,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqRevisionDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { items: BoqRevisionDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { boqId }) => [{ type: 'BOQ', id: `${boqId}_REVISIONS` }],
     }),
 
@@ -577,7 +609,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqRevisionDTO }) => raw.data,
+      transformResponse: (raw: { data: { revision: BoqRevisionDTO } }) => raw.data.revision,
       providesTags: (_r, _e, { boqId, revisionId }) => [
         { type: 'BOQ', id: `${boqId}_REV_${revisionId}` },
       ],
@@ -596,7 +628,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           },
         };
       },
-      transformResponse: (raw: { data: BoqImportPreviewResult }) => raw.data,
+      transformResponse: (raw: { data: { preview: BoqImportPreviewResult } }) => raw.data.preview,
     }),
 
     commitBoqImport: build.mutation<BoqDTO, OrgProjectArgs & { boqId: string; input: BoqImportCommitInput }>({
@@ -608,14 +640,14 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
       invalidatesTags: (_r, _e, { boqId }) => [
         { type: 'BOQ', id: boqId },
         { type: 'BOQ', id: 'LIST' },
       ],
     }),
 
-    mapBoqItem: build.mutation<BoqDTO, OrgProjectArgs & { boqId: string; itemId: string; input: BoqMapItemInput }>({
+    mapBoqItem: build.mutation<BoqItemDTO, OrgProjectArgs & { boqId: string; itemId: string; input: BoqMapItemInput }>({
       query: ({ orgId, projectId, boqId, itemId, input }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/boqs/${boqId}/items/${itemId}/mapping`,
         method: 'PUT',
@@ -624,7 +656,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BoqDTO }) => raw.data,
+      transformResponse: (raw: { data: { item: BoqItemDTO } }) => raw.data.item,
       invalidatesTags: (_r, _e, { boqId }) => [
         { type: 'BOQ', id: boqId },
       ],
@@ -643,39 +675,153 @@ export const preconstructionApi = baseApi.injectEndpoints({
 
     // ── Takeoff ────────────────────────────────────────────────────────────
 
-    listTakeoffSheets: build.query<TakeoffSheetDTO[], OrgProjectArgs>({
-      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/takeoff`,
-      transformResponse: (raw: { data: TakeoffSheetDTO[] }) => raw.data,
+    listTakeoffSheets: build.query<{ items: TakeoffSheetDTO[]; nextCursor: string | null }, OrgProjectArgs>({
+      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/takeoffs/sheets`,
+      transformResponse: (raw: { data: { items: TakeoffSheetDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'Takeoff', id: projectId }],
     }),
 
     createTakeoffSheet: build.mutation<TakeoffSheetDTO, OrgProjectArgs & { input: CreateTakeoffSheetInput }>({
       query: ({ orgId, projectId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/takeoff`,
+        url: `/organizations/${orgId}/projects/${projectId}/takeoffs/sheets`,
         method: 'POST',
         body: input,
       }),
-      transformResponse: (raw: { data: TakeoffSheetDTO }) => raw.data,
+      transformResponse: (raw: { data: { sheet: TakeoffSheetDTO } }) => raw.data.sheet,
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Takeoff', id: projectId }],
+    }),
+
+    transitionTakeoffSheet: build.mutation<
+      TakeoffSheetDTO,
+      OrgProjectArgs & { sheetId: string; action: 'submit' | 'approve' | 'reject'; expectedVersion: number; reason?: string }
+    >({
+      query: ({ orgId, projectId, sheetId, action, expectedVersion, reason }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/takeoffs/sheets/${sheetId}/${action}`,
+        method: 'POST',
+        body: action === 'reject' ? { expectedVersion, reason } : { expectedVersion },
+      }),
+      transformResponse: (raw: { data: { sheet: TakeoffSheetDTO } }) => raw.data.sheet,
+      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Takeoff', id: projectId }],
+    }),
+
+    // ── Generic transitions and client events ──────────────────────────────
+
+    transitionEstimate: build.mutation<
+      EstimateDTO,
+      OrgProjectArgs & { estimateId: string; action: 'submit' | 'approve' | 'reject'; expectedVersion: number; reason?: string }
+    >({
+      query: ({ orgId, projectId, estimateId, action, expectedVersion, reason }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/estimates/${estimateId}/${action}`,
+        method: 'POST',
+        body: action === 'reject' ? { expectedVersion, reason } : { expectedVersion },
+        headers: {
+          'X-Idempotency-Key': crypto.randomUUID(),
+        },
+      }),
+      transformResponse: (raw: { data: { estimate: EstimateDTO } }) => raw.data.estimate,
+      invalidatesTags: (_r, _e, { estimateId, action }) => [
+        { type: 'Estimate', id: estimateId },
+        { type: 'Estimate', id: 'LIST' },
+        ...(action === 'approve' ? [{ type: 'Budget' as const, id: 'CURRENT' }] : []),
+      ],
+    }),
+
+    transitionBoq: build.mutation<
+      BoqDTO,
+      OrgProjectArgs & { boqId: string; action: 'submit' | 'approve' | 'lock'; expectedVersion: number }
+    >({
+      query: ({ orgId, projectId, boqId, action, expectedVersion }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/boqs/${boqId}/${action}`,
+        method: 'POST',
+        body: { expectedVersion },
+        headers: {
+          'X-Idempotency-Key': crypto.randomUUID(),
+        },
+      }),
+      transformResponse: (raw: { data: { boq: BoqDTO } }) => raw.data.boq,
+      invalidatesTags: (_r, _e, { boqId }) => [
+        { type: 'BOQ', id: boqId },
+        { type: 'BOQ', id: 'LIST' },
+      ],
+    }),
+
+    transitionProposal: build.mutation<
+      ProposalDTO,
+      OrgProjectArgs & {
+        proposalId: string;
+        action: 'submit' | 'approve' | 'reject' | 'issue' | 'withdraw';
+        expectedVersion: number;
+        reason?: string;
+        deliveryMethod?: 'INTERNAL' | 'EMAIL';
+        deliveryNotes?: string;
+      }
+    >({
+      query: ({ orgId, projectId, proposalId, action, expectedVersion, reason, deliveryMethod, deliveryNotes }) => {
+        const body: Record<string, string | number> = { expectedVersion };
+        if ((action === 'reject' || action === 'withdraw') && reason !== undefined) body.reason = reason;
+        if (action === 'issue') {
+          if (deliveryMethod) body.deliveryMethod = deliveryMethod;
+          if (deliveryNotes) body.deliveryNotes = deliveryNotes;
+        }
+        return {
+          url: `/organizations/${orgId}/projects/${projectId}/proposals/${proposalId}/${action}`,
+          method: 'POST',
+          body,
+          headers: {
+            'X-Idempotency-Key': crypto.randomUUID(),
+          },
+        };
+      },
+      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
+      invalidatesTags: (_r, _e, { proposalId }) => [
+        { type: 'Proposal', id: proposalId },
+        { type: 'Proposal', id: 'LIST' },
+      ],
+    }),
+
+    listClientEvents: build.query<{ events: ProposalClientEventDTO[] }, OrgProjectArgs & { proposalId: string }>({
+      query: ({ orgId, projectId, proposalId }) =>
+        `/organizations/${orgId}/projects/${projectId}/proposals/${proposalId}/client-events`,
+      transformResponse: (raw: { data: { events: ProposalClientEventDTO[] } }) => raw.data,
+      providesTags: (_r, _e, { proposalId }) => [{ type: 'Proposal', id: proposalId }],
     }),
 
     // ── Pricing / Material Rates ───────────────────────────────────────────
 
-    listMaterialRates: build.query<MaterialRateVersionDTO[], OrgProjectArgs & { materialId: string }>({
+    listRateVersions: build.query<MaterialRateVersionDTO[], OrgProjectArgs & { materialId: string }>({
       query: ({ orgId, projectId, materialId }) =>
-        `/organizations/${orgId}/projects/${projectId}/pricing/${materialId}/versions`,
-      transformResponse: (raw: { data: MaterialRateVersionDTO[] }) => raw.data,
+        `/organizations/${orgId}/projects/${projectId}/pricing/rates?materialId=${encodeURIComponent(materialId)}`,
+      transformResponse: (raw: { data: { rateVersions: MaterialRateVersionDTO[] } }) => raw.data.rateVersions,
       providesTags: (_r, _e, { materialId }) => [{ type: 'MaterialRate', id: materialId }],
     }),
 
-    createMaterialRate: build.mutation<MaterialRateVersionDTO, OrgProjectArgs & { materialId: string; input: CreateRateVersionInput }>({
-      query: ({ orgId, projectId, materialId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/pricing/${materialId}/versions`,
+    createRateVersion: build.mutation<MaterialRateVersionDTO, OrgProjectArgs & { input: CreateRateVersionInput }>({
+      query: ({ orgId, projectId, input }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/pricing/rates`,
         method: 'POST',
         body: input,
       }),
-      transformResponse: (raw: { data: MaterialRateVersionDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { materialId }) => [{ type: 'MaterialRate', id: materialId }],
+      transformResponse: (raw: { data: { rateVersion: MaterialRateVersionDTO } }) => raw.data.rateVersion,
+      invalidatesTags: (r) => (r ? [{ type: 'MaterialRate', id: r.materialId }] : []),
+    }),
+
+    approveRateVersion: build.mutation<MaterialRateVersionDTO, OrgProjectArgs & { rateId: string }>({
+      query: ({ orgId, projectId, rateId }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/pricing/rates/${rateId}/approve`,
+        method: 'POST',
+      }),
+      transformResponse: (raw: { data: { rateVersion: MaterialRateVersionDTO } }) => raw.data.rateVersion,
+      invalidatesTags: (r) => (r ? [{ type: 'MaterialRate', id: r.materialId }] : []),
+    }),
+
+    retireRateVersion: build.mutation<MaterialRateVersionDTO, OrgProjectArgs & { rateId: string; effectiveTo: string }>({
+      query: ({ orgId, projectId, rateId, effectiveTo }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/pricing/rates/${rateId}/retire`,
+        method: 'POST',
+        body: { effectiveTo },
+      }),
+      transformResponse: (raw: { data: { rateVersion: MaterialRateVersionDTO } }) => raw.data.rateVersion,
+      invalidatesTags: (r) => (r ? [{ type: 'MaterialRate', id: r.materialId }] : []),
     }),
 
   }),
@@ -692,6 +838,7 @@ export const {
   useAwardTenderMutation,
   useLostTenderMutation,
   useWithdrawTenderMutation,
+  useTransitionTenderMutation,
   // Proposals
   useListProposalsQuery,
   useCreateProposalMutation,
@@ -732,7 +879,15 @@ export const {
   // Takeoff
   useListTakeoffSheetsQuery,
   useCreateTakeoffSheetMutation,
+  useTransitionTakeoffSheetMutation,
+  // Generic transitions and client events
+  useTransitionEstimateMutation,
+  useTransitionBoqMutation,
+  useTransitionProposalMutation,
+  useListClientEventsQuery,
   // Pricing
-  useListMaterialRatesQuery,
-  useCreateMaterialRateMutation,
+  useListRateVersionsQuery,
+  useCreateRateVersionMutation,
+  useApproveRateVersionMutation,
+  useRetireRateVersionMutation,
 } = preconstructionApi;

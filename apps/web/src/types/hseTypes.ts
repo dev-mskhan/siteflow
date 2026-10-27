@@ -2,6 +2,14 @@
  * hseTypes — Group 10 DTOs for Safety, Quality, Compliance.
  */
 
+export type {
+  CreateQualityInspectionInput,
+  CreateCorrectiveActionInput,
+  CreateSafetyMeetingInput,
+  CreatePermitInput,
+  CreateComplianceRecordInput,
+} from '@siteflow/shared';
+
 // ── Safety ────────────────────────────────────────────────────────────────────
 export type SafetyEventType = 'INCIDENT' | 'NEAR_MISS' | 'UNSAFE_CONDITION' | 'UNSAFE_ACT' | 'FIRST_AID';
 export type SafetyEventStatus = 'REPORTED' | 'UNDER_INVESTIGATION' | 'CORRECTIVE_ACTION_REQUIRED' | 'CORRECTIVE_ACTION_IN_PROGRESS' | 'CLOSED';

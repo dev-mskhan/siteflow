@@ -18,6 +18,10 @@ import type {
   CreateQualityInspectionInput,
   CreatePermitInput,
   CreateComplianceRecordInput,
+  CreateCorrectiveActionInput,
+  CreateSafetyMeetingInput,
+  ExpiringItemDTO,
+  QualityInspectionResult,
   SafetyEventStatus,
   PermitStatus,
 } from '../../types/hseTypes';
@@ -43,10 +47,7 @@ export const hseApi = baseApi.injectEndpoints({
         const query = params.toString() ? `?${params.toString()}` : '';
         return `/organizations/${orgId}/projects/${projectId}/safety-events${query}`;
       },
-      transformResponse: (raw: { data: SafetyEventDTO[]; meta: { nextCursor: string | null } }) => ({
-        data: raw.data,
-        nextCursor: raw.meta.nextCursor,
-      }),
+      transformResponse: (raw: { data: { data: SafetyEventDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'SafetyEvent', id: projectId }],
     }),
 
@@ -128,19 +129,19 @@ export const hseApi = baseApi.injectEndpoints({
 
     // ── Safety Meetings ────────────────────────────────────────────────────
 
-    listSafetyMeetings: build.query<SafetyMeetingDTO[], OrgProjectArgs>({
+    listSafetyMeetings: build.query<{ data: SafetyMeetingDTO[]; nextCursor: string | null }, OrgProjectArgs>({
       query: ({ orgId, projectId }) =>
         `/organizations/${orgId}/projects/${projectId}/safety-meetings`,
-      transformResponse: (raw: { data: SafetyMeetingDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { data: SafetyMeetingDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'SafetyMeeting', id: projectId }],
     }),
 
     // ── Quality Inspections ────────────────────────────────────────────────
 
-    listQualityInspections: build.query<QualityInspectionDTO[], OrgProjectArgs>({
+    listQualityInspections: build.query<{ data: QualityInspectionDTO[]; nextCursor: string | null }, OrgProjectArgs>({
       query: ({ orgId, projectId }) =>
         `/organizations/${orgId}/projects/${projectId}/quality-inspections`,
-      transformResponse: (raw: { data: QualityInspectionDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { data: QualityInspectionDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'QualityInspection', id: projectId }],
     }),
 
@@ -210,12 +211,12 @@ export const hseApi = baseApi.injectEndpoints({
 
     // ── Quality Deficiencies ───────────────────────────────────────────────
 
-    listQualityDeficiencies: build.query<QualityDeficiencyDTO[], OrgProjectArgs>({
+    listQualityDeficiencies: build.query<{ data: QualityDeficiencyDTO[]; nextCursor: string | null }, OrgProjectArgs>({
       query: ({ orgId, projectId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/quality-deficiencies`,
         headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: { data: QualityDeficiencyDTO[] } }) => raw.data.data,
+      transformResponse: (raw: { data: { data: QualityDeficiencyDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'QualityDeficiency', id: projectId }],
     }),
 
@@ -281,12 +282,12 @@ export const hseApi = baseApi.injectEndpoints({
 
     // ── Corrective Actions ─────────────────────────────────────────────────
 
-    listCorrectiveActions: build.query<CorrectiveActionDTO[], OrgProjectArgs>({
+    listCorrectiveActions: build.query<{ data: CorrectiveActionDTO[]; nextCursor: string | null }, OrgProjectArgs>({
       query: ({ orgId, projectId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/corrective-actions`,
         headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: { data: CorrectiveActionDTO[] } }) => raw.data.data,
+      transformResponse: (raw: { data: { data: CorrectiveActionDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'CorrectiveAction', id: projectId }],
     }),
 
@@ -339,10 +340,7 @@ export const hseApi = baseApi.injectEndpoints({
         const query = params.toString() ? `?${params.toString()}` : '';
         return `/organizations/${orgId}/projects/${projectId}/permits${query}`;
       },
-      transformResponse: (raw: { data: PermitDTO[]; meta: { nextCursor: string | null } }) => ({
-        data: raw.data,
-        nextCursor: raw.meta.nextCursor,
-      }),
+      transformResponse: (raw: { data: { data: PermitDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'Permit', id: projectId }],
     }),
 
@@ -408,10 +406,10 @@ export const hseApi = baseApi.injectEndpoints({
 
     // ── Compliance Records ─────────────────────────────────────────────────
 
-    listComplianceRecords: build.query<ComplianceRecordDTO[], OrgProjectArgs>({
+    listComplianceRecords: build.query<{ data: ComplianceRecordDTO[]; nextCursor: string | null }, OrgProjectArgs>({
       query: ({ orgId, projectId }) =>
         `/organizations/${orgId}/projects/${projectId}/compliance-records`,
-      transformResponse: (raw: { data: ComplianceRecordDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { data: ComplianceRecordDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'ComplianceRecord', id: projectId }],
     }),
 
@@ -480,12 +478,12 @@ export const hseApi = baseApi.injectEndpoints({
 
     // ── Compliance Inspections ─────────────────────────────────────────────
 
-    listComplianceInspections: build.query<ComplianceInspectionDTO[], OrgProjectArgs>({
+    listComplianceInspections: build.query<{ data: ComplianceInspectionDTO[]; nextCursor: string | null }, OrgProjectArgs>({
       query: ({ orgId, projectId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/compliance-inspections`,
         headers: { 'X-Idempotency-Key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: { data: ComplianceInspectionDTO[] } }) => raw.data.data,
+      transformResponse: (raw: { data: { data: ComplianceInspectionDTO[]; nextCursor: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'ComplianceInspection', id: projectId }],
     }),
 
@@ -549,6 +547,121 @@ export const hseApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // ── Generic lifecycle transitions (action dispatch used by pages) ──────
+
+    transitionQualityInspection: build.mutation<
+      QualityInspectionDTO,
+      OrgProjectArgs & {
+        inspectionId: string;
+        action: 'start' | 'complete';
+        result?: QualityInspectionResult;
+        findings?: string;
+        performedDate?: string;
+      }
+    >({
+      query: ({ orgId, projectId, inspectionId, action, result, findings, performedDate }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/quality-inspections/${inspectionId}/${action}`,
+        method: 'POST',
+        body: action === 'complete' ? { result, findings, performedDate } : {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { inspection: QualityInspectionDTO } }) => raw.data.inspection,
+      invalidatesTags: (_r, _e, { inspectionId, projectId }) => [
+        { type: 'QualityInspection', id: inspectionId },
+        { type: 'QualityInspection', id: projectId },
+      ],
+    }),
+
+    transitionQualityDeficiency: build.mutation<
+      QualityDeficiencyDTO,
+      OrgProjectArgs & { deficiencyId: string; action: 'resolve' | 'close' }
+    >({
+      query: ({ orgId, projectId, deficiencyId, action }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/quality-deficiencies/${deficiencyId}/${action}`,
+        method: 'POST',
+        body: {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { deficiency: QualityDeficiencyDTO } }) => raw.data.deficiency,
+      invalidatesTags: (_r, _e, { deficiencyId, projectId }) => [
+        { type: 'QualityDeficiency', id: deficiencyId },
+        { type: 'QualityDeficiency', id: projectId },
+      ],
+    }),
+
+    createCorrectiveAction: build.mutation<CorrectiveActionDTO, OrgProjectArgs & { input: CreateCorrectiveActionInput }>({
+      query: ({ orgId, projectId, input }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/corrective-actions`,
+        method: 'POST',
+        body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { action: CorrectiveActionDTO } }) => raw.data.action,
+      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'CorrectiveAction', id: projectId }],
+    }),
+
+    transitionCorrectiveAction: build.mutation<
+      CorrectiveActionDTO,
+      OrgProjectArgs & { actionId: string; action: 'complete' | 'verify'; notes?: string }
+    >({
+      query: ({ orgId, projectId, actionId, action, notes }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/corrective-actions/${actionId}/${action}`,
+        method: 'POST',
+        body: action === 'verify' ? { notes } : {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { action: CorrectiveActionDTO } }) => raw.data.action,
+      invalidatesTags: (_r, _e, { actionId, projectId }) => [
+        { type: 'CorrectiveAction', id: actionId },
+        { type: 'CorrectiveAction', id: projectId },
+      ],
+    }),
+
+    transitionSafetyEvent: build.mutation<
+      SafetyEventDTO,
+      OrgProjectArgs & { eventId: string; action: 'investigate' | 'close'; notes?: string }
+    >({
+      query: ({ orgId, projectId, eventId, action, notes }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/safety-events/${eventId}/${action}`,
+        method: 'POST',
+        body: action === 'close' ? { notes } : {},
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { event: SafetyEventDTO } }) => raw.data.event,
+      invalidatesTags: (_r, _e, { eventId, projectId }) => [
+        { type: 'SafetyEvent', id: eventId },
+        { type: 'SafetyEvent', id: projectId },
+      ],
+    }),
+
+    createSafetyMeeting: build.mutation<SafetyMeetingDTO, OrgProjectArgs & { input: CreateSafetyMeetingInput }>({
+      query: ({ orgId, projectId, input }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/safety-meetings`,
+        method: 'POST',
+        body: input,
+        headers: { 'X-Idempotency-Key': crypto.randomUUID() },
+      }),
+      transformResponse: (raw: { data: { meeting: SafetyMeetingDTO } }) => raw.data.meeting,
+      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'SafetyMeeting', id: projectId }],
+    }),
+
+    // ── Expiring items (documents, permits, compliance records) ────────────
+
+    listExpiring: build.query<
+      { items: ExpiringItemDTO[]; total: number },
+      OrgProjectArgs & { days?: number; entityType?: ExpiringItemDTO['entityType'] }
+    >({
+      query: ({ orgId, projectId, days, entityType }) => {
+        const params = new URLSearchParams();
+        if (days !== undefined) params.set('days', String(days));
+        if (entityType) params.set('entityType', entityType);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return `/organizations/${orgId}/projects/${projectId}/expiring${query}`;
+      },
+      transformResponse: (raw: { data: { items: ExpiringItemDTO[]; total: number } }) => raw.data,
+      providesTags: (_r, _e, { projectId }) => [{ type: 'ComplianceRecord', id: projectId }],
+    }),
+
   }),
   overrideExisting: false,
 });
@@ -562,8 +675,10 @@ export const {
   useInvestigateSafetyEventMutation,
   useCloseSafetyEventMutation,
   useCreateSafetyCorrectiveActionMutation,
+  useTransitionSafetyEventMutation,
   // Safety Meetings
   useListSafetyMeetingsQuery,
+  useCreateSafetyMeetingMutation,
   // Quality Inspections
   useListQualityInspectionsQuery,
   useCreateQualityInspectionMutation,
@@ -571,6 +686,7 @@ export const {
   useUpdateQualityInspectionMutation,
   useStartQualityInspectionMutation,
   useCompleteQualityInspectionMutation,
+  useTransitionQualityInspectionMutation,
   // Quality Deficiencies
   useListQualityDeficienciesQuery,
   useCreateQualityDeficiencyMutation,
@@ -578,11 +694,14 @@ export const {
   useUpdateQualityDeficiencyMutation,
   useResolveQualityDeficiencyMutation,
   useCloseQualityDeficiencyMutation,
+  useTransitionQualityDeficiencyMutation,
   // Corrective Actions
   useListCorrectiveActionsQuery,
   useGetCorrectiveActionQuery,
   useCompleteCorrectiveActionMutation,
   useVerifyCorrectiveActionMutation,
+  useCreateCorrectiveActionMutation,
+  useTransitionCorrectiveActionMutation,
   // Permits
   useListPermitsQuery,
   useCreatePermitMutation,
@@ -604,4 +723,6 @@ export const {
   useUpdateComplianceInspectionMutation,
   useCompleteComplianceInspectionMutation,
   useDeleteComplianceInspectionMutation,
+  // Expiring
+  useListExpiringQuery,
 } = hseApi;

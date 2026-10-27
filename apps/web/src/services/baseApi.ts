@@ -136,6 +136,7 @@ export const baseApi = createApi({
     'Estimate',
     'BOQ',
     'Takeoff',
+    'MaterialRate',
     // Commercial & Financial
     'ChangeOrder',
     'SOV',
@@ -168,6 +169,7 @@ export const baseApi = createApi({
     'PlatformDiagnostics',
     'SupportGrant',
     'Subcontractor',
+    'SubcontractorContact',
     'SubcontractorContract',
     // Notifications & Realtime
     'Notification',

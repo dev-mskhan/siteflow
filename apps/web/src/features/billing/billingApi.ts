@@ -17,12 +17,11 @@ export interface TrialDTO {
 }
 
 export interface CheckoutSessionResponse {
-  sessionId: string;
-  url: string;
+  checkoutUrl: string;
 }
 
 export interface PortalSessionResponse {
-  url: string;
+  portalUrl: string;
 }
 
 export interface SaaSInvoiceDTO {
@@ -68,22 +67,21 @@ export const billingApi = baseApi.injectEndpoints({
 
     createCheckoutSession: build.mutation<
       CheckoutSessionResponse,
-      OrgArgs & { planTier: string; returnUrl: string }
+      OrgArgs & { planId: 'starter' | 'professional' | 'enterprise'; interval: 'month' | 'year' }
     >({
-      query: ({ orgId, planTier, returnUrl }) => ({
+      query: ({ orgId, planId, interval }) => ({
         url: `/organizations/${orgId}/billing/checkout`,
         method: 'POST',
-        body: { planTier, returnUrl },
+        body: { planId, interval },
         headers: { 'idempotency-key': crypto.randomUUID() },
       }),
       transformResponse: (raw: { data: CheckoutSessionResponse }) => raw.data,
     }),
 
-    createPortalSession: build.mutation<PortalSessionResponse, OrgArgs & { returnUrl: string }>({
-      query: ({ orgId, returnUrl }) => ({
+    createPortalSession: build.mutation<PortalSessionResponse, OrgArgs>({
+      query: ({ orgId }) => ({
         url: `/organizations/${orgId}/billing/portal`,
         method: 'POST',
-        body: { returnUrl },
       }),
       transformResponse: (raw: { data: PortalSessionResponse }) => raw.data,
     }),
