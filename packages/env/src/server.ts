@@ -117,6 +117,7 @@ export const serverEnv = createEnv({
     /** AI model provider ('openai' | 'google' | 'fake') */
     AI_PROVIDER: z.enum(['openai', 'google', 'fake']).default('openai'),
     OPENAI_API_KEY: z.string().optional(),
+    OPENAI_BASE_URL: z.string().url().optional(),
     GOOGLE_API_KEY: z.string().optional(),
     /** Concrete model name for the "cheap" tier (fast, low cost) */
     AI_MODEL_CHEAP: z.string().default('gpt-4o-mini'),

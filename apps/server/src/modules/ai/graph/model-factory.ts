@@ -120,6 +120,7 @@ export function createModel(
   return new ChatOpenAI({
     model: modelName,
     apiKey: serverEnv.OPENAI_API_KEY,
+    configuration: serverEnv.OPENAI_BASE_URL ? { baseURL: serverEnv.OPENAI_BASE_URL } : undefined,
     temperature: opts.temperature ?? (tier === 'strong' ? 0.2 : 0.0),
     maxTokens: opts.maxTokens,
     streaming: false,
