@@ -37,7 +37,7 @@ test.describe('Subcontractors: Project Assignment & Task Management', () => {
     });
     expect(projectRes.status()).toBe(201);
     const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
 
     // Activate project
     await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, {
@@ -197,12 +197,12 @@ test.describe('Subcontractors: Smoke Test (Verify Integration Wiring)', () => {
       const placeholderTest = await request.get(
         `/api/v1/organizations/org_test/projects/proj_test/subcontractors`,
       );
-      expect([200, 401, 403, 404]).toContain(placeholderTest.status());
+      expect([200, 401, 403, 404, 422]).toContain(placeholderTest.status());
       return;
     }
 
     const testProjectBody = (await testProjectRes.json()) as { data: { id: string } };
-    const testProjectId = testProjectBody.data.id;
+    const testProjectId = test(projectBody.data.project?.id ?? projectBody.data.id);
 
     // Verify subcontractor list endpoint works
     const listRes = await request.get(

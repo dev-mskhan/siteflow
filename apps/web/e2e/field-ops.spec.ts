@@ -15,7 +15,7 @@ test.describe('Field Operations: Tasks, Field Logs, Issues', () => {
     });
     expect(orgRes.status()).toBe(201);
     const orgBody = await orgRes.json();
-    orgId = orgBody.data.id;
+    orgId = (orgBody.data.organization?.id ?? orgBody.data.id);
 
     // Provision trial - Required for project creation
     const trialRes = await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
@@ -27,7 +27,7 @@ test.describe('Field Operations: Tasks, Field Logs, Issues', () => {
     });
     expect(projectRes.status()).toBe(201);
     const projectBody = await projectRes.json();
-    projectId = projectBody.data.id;
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
   });
 
   test('creates task and transitions status', async ({ request }) => {

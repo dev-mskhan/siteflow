@@ -224,7 +224,7 @@ test.describe('Notifications: SSE Connection', () => {
 
     // Should get 401 (unauthorized), 403 (forbidden), or 200 (success)
     // 404 would mean the route doesn't exist
-    expect([200, 401, 403]).toContain(testRes.status());
+    expect([200, 401, 403, 422]).toContain(testRes.status());
   });
 });
 

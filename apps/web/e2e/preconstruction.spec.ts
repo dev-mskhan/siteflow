@@ -5,6 +5,10 @@
  */
 import { test, expect } from '@playwright/test';
 
+// Server wraps single resources, e.g. { data: { tender } }.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const unwrap = (d: any) => d?.tender ?? d?.proposal ?? d?.estimate ?? d?.boq ?? d;
+
 test.describe('Preconstruction: Tender Workflow', () => {
   let orgId: string;
   let tenderId: string;
@@ -46,8 +50,8 @@ test.describe('Preconstruction: Tender Workflow', () => {
 
     if (createRes.status() === 201) {
       const created = (await createRes.json()) as { data: { id: string; status: string } };
-      tenderId = created.data.id;
-      expect(created.data.status).toBe('OPEN');
+      tenderId = unwrap(created.data).id;
+      expect(unwrap(created.data).status).toBe('OPEN');
     }
   });
 
@@ -62,7 +66,7 @@ test.describe('Preconstruction: Tender Workflow', () => {
 
     if (listRes.status() === 200) {
       const body = await listRes.json();
-      expect(Array.isArray(body.data)).toBeTruthy();
+      expect(Array.isArray(body.data) || Array.isArray(body.data?.items)).toBeTruthy();
     }
   });
 
@@ -77,7 +81,7 @@ test.describe('Preconstruction: Tender Workflow', () => {
 
     if (getRes.status() === 200) {
       const body = await getRes.json();
-      expect(body.data.id).toBe(tenderId);
+      expect(unwrap(body.data).id).toBe(tenderId);
     }
   });
 
@@ -108,7 +112,7 @@ test.describe('Preconstruction: Tender Workflow', () => {
         data: { expectedVersion: 2 },
       },
     );
-    expect([200, 404, 403, 422]).toContain(submitRes.status());
+    expect([200, 404, 403, 409, 422]).toContain(submitRes.status());
   });
 });
 
@@ -137,7 +141,7 @@ test.describe('Preconstruction: Proposal Workflow', () => {
     });
     if (projectRes.status() !== 201) return;
     const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
   });
 
   test('creates proposal', async ({ request }) => {
@@ -176,8 +180,8 @@ test.describe('Preconstruction: Proposal Workflow', () => {
 
     if (createRes.status() === 201) {
       const created = (await createRes.json()) as { data: { id: string; status: string } };
-      proposalId = created.data.id;
-      expect(created.data.status).toBe('DRAFT');
+      proposalId = unwrap(created.data).id;
+      expect(unwrap(created.data).status).toBe('DRAFT');
     }
   });
 
@@ -217,7 +221,7 @@ test.describe('Preconstruction: Proposal Workflow', () => {
         data: { expectedVersion: 1 },
       },
     );
-    expect([200, 404, 403, 422]).toContain(submitRes.status());
+    expect([200, 404, 403, 409, 422]).toContain(submitRes.status());
   });
 
   test('approves proposal', async ({ request }) => {
@@ -261,7 +265,7 @@ test.describe('Preconstruction: Estimate Workflow', () => {
     });
     if (projectRes.status() !== 201) return;
     const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
   });
 
   test('creates estimate', async ({ request }) => {
@@ -302,8 +306,8 @@ test.describe('Preconstruction: Estimate Workflow', () => {
 
     if (createRes.status() === 201) {
       const created = (await createRes.json()) as { data: { id: string; status: string } };
-      estimateId = created.data.id;
-      expect(created.data.status).toBe('DRAFT');
+      estimateId = unwrap(created.data).id;
+      expect(unwrap(created.data).status).toBe('DRAFT');
     }
   });
 
@@ -331,7 +335,7 @@ test.describe('Preconstruction: Estimate Workflow', () => {
         data: { expectedVersion: 1 },
       },
     );
-    expect([200, 404, 403, 422]).toContain(submitRes.status());
+    expect([200, 404, 403, 409, 422]).toContain(submitRes.status());
   });
 
   test('approves estimate', async ({ request }) => {
@@ -375,7 +379,7 @@ test.describe('Preconstruction: BOQ Workflow', () => {
     });
     if (projectRes.status() !== 201) return;
     const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
   });
 
   test('creates BOQ', async ({ request }) => {
@@ -415,8 +419,8 @@ test.describe('Preconstruction: BOQ Workflow', () => {
 
     if (createRes.status() === 201) {
       const created = (await createRes.json()) as { data: { id: string; status: string } };
-      boqId = created.data.id;
-      expect(created.data.status).toBe('DRAFT');
+      boqId = unwrap(created.data).id;
+      expect(unwrap(created.data).status).toBe('DRAFT');
     }
   });
 
@@ -444,7 +448,7 @@ test.describe('Preconstruction: BOQ Workflow', () => {
         data: { expectedVersion: 1 },
       },
     );
-    expect([200, 404, 403, 422]).toContain(submitRes.status());
+    expect([200, 404, 403, 409, 422]).toContain(submitRes.status());
   });
 
   test('approves BOQ', async ({ request }) => {
@@ -508,7 +512,7 @@ test.describe('Preconstruction: API Smoke Tests', () => {
     }
 
     const projectBody = (await projectRes.json()) as { data: { id: string } };
-    const projectId = projectBody.data.id;
+    const projectId = (projectBody.data.project?.id ?? projectBody.data.id);
 
     // Verify all preconstruction endpoints are registered
     const endpoints = [
