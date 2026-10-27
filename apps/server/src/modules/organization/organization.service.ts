@@ -41,7 +41,9 @@ function deriveSlug(name: string): string {
     .substring(0, 50);             // truncate to 50 chars
 }
 
-const MAX_ORGS_PER_USER = 5;
+const DEFAULT_MAX_ORGS_PER_USER = 5;
+const maxOrgsPerUser = (): number =>
+  Number(process.env.MAX_ORGS_PER_USER) || DEFAULT_MAX_ORGS_PER_USER;
 
 export function toOrgDTO(org: Organization): OrgDTO {
   return {
@@ -84,8 +86,9 @@ export class OrganizationService {
 
       // Guard 2: org cap per user
       const orgCount = await this.repo.countByCreator(userId);
-      if (orgCount >= MAX_ORGS_PER_USER) {
-        throw new ForbiddenError(`You have reached the maximum limit of ${MAX_ORGS_PER_USER} organizations`);
+      const maxOrgs = maxOrgsPerUser();
+      if (orgCount >= maxOrgs) {
+        throw new ForbiddenError(`You have reached the maximum limit of ${maxOrgs} organizations`);
       }
 
       // Check explicit slug collision or auto-suffix derived slug
