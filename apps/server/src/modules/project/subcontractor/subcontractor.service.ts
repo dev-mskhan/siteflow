@@ -34,6 +34,7 @@ import type {
   Subcontractor,
   SubcontractorContact,
   ProjectSubcontractor,
+  SubcontractorTaskAssignment,
 } from '@siteflow/database/schema';
 import { tasks, projects } from '@siteflow/database/schema';
 import { eq, and } from 'drizzle-orm';
@@ -91,6 +92,19 @@ function toProjectSubcontractorDTO(
     startDate: row.startDate ?? null,
     endDate: row.endDate ?? null,
     subcontractor: toSubcontractorDTO(sub),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function toTaskAssignmentDTO(row: SubcontractorTaskAssignment): SubcontractorTaskAssignmentDTO {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    projectId: row.projectId,
+    subcontractorId: row.subcontractorId,
+    taskId: row.taskId,
+    assignmentRole: row.assignmentRole ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -214,6 +228,41 @@ export class SubcontractorService {
   }
 
   // ── Contacts ──────────────────────────────────────────────────────────────
+
+  async listContacts(
+    organizationId: string,
+    subcontractorId: string,
+  ): Promise<SubcontractorContactDTO[]> {
+    return withSpan(tracer, 'subcontractor.contact.list', async (span) => {
+      span.setAttributes({ organizationId, subcontractorId });
+
+      const sub = await this.repo.findById(this.db, subcontractorId);
+      if (!sub || sub.organizationId !== organizationId) {
+        throw new SubcontractorNotFoundError(subcontractorId);
+      }
+      const rows = await this.repo.listContactsBySubcontractor(this.db, subcontractorId);
+      return rows.map(toContactDTO);
+    });
+  }
+
+  async listTaskAssignments(
+    organizationId: string,
+    projectId: string,
+    subcontractorId: string,
+  ): Promise<SubcontractorTaskAssignmentDTO[]> {
+    return withSpan(tracer, 'subcontractor.task.list', async (span) => {
+      span.setAttributes({ organizationId, projectId, subcontractorId });
+
+      const sub = await this.repo.findById(this.db, subcontractorId);
+      if (!sub || sub.organizationId !== organizationId) {
+        throw new SubcontractorNotFoundError(subcontractorId);
+      }
+      const rows = await this.repo.listTaskAssignments(this.db, projectId, subcontractorId);
+      return rows
+        .filter((row) => row.organizationId === organizationId)
+        .map(toTaskAssignmentDTO);
+    });
+  }
 
   async createContact(
     actorUserId: string,

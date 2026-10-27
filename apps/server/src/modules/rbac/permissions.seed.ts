@@ -55,6 +55,9 @@ export const SYSTEM_PERMISSIONS = [
   'material:read',
   'material:create',
   'material:update',
+  'subcontractor:read',
+  'subcontractor:create',
+  'subcontractor:update',
   // AI module
   'ai.runs.create',
   'ai.runs.read',
@@ -108,6 +111,9 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'ai.runs.read',
     'ai.runs.cancel',
     'ai.approvals.decide',
+    'subcontractor:read',
+    'subcontractor:create',
+    'subcontractor:update',
   ],
   'Project Manager': [
     'organization:read',
@@ -128,6 +134,9 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'ai.runs.create',
     'ai.runs.read',
     'ai.runs.cancel',
+    'subcontractor:read',
+    'subcontractor:create',
+    'subcontractor:update',
   ],
   Finance: [
     'organization:read',
@@ -141,6 +150,7 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'ai.runs.read',
     'ai.runs.cancel',
     'ai.approvals.decide',
+    'subcontractor:read',
   ],
   Procurement: [
     'organization:read',
@@ -155,6 +165,9 @@ export const DEFAULT_ORG_ROLES: Record<string, PermissionKey[]> = {
     'material:read',
     'material:create',
     'material:update',
+    'subcontractor:read',
+    'subcontractor:create',
+    'subcontractor:update',
   ],
   'Site Supervisor': [
     'organization:read',

@@ -5,12 +5,67 @@ import { SubcontractorService } from './subcontractor.service.js';
 import {
   assignSubcontractorToProjectSchema,
   updateProjectSubcontractorSchema,
+  createSubcontractorSchema,
+  updateSubcontractorSchema,
+  listSubcontractorsQuerySchema,
   createContactSchema,
   updateContactSchema,
   assignTaskSchema,
 } from './subcontractor.schemas.js';
 
 const subcontractorService = new SubcontractorService();
+
+export async function handleListSubcontractors(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const { organizationId } = req.params as { organizationId: string };
+  const query = listSubcontractorsQuerySchema.parse(req.query);
+  const result = await subcontractorService.listSubcontractors(organizationId, query);
+  reply.send(createSuccessResponse(result.data, { nextCursor: result.nextCursor }));
+}
+
+export async function handleCreateSubcontractor(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const { organizationId } = req.params as { organizationId: string };
+  const actorUserId = req.user!.sub;
+  const input = createSubcontractorSchema.parse(req.body);
+  const result = await subcontractorService.createSubcontractor(actorUserId, organizationId, input);
+  reply.status(201).send(createSuccessResponse(result));
+}
+
+export async function handleGetSubcontractor(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const { organizationId, subcontractorId } = req.params as {
+    organizationId: string;
+    subcontractorId: string;
+  };
+  const result = await subcontractorService.getSubcontractor(organizationId, subcontractorId);
+  reply.send(createSuccessResponse(result));
+}
+
+export async function handleUpdateSubcontractor(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const { organizationId, subcontractorId } = req.params as {
+    organizationId: string;
+    subcontractorId: string;
+  };
+  const actorUserId = req.user!.sub;
+  const input = updateSubcontractorSchema.parse(req.body);
+  const result = await subcontractorService.updateSubcontractor(
+    actorUserId,
+    organizationId,
+    subcontractorId,
+    input,
+  );
+  reply.send(createSuccessResponse(result));
+}
 
 export async function handleListProjectSubcontractors(
   req: FastifyRequest,
@@ -77,6 +132,32 @@ export async function handleUpdateProjectSubcontractor(
     projectId,
     subcontractorId,
     input,
+  );
+  reply.send(createSuccessResponse(result));
+}
+
+export async function handleListContacts(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const { organizationId, subcontractorId } = req.params as {
+    organizationId: string;
+    subcontractorId: string;
+  };
+  const result = await subcontractorService.listContacts(organizationId, subcontractorId);
+  reply.send(createSuccessResponse(result));
+}
+
+export async function handleListTaskAssignments(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  const { organizationId, projectId, subcontractorId } = req.params as {
+    organizationId: string;
+    projectId: string;
+    subcontractorId: string;
+  };
+  const result = await subcontractorService.listTaskAssignments(
+    organizationId,
+    projectId,
+    subcontractorId,
   );
   reply.send(createSuccessResponse(result));
 }

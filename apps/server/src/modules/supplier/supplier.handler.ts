@@ -40,6 +40,15 @@ export async function handleUpdateSupplier(req: FastifyRequest, reply: FastifyRe
   return reply.send(createSuccessResponse(result));
 }
 
+export async function handleListSupplierContacts(req: FastifyRequest, reply: FastifyReply) {
+  const { organizationId, supplierId } = req.params as {
+    organizationId: string;
+    supplierId: string;
+  };
+  const result = await supplierService.listContacts(organizationId, supplierId);
+  return reply.send(createSuccessResponse(result));
+}
+
 export async function handleCreateSupplierContact(req: FastifyRequest, reply: FastifyReply) {
   const { organizationId, supplierId } = req.params as { organizationId: string; supplierId: string };
   const actorUserId = (req as any).user!.sub;

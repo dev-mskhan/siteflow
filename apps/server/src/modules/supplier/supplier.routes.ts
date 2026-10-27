@@ -6,6 +6,7 @@ import {
   handleCreateSupplier,
   handleGetSupplier,
   handleUpdateSupplier,
+  handleListSupplierContacts,
   handleCreateSupplierContact,
   handleUpdateSupplierContact,
 } from './supplier.handler.js';
@@ -41,6 +42,11 @@ export const supplierRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/suppliers/:supplierId',
     { schema: updateSupplierSchemaDoc, preHandler: [requirePermission('supplier:update')] },
     handleUpdateSupplier,
+  );
+  fastify.get(
+    '/:organizationId/suppliers/:supplierId/contacts',
+    { preHandler: [requirePermission('supplier:read')] },
+    handleListSupplierContacts,
   );
   fastify.post(
     '/:organizationId/suppliers/:supplierId/contacts',

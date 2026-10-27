@@ -304,6 +304,19 @@ export class SupplierService {
 
   // ── Contacts ───────────────────────────────────────────────────────────────
 
+  async listContacts(organizationId: string, supplierId: string): Promise<SupplierContactDTO[]> {
+    return withSpan(tracer, 'supplier.contact.list', async (span) => {
+      span.setAttributes({ organizationId, supplierId });
+
+      const sup = await this.repo.findById(this.db, supplierId);
+      if (!sup || sup.organizationId !== organizationId) {
+        throw new SupplierNotFoundError(supplierId);
+      }
+      const rows = await this.repo.listContactsBySupplier(this.db, supplierId);
+      return rows.map(toContactDTO);
+    });
+  }
+
   async createContact(
     actorUserId: string,
     organizationId: string,

@@ -92,8 +92,14 @@ import {
   handleUpdateProjectSubcontractor,
   handleCreateContact,
   handleUpdateContact,
+  handleListContacts,
+  handleListTaskAssignments,
   handleAssignTask,
   handleRemoveTaskAssignment,
+  handleListSubcontractors,
+  handleCreateSubcontractor,
+  handleGetSubcontractor,
+  handleUpdateSubcontractor,
 } from './subcontractor/subcontractor.handler.js';
 import {
   handleListMaterialRequests,
@@ -314,6 +320,49 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       preHandler: [requirePermission('project:read')],
     },
     handleListProjects,
+  );
+
+  // ── Org-level subcontractor directory (no projectId in path) ────────────────
+  fastify.get(
+    '/:organizationId/subcontractors',
+    { preHandler: [requirePermission('subcontractor:read')] },
+    handleListSubcontractors,
+  );
+
+  fastify.post(
+    '/:organizationId/subcontractors',
+    { preHandler: [requirePermission('subcontractor:create')] },
+    handleCreateSubcontractor,
+  );
+
+  fastify.get(
+    '/:organizationId/subcontractors/:subcontractorId',
+    { preHandler: [requirePermission('subcontractor:read')] },
+    handleGetSubcontractor,
+  );
+
+  fastify.patch(
+    '/:organizationId/subcontractors/:subcontractorId',
+    { preHandler: [requirePermission('subcontractor:update')] },
+    handleUpdateSubcontractor,
+  );
+
+  fastify.get(
+    '/:organizationId/subcontractors/:subcontractorId/contacts',
+    { preHandler: [requirePermission('subcontractor:read')] },
+    handleListContacts,
+  );
+
+  fastify.post(
+    '/:organizationId/subcontractors/:subcontractorId/contacts',
+    { preHandler: [requirePermission('subcontractor:update')] },
+    handleCreateContact,
+  );
+
+  fastify.patch(
+    '/:organizationId/subcontractors/:subcontractorId/contacts/:contactId',
+    { preHandler: [requirePermission('subcontractor:update')] },
+    handleUpdateContact,
   );
 
   // ── Item routes (projectId in path — projectContext required) ───────────────
@@ -807,6 +856,20 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
         preHandler: [requireProjectPermission('project.subcontractor.update')],
       },
       handleUpdateProjectSubcontractor,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId/contacts',
+      {
+        preHandler: [requireProjectPermission('project.subcontractor.read')],
+      },
+      handleListContacts,
+    );
+    projectScoped.get(
+      '/:organizationId/projects/:projectId/subcontractors/:subcontractorId/task-assignments',
+      {
+        preHandler: [requireProjectPermission('project.subcontractor.read')],
+      },
+      handleListTaskAssignments,
     );
     projectScoped.post(
       '/:organizationId/projects/:projectId/subcontractors/:subcontractorId/contacts',
