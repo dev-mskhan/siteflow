@@ -70,7 +70,7 @@ export const notificationApi = baseApi.injectEndpoints({
       ListNotificationsArgs
     >({
       query: ({ orgId, limit = 50 }) => ({
-        url: `/api/v1/organizations/${orgId}/notifications`,
+        url: `/organizations/${orgId}/notifications`,
         params: { limit },
         headers: {
           'X-Idempotency-Key': crypto.randomUUID(),
@@ -86,7 +86,7 @@ export const notificationApi = baseApi.injectEndpoints({
 
     getUnreadCount: build.query<{ unreadCount: number }, OrgArgs>({
       query: ({ orgId }) => ({
-        url: `/api/v1/organizations/${orgId}/notifications/unread-count`,
+        url: `/organizations/${orgId}/notifications/unread-count`,
         headers: {
           'X-Idempotency-Key': crypto.randomUUID(),
         },
@@ -104,7 +104,7 @@ export const notificationApi = baseApi.injectEndpoints({
       MarkReadArgs
     >({
       query: ({ orgId, notificationId }) => ({
-        url: `/api/v1/organizations/${orgId}/notifications/${notificationId}/read`,
+        url: `/organizations/${orgId}/notifications/${notificationId}/read`,
         method: 'PATCH',
         headers: {
           'X-Idempotency-Key': crypto.randomUUID(),
@@ -124,7 +124,7 @@ export const notificationApi = baseApi.injectEndpoints({
 
     markAllNotificationsRead: build.mutation<{ markedCount: number }, OrgArgs>({
       query: ({ orgId }) => ({
-        url: `/api/v1/organizations/${orgId}/notifications/read-all`,
+        url: `/organizations/${orgId}/notifications/read-all`,
         method: 'POST',
         headers: {
           'X-Idempotency-Key': crypto.randomUUID(),
@@ -146,7 +146,7 @@ export const notificationApi = baseApi.injectEndpoints({
       OrgArgs
     >({
       query: ({ orgId }) => ({
-        url: `/api/v1/organizations/${orgId}/notifications/preferences`,
+        url: `/organizations/${orgId}/notifications/preferences`,
         headers: {
           'X-Idempotency-Key': crypto.randomUUID(),
         },
@@ -160,7 +160,7 @@ export const notificationApi = baseApi.injectEndpoints({
       UpdatePreferenceArgs
     >({
       query: ({ orgId, eventType, channel, enabled }) => ({
-        url: `/api/v1/organizations/${orgId}/notifications/preferences`,
+        url: `/organizations/${orgId}/notifications/preferences`,
         method: 'PUT',
         body: { eventType, channel, enabled },
         headers: {

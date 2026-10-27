@@ -38,10 +38,10 @@ import {
   getToastForEvent,
   type SSEEventPayload,
 } from '../features/notification/notificationSlice';
-import { notificationApi } from '../api/notificationApi';
+import { notificationApi } from '../features/notification/notificationApi';
 import { useToast } from '../components/ui/Toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1';
 const BYPASS       = import.meta.env.VITE_DEV_BYPASS === 'true';
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
@@ -134,7 +134,7 @@ export function useSSENotifications(orgId: string | undefined) {
     esRef.current?.close();
     dispatch(connectionStatusChanged('connecting'));
 
-    const url = `${API_BASE_URL}/api/v1/organizations/${orgId}/notifications/stream`;
+    const url = `${API_BASE_URL}/organizations/${orgId}/notifications/stream`;
     const es = new EventSource(url, { withCredentials: true });
     esRef.current = es;
     lastMessageRef.current = Date.now();

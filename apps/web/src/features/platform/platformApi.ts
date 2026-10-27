@@ -134,30 +134,10 @@ export const platformApi = baseApi.injectEndpoints({
 
     // ── Lifecycle Operations ───────────────────────────────────────────────
 
-    suspendOrganization: build.mutation<void, { orgId: string; input: LifecycleInput }>({
-      query: ({ orgId, input }) => ({
-        url: `/platform/organizations/${orgId}/suspend`,
-        method: 'POST',
-        body: input,
-        headers: { 'idempotency-key': crypto.randomUUID() },
-      }),
-      invalidatesTags: ['PlatformOrg'],
-    }),
-
     reactivateOrganization: build.mutation<void, { orgId: string; input: LifecycleInput }>({
       query: ({ orgId, input }) => ({
         url: `/platform/organizations/${orgId}/reactivate`,
         method: 'POST',
-        body: input,
-        headers: { 'idempotency-key': crypto.randomUUID() },
-      }),
-      invalidatesTags: ['PlatformOrg'],
-    }),
-
-    deleteOrganization: build.mutation<void, { orgId: string; input: LifecycleInput }>({
-      query: ({ orgId, input }) => ({
-        url: `/platform/organizations/${orgId}`,
-        method: 'DELETE',
         body: input,
         headers: { 'idempotency-key': crypto.randomUUID() },
       }),
@@ -337,9 +317,7 @@ export const platformApi = baseApi.injectEndpoints({
 export const {
   useListOrganizationsQuery,
   useListAccountsQuery,
-  useSuspendOrganizationMutation,
   useReactivateOrganizationMutation,
-  useDeleteOrganizationMutation,
   useGetOrganizationBillingQuery,
   useGetWebhookInboxQuery,
   useTriggerWebhookRecoveryMutation,

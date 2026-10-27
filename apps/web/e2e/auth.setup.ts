@@ -39,15 +39,8 @@ async function markEmailVerified(email: string): Promise<void> {
 }
 
 setup('authenticate user and store state', async ({ request }) => {
-  // Skip re-auth if we have a recent session (< 1 hour old)
-  if (fs.existsSync(authFile)) {
-    const stats = fs.statSync(authFile);
-    const ageMs = Date.now() - stats.mtimeMs;
-    if (ageMs < 3600000) {
-      console.log('✓ Using existing auth session (less than 1 hour old)');
-      return;
-    }
-  }
+  // Always log in fresh: the access JWT lasts JWT_EXPIRY (15m), so a cached
+  // storageState older than that makes every request-fixture call return 401.
 
   const email = `e2e_${Date.now()}@siteflow.test`;
   const password = 'TestPassword123!';
@@ -64,13 +57,7 @@ setup('authenticate user and store state', async ({ request }) => {
   
   if (!regRes.ok()) {
     const errorBody = await regRes.text();
-    console.log(`Registration failed (${regRes.status()}): ${errorBody}`);
-    console.log('Attempting to use existing session if available');
-    if (fs.existsSync(authFile)) {
-      console.log('✓ Using existing auth session (fallback)');
-      return;
-    }
-    throw new Error(`Registration failed and no existing session: ${errorBody}`);
+    throw new Error(`Registration failed (${regRes.status()}): ${errorBody}`);
   }
   
   await markEmailVerified(email);

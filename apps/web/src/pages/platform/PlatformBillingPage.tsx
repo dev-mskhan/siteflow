@@ -7,8 +7,8 @@ import { RefreshCw, CreditCard, AlertTriangle } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import {
   useGetWebhookInboxQuery, useTriggerWebhookRecoveryMutation,
-  useGetOrgBillingQuery,
-} from '../../api/platformApi';
+  useGetOrganizationBillingQuery,
+} from '../../features/platform/platformApi';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';
@@ -30,7 +30,7 @@ export const PlatformBillingPage: React.FC = () => {
   const [orgId, setOrgId] = useState('');
 
   const { data: inbox, isLoading: inboxLoading, refetch: refetchInbox, isFetching: inboxFetching } = useGetWebhookInboxQuery();
-  const { data: orgBilling } = useGetOrgBillingQuery({ orgId }, { skip: !orgId || tab !== 'org' });
+  const { data: orgBilling } = useGetOrganizationBillingQuery({ orgId }, { skip: !orgId || tab !== 'org' });
   const [triggerRecovery, { isLoading: recovering }] = useTriggerWebhookRecoveryMutation();
 
   const [showRecovery, setShowRecovery] = useState(false);

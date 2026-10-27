@@ -8,9 +8,9 @@ import { Search, Building2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import {
   useListOrganizationsQuery,
-  useRequestOrgSuspensionMutation,
-  useReactivateOrgMutation,
-} from '../../api/platformApi';
+  useRequestOrganizationSuspensionMutation,
+  useReactivateOrganizationMutation,
+} from '../../features/platform/platformApi';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';
@@ -38,15 +38,15 @@ export const PlatformOrganizationsPage: React.FC = () => {
   const [reasonNote, setReasonNote] = useState('');
 
   const { data, isLoading } = useListOrganizationsQuery({ search: search.trim() || undefined });
-  const [requestSuspend, { isLoading: suspending }]   = useRequestOrgSuspensionMutation();
-  const [reactivateOrg, { isLoading: reactivating }]   = useReactivateOrgMutation();
+  const [requestSuspend, { isLoading: suspending }]   = useRequestOrganizationSuspensionMutation();
+  const [reactivateOrg, { isLoading: reactivating }]   = useReactivateOrganizationMutation();
 
   const onSuspend = async () => {
     if (!actionState || password.length < 1 || reasonNote.trim().length < 10) {
       toastErr('Validation', 'Password and reason note (min 10 chars) required'); return;
     }
     try {
-      const result = await requestSuspend({ orgId: actionState.orgId, password, reasonCode, reasonNote: reasonNote.trim() }).unwrap();
+      const result = await requestSuspend({ orgId: actionState.orgId, input: { password, reasonCode, reasonNote: reasonNote.trim() } }).unwrap();
       toastOk('Suspension requested', `Approval ID: ${result.approvalId}. A second operator must approve.`);
       setActionState(null); setPassword(''); setReasonNote('');
     } catch (err) { toastErr('Failed', toastErrorMessage(err as never)); }
@@ -57,7 +57,7 @@ export const PlatformOrganizationsPage: React.FC = () => {
       toastErr('Validation', 'Password and reason note (min 10 chars) required'); return;
     }
     try {
-      await reactivateOrg({ orgId: actionState.orgId, password, reasonCode, reasonNote: reasonNote.trim() }).unwrap();
+      await reactivateOrg({ orgId: actionState.orgId, input: { password, reasonCode, reasonNote: reasonNote.trim() } }).unwrap();
       toastOk('Organization reactivated', '');
       setActionState(null); setPassword(''); setReasonNote('');
     } catch (err) { toastErr('Failed', toastErrorMessage(err as never)); }

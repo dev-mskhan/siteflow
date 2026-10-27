@@ -6,9 +6,9 @@ import React, { useState } from 'react';
 import { RefreshCw, Activity, Database, AlertTriangle, RotateCw } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import {
-  useGetHealthQuery, useGetQueueDiagnosticsQuery, useGetOrgDiagnosticsQuery,
+  useGetHealthQuery, useGetQueueDiagnosticsQuery, useGetOrganizationDiagnosticsQuery,
   useReplayOutboxEventMutation,
-} from '../../api/platformApi';
+} from '../../features/platform/platformApi';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';
@@ -29,7 +29,7 @@ export const PlatformDiagnosticsPage: React.FC = () => {
 
   const { data: health, isLoading: hLoading, refetch: refetchHealth, isFetching: hFetching } = useGetHealthQuery();
   const { data: queue, isLoading: qLoading, refetch: refetchQueue, isFetching: qFetching } = useGetQueueDiagnosticsQuery({ windowHours });
-  const { data: orgDiag } = useGetOrgDiagnosticsQuery({ orgId }, { skip: !orgId || tab !== 'organization' });
+  const { data: orgDiag } = useGetOrganizationDiagnosticsQuery({ orgId }, { skip: !orgId || tab !== 'organization' });
   const [replayEvent, { isLoading: replaying }] = useReplayOutboxEventMutation();
 
   const onReplay = async (eventId: string) => {

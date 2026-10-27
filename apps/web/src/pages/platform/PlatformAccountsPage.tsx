@@ -10,7 +10,7 @@ import {
   useListAccountsQuery,
   useSuspendAccountMutation,
   useReactivateAccountMutation,
-} from '../../api/platformApi';
+} from '../../features/platform/platformApi';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';

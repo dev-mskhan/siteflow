@@ -21,7 +21,7 @@
  * ```
  */
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { useAppDispatch } from '../app/hooks';
+import { useAppDispatch } from '../app/store';
 import { notificationApi } from '../features/notification/notificationApi';
 
 interface SSEConnectionStatus {
@@ -52,8 +52,8 @@ export function useRealtimeNotifications(orgId: string, enabled = true) {
       eventSourceRef.current = null;
     }
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const url = `${apiUrl}/api/v1/organizations/${orgId}/notifications/stream`;
+    const apiBase = import.meta.env.VITE_API_URL || '/api/v1';
+    const url = `${apiBase}/organizations/${orgId}/notifications/stream`;
 
     console.log('[SSE] Connecting to:', url);
 
