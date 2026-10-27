@@ -36,7 +36,7 @@ const fileNameSchema = z
   .string()
   .min(1)
   .max(255)
-  .refine((value) => !/[\\/\\0]/.test(value), 'File name must not contain a path');
+  .refine((value) => !/[\\/\0]/.test(value), 'File name must not contain a path');
 
 export const MAX_DOCUMENT_FILE_SIZE_BYTES = 52_428_800; // 50 MB
 
