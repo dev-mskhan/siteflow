@@ -11,6 +11,19 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/](react|react-dom|react-router|react-router-dom|scheduler|@reduxjs|react-redux|redux|immer|reselect|use-sync-external-store)[\\/]/.test(id)) return 'vendor-react';
+          if (/[\\/](recharts|d3-[\w-]+|victory-vendor)[\\/]/.test(id)) return 'vendor-charts';
+          if (/[\\/](framer-motion|motion-dom|motion-utils)[\\/]/.test(id)) return 'vendor-motion';
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     port: 3001,
     host: '0.0.0.0',

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { Providers } from './app/providers';
@@ -14,7 +14,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         It seeds mock auth + org state so dashboard URLs work without a server.
       */}
       <DevTestProvider>
-        <RouterProvider router={router} />
+        <Suspense
+          fallback={
+            <div role="status" aria-live="polite" className="p-8 font-mono text-xs text-[var(--muted)]">
+              Loading…
+            </div>
+          }
+        >
+          <RouterProvider router={router} />
+        </Suspense>
       </DevTestProvider>
     </Providers>
   </React.StrictMode>,
