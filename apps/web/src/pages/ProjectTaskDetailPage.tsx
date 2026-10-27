@@ -15,7 +15,7 @@ import {
   useCreateDependencyMutation,
   useDeleteDependencyMutation,
   useListTasksQuery,
-} from '../api/taskApi';
+} from '../features/project/taskApi';
 import { useListPhasesQuery } from '../features/project/phaseApi';
 import { useListProjectMembersQuery } from '../features/project/projectMemberApi';
 import { usePermission } from '../hooks/usePermission';

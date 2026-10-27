@@ -28,12 +28,12 @@ import {
   useAssignSubcontractorToProjectMutation,
   useUpdateProjectSubcontractorMutation,
   useListTaskAssignmentsQuery,
-  useAssignTaskMutation,
-  useRemoveTaskAssignmentMutation,
+  useAssignTaskToSubcontractorMutation,
+  useRemoveTaskFromSubcontractorMutation,
   useGetSubcontractorPerformanceQuery,
   useListSubcontractorsQuery,
 } from '../api/subcontractorApi';
-import { useListTasksQuery } from '../api/taskApi';
+import { useListTasksQuery } from '../features/project/taskApi';
 import { usePermission } from '../hooks/usePermission';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { useToast } from '../components/ui/Toast';
@@ -79,8 +79,8 @@ const SubcontractorDrawer: React.FC<{
   const { data: perfData } = useGetSubcontractorPerformanceQuery({ orgId, projectId, subcontractorId });
   const { data: allTasks } = useListTasksQuery({ orgId, projectId });
 
-  const [assignTask, { isLoading: assigning, error: assignErr }] = useAssignTaskMutation();
-  const [removeTask] = useRemoveTaskAssignmentMutation();
+  const [assignTask, { isLoading: assigning, error: assignErr }] = useAssignTaskToSubcontractorMutation();
+  const [removeTask] = useRemoveTaskFromSubcontractorMutation();
 
   const taskName = (taskId: string) => {
     const t = allTasks?.tasks.find((x) => x.id === taskId);

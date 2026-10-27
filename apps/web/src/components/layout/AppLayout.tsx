@@ -4,7 +4,7 @@ import { OrgBootstrap } from '../../features/org/OrgBootstrap';
 import { RequireOrgMember } from '../guards/RequireOrgMember';
 import { AppSidebar } from './AppSidebar';
 import { AppTopbar } from './AppTopbar';
-import { useAppSelector } from '../../app/hooks';
+import { useAppSelector } from '../../app/store';
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications';
 
 export const AppLayout: React.FC = () => {

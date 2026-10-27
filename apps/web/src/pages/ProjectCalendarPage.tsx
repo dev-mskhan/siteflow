@@ -13,7 +13,7 @@ import {
   useAddCalendarExceptionMutation,
   useRemoveCalendarExceptionMutation,
   useRecalculateScheduleMutation,
-} from '../api/taskApi';
+} from '../features/project/taskApi';
 import { usePermission } from '../hooks/usePermission';
 import { inputCls } from '../components/ui/FormField';
 import { useToast } from '../components/ui/Toast';

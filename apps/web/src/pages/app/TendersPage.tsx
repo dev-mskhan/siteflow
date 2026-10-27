@@ -13,7 +13,7 @@ import {
   useListTendersQuery,
   useCreateTenderMutation,
   useTransitionTenderMutation,
-} from '../../api/preconstructionApi';
+} from '../../features/project/preconstructionApi';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
 import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../lib/authErrors';

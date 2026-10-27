@@ -9,7 +9,7 @@ import { Bell } from 'lucide-react';
 import {
   useGetNotificationPreferencesQuery,
   useUpdateNotificationPreferenceMutation,
-} from '../../../api/notificationApi';
+} from '../../../features/notification/notificationApi';
 import { useToast } from '../../../components/ui/Toast';
 import { toastErrorMessage } from '../../../lib/authErrors';
 import { cn } from '../../../lib/cn';

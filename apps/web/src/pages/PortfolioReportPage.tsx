@@ -5,7 +5,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RefreshCw, BarChart3 } from 'lucide-react';
-import { useGetPortfolioReportQuery } from '../api/reportApi';
+import { useGetPortfolioReportQuery } from '../features/reporting/reportApi';
 import type { HealthColor } from '../types/reportTypes';
 
 const HealthDot: React.FC<{ color: HealthColor }> = ({ color }) => {

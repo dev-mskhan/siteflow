@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
-import { useGetCostReportQuery } from '../../api/reportApi';
+import { useGetCostReportQuery } from '../../features/reporting/reportApi';
 
 export const ProjectCostReportPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();

@@ -10,7 +10,7 @@ import {
   useGetIssueQuery,
   useUpdateIssueMutation,
   useTransitionIssueMutation,
-} from '../api/issueApi';
+} from '../features/project/issueApi';
 import { useListProjectMembersQuery } from '../features/project/projectMemberApi';
 import { usePermission } from '../hooks/usePermission';
 import { InlineAlert } from '../components/ui/InlineAlert';

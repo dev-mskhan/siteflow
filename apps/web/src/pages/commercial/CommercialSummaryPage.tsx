@@ -8,7 +8,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { RefreshCw, TrendingUp } from 'lucide-react';
-import { useGetCommercialSummaryQuery } from '../../api/commercialApi';
+import { useGetCommercialSummaryQuery } from '../../features/project/commercialApi';
 
 const MoneyCell: React.FC<{ value: string | null; highlight?: boolean }> = ({ value, highlight }) => (
   <p className={`font-mono text-[11px] ${highlight ? 'font-medium' : ''} ${value === null ? 'text-[var(--muted)]' : ''}`}>

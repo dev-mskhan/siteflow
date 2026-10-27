@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
-import { useGetScheduleReportQuery } from '../../api/reportApi';
+import { useGetScheduleReportQuery } from '../../features/reporting/reportApi';
 
 export const ProjectScheduleReportPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();

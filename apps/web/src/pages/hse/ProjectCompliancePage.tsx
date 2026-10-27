@@ -11,7 +11,7 @@ import {
   useListComplianceRecordsQuery, useCreateComplianceRecordMutation, useVerifyComplianceRecordMutation,
   useListComplianceInspectionsQuery, useCreateComplianceInspectionMutation,
   useListExpiringQuery,
-} from '../../api/hseApi';
+} from '../../features/project/hseApi';
 import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';

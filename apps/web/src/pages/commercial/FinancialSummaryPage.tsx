@@ -11,7 +11,7 @@ import { RefreshCw, BarChart3 } from 'lucide-react';
 import {
   useGetFinancialSummaryQuery,
   useGetFinancialAuditQuery,
-} from '../../api/commercialApi';
+} from '../../features/project/commercialApi';
 import { cn } from '../../lib/cn';
 
 type Tab = 'cost' | 'commitments' | 'billing' | 'cash' | 'audit';

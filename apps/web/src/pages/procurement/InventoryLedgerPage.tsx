@@ -7,9 +7,9 @@ import { useParams } from 'react-router-dom';
 import { Plus, Archive } from 'lucide-react';
 import {
   useListInventoryQuery,
-  useListInventoryTransactionsQuery,
+  useGetInventoryTransactionsQuery,
   useAdjustInventoryMutation,
-} from '../../api/procurementApi';
+} from '../../features/project/procurementApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
@@ -42,7 +42,7 @@ export const InventoryLedgerPage: React.FC = () => {
   const [adjLocation, setAdjLocation] = useState('default');
 
   const { data: balances = [], isLoading: balLoading } = useListInventoryQuery({ orgId: orgId!, projectId: projectId! });
-  const { data: transactions = [] } = useListInventoryTransactionsQuery(
+  const { data: transactions = [] } = useGetInventoryTransactionsQuery(
     { orgId: orgId!, projectId: projectId!, materialId: selectedMaterialId! },
     { skip: !selectedMaterialId },
   );

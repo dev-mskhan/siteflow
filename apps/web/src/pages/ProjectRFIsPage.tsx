@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, MessageSquare } from 'lucide-react';
 import { cn } from '../lib/cn';
-import { useListRFIsQuery, useCreateRFIMutation, useTransitionRFIMutation } from '../api/rfiApi';
+import { useListRFIsQuery, useCreateRFIMutation, useTransitionRFIMutation } from '../features/project/rfiApi';
 import { usePermission } from '../hooks/usePermission';
 import { useToast } from '../components/ui/Toast';
 import { toastErrorMessage } from '../lib/authErrors';

@@ -23,7 +23,7 @@ import {
   useGetTenderQuery,
   useUpdateTenderMutation,
   useTransitionTenderMutation,
-} from '../../api/preconstructionApi';
+} from '../../features/project/preconstructionApi';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';

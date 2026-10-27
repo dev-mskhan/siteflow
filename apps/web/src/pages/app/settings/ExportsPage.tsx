@@ -9,13 +9,13 @@ import { Download, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import {
   useRequestExportMutation,
   useListExportsQuery,
-  useGetExportDownloadUrlQuery,
-} from '../../../api/exportApi';
+  useGetDownloadUrlQuery,
+} from '../../../features/reporting/exportApi';
 import { useToast } from '../../../components/ui/Toast';
 import { toastErrorMessage } from '../../../lib/authErrors';
 import { inputCls } from '../../../components/ui/FormField';
 import { cn } from '../../../lib/cn';
-import type { ExportStatus } from '../../../api/exportApi';
+import type { ExportStatus } from '../../../features/reporting/exportApi';
 
 const REPORT_TYPES = [
   { value: 'portfolio', label: 'Portfolio report' },
@@ -36,7 +36,7 @@ const STATUS_BADGE: Record<ExportStatus, string> = {
 };
 
 const DownloadCell: React.FC<{ orgId: string; exportId: string; status: ExportStatus }> = ({ orgId, exportId, status }) => {
-  const { data, isLoading } = useGetExportDownloadUrlQuery(
+  const { data, isLoading } = useGetDownloadUrlQuery(
     { orgId, exportId },
     { skip: status !== 'COMPLETED' },
   );

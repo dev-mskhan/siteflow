@@ -11,7 +11,7 @@ import { cn } from '../../lib/cn';
 import {
   useListSafetyEventsQuery, useCreateSafetyEventMutation, useTransitionSafetyEventMutation,
   useListSafetyMeetingsQuery, useCreateSafetyMeetingMutation,
-} from '../../api/hseApi';
+} from '../../features/project/hseApi';
 import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
@@ -86,7 +86,7 @@ export const ProjectSafetyPage: React.FC = () => {
   const onCreateMeeting = async () => {
     if (!mtgTitle.trim()) { toastErr('Title required', ''); return; }
     try {
-      await createMeeting({ orgId: orgId!, projectId: projectId!, input: { meetingType: mtgType, title: mtgTitle.trim(), scheduledAt: new Date(mtgAt).toISOString(), location: mtgLoc.trim() || undefined, attendeeCount: mtgAttendees ? parseInt(mtgAttendees) : undefined, agenda: mtgAgenda.trim() || undefined } }).unwrap();
+      await createMeeting({ orgId: orgId!, projectId: projectId!, input: { meetingType: mtgType, title: mtgTitle.trim(), scheduledAt: new Date(mtgAt).toISOString(), attendeeCount: mtgAttendees ? parseInt(mtgAttendees) : undefined, notes: [mtgLoc.trim() && `Location: ${mtgLoc.trim()}`, mtgAgenda.trim() && `Agenda: ${mtgAgenda.trim()}`].filter(Boolean).join('\n') || undefined } }).unwrap();
       toastOk('Meeting recorded', '');
       setShowMtgCreate(false); setMtgTitle(''); setMtgAgenda(''); setMtgLoc(''); setMtgAttendees('');
     } catch (err) { toastErr('Create failed', toastErrorMessage(err as never)); }

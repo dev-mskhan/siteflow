@@ -37,7 +37,7 @@ import {
   useReviseBoqMutation,
   useListBoqRevisionsQuery,
   usePreviewBoqImportMutation,
-} from '../../api/preconstructionApi';
+} from '../../features/project/preconstructionApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';

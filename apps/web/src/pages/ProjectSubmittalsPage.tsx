@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, FileStack, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/cn';
-import { useListSubmittalsQuery, useCreateSubmittalMutation, useTransitionSubmittalMutation, useListSubmittalRevisionsQuery } from '../api/rfiApi';
+import { useListSubmittalsQuery, useCreateSubmittalMutation, useTransitionSubmittalMutation, useListSubmittalRevisionsQuery } from '../features/project/rfiApi';
 import { usePermission } from '../hooks/usePermission';
 import { useToast } from '../components/ui/Toast';
 import { toastErrorMessage } from '../lib/authErrors';

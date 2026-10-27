@@ -7,9 +7,9 @@ import { useParams } from 'react-router-dom';
 import { CreditCard, ExternalLink, FileText, Zap, Crown } from 'lucide-react';
 import {
   useGetTrialQuery, useProvisionTrialMutation,
-  useCreateCheckoutMutation, useCreatePortalSessionMutation,
+  useCreateCheckoutSessionMutation, useCreatePortalSessionMutation,
   useListInvoicesQuery,
-} from '../../../api/billingApi';
+} from '../../../features/billing/billingApi';
 import { useToast } from '../../../components/ui/Toast';
 import { toastErrorMessage } from '../../../lib/authErrors';
 import { cn } from '../../../lib/cn';
@@ -35,7 +35,7 @@ export const BillingPage: React.FC = () => {
   const { data: trial, isLoading: trialLoading } = useGetTrialQuery({ orgId: orgId! });
   const { data: invData } = useListInvoicesQuery({ orgId: orgId! });
   const [provisionTrial, { isLoading: provisioning }] = useProvisionTrialMutation();
-  const [createCheckout, { isLoading: checkingOut }] = useCreateCheckoutMutation();
+  const [createCheckout, { isLoading: checkingOut }] = useCreateCheckoutSessionMutation();
   const [createPortal, { isLoading: portaling }] = useCreatePortalSessionMutation();
 
   const [selectedPlan, setSelectedPlan] = useState<'starter' | 'professional' | 'enterprise'>('professional');

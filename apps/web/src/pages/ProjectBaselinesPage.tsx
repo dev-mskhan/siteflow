@@ -11,9 +11,9 @@ import {
   useListBaselinesQuery,
   useCreateBaselineMutation,
   useActivateBaselineMutation,
-  useCompareBaselineQuery,
   useDeleteBaselineMutation,
-} from '../api/taskApi';
+} from '../features/project/taskApi';
+import { useCompareBaselineQuery } from '../features/project/scheduleApi';
 import { usePermission } from '../hooks/usePermission';
 import { inputCls } from '../components/ui/FormField';
 import { useToast } from '../components/ui/Toast';

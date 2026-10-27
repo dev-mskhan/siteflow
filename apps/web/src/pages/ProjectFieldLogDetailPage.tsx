@@ -13,8 +13,8 @@ import {
   useLockFieldLogMutation,
   useListAmendmentsQuery,
   useCreateAmendmentMutation,
-} from '../api/fieldLogApi';
-import { useListTasksQuery } from '../api/taskApi';
+} from '../features/project/fieldLogApi';
+import { useListTasksQuery } from '../features/project/taskApi';
 import { usePermission } from '../hooks/usePermission';
 import { InlineAlert } from '../components/ui/InlineAlert';
 import { useToast } from '../components/ui/Toast';

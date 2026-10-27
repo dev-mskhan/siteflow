@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
-import { useGetSubcontractorReportQuery } from '../../api/reportApi';
+import { useGetSubcontractorReportQuery } from '../../features/reporting/reportApi';
 
 export const ProjectSubcontractorReportPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();

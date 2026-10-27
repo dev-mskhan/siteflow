@@ -17,7 +17,7 @@ import {
   useHoldRetainageMutation,
   useReleaseRetainageMutation,
   useListPaymentApplicationsQuery,
-} from '../../api/commercialApi';
+} from '../../features/project/commercialApi';
 import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
@@ -27,7 +27,7 @@ import type { RetainageStatus } from '../../types/commercialTypes';
 const STATUS_BADGE: Record<RetainageStatus, string> = {
   HELD:               'border-[#fde68a] bg-[#fffbeb] text-[#92400e]',
   PARTIALLY_RELEASED: 'border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af]',
-  FULLY_RELEASED:     'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
+  RELEASED:           'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
 };
 
 // Releases sub-panel
@@ -90,7 +90,7 @@ const ReleasesPanel: React.FC<{ orgId: string; projectId: string; retainageId: s
         <div className="mt-2 space-y-1.5">
           {releases.map((r) => (
             <div key={r.id} className="flex items-center justify-between text-sm border border-[var(--hairline-2)] px-3 py-2">
-              <span className="font-mono text-[10px] font-medium">{r.currency} {parseFloat(r.amount).toLocaleString()}</span>
+              <span className="font-mono text-[10px] font-medium">{currency} {parseFloat(r.amount).toLocaleString()}</span>
               <span className="text-sm text-[var(--muted)] truncate max-w-xs">{r.reason}</span>
               <span className="font-mono text-[9px] text-[var(--muted)]">{new Date(r.releasedAt).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
             </div>
@@ -117,10 +117,10 @@ export const RetainagePage: React.FC = () => {
   const { data: paData }    = useListPaymentApplicationsQuery({ orgId: orgId!, projectId: projectId! });
   const [holdRetainage, { isLoading: holding }] = useHoldRetainageMutation();
 
-  const approvedPAs = (paData?.items ?? []).filter((p) => p.status === 'APPROVED');
+  const approvedPAs = (paData?.items ?? []).filter((p) => p.status === 'APPROVED' || p.status === 'PARTIALLY_APPROVED');
   const retainages  = data?.items ?? [];
 
-  const totalHeld      = retainages.reduce((a, r) => a + parseFloat(r.heldAmount), 0);
+  const totalHeld      = retainages.reduce((a, r) => a + parseFloat(r.accruedAmount), 0);
   const totalReleased  = retainages.reduce((a, r) => a + parseFloat(r.releasedAmount), 0);
   const totalRemaining = retainages.reduce((a, r) => a + parseFloat(r.remainingAmount), 0);
 
@@ -213,11 +213,11 @@ export const RetainagePage: React.FC = () => {
                   className="p-0.5 text-[var(--muted)] hover:text-[var(--ink)]">
                   {expandedId === r.id ? <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} /> : <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />}
                 </button>
-                <p className="font-mono text-[9px] text-[var(--muted)] truncate">{r.paymentApplicationId.slice(0, 12)}…</p>
+                <p className="font-mono text-[9px] text-[var(--muted)] truncate">{r.paymentApplicationLineId.slice(0, 12)}…</p>
                 <span className={`inline-block font-mono text-[9px] uppercase tracking-[0.1em] border px-1.5 py-0.5 w-fit ${STATUS_BADGE[r.status]}`}>
                   {r.status.replace('_', ' ')}
                 </span>
-                <p className="font-mono text-[10px]">{parseFloat(r.heldAmount).toLocaleString()}</p>
+                <p className="font-mono text-[10px]">{parseFloat(r.accruedAmount).toLocaleString()}</p>
                 <p className="font-mono text-[10px]">{parseFloat(r.releasedAmount).toLocaleString()}</p>
                 <p className={cn('font-mono text-[10px] font-medium', parseFloat(r.remainingAmount) > 0 ? 'text-[#92400e]' : 'text-[#166534]')}>
                   {parseFloat(r.remainingAmount).toLocaleString()}

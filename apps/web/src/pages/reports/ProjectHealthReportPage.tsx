@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
-import { useGetHealthReportQuery } from '../../api/reportApi';
+import { useGetHealthReportQuery } from '../../features/reporting/reportApi';
 import type { HealthColor } from '../../types/reportTypes';
 
 const HealthDot: React.FC<{ color: HealthColor; label: string }> = ({ color, label }) => {

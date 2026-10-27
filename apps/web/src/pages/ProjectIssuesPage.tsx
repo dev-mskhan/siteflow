@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Plus, AlertTriangle } from 'lucide-react';
-import { useListIssuesQuery, useCreateIssueMutation } from '../api/issueApi';
+import { useListIssuesQuery, useCreateIssueMutation } from '../features/project/issueApi';
 import { useListProjectMembersQuery } from '../features/project/projectMemberApi';
 import { usePermission } from '../hooks/usePermission';
 import { InlineAlert } from '../components/ui/InlineAlert';

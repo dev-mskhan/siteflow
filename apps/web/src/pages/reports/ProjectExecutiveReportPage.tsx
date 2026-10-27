@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { RefreshCw, Printer } from 'lucide-react';
-import { useGetExecutiveSummaryReportQuery } from '../../api/reportApi';
+import { useGetExecutiveSummaryQuery } from '../../features/reporting/reportApi';
 import type { HealthColor } from '../../types/reportTypes';
 
 const HealthChip: React.FC<{ color: HealthColor }> = ({ color }) => {
@@ -11,7 +11,7 @@ const HealthChip: React.FC<{ color: HealthColor }> = ({ color }) => {
 
 export const ProjectExecutiveReportPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
-  const { data, isLoading, refetch, isFetching } = useGetExecutiveSummaryReportQuery({ orgId: orgId!, projectId: projectId! });
+  const { data, isLoading, refetch, isFetching } = useGetExecutiveSummaryQuery({ orgId: orgId!, projectId: projectId! });
   if (isLoading) return <div className="p-8"><div className="h-40 animate-pulse bg-[var(--surface-2)]" /></div>;
   if (!data) return null;
   const { health: h, schedule: s, cost: c, procurement: p } = data;

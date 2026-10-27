@@ -4,7 +4,7 @@
  * State machine (payment-application.service.ts):
  *   DRAFT → SUBMITTED (submit) → UNDER_REVIEW (under-review) → APPROVED (approve) | REJECTED (reject)
  *   DRAFT | REJECTED → VOID (void)
- *   approve body is open — partial amount allowed.
+ *   approve sends each line at its proposed currentWork and storedMaterials (full approval).
  *   reject: { expectedVersion, reason min:1 max:500 }
  */
 import React, { useState } from 'react';
@@ -15,23 +15,32 @@ import {
   useListPaymentApplicationsQuery,
   useCreatePaymentApplicationMutation,
   useTransitionPaymentApplicationMutation,
-} from '../../api/commercialApi';
+  useLazyGetPaymentApplicationQuery,
+} from '../../features/project/commercialApi';
 import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';
-import type { PaymentApplicationStatus } from '../../types/commercialTypes';
+import type { PaymentApplicationLineDTO, PaymentApplicationStatus } from '../../types/commercialTypes';
 
 const STATUS_BADGE: Record<PaymentApplicationStatus, string> = {
   DRAFT:        'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)]',
   SUBMITTED:    'border-[#bfdbfe] bg-[#eff6ff] text-[#1e40af]',
   UNDER_REVIEW: 'border-[#fde68a] bg-[#fffbeb] text-[#92400e]',
   APPROVED:     'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]',
+  PARTIALLY_APPROVED: 'border-[#bbf7d0] bg-[#f7fee7] text-[#3f6212]',
   REJECTED:     'border-[#fecaca] bg-[#fef2f2] text-[#991b1b]',
   VOID:         'border-[var(--hairline-2)] bg-[var(--surface-2)] text-[var(--muted)] opacity-60',
 };
 
 const FILTERS = ['ALL', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'] as const;
+
+const toApprovalLines = (lines: PaymentApplicationLineDTO[]) =>
+  lines.map((l) => ({
+    scheduleOfValueLineId: l.scheduleOfValueLineId,
+    approvedCurrentWork: l.currentWork,
+    approvedStoredMaterials: l.storedMaterials,
+  }));
 
 interface ActionState {
   id: string; version: number;
@@ -50,7 +59,6 @@ export const PaymentApplicationsPage: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [actionState, setActionState] = useState<ActionState | null>(null);
   const [actionReason, setActionReason] = useState('');
-  const [approvedAmount, setApprovedAmount] = useState('');
 
   // Create form
   const [periodStart, setPeriodStart] = useState('');
@@ -61,6 +69,7 @@ export const PaymentApplicationsPage: React.FC = () => {
   const { data, isLoading } = useListPaymentApplicationsQuery({ orgId: orgId!, projectId: projectId! });
   const [createPA, { isLoading: creating }] = useCreatePaymentApplicationMutation();
   const [transitionPA, { isLoading: transitioning }] = useTransitionPaymentApplicationMutation();
+  const [loadPA] = useLazyGetPaymentApplicationQuery();
 
   const onCreate = async () => {
     if (!periodStart || !periodEnd) { toastErr('Period dates required', ''); return; }
@@ -78,16 +87,24 @@ export const PaymentApplicationsPage: React.FC = () => {
     paId: string,
     action: 'submit' | 'under-review' | 'approve' | 'reject' | 'void',
     version: number,
-    opts?: { reason?: string; approvedAmount?: string },
+    opts?: { reason?: string; lines?: ReturnType<typeof toApprovalLines> },
   ) => {
     try {
       await transitionPA({
         orgId: orgId!, projectId: projectId!, paId, action, expectedVersion: version,
         reason: opts?.reason,
-        approvedAmount: opts?.approvedAmount,
+        lines: opts?.lines,
       }).unwrap();
       toastOk(`Payment application ${action.replace('-', ' ')}d`, '');
-      setActionState(null); setActionReason(''); setApprovedAmount('');
+      setActionState(null); setActionReason('');
+    } catch (err) { toastErr('Action failed', toastErrorMessage(err as never)); }
+  };
+
+  const doApprove = async (paId: string) => {
+    try {
+      const pa = await loadPA({ orgId: orgId!, projectId: projectId!, paId }).unwrap();
+      if (pa.lines.length === 0) { toastErr('Payment application has no lines to approve', ''); return; }
+      await doTransition(paId, 'approve', pa.version, { lines: toApprovalLines(pa.lines) });
     } catch (err) { toastErr('Action failed', toastErrorMessage(err as never)); }
   };
 
@@ -147,10 +164,7 @@ export const PaymentApplicationsPage: React.FC = () => {
             {actionState.action === 'approve' ? 'Approve payment application' : `${actionState.action.charAt(0).toUpperCase() + actionState.action.slice(1)} payment application`}
           </p>
           {actionState.action === 'approve' && (
-            <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)] mb-1">Approved amount (leave blank for full amount)</label>
-              <input value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} placeholder="e.g. 99393750.00" className={inputCls()} />
-            </div>
+            <p className="text-sm text-[#166534]">Every line is approved at its proposed current work and stored materials.</p>
           )}
           {actionState.action === 'reject' && (
             <input type="text" value={actionReason} onChange={(e) => setActionReason(e.target.value)}
@@ -160,7 +174,7 @@ export const PaymentApplicationsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                if (actionState.action === 'approve') doTransition(actionState.id, 'approve', actionState.version, { approvedAmount: approvedAmount || undefined });
+                if (actionState.action === 'approve') doApprove(actionState.id);
                 else if (actionState.action === 'reject') doTransition(actionState.id, 'reject', actionState.version, { reason: actionReason });
                 else doTransition(actionState.id, 'void', actionState.version);
               }}
@@ -169,7 +183,7 @@ export const PaymentApplicationsPage: React.FC = () => {
                 actionState.action === 'approve' ? 'bg-[#166534] hover:bg-[#14532d]' : 'bg-[#991b1b] hover:bg-[#7f1d1d]')}>
               {transitioning ? 'Processing…' : `Confirm ${actionState.action}`}
             </button>
-            <button type="button" onClick={() => { setActionState(null); setActionReason(''); setApprovedAmount(''); }}
+            <button type="button" onClick={() => { setActionState(null); setActionReason(''); }}
               className={cn('text-sm', actionState.action === 'approve' ? 'text-[#166534]' : 'text-[#991b1b]')}>Cancel</button>
           </div>
         </div>
@@ -220,7 +234,7 @@ export const PaymentApplicationsPage: React.FC = () => {
               )}
               {pa.status === 'UNDER_REVIEW' && canApprove && (
                 <>
-                  <button onClick={() => { setActionState({ id: pa.id, version: pa.version, action: 'approve' }); setApprovedAmount(''); }}
+                  <button onClick={() => { setActionState({ id: pa.id, version: pa.version, action: 'approve' }); }}
                     className="font-mono text-[8px] uppercase border border-[#bbf7d0] bg-[#f0fdf4] text-[#166534] px-1.5 py-0.5 hover:bg-[#dcfce7]">Approve</button>
                   <button onClick={() => { setActionState({ id: pa.id, version: pa.version, action: 'reject' }); setActionReason(''); }}
                     className="font-mono text-[8px] uppercase border border-[var(--hairline-2)] text-[#991b1b] px-1.5 py-0.5 hover:bg-[#fef2f2]">Reject</button>

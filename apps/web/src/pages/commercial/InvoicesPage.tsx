@@ -15,7 +15,7 @@ import {
   useCreateInvoiceMutation,
   useTransitionInvoiceMutation,
   useListPaymentsQuery,
-} from '../../api/commercialApi';
+} from '../../features/project/commercialApi';
 import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
