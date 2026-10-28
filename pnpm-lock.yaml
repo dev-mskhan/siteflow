@@ -189,6 +189,9 @@ importers:
       '@reduxjs/toolkit':
         specifier: ^2.5.1
         version: 2.13.0(react-redux@9.3.0(@types/react@18.3.31)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
+      '@siteflow/observability':
+        specifier: workspace:^
+        version: link:../../packages/observability
       '@siteflow/shared':
         specifier: workspace:^
         version: link:../../packages/shared
@@ -357,6 +360,9 @@ importers:
       '@opentelemetry/auto-instrumentations-node':
         specifier: ^0.53.0
         version: 0.53.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/core':
+        specifier: ^1.28.0
+        version: 1.30.1(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-logs-otlp-http':
         specifier: ^0.55.0
         version: 0.55.0(@opentelemetry/api@1.9.1)

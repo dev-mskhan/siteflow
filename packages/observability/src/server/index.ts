@@ -85,9 +85,10 @@ export function initTelemetry(config: TelemetryConfig): void {
         '@opentelemetry/instrumentation-fastify': {
           requestHook: (span, info) => {
             const req = info.request as any;
-            const route = req?.routeOptions?.url || req?.routerPath || req?.url;
+            const route = req?.routeOptions?.url;
             if (route) {
               span.setAttribute('http.route', route);
+              span.setAttribute('siteflow.request.id', req.id);
               span.updateName(`${req.method ?? 'HTTP'} ${route}`);
             }
           },

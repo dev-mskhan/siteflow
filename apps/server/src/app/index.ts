@@ -1,6 +1,7 @@
 // apps/server/src/app/index.ts
 // Fastify application factory — plugin registration, observability, and route mounting.
 import Fastify, { type FastifyInstance } from 'fastify';
+import { trace } from '@opentelemetry/api';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import sensible from '@fastify/sensible';
@@ -78,6 +79,24 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     credentials: true,
+    exposedHeaders: ['x-request-id'],
+  });
+
+  app.addHook('onRequest', (request, reply, done) => {
+    reply.header('x-request-id', request.id);
+    const route = request.routeOptions.url;
+    const span = trace.getActiveSpan();
+    if (span && route) {
+      span.updateName(`${request.method} ${route}`);
+      span.setAttribute('http.route', route);
+      span.setAttribute('siteflow.request.id', request.id);
+    }
+    done();
+  });
+
+  app.addHook('onResponse', (_request, reply, done) => {
+    trace.getActiveSpan()?.setAttribute('http.response.status_code', reply.statusCode);
+    done();
   });
 
   // Gap 5: global rate limit — 300 req/min per authenticated user (falls back to IP)

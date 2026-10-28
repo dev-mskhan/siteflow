@@ -27,6 +27,9 @@ describe('GET /health (Integration)', () => {
     expect(body.data.status).toBe('ok');
     expect(typeof body.data.uptime).toBe('number');
     expect(body.meta?.timestamp).toBeDefined();
+    expect(response.headers['x-request-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
   });
 
   it('should handle 404 with standardized error format', async () => {
@@ -40,5 +43,6 @@ describe('GET /health (Integration)', () => {
     expect(body.success).toBe(false);
     expect(body.error.code).toBe('NOT_FOUND');
     expect(body.error.message).toContain('not found');
+    expect(body.error.requestId).toBe(response.headers['x-request-id']);
   });
 });

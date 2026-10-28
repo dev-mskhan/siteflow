@@ -61,34 +61,49 @@ export function registerErrorHandlers(app: FastifyInstance): void {
       const statusCode = resolveStatusCode(error);
       const errorCode = resolveErrorCode(error, statusCode);
 
-      // 1. OpenTelemetry span exception tracking
+      // 1. Record unexpected server failures as exceptions; expected 4xx responses
+      // are represented by their HTTP status and validation/auth error code.
       const activeSpan = trace.getActiveSpan();
       if (activeSpan) {
-        activeSpan.recordException(error);
-        activeSpan.setStatus({ code: SpanStatusCode.ERROR, message: error.message ?? 'Unhandled Error' });
         activeSpan.setAttribute('error.code', errorCode);
-        activeSpan.setAttribute('http.status_code', statusCode);
+        activeSpan.setAttribute('http.response.status_code', statusCode);
+        if (statusCode >= 500) {
+          activeSpan.recordException(error);
+          activeSpan.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message ?? 'Unhandled Error',
+          });
+        }
         if (request.orgContext) {
           activeSpan.setAttribute('organization.id', request.orgContext.organizationId);
           activeSpan.setAttribute('user.id', request.orgContext.userId);
         }
       }
 
-      // 2. Structured pino logging
-      request.log.error(
-        {
-          err: {
-            name: error.name,
-            message: error.message,
-            code: (error as any).code,
-            stack: error.stack,
+      // 2. Structured logging; client errors are expected outcomes, not exceptions.
+      const logContext = {
+        reqId: request.id,
+        url: request.routeOptions.url ?? request.url.split('?')[0],
+        method: request.raw?.method,
+        statusCode,
+        errorCode,
+      };
+      if (statusCode >= 500) {
+        request.log.error(
+          {
+            ...logContext,
+            err: {
+              name: error.name,
+              message: error.message,
+              code: (error as any).code,
+              stack: error.stack,
+            },
           },
-          reqId: request.id,
-          url: request.raw?.url,
-          method: request.raw?.method,
-        },
-        'Unhandled API Exception',
-      );
+          'Unhandled API Exception',
+        );
+      } else {
+        request.log.warn(logContext, 'API request rejected');
+      }
 
       // 3. Standardised response payload
       const details = isZodError && 'issues' in error
