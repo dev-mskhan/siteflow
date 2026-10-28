@@ -37,6 +37,8 @@ interface CustomSelectProps {
   disabled?: boolean;
   id?: string;
   'aria-label'?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
 }
 
 /* ─── Motion variants ────────────────────────────────────────────────────── */
@@ -77,6 +79,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   disabled = false,
   id,
   'aria-label': ariaLabel,
+  'aria-describedby': describedBy,
+  'aria-invalid': ariaInvalid,
 }) => {
   const uid = useId();
   const triggerId = id ?? `cs-trigger-${uid}`;
@@ -209,6 +213,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         aria-expanded={open}
         aria-controls={listboxId}
         aria-label={ariaLabel}
+        aria-describedby={describedBy}
+        aria-invalid={ariaInvalid ?? (error || undefined)}
         aria-activedescendant={
           open && focusedIndex >= 0 ? `${listboxId}-opt-${focusedIndex}` : undefined
         }

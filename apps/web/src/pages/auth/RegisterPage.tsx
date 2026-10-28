@@ -14,7 +14,13 @@ import { useRegisterMutation } from '../../features/auth/authApi';
 import { useAppDispatch } from '../../app/store';
 import { authUserLoaded } from '../../features/auth/authSlice';
 import { useAuth } from '../../features/auth/useAuth';
-import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../lib/authErrors';
+import {
+  getFieldValidationErrors,
+  getServerError,
+  isInlineError,
+  isToastError,
+  toastErrorMessage,
+} from '../../lib/authErrors';
 import { useToast } from '../../components/ui/Toast';
 
 export const RegisterPage: React.FC = () => {
@@ -33,8 +39,11 @@ export const RegisterPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
+
+  const fieldValidationErrors = getFieldValidationErrors(error);
 
   // Show toast for non-form errors (429, 500, network)
   useEffect(() => {
@@ -43,7 +52,10 @@ export const RegisterPage: React.FC = () => {
     }
   }, [error, toastError]);
 
-  const inlineError = isInlineError(error) ? getServerError(error) : null;
+  const inlineError =
+    isInlineError(error) && Object.keys(fieldValidationErrors).length === 0
+      ? getServerError(error)
+      : null;
 
   const onSubmit = async (data: RegisterInput) => {
     try {
@@ -51,8 +63,12 @@ export const RegisterPage: React.FC = () => {
       dispatch(authUserLoaded(result.user));
       // Registration always requires email verification before org creation
       navigate('/verify-email/pending', { replace: true });
-    } catch {
-      // Handled via `error` state above
+    } catch (requestError) {
+      for (const [field, message] of Object.entries(getFieldValidationErrors(requestError as never))) {
+        if (field === 'firstName' || field === 'lastName' || field === 'email' || field === 'password') {
+          setError(field, { type: 'server', message });
+        }
+      }
     }
   };
 
@@ -99,12 +115,14 @@ export const RegisterPage: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <FormField label="First name" error={errors.firstName?.message} required>
-              {(id) => (
+              {(id, errorId) => (
                 <input
                   id={id}
                   type="text"
                   autoComplete="given-name"
                   placeholder="Tariq"
+                  aria-invalid={!!errors.firstName}
+                  aria-describedby={errors.firstName ? errorId : undefined}
                   className={inputCls(!!errors.firstName)}
                   {...register('firstName')}
                 />
@@ -112,12 +130,14 @@ export const RegisterPage: React.FC = () => {
             </FormField>
 
             <FormField label="Last name" error={errors.lastName?.message}>
-              {(id) => (
+              {(id, errorId) => (
                 <input
                   id={id}
                   type="text"
                   autoComplete="family-name"
                   placeholder="Mehmood"
+                  aria-invalid={!!errors.lastName}
+                  aria-describedby={errors.lastName ? errorId : undefined}
                   className={inputCls(!!errors.lastName)}
                   {...register('lastName')}
                 />
@@ -126,12 +146,14 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <FormField label="Work email" error={errors.email?.message} required>
-            {(id) => (
+            {(id, errorId) => (
               <input
                 id={id}
                 type="email"
                 autoComplete="email"
                 placeholder="you@company.com"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? errorId : undefined}
                 className={inputCls(!!errors.email)}
                 {...register('email')}
               />
@@ -144,12 +166,14 @@ export const RegisterPage: React.FC = () => {
             hint="At least 8 characters"
             required
           >
-            {(id) => (
+            {(id, errorId, hintId) => (
               <PasswordInput
                 id={id}
                 autoComplete="new-password"
                 placeholder="Create a strong password"
                 hasError={!!errors.password}
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? errorId : hintId}
                 {...register('password')}
               />
             )}

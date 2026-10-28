@@ -21,6 +21,7 @@ import { CustomSelect } from '../../../components/ui/CustomSelect';
 import { InlineAlert } from '../../../components/ui/InlineAlert';
 import { useToast } from '../../../components/ui/Toast';
 import {
+  getFieldValidationErrors,
   getServerError,
   isInlineError,
   isToastError,
@@ -62,7 +63,8 @@ export const ProjectSettingsPage: React.FC = () => {
     register: regMeta,
     handleSubmit: submitMeta,
     reset: resetMeta,
-    formState: { isDirty: metaDirty },
+    setError: setMetaError,
+    formState: { isDirty: metaDirty, errors: metaErrors },
   } = useForm({ defaultValues: { name: '', description: '' } });
 
   useEffect(() => {
@@ -84,11 +86,19 @@ export const ProjectSettingsPage: React.FC = () => {
       }).unwrap();
       toastOk('Project updated', '');
     } catch (err) {
-      if (isToastError(err as never)) toastErr('Save failed', toastErrorMessage(err as never));
+      const fieldErrors = getFieldValidationErrors(err as never);
+      if (fieldErrors.name) {
+        setMetaError('name', { type: 'server', message: fieldErrors.name });
+      } else if (isToastError(err as never)) {
+        toastErr('Save failed', toastErrorMessage(err as never));
+      }
     }
   };
 
-  const projectInlineErr = isInlineError(projectError) ? getServerError(projectError) : null;
+  const projectInlineErr =
+    isInlineError(projectError) && Object.keys(getFieldValidationErrors(projectError)).length === 0
+      ? getServerError(projectError)
+      : null;
 
   // ── Settings form ────────────────────────────────────────────────────────
   const {
@@ -96,7 +106,8 @@ export const ProjectSettingsPage: React.FC = () => {
     control,
     handleSubmit: submitSettings,
     reset: resetSettings,
-    formState: { isDirty: settingsDirty },
+    setError: setSettingsError,
+    formState: { isDirty: settingsDirty, errors: settingErrors },
   } = useForm<Omit<EffectiveProjectSettings, 'currency'>>({
     defaultValues: {
       timezone: '',
@@ -120,9 +131,28 @@ export const ProjectSettingsPage: React.FC = () => {
       await updateSettings({ orgId: orgId!, projectId: projectId!, body: data }).unwrap();
       toastOk('Settings saved', '');
     } catch (err) {
-      if (isToastError(err as never)) toastErr('Save failed', toastErrorMessage(err as never));
+      const fieldErrors = getFieldValidationErrors(err as never);
+      const settingsFields = [
+        'timezone',
+        'locale',
+        'dateFormat',
+        'timeFormat',
+        'unitSystem',
+        'weekStartsOn',
+      ] as const;
+      const invalidField = settingsFields.find((field) => fieldErrors[field]);
+      if (invalidField) {
+        setSettingsError(invalidField, { type: 'server', message: fieldErrors[invalidField] });
+      } else if (isToastError(err as never)) {
+        toastErr('Save failed', toastErrorMessage(err as never));
+      }
     }
   };
+  const settingsInlineErr =
+    isInlineError(settingsError) &&
+    Object.keys(getFieldValidationErrors(settingsError)).length === 0
+      ? getServerError(settingsError)
+      : null;
 
   if (isLoading || !activeProject)
     return (
@@ -147,13 +177,15 @@ export const ProjectSettingsPage: React.FC = () => {
         </div>
         {projectInlineErr && <InlineAlert variant="error" message={projectInlineErr.message} />}
         <form onSubmit={submitMeta(onSaveMeta)} noValidate className="space-y-4">
-          <FormField label="Project name" required>
-            {(id) => (
+          <FormField label="Project name" error={metaErrors.name?.message} required>
+            {(id, errorId) => (
               <input
                 id={id}
                 type="text"
-                className={inputCls()}
-                {...regMeta('name', { required: true })}
+                aria-invalid={!!metaErrors.name}
+                aria-describedby={metaErrors.name ? errorId : undefined}
+                className={inputCls(!!metaErrors.name)}
+                {...regMeta('name', { required: 'Project name is required.' })}
               />
             )}
           </FormField>
@@ -188,6 +220,9 @@ export const ProjectSettingsPage: React.FC = () => {
             Project-level overrides. Blank values fall back to organization settings.
           </p>
         </div>
+        {settingsInlineErr && (
+          <InlineAlert variant="error" message={settingsInlineErr.message} />
+        )}
 
         <div className="border border-[var(--hairline-2)] bg-[var(--surface-2)] px-4 py-3 flex items-center justify-between">
           <div>
@@ -205,70 +240,86 @@ export const ProjectSettingsPage: React.FC = () => {
 
         <form onSubmit={submitSettings(onSaveSettings)} noValidate className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Timezone">
-              {(id) => (
+            <FormField label="Timezone" error={settingErrors.timezone?.message}>
+              {(id, errorId) => (
                 <input
                   id={id}
                   type="text"
                   placeholder="Asia/Karachi"
-                  className={inputCls()}
+                  aria-invalid={!!settingErrors.timezone}
+                  aria-describedby={settingErrors.timezone ? errorId : undefined}
+                  className={inputCls(!!settingErrors.timezone)}
                   {...regSet('timezone')}
                 />
               )}
             </FormField>
-            <FormField label="Locale">
-              {(id) => (
+            <FormField label="Locale" error={settingErrors.locale?.message}>
+              {(id, errorId) => (
                 <input
                   id={id}
                   type="text"
                   placeholder="en-PK"
-                  className={inputCls()}
+                  aria-invalid={!!settingErrors.locale}
+                  aria-describedby={settingErrors.locale ? errorId : undefined}
+                  className={inputCls(!!settingErrors.locale)}
                   {...regSet('locale')}
                 />
               )}
             </FormField>
           </div>
-          <FormField label="Date format">
-            {() => (
+          <FormField label="Date format" error={settingErrors.dateFormat?.message}>
+            {(id, errorId) => (
               <Controller
                 name="dateFormat"
                 control={control}
                 render={({ field }) => (
                   <CustomSelect
                     options={DATE_OPTIONS}
+                    id={id}
                     value={field.value}
                     onChange={field.onChange}
+                    error={!!settingErrors.dateFormat}
+                    aria-invalid={!!settingErrors.dateFormat}
+                    aria-describedby={settingErrors.dateFormat ? errorId : undefined}
                   />
                 )}
               />
             )}
           </FormField>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Time format">
-              {() => (
+            <FormField label="Time format" error={settingErrors.timeFormat?.message}>
+              {(id, errorId) => (
                 <Controller
                   name="timeFormat"
                   control={control}
                   render={({ field }) => (
                     <CustomSelect
                       options={TIME_OPTIONS}
+                      id={id}
                       value={field.value}
                       onChange={field.onChange}
+                      error={!!settingErrors.timeFormat}
+                      aria-invalid={!!settingErrors.timeFormat}
+                      aria-describedby={settingErrors.timeFormat ? errorId : undefined}
                     />
                   )}
                 />
               )}
             </FormField>
-            <FormField label="Unit system">
-              {() => (
+            <FormField label="Unit system" error={settingErrors.unitSystem?.message}>
+              {(id, errorId) => (
                 <Controller
                   name="unitSystem"
                   control={control}
                   render={({ field }) => (
                     <CustomSelect
                       options={UNIT_OPTIONS}
+                      id={id}
                       value={field.value}
                       onChange={field.onChange}
+                      error={!!settingErrors.unitSystem}
+                      aria-invalid={!!settingErrors.unitSystem}
+                      aria-describedby={settingErrors.unitSystem ? errorId : undefined}
                     />
                   )}
                 />

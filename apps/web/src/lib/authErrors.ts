@@ -16,6 +16,36 @@ export interface ServerError {
   details?: unknown;
 }
 
+export function getFieldValidationErrors(
+  error: FetchBaseQueryError | SerializedError | undefined,
+): Record<string, string> {
+  const serverError = getServerError(error);
+  if (!serverError || !error || !('status' in error) || ![400, 422].includes(Number(error.status))) {
+    return {};
+  }
+
+  const details = serverError.details;
+  const candidates = Array.isArray(details)
+    ? details
+    : (() => {
+        if (typeof serverError.message !== 'string') return [];
+        try {
+          const parsed: unknown = JSON.parse(serverError.message);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
+
+  return candidates.reduce<Record<string, string>>((result, candidate) => {
+    if (!candidate || typeof candidate !== 'object') return result;
+    const item = candidate as { path?: unknown; message?: unknown };
+    const path = Array.isArray(item.path) ? item.path.join('.') : '';
+    if (path && typeof item.message === 'string') result[path] = item.message;
+    return result;
+  }, {});
+}
+
 /** Extracts the server { code, message } from an RTK Query error, if present */
 export function getServerError(
   error: FetchBaseQueryError | SerializedError | undefined,

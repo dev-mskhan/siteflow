@@ -21,7 +21,13 @@ import { FormField } from '../../components/ui/FormField';
 import { PasswordInput } from '../../components/ui/PasswordInput';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useResetPasswordMutation } from '../../features/auth/authApi';
-import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../lib/authErrors';
+import {
+  getFieldValidationErrors,
+  getServerError,
+  isInlineError,
+  isToastError,
+  toastErrorMessage,
+} from '../../lib/authErrors';
 import { useToast } from '../../components/ui/Toast';
 
 export const ResetPasswordPage: React.FC = () => {
@@ -35,6 +41,7 @@ export const ResetPasswordPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
@@ -48,14 +55,19 @@ export const ResetPasswordPage: React.FC = () => {
     }
   }, [error, toastErr]);
 
-  const inlineError = isInlineError(error) ? getServerError(error) : null;
+  const fieldValidationErrors = getFieldValidationErrors(error);
+  const inlineError =
+    isInlineError(error) && Object.keys(fieldValidationErrors).length === 0
+      ? getServerError(error)
+      : null;
 
   const onSubmit = async (data: ResetPasswordInput) => {
     try {
       await resetPassword(data).unwrap();
       setDone(true);
-    } catch {
-      // Handled via error state above
+    } catch (requestError) {
+      const fieldError = getFieldValidationErrors(requestError as never).newPassword;
+      if (fieldError) setError('newPassword', { type: 'server', message: fieldError });
     }
   };
 
@@ -117,12 +129,14 @@ export const ResetPasswordPage: React.FC = () => {
                 hint="At least 8 characters"
                 required
               >
-                {(id) => (
+                {(id, errorId) => (
                   <PasswordInput
                     id={id}
                     autoComplete="new-password"
                     placeholder="Create a strong password"
                     hasError={!!errors.newPassword}
+                    aria-invalid={!!errors.newPassword}
+                    aria-describedby={errors.newPassword ? errorId : undefined}
                     {...register('newPassword')}
                   />
                 )}

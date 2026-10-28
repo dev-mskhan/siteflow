@@ -10,11 +10,26 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, hint, error, leftAddon, rightAddon, id, disabled, ...props }, ref) => {
+  (
+    {
+      className,
+      label,
+      hint,
+      error,
+      leftAddon,
+      rightAddon,
+      id,
+      disabled,
+      'aria-describedby': describedBy,
+      ...props
+    },
+    ref,
+  ) => {
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const errorId = inputId ? `${inputId}-error` : undefined;
 
     return (
-      <div className="w-full flex flex-col gap-1.5">
+      <div data-form-field className="w-full flex flex-col gap-1.5">
         {label && (
           <label
             htmlFor={inputId}
@@ -36,6 +51,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             disabled={disabled}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? [describedBy, errorId].filter(Boolean).join(' ') : describedBy}
             className={cn(
               'w-full min-h-[40px] px-3 py-2 text-sm rounded-md border bg-surface text-text placeholder:text-text-subtle transition-all duration-snappy',
               'focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent',
@@ -58,7 +75,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {error && (
-          <p className="text-xs font-medium text-status-delayed flex items-center gap-1 mt-0.5">
+          <p id={errorId} role="alert" aria-live="polite" className="text-xs font-medium text-status-delayed flex items-center gap-1 mt-0.5">
             <span>{error}</span>
           </p>
         )}

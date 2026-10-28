@@ -14,7 +14,13 @@ import { useLoginMutation } from '../../features/auth/authApi';
 import { useAppDispatch } from '../../app/store';
 import { authUserLoaded } from '../../features/auth/authSlice';
 import { useAuth } from '../../features/auth/useAuth';
-import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../lib/authErrors';
+import {
+  getFieldValidationErrors,
+  getServerError,
+  isInlineError,
+  isToastError,
+  toastErrorMessage,
+} from '../../lib/authErrors';
 import { useToast } from '../../components/ui/Toast';
 
 export const LoginPage: React.FC = () => {
@@ -35,10 +41,15 @@ export const LoginPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
-  const inlineError = isInlineError(error) ? getServerError(error) : null;
+  const fieldValidationErrors = getFieldValidationErrors(error);
+  const inlineError =
+    isInlineError(error) && Object.keys(fieldValidationErrors).length === 0
+      ? getServerError(error)
+      : null;
 
   useEffect(() => {
     if (error && isToastError(error)) {
@@ -51,8 +62,12 @@ export const LoginPage: React.FC = () => {
       const result = await login(data).unwrap();
       dispatch(authUserLoaded(result.user));
       navigate(from, { replace: true });
-    } catch {
-      // Errors handled above via the `error` state from the mutation
+    } catch (requestError) {
+      for (const [field, message] of Object.entries(getFieldValidationErrors(requestError as never))) {
+        if (field === 'email' || field === 'password') {
+          setError(field, { type: 'server', message });
+        }
+      }
     }
   };
 
@@ -89,12 +104,14 @@ export const LoginPage: React.FC = () => {
         {/* Email / password form */}
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <FormField label="Work email" error={errors.email?.message} required>
-            {(id) => (
+            {(id, errorId) => (
               <input
                 id={id}
                 type="email"
                 autoComplete="email"
                 placeholder="you@company.com"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? errorId : undefined}
                 className={inputCls(!!errors.email)}
                 {...register('email')}
               />
@@ -102,12 +119,14 @@ export const LoginPage: React.FC = () => {
           </FormField>
 
           <FormField label="Password" error={errors.password?.message} required>
-            {(id) => (
+            {(id, errorId) => (
               <PasswordInput
                 id={id}
                 autoComplete="current-password"
                 placeholder="••••••••"
                 hasError={!!errors.password}
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? errorId : undefined}
                 {...register('password')}
               />
             )}

@@ -12,7 +12,7 @@ interface FormFieldProps {
   error?: string;
   hint?: string;
   required?: boolean;
-  children: (id: string) => React.ReactNode;
+  children: (id: string, errorId: string, hintId: string) => React.ReactNode;
   className?: string;
 }
 
@@ -25,9 +25,11 @@ export const FormField: React.FC<FormFieldProps> = ({
   className,
 }) => {
   const id = useId();
+  const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
 
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
+    <div data-form-field className={cn('flex flex-col gap-1.5', className)}>
       <label
         htmlFor={id}
         className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] select-none"
@@ -36,15 +38,19 @@ export const FormField: React.FC<FormFieldProps> = ({
         {required && <span className="ml-1 text-[var(--ink)]">*</span>}
       </label>
 
-      {children(id)}
+      {children(id, errorId, hintId)}
 
       {hint && !error && (
-        <p className="font-mono text-[10px] text-[var(--muted)]">{hint}</p>
+        <p id={hintId} className="font-mono text-[10px] text-[var(--muted)]">
+          {hint}
+        </p>
       )}
 
       {error && (
         <p
+          id={errorId}
           role="alert"
+          aria-live="polite"
           className="font-mono text-[10px] text-[var(--color-status-delayed)] flex items-center gap-1"
         >
           <span aria-hidden>⚠</span>

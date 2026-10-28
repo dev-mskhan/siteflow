@@ -16,11 +16,26 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, hint, error, options, children, id, disabled, ...props }, ref) => {
+  (
+    {
+      className,
+      label,
+      hint,
+      error,
+      options,
+      children,
+      id,
+      disabled,
+      'aria-describedby': describedBy,
+      ...props
+    },
+    ref,
+  ) => {
     const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const errorId = selectId ? `${selectId}-error` : undefined;
 
     return (
-      <div className="w-full flex flex-col gap-1.5">
+      <div data-form-field className="w-full flex flex-col gap-1.5">
         {label && (
           <label
             htmlFor={selectId}
@@ -36,6 +51,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             disabled={disabled}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? [describedBy, errorId].filter(Boolean).join(' ') : describedBy}
             className={cn(
               'w-full min-h-[40px] px-3 py-2 pr-9 text-sm rounded-md border bg-surface text-text transition-all duration-snappy appearance-none cursor-pointer',
               'focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent',
@@ -62,7 +79,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </div>
 
         {error && (
-          <p className="text-xs font-medium text-status-delayed mt-0.5">
+          <p id={errorId} role="alert" aria-live="polite" className="text-xs font-medium text-status-delayed mt-0.5">
             {error}
           </p>
         )}

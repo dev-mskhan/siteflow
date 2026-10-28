@@ -1,24 +1,6 @@
 import React from 'react';
-import { NavLink, Outlet, useParams } from 'react-router-dom';
-import { PermissionGate } from '../../../components/guards/PermissionGate';
-import { cn } from '../../../lib/cn';
-
-const Tab: React.FC<{ to: string; label: string; end?: boolean }> = ({ to, label, end }) => (
-  <NavLink
-    to={to}
-    end={end}
-    className={({ isActive }) =>
-      cn(
-        'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors duration-[120ms]',
-        isActive
-          ? 'border-[var(--ink)] text-[var(--ink)]'
-          : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]',
-      )
-    }
-  >
-    {label}
-  </NavLink>
-);
+import { Outlet, useParams } from 'react-router-dom';
+import { SectionNavDropdown } from '../../../components/ui/SectionNavDropdown';
 
 export const OrgSettingsLayout: React.FC = () => {
   const { orgId } = useParams<{ orgId: string }>();
@@ -33,25 +15,35 @@ export const OrgSettingsLayout: React.FC = () => {
         </p>
       </div>
 
-      {/* Settings sub-nav */}
-      <div className="flex gap-0 border-b border-[var(--hairline-2)] mb-8 overflow-x-auto">
-        <PermissionGate require="settings:read">
-          <Tab to={base} label="General" end />
-        </PermissionGate>
-        <PermissionGate require="organization:read">
-          <Tab to={`${base}/profile`} label="Profile" />
-        </PermissionGate>
-        <PermissionGate require="settings:read">
-          <Tab to={`${base}/sequences`} label="Document sequences" />
-        </PermissionGate>
-        <PermissionGate require="audit:read">
-          <Tab to={`${base}/audit`} label="Audit log" />
-        </PermissionGate>
-        <Tab to={`${base}/billing`} label="Billing" />
-        <Tab to={`${base}/exports`} label="Exports" />
-        <Tab to={`${base}/notifications`} label="Notifications" />
+      <div className="-mx-6 sm:-mx-8 mb-8">
+        <SectionNavDropdown
+          fallbackTo={base}
+          fallbackLabel="General"
+          fallbackPermission="settings:read"
+          groups={[
+            {
+              label: 'Workspace',
+              items: [
+                { to: `${base}/profile`, label: 'Profile', permission: 'organization:read' },
+                {
+                  to: `${base}/sequences`,
+                  label: 'Document sequences',
+                  permission: 'settings:read',
+                },
+                { to: `${base}/audit`, label: 'Audit log', permission: 'audit:read' },
+              ],
+            },
+            {
+              label: 'Operations',
+              items: [
+                { to: `${base}/billing`, label: 'Billing' },
+                { to: `${base}/exports`, label: 'Exports' },
+                { to: `${base}/notifications`, label: 'Notifications' },
+              ],
+            },
+          ]}
+        />
       </div>
-
       <Outlet />
     </div>
   );

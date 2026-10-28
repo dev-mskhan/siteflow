@@ -17,7 +17,7 @@
  * listing all user orgs from listOrgs cache.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -45,6 +45,7 @@ import { Logo } from '../ui/Logo';
 import { PermissionGate } from '../guards/PermissionGate';
 import { useOrgContext } from '../../features/org/useOrgContext';
 import { useListOrgsQuery } from '../../features/org/orgApi';
+import type { PermissionKey } from '../../lib/permissions';
 
 interface AppSidebarProps {
   open: boolean;
@@ -61,7 +62,9 @@ const NavItem: React.FC<{
   indent?: boolean;
 }> = ({ to, icon: Icon, label, exact, indent }) => {
   const location = useLocation();
-  const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
+  const isActive = exact
+    ? location.pathname === to
+    : location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
     <Link
@@ -92,7 +95,9 @@ interface NavGroupItem {
   to: string;
   icon: React.ElementType;
   label: string;
-  permission?: string;
+  permission?: PermissionKey;
+  exact?: boolean;
+  section?: string;
 }
 
 const NavGroup: React.FC<{
@@ -101,21 +106,25 @@ const NavGroup: React.FC<{
   items: NavGroupItem[];
 }> = ({ label, icon: GroupIcon, items }) => {
   const location = useLocation();
-  const [expanded, setExpanded] = useState(() => {
-    // Auto-expand if current route matches any child
-    return items.some((item) => {
-      if (item.exact) return location.pathname === item.to;
-      return location.pathname.startsWith(item.to);
-    });
-  });
+  const groupId = React.useId();
+  const hasActiveChild = items.some((item) =>
+    item.exact
+      ? location.pathname === item.to
+      : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`),
+  );
+  const [expanded, setExpanded] = useState(hasActiveChild);
 
-  const hasActiveChild = items.some((item) => location.pathname.startsWith(item.to));
+  useEffect(() => {
+    if (hasActiveChild) setExpanded(true);
+  }, [hasActiveChild, location.pathname]);
 
   return (
     <div>
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        aria-controls={groupId}
         className={cn(
           'w-full group flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors duration-[120ms]',
           hasActiveChild
@@ -153,15 +162,41 @@ const NavGroup: React.FC<{
             exit={{ height: 0, opacity: 0, transition: { duration: 0.1 } }}
             className="overflow-hidden"
           >
-            {items.map((item) =>
-              item.permission ? (
-                <PermissionGate key={item.to} require={item.permission}>
-                  <NavItem to={item.to} icon={item.icon} label={item.label} indent />
-                </PermissionGate>
-              ) : (
-                <NavItem key={item.to} to={item.to} icon={item.icon} label={item.label} indent />
-              ),
-            )}
+            <div id={groupId}>
+              {items.map((item, index) => {
+                const link = item.permission ? (
+                  <PermissionGate key={item.to} require={item.permission}>
+                    <NavItem
+                      to={item.to}
+                      icon={item.icon}
+                      label={item.label}
+                      indent
+                      exact={item.exact}
+                    />
+                  </PermissionGate>
+                ) : (
+                  <NavItem
+                    key={item.to}
+                    to={item.to}
+                    icon={item.icon}
+                    label={item.label}
+                    indent
+                    exact={item.exact}
+                  />
+                );
+                const showSection = item.section && item.section !== items[index - 1]?.section;
+                return (
+                  <React.Fragment key={item.to}>
+                    {showSection && (
+                      <p className="pl-9 pr-3 pt-3 pb-1 font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                        {item.section}
+                      </p>
+                    )}
+                    {link}
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -231,29 +266,39 @@ const NavContent: React.FC = () => {
         label="Admin"
         icon={Settings}
         items={[
-          { to: `/org/${orgId}/members`, icon: Users, label: 'Members', permission: 'member:read' },
+          {
+            to: `/org/${orgId}/members`,
+            icon: Users,
+            label: 'Members',
+            permission: 'member:read',
+            section: 'People',
+          },
           {
             to: `/org/${orgId}/settings`,
             icon: Settings,
             label: 'Settings',
             permission: 'settings:read',
+            section: 'Workspace',
+            exact: true,
+          },
+          {
+            to: `/org/${orgId}/settings/notifications`,
+            icon: Bell,
+            label: 'Notifications',
+            permission: 'settings:read',
+            section: 'Workspace',
           },
           {
             to: `/org/${orgId}/settings/billing`,
             icon: CreditCard,
             label: 'Billing',
             permission: 'settings:read',
+            section: 'Finance & data',
           },
           {
             to: `/org/${orgId}/settings/exports`,
             icon: Download,
             label: 'Exports',
-            permission: 'settings:read',
-          },
-          {
-            to: `/org/${orgId}/settings/notifications`,
-            icon: Bell,
-            label: 'Notifications',
             permission: 'settings:read',
           },
         ]}

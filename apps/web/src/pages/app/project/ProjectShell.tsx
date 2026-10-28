@@ -4,9 +4,8 @@
  * Sub-nav tabs: Overview | Phases | Cost Codes | Budget | Team | Settings
  */
 import React, { useEffect } from 'react';
-import { NavLink, Outlet, useParams, useNavigate } from 'react-router-dom';
+import { Outlet, useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { cn } from '../../../lib/cn';
 import { useGetProjectQuery } from '../../../features/project/projectApi';
 import { useAppDispatch } from '../../../app/store';
 import {
@@ -16,23 +15,7 @@ import {
 } from '../../../features/project/projectSlice';
 import { ProjectStatusBadge } from '../../../components/project/ProjectStatusBadge';
 import { useActiveProject } from '../../../features/project/useActiveProject';
-
-const Tab: React.FC<{ to: string; label: string; end?: boolean }> = ({ to, label, end }) => (
-  <NavLink
-    to={to}
-    end={end}
-    className={({ isActive }) =>
-      cn(
-        'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors duration-[120ms] whitespace-nowrap',
-        isActive
-          ? 'border-[var(--ink)] text-[var(--ink)]'
-          : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]',
-      )
-    }
-  >
-    {label}
-  </NavLink>
-);
+import { SectionNavDropdown } from '../../../components/ui/SectionNavDropdown';
 
 import { MOCK_PROJECTS, MOCK_PROJECT_VERSIONS } from '../../../mocks/project.fixtures';
 
@@ -116,34 +99,96 @@ export const ProjectShell: React.FC = () => {
             </div>
           </div>
 
-          {/* Sub-nav */}
-          <nav className="flex overflow-x-auto gap-0 -mb-px">
-            <Tab to={base} label="Overview" end />
-            <Tab to={`${base}/phases`} label="Phases" />
-            <Tab to={`${base}/cost-codes`} label="Cost codes" />
-            <Tab to={`${base}/budget`} label="Budget" />
-            <Tab to={`${base}/team`} label="Team" />
-            <Tab to={`${base}/field-logs`} label="Field logs" />
-            <Tab to={`${base}/issues`} label="Issues" />
-            <Tab to={`${base}/tasks`} label="Tasks" />
-            <Tab to={`${base}/subcontractors`} label="Subcontractors" />
-            <Tab to={`${base}/commercial/change-orders`} label="Commercial" />
-            <Tab to={`${base}/preconstruction/proposals`} label="Pre-construction" />
-            <Tab to={`${base}/procurement/requests`} label="Procurement" />
-            <Tab to={`${base}/inventory`} label="Inventory" />
-            <Tab to={`${base}/documents`} label="Documents" />
-            <Tab to={`${base}/rfis`} label="RFIs" />
-            <Tab to={`${base}/submittals`} label="Submittals" />
-            <Tab to={`${base}/safety`} label="Safety" />
-            <Tab to={`${base}/quality`} label="Quality" />
-            <Tab to={`${base}/compliance`} label="Compliance" />
-            <Tab to={`${base}/reports/health`} label="Reports" />
-            <Tab to={`${base}/schedule-history`} label="Schedule history" />
-            <Tab to={`${base}/audit`} label="Audit" />
-            <Tab to={`${base}/settings`} label="Settings" />
-          </nav>
         </div>
       </div>
+
+      <SectionNavDropdown
+        fallbackTo={base}
+        fallbackLabel="Overview"
+        groups={[
+          {
+            label: 'Planning',
+            items: [
+              { to: `${base}/phases`, label: 'Phases' },
+              { to: `${base}/tasks`, label: 'Tasks' },
+              { to: `${base}/baselines`, label: 'Baselines' },
+              { to: `${base}/calendar`, label: 'Calendar' },
+              { to: `${base}/schedule-history`, label: 'Schedule history' },
+              { to: `${base}/cost-codes`, label: 'Cost codes' },
+              { to: `${base}/budget`, label: 'Budget' },
+            ],
+          },
+          {
+            label: 'Field operations',
+            items: [
+              { to: `${base}/team`, label: 'Team' },
+              { to: `${base}/field-logs`, label: 'Field logs' },
+              { to: `${base}/issues`, label: 'Issues' },
+              { to: `${base}/subcontractors`, label: 'Subcontractors' },
+              { to: `${base}/safety`, label: 'Safety' },
+              { to: `${base}/quality`, label: 'Quality' },
+              { to: `${base}/rfis`, label: 'RFIs' },
+              { to: `${base}/submittals`, label: 'Submittals' },
+            ],
+          },
+          {
+            label: 'Commercial',
+            items: [
+              { to: `${base}/commercial/change-orders`, label: 'Change orders' },
+              { to: `${base}/commercial/sov`, label: 'Schedule of values' },
+              { to: `${base}/commercial/payment-applications`, label: 'Payment applications' },
+              { to: `${base}/commercial/invoices`, label: 'Invoices' },
+              { to: `${base}/commercial/payments`, label: 'Payments' },
+              { to: `${base}/commercial/retainage`, label: 'Retainage' },
+              { to: `${base}/commercial/cost-transactions`, label: 'Cost transactions' },
+              { to: `${base}/commercial/commercial-summary`, label: 'Commercial summary' },
+              { to: `${base}/commercial/financial-summary`, label: 'Financial summary' },
+            ],
+          },
+          {
+            label: 'Pre-construction',
+            items: [
+              { to: `${base}/preconstruction/proposals`, label: 'Proposals' },
+              { to: `${base}/preconstruction/estimates`, label: 'Estimates' },
+              { to: `${base}/preconstruction/boq`, label: 'Bill of quantities' },
+              { to: `${base}/preconstruction/takeoffs`, label: 'Takeoffs' },
+              { to: `${base}/preconstruction/pricing`, label: 'Pricing' },
+            ],
+          },
+          {
+            label: 'Procurement',
+            items: [
+              { to: `${base}/procurement/requests`, label: 'Material requests' },
+              { to: `${base}/procurement/quotes`, label: 'Quotes' },
+              { to: `${base}/procurement/orders`, label: 'Purchase orders' },
+              { to: `${base}/procurement/approvals`, label: 'Approvals' },
+              { to: `${base}/procurement/deliveries`, label: 'Deliveries' },
+              { to: `${base}/procurement/committed`, label: 'Committed costs' },
+              { to: `${base}/inventory`, label: 'Inventory' },
+            ],
+          },
+          {
+            label: 'Records & controls',
+            items: [
+              { to: `${base}/documents`, label: 'Documents' },
+              { to: `${base}/compliance`, label: 'Compliance' },
+              { to: `${base}/audit`, label: 'Audit' },
+              { to: `${base}/settings`, label: 'Settings' },
+            ],
+          },
+          {
+            label: 'Reports',
+            items: [
+              { to: `${base}/reports/health`, label: 'Project health' },
+              { to: `${base}/reports/schedule`, label: 'Schedule' },
+              { to: `${base}/reports/cost`, label: 'Cost' },
+              { to: `${base}/reports/procurement`, label: 'Procurement' },
+              { to: `${base}/reports/subcontractor`, label: 'Subcontractors' },
+              { to: `${base}/reports/executive`, label: 'Executive' },
+            ],
+          },
+        ]}
+      />
 
       {/* Page content */}
       <div className="flex-1 overflow-auto">
