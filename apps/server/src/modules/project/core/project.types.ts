@@ -100,6 +100,7 @@ export interface ListProjectsFilter {
   limit?: number;
   status?: ProjectStatus;
   search?: string;
+  projectMemberUserId?: string;
 }
 
 // ── ProjectContext — set by projectContext preHandler ─────────────────────────

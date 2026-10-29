@@ -16,6 +16,12 @@ export interface ServerError {
   details?: unknown;
 }
 
+const SAFE_UNEXPECTED_ERROR = 'Something went wrong. Please try again.';
+
+function isServerFailureStatus(status: FetchBaseQueryError['status']): boolean {
+  return typeof status === 'number' ? status >= 500 : /^\d+$/.test(status) && Number(status) >= 500;
+}
+
 export function getFieldValidationErrors(
   error: FetchBaseQueryError | SerializedError | undefined,
 ): Record<string, string> {
@@ -52,16 +58,16 @@ export function getServerError(
 ): ServerError | null {
   if (!error) return null;
 
+  if ('status' in error && isServerFailureStatus(error.status)) {
+    return { code: 'INTERNAL_SERVER_ERROR', message: SAFE_UNEXPECTED_ERROR };
+  }
+
   if ('status' in error && error.data && typeof error.data === 'object') {
     const data = error.data as { error?: ServerError };
     if (data.error) return data.error;
   }
 
-  if ('message' in error && error.message) {
-    return { code: 'UNKNOWN', message: error.message };
-  }
-
-  return { code: 'UNKNOWN', message: 'An unexpected error occurred. Please try again.' };
+  return { code: 'UNKNOWN', message: SAFE_UNEXPECTED_ERROR };
 }
 
 /** True when the error should be shown inline (not as a toast) */
@@ -83,35 +89,41 @@ export function isToastError(error: FetchBaseQueryError | SerializedError | unde
     status === 429 ||
     status === 403 ||
     status === 404 ||
-    status === 500 ||
+    isServerFailureStatus(status) ||
     status === 'FETCH_ERROR' ||
-    status === 'PARSING_ERROR'
+    status === 'PARSING_ERROR' ||
+    status === 'TIMEOUT_ERROR'
   );
 }
 
 /** Human-readable message for toast errors */
 export function toastErrorMessage(error: FetchBaseQueryError | SerializedError | undefined): string {
-  if (!error) return 'An unexpected error occurred.';
+  if (!error) return SAFE_UNEXPECTED_ERROR;
 
   if ('status' in error) {
     const { status } = error;
-    const server = getServerError(error);
 
-    if (status === 429 || server?.code === 'TOO_MANY_REQUESTS') {
+    if (status === 429) {
       return 'Too many attempts. Please try again in 15 minutes.';
     }
-    if (status === 403 || server?.code === 'FORBIDDEN') {
-      return 'Your account has been suspended. Contact support.';
+    if (status === 403) {
+      return "You don't have permission to perform this action.";
     }
-    if (status === 'FETCH_ERROR') {
+    if (status === 404) {
+      return 'The requested item could not be found.';
+    }
+    if (status === 401) {
+      return 'Your session has expired. Please sign in again.';
+    }
+    if (status === 'FETCH_ERROR' || status === 'TIMEOUT_ERROR') {
       return 'Cannot reach the server. Check your connection.';
     }
-    if (server?.message) {
-      return server.message;
+    if (isServerFailureStatus(status) || status === 'PARSING_ERROR' || status === 'CUSTOM_ERROR') {
+      return SAFE_UNEXPECTED_ERROR;
     }
+
+    return getServerError(error)?.message ?? SAFE_UNEXPECTED_ERROR;
   }
 
-  if ('message' in error && error.message) return error.message;
-
-  return 'Something went wrong. Please try again.';
+  return SAFE_UNEXPECTED_ERROR;
 }

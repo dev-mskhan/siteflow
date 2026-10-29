@@ -339,7 +339,7 @@ export class ProposalService {
 
       await writeFinancialAuditEvent(tx, {
         organizationId,
-        projectId: tender.projectId ?? organizationId,
+        projectId: tender.projectId,
         actorUserId,
         action: FINANCIAL_AUDIT_ACTIONS.TENDER_UPDATED,
         entityType: 'tender',
@@ -404,7 +404,7 @@ export class ProposalService {
 
       await writeFinancialAuditEvent(tx, {
         organizationId,
-        projectId: tender.projectId ?? organizationId,
+        projectId: tender.projectId,
         actorUserId,
         action: auditActions[targetStatus]!,
         entityType: 'tender',

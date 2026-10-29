@@ -5,7 +5,6 @@
 import type { FastifyInstance, FastifyError } from 'fastify';
 import { trace, SpanStatusCode } from '@opentelemetry/api';
 
-import { serverEnv } from '../config/env.js';
 import { AuthError } from '../modules/auth/auth.errors.js';
 import { createErrorResponse } from '../shared/response.js';
 
@@ -106,17 +105,15 @@ export function registerErrorHandlers(app: FastifyInstance): void {
       }
 
       // 3. Standardised response payload
-      const details = isZodError && 'issues' in error
-        ? (error as any).issues
-        : (error as any).details !== undefined
-          ? (error as any).details
-          : serverEnv.NODE_ENV === 'development'
-            ? error.stack
-            : undefined;
+      const details = statusCode >= 500
+        ? undefined
+        : isZodError && 'issues' in error
+          ? (error as any).issues
+          : (error as any).details;
 
       const responsePayload = createErrorResponse(
-        errorCode,
-        statusCode === 500 && serverEnv.NODE_ENV === 'production'
+        statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : errorCode,
+        statusCode >= 500
           ? 'Internal server error'
           : (error as any).code === '22P02'
             ? 'Invalid ID format in request'

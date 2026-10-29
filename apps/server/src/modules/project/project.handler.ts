@@ -64,12 +64,16 @@ export async function handleListProjects(
 ): Promise<void> {
   const { organizationId } = request.params as { organizationId: string };
   const query = listProjectsQuerySchema.parse(request.query);
+  const projectMemberUserId = request.orgContext?.permissions.includes('project:read:any')
+    ? undefined
+    : request.orgContext?.userId;
 
   const result = await projectService.listProjects(organizationId, {
     cursor: query.cursor,
     limit: query.limit,
     status: query.status,
     search: query.search,
+    projectMemberUserId,
   });
 
   return reply.send(

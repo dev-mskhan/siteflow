@@ -1,5 +1,5 @@
 // apps/server/src/modules/project/core/project.repository.ts
-import { eq, and, desc, or, lt, sql } from 'drizzle-orm';
+import { eq, and, desc, or, lt, sql, exists } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { projects, projectMembers, type Project, type NewProject } from '@siteflow/database/schema';
 import { DocumentSequenceRepository } from '../../organization/sequences/sequences.repository.js';
@@ -108,6 +108,24 @@ export class ProjectRepository {
           sql`lower(${projects.name}) LIKE ${'%' + opts.search.toLowerCase() + '%'}`,
           sql`lower(${projects.projectNumber}) LIKE ${'%' + opts.search.toLowerCase() + '%'}`,
         )!,
+      );
+    }
+
+    if (opts.projectMemberUserId) {
+      conditions.push(
+        exists(
+          this.db
+            .select({ id: projectMembers.id })
+            .from(projectMembers)
+            .where(
+              and(
+                eq(projectMembers.organizationId, orgId),
+                eq(projectMembers.projectId, projects.id),
+                eq(projectMembers.userId, opts.projectMemberUserId),
+                eq(projectMembers.status, 'ACTIVE'),
+              ),
+            ),
+        ),
       );
     }
 
