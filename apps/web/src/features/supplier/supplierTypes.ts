@@ -65,7 +65,7 @@ export interface SupplierContactDTO {
 // ── Input types ───────────────────────────────────────────────────────────────
 
 export interface CreateSupplierInput {
-  supplierCode: string;       // 1–50
+  supplierCode?: string;      // 1–50; generated when omitted
   legalName: string;          // 1–500
   displayName: string;        // 1–500
   supplierType?: SupplierType;

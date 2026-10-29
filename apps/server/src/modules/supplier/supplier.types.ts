@@ -36,7 +36,7 @@ export interface SupplierContactDTO {
 }
 
 export interface CreateSupplierInput {
-  supplierCode: string;
+  supplierCode?: string;
   legalName: string;
   displayName: string;
   supplierType?: SupplierType;

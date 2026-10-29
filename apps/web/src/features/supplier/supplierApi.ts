@@ -24,7 +24,6 @@ interface OrgArgs { orgId: string }
 interface SupplierArgs extends OrgArgs { supplierId: string }
 interface ContactArgs extends SupplierArgs { contactId: string }
 
-interface ListSuppliersResponse { suppliers: SupplierDTO[]; nextCursor: string | null }
 interface SingleSupplierResponse { supplier: SupplierDTO }
 interface ListContactsResponse { contacts: SupplierContactDTO[] }
 interface SingleContactResponse { contact: SupplierContactDTO }

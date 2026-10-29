@@ -1,5 +1,6 @@
 import { withSpan } from '@siteflow/observability/server';
 import { trace } from '@opentelemetry/api';
+import { sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getDb } from '../../lib/db/index.js';
 import { generateId } from '../../lib/id.js';
@@ -143,8 +144,9 @@ export class SupplierService {
       span.setAttributes({ organizationId });
 
       return this.db.transaction(async (tx) => {
-        // Normalize supplierCode: trim + uppercase
-        const normalizedCode = input.supplierCode.trim().toUpperCase();
+        const normalizedCode = input.supplierCode
+          ? input.supplierCode.trim().toUpperCase()
+          : await this.generateSupplierCode(tx, organizationId);
 
         const existing = await this.repo.findByCode(tx as any, organizationId, normalizedCode);
         if (existing) throw new SupplierDuplicateCodeError(normalizedCode);
@@ -185,6 +187,20 @@ export class SupplierService {
         return dto;
       });
     });
+  }
+
+  private async generateSupplierCode(tx: any, organizationId: string): Promise<string> {
+    const lockKey = `${organizationId}:supplier-code`;
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`);
+
+    const codes = await this.repo.listCodesByPrefix(tx, organizationId, 'SUP');
+    const highestNumber = codes.reduce((highest, code) => {
+      const match = /^SUP-(\d+)$/i.exec(code);
+      const number = match ? Number(match[1]) : 0;
+      return Number.isSafeInteger(number) ? Math.max(highest, number) : highest;
+    }, 0);
+
+    return `SUP-${String(highestNumber + 1).padStart(3, '0')}`;
   }
 
   async getSupplier(organizationId: string, supplierId: string): Promise<SupplierDTO> {

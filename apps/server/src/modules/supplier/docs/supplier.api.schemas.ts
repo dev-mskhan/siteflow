@@ -174,9 +174,14 @@ export const createSupplierSchemaDoc = {
   params: orgParams,
   body: {
     type: 'object',
-    required: ['supplierCode', 'legalName', 'displayName'],
+    required: ['legalName', 'displayName'],
     properties: {
-      supplierCode: { type: 'string', minLength: 1, maxLength: 50 },
+      supplierCode: {
+        type: 'string',
+        minLength: 1,
+        maxLength: 50,
+        description: 'Optional; generated as SUP-### when omitted.',
+      },
       legalName: { type: 'string', minLength: 1, maxLength: 500 },
       displayName: { type: 'string', minLength: 1, maxLength: 500 },
       supplierType: { type: 'string', enum: ['MATERIAL_SUPPLIER', 'SERVICE_PROVIDER', 'EQUIPMENT_SUPPLIER', 'GENERAL_SUPPLIER'] },

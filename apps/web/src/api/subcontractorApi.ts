@@ -2,8 +2,7 @@
  * Re-export shim — pages import from ../../api/subcontractorApi.
  * Actual implementation lives in features/project/subcontractorApi.
  * 
- * NOTE: Mock API had org-level subcontractor CRUD which backend doesn't support.
- * Backend only supports PROJECT-scoped subcontractor assignment.
- * Org-level list/create/update removed (not implemented in backend).
+ * The implementation includes the organization-level directory and
+ * project-scoped assignments, matching the corresponding server routes.
  */
 export * from '../features/project/subcontractorApi';

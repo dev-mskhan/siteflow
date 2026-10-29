@@ -162,6 +162,22 @@ describe('Supplier catalog routes', () => {
     });
   });
 
+  it('generates sequential supplier codes when omitted', async () => {
+    const first = await createSupplier({
+      legalName: `Generated legal one ${runId}`,
+      displayName: `Generated one ${runId}`,
+    });
+    const second = await createSupplier({
+      legalName: `Generated legal two ${runId}`,
+      displayName: `Generated two ${runId}`,
+    });
+
+    expect(first.statusCode).toBe(201);
+    expect(second.statusCode).toBe(201);
+    expect(first.json().data.supplierCode).toBe('SUP-001');
+    expect(second.json().data.supplierCode).toBe('SUP-002');
+  });
+
   it('enforces supplier-code uniqueness within an org but isolates different orgs', async () => {
     const payload = supplierPayload(`duplicate-${runId}`);
     expect((await createSupplier(payload)).statusCode).toBe(201);

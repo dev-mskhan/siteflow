@@ -42,7 +42,9 @@ export const subcontractorApi = baseApi.injectEndpoints({
         data: raw.data,
         nextCursor: raw.meta?.nextCursor ?? null,
       }),
-      providesTags: [{ type: 'Subcontractor', id: 'LIST' }],
+      providesTags: (_result, _error, { orgId }) => [
+        { type: 'Subcontractor', id: `LIST_${orgId}` },
+      ],
     }),
 
     getSubcontractor: build.query<SubcontractorDTO, { orgId: string; subcontractorId: string }>({
@@ -62,7 +64,9 @@ export const subcontractorApi = baseApi.injectEndpoints({
         headers: { 'idempotency-key': crypto.randomUUID() },
       }),
       transformResponse: (raw: { data: SubcontractorDTO }) => raw.data,
-      invalidatesTags: [{ type: 'Subcontractor', id: 'LIST' }],
+      invalidatesTags: (_result, _error, { orgId }) => [
+        { type: 'Subcontractor', id: `LIST_${orgId}` },
+      ],
     }),
 
     updateSubcontractor: build.mutation<
@@ -75,8 +79,8 @@ export const subcontractorApi = baseApi.injectEndpoints({
         body: input,
       }),
       transformResponse: (raw: { data: SubcontractorDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { subcontractorId }) => [
-        { type: 'Subcontractor', id: 'LIST' },
+      invalidatesTags: (_r, _e, { orgId, subcontractorId }) => [
+        { type: 'Subcontractor', id: `LIST_${orgId}` },
         { type: 'Subcontractor', id: subcontractorId },
       ],
     }),

@@ -68,6 +68,30 @@ test.describe('Master Data: Suppliers & Materials', () => {
     expect(foundSupplier?.supplierCode).toBe(supplierCode);
   });
 
+  test('creates a supplier from the directory and shows its generated code', async ({ page }) => {
+    await page.goto(`/org/${orgId}/suppliers`);
+    await page.getByRole('button', { name: 'New supplier' }).click();
+    await page.getByPlaceholder('Company (Pvt) Ltd').fill('Automatically Coded Supplier Ltd');
+    await page.getByPlaceholder('Short name').fill('Automatically Coded Supplier');
+    await page.getByRole('button', { name: 'Create supplier' }).click();
+
+    await expect(page.getByText('Automatically Coded Supplier', { exact: true })).toBeVisible();
+    const supplierRow = page
+      .getByRole('link', { name: 'View Automatically Coded Supplier' })
+      .locator('xpath=../..');
+    await expect(supplierRow.getByText(/^SUP-\d+$/)).toBeVisible();
+  });
+
+  test('refreshes the subcontractor directory after creating a subcontractor', async ({ page }) => {
+    await page.goto(`/org/${orgId}/subcontractors`);
+    await page.getByRole('button', { name: 'New subcontractor' }).click();
+    await page.getByPlaceholder('Al-Barkat Construction (Pvt) Ltd').fill('Directory Subcontractor Ltd');
+    await page.getByRole('textbox', { name: 'Al-Barkat Construction', exact: true }).fill('Directory Subcontractor');
+    await page.getByRole('button', { name: 'Create subcontractor' }).click();
+
+    await expect(page.getByText('Directory Subcontractor', { exact: true })).toBeVisible();
+  });
+
   test('creates material and retrieves it', async ({ page, request }) => {
     // Create material via API
     const materialCode = `MAT-${Date.now()}`;

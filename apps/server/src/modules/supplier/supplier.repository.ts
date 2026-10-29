@@ -4,7 +4,7 @@ import {
   type Supplier,
   type SupplierContact,
 } from '@siteflow/database/schema';
-import { eq, and, lt, or, desc } from 'drizzle-orm';
+import { eq, and, ilike, lt, or, desc } from 'drizzle-orm';
 
 export class SupplierRepository {
   async findById(db: any, id: string): Promise<Supplier | undefined> {
@@ -27,6 +27,23 @@ export class SupplierRepository {
         ),
       );
     return rows[0];
+  }
+
+  async listCodesByPrefix(
+    db: any,
+    organizationId: string,
+    prefix: string,
+  ): Promise<string[]> {
+    const rows = await db
+      .select({ supplierCode: suppliers.supplierCode })
+      .from(suppliers)
+      .where(
+        and(
+          eq(suppliers.organizationId, organizationId),
+          ilike(suppliers.supplierCode, `${prefix}-%`),
+        ),
+      );
+    return rows.map((row: { supplierCode: string }) => row.supplierCode);
   }
 
   async create(

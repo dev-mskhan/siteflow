@@ -57,7 +57,7 @@ export const SuppliersPage: React.FC = () => {
 
   // Form state
   const [form, setForm] = useState({
-    supplierCode: '', legalName: '', displayName: '',
+    legalName: '', displayName: '',
     supplierType: '', email: '', phone: '', address: '',
     website: '', paymentTerms: '', currencyCode: '', notes: '',
   });
@@ -68,7 +68,7 @@ export const SuppliersPage: React.FC = () => {
   });
   const [createSupplier, { isLoading: creating, error: createErr }] = useCreateSupplierMutation();
 
-  const allSuppliers = data?.suppliers ?? [];
+  const allSuppliers = data?.data ?? [];
   const suppliers = allSuppliers.filter((s) =>
     !search ||
     s.displayName.toLowerCase().includes(search.toLowerCase()) ||
@@ -80,15 +80,14 @@ export const SuppliersPage: React.FC = () => {
     setForm((f) => ({ ...f, [k]: v }));
 
   const handleCreate = async () => {
-    if (!form.supplierCode.trim() || !form.legalName.trim() || !form.displayName.trim()) {
-      toastErr('Required fields missing', 'Code, legal name and display name are required.');
+    if (!form.legalName.trim() || !form.displayName.trim()) {
+      toastErr('Required fields missing', 'Legal name and display name are required.');
       return;
     }
     try {
       await createSupplier({
         orgId: orgId!,
         body: {
-          supplierCode: form.supplierCode.trim(),
           legalName: form.legalName.trim(),
           displayName: form.displayName.trim(),
           supplierType: (form.supplierType as SupplierType) || undefined,
@@ -103,7 +102,7 @@ export const SuppliersPage: React.FC = () => {
       }).unwrap();
       toastOk('Supplier created', '');
       setShowCreate(false);
-      setForm({ supplierCode: '', legalName: '', displayName: '', supplierType: '', email: '', phone: '', address: '', website: '', paymentTerms: '', currencyCode: '', notes: '' });
+      setForm({ legalName: '', displayName: '', supplierType: '', email: '', phone: '', address: '', website: '', paymentTerms: '', currencyCode: '', notes: '' });
     } catch (err) {
       if (isToastError(err as never)) toastErr('Create failed', toastErrorMessage(err as never));
     }
@@ -140,7 +139,6 @@ export const SuppliersPage: React.FC = () => {
           )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'Supplier code *', key: 'supplierCode', placeholder: 'SUP-005', hint: '1–50 chars' },
               { label: 'Legal name *', key: 'legalName', placeholder: 'Company (Pvt) Ltd', hint: '1–500 chars' },
               { label: 'Display name *', key: 'displayName', placeholder: 'Short name', hint: '1–500 chars' },
             ].map(({ label, key, placeholder, hint }) => (
