@@ -145,12 +145,23 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
         const state = chunk as Record<string, unknown>;
         if (state['output'] && typeof state['output'] === 'object') {
           finalOutput = state['output'] as AgentRunOutput;
+        } else {
+          // In 'updates' streamMode, chunk is keyed by node name: { [nodeName]: nodeOutput }
+          for (const nodeKey of Object.keys(state)) {
+            const nodeVal = state[nodeKey];
+            if (nodeVal && typeof nodeVal === 'object' && 'output' in nodeVal && (nodeVal as any)['output']) {
+              finalOutput = (nodeVal as any)['output'] as AgentRunOutput;
+            }
+          }
         }
       }
     }
 
     // Detect interrupt: graph paused waiting for human approval
     const currentState = await compiledGraph.getState(lgConfig);
+    if (!finalOutput && currentState?.values && typeof currentState.values === 'object' && 'output' in currentState.values) {
+      finalOutput = (currentState.values as any)['output'] as AgentRunOutput;
+    }
     if (currentState.next && currentState.next.length > 0) {
       interrupted = true;
       logger.info({ runId, next: currentState.next }, 'Graph interrupted — awaiting approval');
@@ -185,8 +196,8 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
       throw err; // worker handles these as terminal transitions
     }
 
-    // Timeout from AbortSignal comes as a DOMException with name 'TimeoutError'
-    if (err instanceof Error && err.name === 'TimeoutError') {
+    // Timeout from AbortSignal comes as a DOMException with name 'TimeoutError' or 'AbortError'
+    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
       throw new RunTimeoutError(runId, limits.timeoutMs);
     }
 
@@ -255,15 +266,27 @@ export async function resumeRun(
         const state = chunk as Record<string, unknown>;
         if (state['output'] && typeof state['output'] === 'object') {
           finalOutput = state['output'] as AgentRunOutput;
+        } else {
+          for (const nodeKey of Object.keys(state)) {
+            const nodeVal = state[nodeKey];
+            if (nodeVal && typeof nodeVal === 'object' && 'output' in nodeVal && (nodeVal as any)['output']) {
+              finalOutput = (nodeVal as any)['output'] as AgentRunOutput;
+            }
+          }
         }
       }
+    }
+
+    // Capture state values if not caught in chunk
+    const currentState = await compiledGraph.getState(lgConfig);
+    if (!finalOutput && currentState?.values && typeof currentState.values === 'object' && 'output' in currentState.values) {
+      finalOutput = (currentState.values as any)['output'] as AgentRunOutput;
     }
 
     await accumulator.flush();
     traceHandle.end(finalOutput);
 
     // Check if still interrupted (e.g. multiple approval steps)
-    const currentState = await compiledGraph.getState(lgConfig);
     const interrupted = !!(currentState.next && currentState.next.length > 0);
 
     return {
@@ -277,7 +300,7 @@ export async function resumeRun(
   } catch (err) {
     await accumulator.flush();
     traceHandle.end(err, 'ERROR');
-    if (err instanceof Error && err.name === 'TimeoutError') {
+    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
       throw new RunTimeoutError(runId, limits.timeoutMs);
     }
     throw err;

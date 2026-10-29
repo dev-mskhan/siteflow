@@ -51,6 +51,10 @@ export class ApprovalService {
     return this.approvalRepo.findPendingForRun(runId);
   }
 
+  async getLatestForRun(runId: string): Promise<AgentApproval | undefined> {
+    return this.approvalRepo.findLatestForRun(runId);
+  }
+
   async approve(id: string, organizationId: string, userId: string, note?: string): Promise<void> {
     return withSpan(tracer, 'ai.approval.approve', async (span) => {
       span.setAttribute('approval.id', id);

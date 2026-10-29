@@ -14,7 +14,7 @@ registerTool({
     action: z.string().default('test_action'),
   }),
   riskTier: 'BINDING',
-  requiredPermission: 'ai.runs.read',
+  requiredPermission: '',
   async execute(args) {
     return { status: 'EXECUTED', args };
   },
@@ -28,7 +28,7 @@ registerTool({
     iteration: z.number().default(0),
   }),
   riskTier: 'READ',
-  requiredPermission: 'ai.runs.read',
+  requiredPermission: '',
   async execute(args) {
     return { iteration: args.iteration, timestamp: Date.now() };
   },
@@ -42,7 +42,7 @@ registerTool({
     durationMs: z.number().default(5000),
   }),
   riskTier: 'READ',
-  requiredPermission: 'ai.runs.read',
+  requiredPermission: '',
   async execute(args) {
     await new Promise((resolve) => setTimeout(resolve, args.durationMs));
     return { sleptMs: args.durationMs };

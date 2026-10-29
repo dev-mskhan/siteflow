@@ -26,8 +26,8 @@ export function buildEchoApprovalGraph(ctx: RunContext) {
     };
 
     // 1. If not approved yet, check or create approval and interrupt
-    const pendingApproval = await approvalService.getPendingForRun(ctx.runId);
-    if (!pendingApproval) {
+    const existingApproval = await approvalService.getLatestForRun(ctx.runId);
+    if (!existingApproval) {
       const sortedArgs = JSON.stringify(toolArgs, Object.keys(toolArgs).sort());
       const argsHash = createHash('sha256').update(sortedArgs).digest('hex');
 

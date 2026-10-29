@@ -1,2 +1,2 @@
-export { createDatabaseClient, schema } from './client.js';
+export { createDatabaseClient, schema, postgres } from './client.js';
 export type { DatabaseClient, DatabaseTransaction } from './client.js';

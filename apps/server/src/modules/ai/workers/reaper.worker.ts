@@ -10,9 +10,11 @@ import { createLogger } from '@siteflow/observability/server';
 import { agentApprovals, agentRuns } from '@siteflow/database/schema';
 import { eq, and, lt } from 'drizzle-orm';
 
+import { AI_QUEUES } from '../ai.jobs.js';
+
 const logger = createLogger({ name: 'ai-reaper' });
 
-export const REAPER_QUEUE = 'ai:reaper';
+export const REAPER_QUEUE = AI_QUEUES.REAPER;
 
 export async function expireApprovals(): Promise<number> {
   const db = getDb();
@@ -94,6 +96,13 @@ export async function runReaperSweep(): Promise<{
 }
 
 export async function registerAiReaperWorker(boss: PgBoss): Promise<void> {
+  // Ensure queue exists in pg-boss before schedule or work (pg-boss v10 requirement)
+  try {
+    await boss.createQueue(REAPER_QUEUE);
+  } catch {
+    // Queue may already exist
+  }
+
   // Run every 5 minutes
   await boss.schedule(REAPER_QUEUE, '*/5 * * * *', {});
   logger.info('Scheduled AI reaper: every 5 minutes (*/5 * * * *)');

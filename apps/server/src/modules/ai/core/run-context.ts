@@ -54,8 +54,8 @@ export interface RunContext {
  *                   Defaults to DEFAULT_RUN_LIMITS when not provided
  */
 export function buildRunContext(
-  run: Pick<AgentRun, 'id' | 'organizationId' | 'projectId' | 'agent' | 'createdBy'> &
-    Partial<Pick<AgentRun, 'correlationId' | 'provider' | 'model' | 'inputSnapshot'>>,
+  run: Pick<AgentRun, 'id' | 'organizationId' | 'agent' | 'createdBy'> &
+    Partial<Pick<AgentRun, 'projectId' | 'correlationId' | 'provider' | 'model' | 'inputSnapshot'>>,
   limits: RunLimits = DEFAULT_RUN_LIMITS,
 ): RunContext {
   const ctx: RunContext = {

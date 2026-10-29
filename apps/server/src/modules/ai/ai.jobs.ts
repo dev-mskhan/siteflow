@@ -9,6 +9,8 @@ export const AI_QUEUES = {
   AGENT_RUN: 'ai:agent-run',
   /** Asynchronously transcribe audio from storage */
   TRANSCRIBE: 'ai:transcribe',
+  /** AI reaper sweeping stale runs and approvals */
+  REAPER: 'ai:reaper',
 } as const;
 
 export type AiQueueName = (typeof AI_QUEUES)[keyof typeof AI_QUEUES];

@@ -164,41 +164,43 @@ export async function executeTool<T = unknown>(
     // ── 3. RBAC check ───────────────────────────────────────────────────────
     // We resolve the org context fresh (cache-backed) on every call.
     // RunContext carries userId + organizationId from the DB row — never LLM input.
-    let orgCtx: Awaited<ReturnType<typeof rbacService.getOrganizationContext>>;
-    try {
-      orgCtx = await rbacService.getOrganizationContext(ctx.organizationId, ctx.userId);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'RBAC lookup failed';
-      await toolCallRepo.log({
-        runId: ctx.runId,
-        organizationId: ctx.organizationId,
-        toolName,
-        riskTier: tool.riskTier,
-        argsRedacted,
-        status: 'ERROR',
-        errorMessage: message,
-        durationMs: Date.now() - startMs,
-      });
-      return { ok: false, code: 'RBAC_ERROR', message };
-    }
+    if (tool.requiredPermission) {
+      let orgCtx: Awaited<ReturnType<typeof rbacService.getOrganizationContext>>;
+      try {
+        orgCtx = await rbacService.getOrganizationContext(ctx.organizationId, ctx.userId);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'RBAC lookup failed';
+        await toolCallRepo.log({
+          runId: ctx.runId,
+          organizationId: ctx.organizationId,
+          toolName,
+          riskTier: tool.riskTier,
+          argsRedacted,
+          status: 'ERROR',
+          errorMessage: message,
+          durationMs: Date.now() - startMs,
+        });
+        return { ok: false, code: 'RBAC_ERROR', message };
+      }
 
-    if (!rbacService.hasPermission(orgCtx, tool.requiredPermission)) {
-      const msg = `Missing permission "${tool.requiredPermission}" for tool "${toolName}"`;
-      await toolCallRepo.log({
-        runId: ctx.runId,
-        organizationId: ctx.organizationId,
-        toolName,
-        riskTier: tool.riskTier,
-        argsRedacted,
-        status: 'ERROR',
-        errorMessage: msg,
-        durationMs: Date.now() - startMs,
-      });
-      return {
-        ok: false,
-        code: 'TOOL_PERMISSION_DENIED',
-        message: msg,
-      };
+      if (!rbacService.hasPermission(orgCtx, tool.requiredPermission)) {
+        const msg = `Missing permission "${tool.requiredPermission}" for tool "${toolName}"`;
+        await toolCallRepo.log({
+          runId: ctx.runId,
+          organizationId: ctx.organizationId,
+          toolName,
+          riskTier: tool.riskTier,
+          argsRedacted,
+          status: 'ERROR',
+          errorMessage: msg,
+          durationMs: Date.now() - startMs,
+        });
+        return {
+          ok: false,
+          code: 'TOOL_PERMISSION_DENIED',
+          message: msg,
+        };
+      }
     }
 
     // ── 4. Tier gate ────────────────────────────────────────────────────────

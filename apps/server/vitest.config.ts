@@ -6,6 +6,7 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 30000,
     setupFiles: ['./tests/setup.ts'],
+    globalSetup: ['./tests/global-setup.ts'],
     // All tests live under tests/ — never co-located inside src/
     include: ['tests/**/*.{test,spec}.ts'],
     exclude: ['tests/**/*.e2e.ts', 'node_modules', 'dist'],

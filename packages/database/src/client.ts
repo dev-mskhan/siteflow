@@ -38,4 +38,4 @@ export function createDatabaseClient(connectionString: string, pool?: DatabasePo
   return drizzle(sql, { schema, logger: process.env.NODE_ENV === 'development' });
 }
 
-export { schema };
+export { schema, postgres };
