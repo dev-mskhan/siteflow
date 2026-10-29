@@ -74,8 +74,18 @@ async function checkApprovalGate(
 // redaction should override via a `redactArgs` fn in their definition.
 
 const REDACT_KEYS = new Set([
-  'password', 'token', 'secret', 'key', 'apiKey', 'api_key',
-  'ssn', 'dob', 'dateOfBirth', 'phone', 'email',
+  'password',
+  'token',
+  'secret',
+  'key',
+  'apikey',
+  'api_key',
+  'ssn',
+  'dob',
+  'dateofbirth',
+  'date_of_birth',
+  'phone',
+  'email',
 ]);
 
 function redactArgs(args: Record<string, unknown>): Record<string, unknown> {

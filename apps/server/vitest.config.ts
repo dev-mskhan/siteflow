@@ -33,6 +33,8 @@ export default defineConfig({
       MINIO_ACCESS_KEY: 'minioadmin',
       MINIO_SECRET_KEY: 'minioadmin',
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4318',
+      VOICESTUDIO_URL: 'http://localhost:3900',
+      VOICESTUDIO_API_KEY: 'whisper-95146ef999b41c291f0d656e149ebe5d9848e91167a9fbc3',
     },
   },
 });

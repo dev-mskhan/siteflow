@@ -69,10 +69,25 @@ export interface ModelFactoryOptions {
  *   - 'google': ChatGoogleGenerativeAI
  *   - 'fake': FakeListChatModel (deterministic test model, zero network, zero cost)
  */
+let modelOverride: ((tier: ModelTier, opts: ModelFactoryOptions) => BaseChatModel) | null = null;
+
+/**
+ * For testing: set or clear a global override for createModel.
+ */
+export function setModelOverride(
+  fn: ((tier: ModelTier, opts: ModelFactoryOptions) => BaseChatModel) | null,
+): void {
+  modelOverride = fn;
+}
+
 export function createModel(
   tier: ModelTier,
   opts: ModelFactoryOptions = {},
 ): BaseChatModel {
+  if (modelOverride) {
+    return modelOverride(tier, opts);
+  }
+
   const provider = serverEnv.AI_PROVIDER;
   const modelName = tier === 'strong' ? serverEnv.AI_MODEL_STRONG : serverEnv.AI_MODEL_CHEAP;
 
