@@ -12,6 +12,8 @@ import { StateGraph, Annotation, END } from '@langchain/langgraph';
 import type { RunContext } from '../../core/run-context.js';
 import type { AgentRunOutput } from '../../core/types.js';
 
+import type { UsageAccumulator } from '../../cost/usage.service.js';
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const EchoState = Annotation.Root({
@@ -32,9 +34,12 @@ function echoNode(state: typeof EchoState.State): Partial<typeof EchoState.State
 
 // ── Graph ─────────────────────────────────────────────────────────────────────
 
-export function buildEchoGraph(_ctx: RunContext) {
+export function buildEchoGraph(_ctx: RunContext, acc?: UsageAccumulator) {
   const graph = new StateGraph(EchoState)
-    .addNode('echo', echoNode)
+    .addNode('echo', (state) => {
+      acc?.record('fake', 1, 1);
+      return echoNode(state);
+    })
     .addEdge('__start__', 'echo')
     .addEdge('echo', END);
 

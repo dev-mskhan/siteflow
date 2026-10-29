@@ -48,7 +48,7 @@ type GraphBuilder = (ctx: RunContext, acc: UsageAccumulator) => {
 // LangGraph's StateGraph types don't structurally match CompiledGraphLike, so the
 // builders are cast at the registry boundary; runtime shape is identical.
 const GRAPH_REGISTRY: Record<AgentName, GraphBuilder> = {
-  'echo':            (ctx) => buildEchoGraph(ctx) as unknown as ReturnType<GraphBuilder>,
+  'echo':            (ctx, acc) => buildEchoGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'cost-financial':  (ctx, acc) => buildCostFinancialGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-approval':   (ctx) => buildEchoApprovalGraph(ctx) as unknown as ReturnType<GraphBuilder>,
   'echo-loop':       (ctx) => buildEchoLoopGraph(ctx) as unknown as ReturnType<GraphBuilder>,

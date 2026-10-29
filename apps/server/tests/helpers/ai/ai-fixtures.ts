@@ -124,8 +124,7 @@ export async function waitForRunStatus(
         status,
         input_snapshot,
         output,
-        error_code,
-        error_message,
+        error,
         tokens_in,
         tokens_out,
         cost_usd,
@@ -139,7 +138,7 @@ export async function waitForRunStatus(
     if (rows.length > 0) {
       lastRow = rows[0];
       lastStatus = lastRow.status;
-      lastError = lastRow.error_message;
+      lastError = lastRow.error;
 
       if (lastStatus === targetStatus) {
         return lastRow;

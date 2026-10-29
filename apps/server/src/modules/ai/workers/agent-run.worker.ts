@@ -138,7 +138,7 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
       const claimed = await repo.setRunningIfQueued(runId, {
         provider: serverEnv.AI_PROVIDER,
         model: serverEnv.AI_MODEL_CHEAP,
-        channel: 'api',
+        channel: run.channel ?? 'api',
       });
       if (!claimed) {
         logger.warn({ runId }, 'Run already claimed by another worker — skipping');
