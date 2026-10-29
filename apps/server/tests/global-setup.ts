@@ -25,6 +25,108 @@ import type { PgTable } from 'drizzle-orm/pg-core';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function splitSqlStatements(sql: string): string[] {
+  const statements: string[] = [];
+  let current = '';
+  let inSingleQuote = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let dollarTag: string | null = null;
+
+  for (let i = 0; i < sql.length; i++) {
+    const char = sql[i];
+    const nextChar = sql[i + 1];
+
+    if (inLineComment) {
+      current += char;
+      if (char === '\n') {
+        inLineComment = false;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      current += char;
+      if (char === '*' && nextChar === '/') {
+        current += nextChar;
+        i++;
+        inBlockComment = false;
+      }
+      continue;
+    }
+
+    if (dollarTag !== null) {
+      current += char;
+      if (char === '$' && sql.startsWith(dollarTag, i)) {
+        current += dollarTag.slice(1);
+        i += dollarTag.length - 1;
+        dollarTag = null;
+      }
+      continue;
+    }
+
+    if (inSingleQuote) {
+      current += char;
+      if (char === "'") {
+        if (nextChar === "'") {
+          current += nextChar;
+          i++;
+        } else {
+          inSingleQuote = false;
+        }
+      }
+      continue;
+    }
+
+    if (char === '-' && nextChar === '-') {
+      inLineComment = true;
+      current += char;
+      continue;
+    }
+
+    if (char === '/' && nextChar === '*') {
+      inBlockComment = true;
+      current += char + nextChar;
+      i++;
+      continue;
+    }
+
+    if (char === "'") {
+      inSingleQuote = true;
+      current += char;
+      continue;
+    }
+
+    if (char === '$') {
+      const match = sql.slice(i).match(/^(\$[A-Za-z0-9_]*\$)/);
+      if (match) {
+        dollarTag = match[1];
+        current += dollarTag;
+        i += dollarTag.length - 1;
+        continue;
+      }
+    }
+
+    if (char === ';') {
+      const trimmed = current.trim();
+      if (trimmed) {
+        statements.push(trimmed);
+      }
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  const trimmed = current.trim();
+  if (trimmed) {
+    statements.push(trimmed);
+  }
+
+  return statements;
+}
+
 export default async function globalSetup() {
   const rawUrl =
     process.env['DATABASE_URL'] ||
@@ -53,6 +155,7 @@ export default async function globalSetup() {
     max: 1,
     // Disable prepared statements so CREATE DATABASE goes through cleanly
     prepare: false,
+    onnotice: () => {},
   });
   try {
     const existing = await adminSql`
@@ -71,7 +174,7 @@ export default async function globalSetup() {
   }
 
   // ── Connect to siteflow_test ─────────────────────────────────────────────────
-  const testSql = postgres(rawUrl, { max: 5 });
+  let testSql = postgres(rawUrl, { max: 5, onnotice: () => {} });
 
   try {
     // Ensure required schemas exist
@@ -111,22 +214,41 @@ export default async function globalSetup() {
       const filePath = path.join(drizzleDir, sqlFile);
       const sqlContent = await fs.readFile(filePath, 'utf-8');
 
-      const statements = sqlContent
-        .split('--> statement-breakpoint')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+      // Split on Drizzle's breakpoint marker if present, otherwise split by
+      // semicolon while respecting $$ ... $$ dollar-quoted blocks (PL/pgSQL).
+      let statements: string[];
+      if (sqlContent.includes('--> statement-breakpoint')) {
+        statements = sqlContent
+          .split('--> statement-breakpoint')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+      } else {
+        statements = splitSqlStatements(sqlContent);
+      }
 
-      // Wrap each migration in a transaction so failures are rolled back cleanly
-      await testSql.begin(async (tx) => {
-        for (const stmt of statements) {
-          await tx.unsafe(stmt);
+      // Execute each statement individually.
+      // NOTE: We cannot wrap migrations in a single transaction because:
+      //   - ALTER TYPE ... ADD VALUE requires its own committed transaction before
+      //     the new value can be referenced (PostgreSQL restriction: code 55P04)
+      //   - DO $$ BEGIN ... END $$ blocks are PL/pgSQL anonymous code blocks
+      // For ADD VALUE statements we reconnect after to flush the enum cache.
+      for (const stmt of statements) {
+        if (!stmt.trim()) continue;
+        await testSql.unsafe(stmt);
+        // If this was an ADD VALUE to an enum, create a new connection so
+        // subsequent statements see the committed value.
+        if (/ALTER\s+TYPE\s+\S+\s+ADD\s+VALUE/i.test(stmt)) {
+          await testSql.end();
+          testSql = postgres(rawUrl, { max: 5, onnotice: () => {} });
         }
-        await tx.unsafe(
-          `INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
-           VALUES ($1, $2)`,
-          [sqlFile, Date.now()],
-        );
-      });
+      }
+      // Record the hash AFTER all statements succeed
+      await testSql.unsafe(
+        `INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+         VALUES ($1, $2)
+         ON CONFLICT (hash) DO NOTHING`,
+        [sqlFile, Date.now()],
+      );
 
       appliedCount++;
     }

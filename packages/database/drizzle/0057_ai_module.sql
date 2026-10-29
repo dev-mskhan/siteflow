@@ -1,46 +1,62 @@
 -- Migration 0057: AI module tables
 -- agent_runs, agent_tool_calls, agent_approvals, agent_usage_daily
 -- All tables live in the 'app' schema, consistent with the rest of the monolith.
+-- Made idempotent (IF NOT EXISTS / EXCEPTION handlers) so globalSetup can re-run safely.
 
 -- ── Enums ──────────────────────────────────────────────────────────────────────
 
-CREATE TYPE app.agent_run_status AS ENUM (
-  'QUEUED',
-  'RUNNING',
-  'AWAITING_APPROVAL',
-  'SUCCEEDED',
-  'FAILED',
-  'CANCELLED'
-);
+DO $$ BEGIN
+  CREATE TYPE app.agent_run_status AS ENUM (
+    'QUEUED',
+    'RUNNING',
+    'AWAITING_APPROVAL',
+    'SUCCEEDED',
+    'FAILED',
+    'CANCELLED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE app.agent_run_trigger AS ENUM (
-  'USER',
-  'EVENT',
-  'SCHEDULE'
-);
+DO $$ BEGIN
+  CREATE TYPE app.agent_run_trigger AS ENUM (
+    'USER',
+    'EVENT',
+    'SCHEDULE'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE app.agent_tool_call_status AS ENUM (
-  'SUCCESS',
-  'ERROR',
-  'SKIPPED'
-);
+DO $$ BEGIN
+  CREATE TYPE app.agent_tool_call_status AS ENUM (
+    'SUCCESS',
+    'ERROR',
+    'SKIPPED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE app.agent_risk_tier AS ENUM (
-  'READ',
-  'DRAFT',
-  'BINDING'
-);
+DO $$ BEGIN
+  CREATE TYPE app.agent_risk_tier AS ENUM (
+    'READ',
+    'DRAFT',
+    'BINDING'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE app.agent_approval_status AS ENUM (
-  'PENDING',
-  'APPROVED',
-  'REJECTED',
-  'EXPIRED'
-);
+DO $$ BEGIN
+  CREATE TYPE app.agent_approval_status AS ENUM (
+    'PENDING',
+    'APPROVED',
+    'REJECTED',
+    'EXPIRED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ── agent_runs ─────────────────────────────────────────────────────────────────
 
-CREATE TABLE app.agent_runs (
+CREATE TABLE IF NOT EXISTS app.agent_runs (
   id                  text        PRIMARY KEY,
   organization_id     text        NOT NULL,
   project_id          text,
@@ -71,15 +87,15 @@ CREATE TABLE app.agent_runs (
     CHECK (finished_at IS NULL OR status IN ('SUCCEEDED', 'FAILED', 'CANCELLED'))
 );
 
-CREATE INDEX agent_runs_org_status_created_idx ON app.agent_runs (organization_id, status, created_at DESC);
-CREATE INDEX agent_runs_org_project_idx        ON app.agent_runs (organization_id, project_id);
-CREATE INDEX agent_runs_org_agent_idx          ON app.agent_runs (organization_id, agent);
-CREATE INDEX agent_runs_created_by_idx         ON app.agent_runs (created_by);
-CREATE INDEX agent_runs_trace_id_idx           ON app.agent_runs (trace_id);
+CREATE INDEX IF NOT EXISTS agent_runs_org_status_created_idx ON app.agent_runs (organization_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS agent_runs_org_project_idx        ON app.agent_runs (organization_id, project_id);
+CREATE INDEX IF NOT EXISTS agent_runs_org_agent_idx          ON app.agent_runs (organization_id, agent);
+CREATE INDEX IF NOT EXISTS agent_runs_created_by_idx         ON app.agent_runs (created_by);
+CREATE INDEX IF NOT EXISTS agent_runs_trace_id_idx           ON app.agent_runs (trace_id);
 
 -- ── agent_tool_calls ───────────────────────────────────────────────────────────
 
-CREATE TABLE app.agent_tool_calls (
+CREATE TABLE IF NOT EXISTS app.agent_tool_calls (
   id              text        PRIMARY KEY,
   run_id          text        NOT NULL,
   organization_id text        NOT NULL,
@@ -96,12 +112,12 @@ CREATE TABLE app.agent_tool_calls (
     CHECK (duration_ms IS NULL OR duration_ms >= 0)
 );
 
-CREATE INDEX agent_tool_calls_run_idx      ON app.agent_tool_calls (run_id, created_at);
-CREATE INDEX agent_tool_calls_org_tool_idx ON app.agent_tool_calls (organization_id, tool_name);
+CREATE INDEX IF NOT EXISTS agent_tool_calls_run_idx      ON app.agent_tool_calls (run_id, created_at);
+CREATE INDEX IF NOT EXISTS agent_tool_calls_org_tool_idx ON app.agent_tool_calls (organization_id, tool_name);
 
 -- ── agent_approvals ────────────────────────────────────────────────────────────
 
-CREATE TABLE app.agent_approvals (
+CREATE TABLE IF NOT EXISTS app.agent_approvals (
   id              text        PRIMARY KEY,
   run_id          text        NOT NULL,
   organization_id text        NOT NULL,
@@ -122,17 +138,20 @@ CREATE TABLE app.agent_approvals (
 );
 
 -- Only one PENDING approval per run at a time
-CREATE UNIQUE INDEX agent_approvals_run_pending_unique
-  ON app.agent_approvals (run_id)
-  WHERE status = 'PENDING';
+DO $$ BEGIN
+  CREATE UNIQUE INDEX agent_approvals_run_pending_unique
+    ON app.agent_approvals (run_id)
+    WHERE status = 'PENDING';
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
-CREATE INDEX agent_approvals_org_status_idx ON app.agent_approvals (organization_id, status, created_at DESC);
-CREATE INDEX agent_approvals_run_idx        ON app.agent_approvals (run_id);
-CREATE INDEX agent_approvals_expires_idx    ON app.agent_approvals (expires_at);
+CREATE INDEX IF NOT EXISTS agent_approvals_org_status_idx ON app.agent_approvals (organization_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS agent_approvals_run_idx        ON app.agent_approvals (run_id);
+CREATE INDEX IF NOT EXISTS agent_approvals_expires_idx    ON app.agent_approvals (expires_at);
 
 -- ── agent_usage_daily ──────────────────────────────────────────────────────────
 
-CREATE TABLE app.agent_usage_daily (
+CREATE TABLE IF NOT EXISTS app.agent_usage_daily (
   id              text        PRIMARY KEY,
   organization_id text        NOT NULL,
   day             date        NOT NULL,
@@ -151,7 +170,10 @@ CREATE TABLE app.agent_usage_daily (
     CHECK (cost_usd >= 0)
 );
 
-CREATE UNIQUE INDEX agent_usage_daily_org_day_agent_unique
-  ON app.agent_usage_daily (organization_id, day, agent);
+DO $$ BEGIN
+  CREATE UNIQUE INDEX agent_usage_daily_org_day_agent_unique
+    ON app.agent_usage_daily (organization_id, day, agent);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
-CREATE INDEX agent_usage_daily_org_day_idx ON app.agent_usage_daily (organization_id, day);
+CREATE INDEX IF NOT EXISTS agent_usage_daily_org_day_idx ON app.agent_usage_daily (organization_id, day);

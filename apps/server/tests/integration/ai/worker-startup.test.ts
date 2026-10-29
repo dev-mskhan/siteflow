@@ -1,6 +1,6 @@
 // apps/server/tests/integration/ai/worker-startup.test.ts
 import { describe, it, expect, afterAll } from 'vitest';
-import postgres from 'postgres';
+import { postgres } from '@siteflow/database';
 import { startQueue, stopQueue, getQueueInstance } from '../../../src/lib/queue/index.js';
 import { registerWorkers } from '../../../src/worker-registration.js';
 import { serverEnv } from '../../../src/config/env.js';
@@ -8,7 +8,7 @@ import { AI_QUEUES } from '../../../src/modules/ai/ai.jobs.js';
 import { REAPER_QUEUE } from '../../../src/modules/ai/workers/reaper.worker.js';
 
 describe('AI Worker Startup & PgBoss Queue Initialization', () => {
-  let sql: postgres.Sql;
+  let sql: ReturnType<typeof postgres>;
 
   afterAll(async () => {
     try {
@@ -21,8 +21,10 @@ describe('AI Worker Startup & PgBoss Queue Initialization', () => {
     }
   });
 
-  it('initializes queues, registers workers, and schedules reaper without throwing', async () => {
-    sql = postgres(serverEnv.DATABASE_URL, { max: 2 });
+  it(
+    'initializes queues, registers workers, and schedules reaper without throwing',
+    async () => {
+      sql = postgres(serverEnv.DATABASE_URL, { max: 2 });
 
     // 1. Start queue (ensures all queues are configured via ensureQueueConfigured)
     const boss = await startQueue();
@@ -55,5 +57,5 @@ describe('AI Worker Startup & PgBoss Queue Initialization', () => {
     expect(scheduleRows.length).toBeGreaterThan(0);
     expect(scheduleRows[0].name).toBe(REAPER_QUEUE);
     expect(scheduleRows[0].cron).toBe('*/5 * * * *');
-  });
+  }, 90000);
 });

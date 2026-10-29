@@ -3,7 +3,7 @@
 // All tables are tenant-scoped (organizationId mandatory).
 
 import { index, text, timestamp } from 'drizzle-orm/pg-core';
-import { appSchema } from './auth.schema.js';
+import { appSchema } from './auth.schema';
 
 // ── agent_conversations ───────────────────────────────────────────────────────
 // Multi-turn thread between a user and an agent.

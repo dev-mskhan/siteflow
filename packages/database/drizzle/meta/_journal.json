@@ -330,6 +330,125 @@
       "when": 1792218470582,
       "tag": "0046_same_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792300000000,
+      "tag": "0047_saas_reminder_delivery",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792310000000,
+      "tag": "0048_saas_invoice_tax_facts",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792320000000,
+      "tag": "0049_saas_refund_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792330000000,
+      "tag": "0050_platform_rbac",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792340000000,
+      "tag": "0051_platform_admin_and_approvals",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792350000000,
+      "tag": "0052_platform_idempotency_and_slug_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792360000000,
+      "tag": "0053_platform_billing_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792370000000,
+      "tag": "0054_platform_support_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792380000000,
+      "tag": "0055_platform_support_grants_expired",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792390000000,
+      "tag": "0056_platform_diagnostics_permission",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792400000000,
+      "tag": "0057_ai_module",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792410000000,
+      "tag": "0058_saas_reminder_suppression",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792420000000,
+      "tag": "0059_platform_outbox_replay_permission",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792430000000,
+      "tag": "0060_notification_read_state_and_delivery_dedupe",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792440000000,
+      "tag": "0061_subcontractor_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792450000000,
+      "tag": "0062_ai_chat_and_approvals",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1792460000000,
+      "tag": "0063_report_exports",
+      "breakpoints": true
     }
   ]
 }
