@@ -11,7 +11,7 @@ import { realtimeDeliveryManager } from '../notification/realtime/realtime.deliv
 import { NotFoundError, ForbiddenError, ValidationError } from './membership.errors.js';
 import type { MemberDTO, UpdateMemberInput } from './membership.types.js';
 import type { OrganizationContext } from '../rbac/rbac.types.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 import { roles, type Membership } from '@siteflow/database/schema';
 
 const tracer = trace.getTracer('membership-service');
@@ -39,6 +39,19 @@ export class MembershipService {
 
   private get db() {
     return getDb();
+  }
+
+  async listRoles(orgId: string) {
+    return this.db
+      .select({
+        id: roles.id,
+        name: roles.name,
+        description: roles.description,
+        isSystem: roles.isSystem,
+      })
+      .from(roles)
+      .where(eq(roles.organizationId, orgId))
+      .orderBy(asc(roles.name));
   }
 
   private assertSameTenant(membership: Membership, orgId: string): void {

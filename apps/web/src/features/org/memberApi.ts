@@ -25,11 +25,24 @@ interface ListMembersResponse {
   members: MemberDTO[];
   nextCursor: string | null;
 }
+export interface OrganizationRoleDTO {
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+}
+interface ListRolesResponse { roles: OrganizationRoleDTO[] }
 interface SingleMemberResponse { member: MemberDTO }
 interface RemoveMemberResponse { message: string }
 
 export const memberApi = baseApi.injectEndpoints({
   endpoints: (b) => ({
+
+    listOrganizationRoles: b.query<ListRolesResponse, string>({
+      query: (orgId) => `/organizations/${orgId}/roles`,
+      transformResponse: (r: { data: ListRolesResponse }) => r.data,
+      providesTags: (_r, _e, orgId) => [{ type: 'Member', id: `${orgId}:roles` }],
+    }),
 
     listMembers: b.query<ListMembersResponse, string>({
       query: (orgId) => `/organizations/${orgId}/members`,
@@ -74,6 +87,7 @@ export const memberApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useListOrganizationRolesQuery,
   useListMembersQuery,
   useGetMemberQuery,
   useUpdateMemberMutation,

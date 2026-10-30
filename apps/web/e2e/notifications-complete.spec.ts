@@ -139,11 +139,28 @@ test.describe('Notifications: Preferences', () => {
 
     if (prefsRes.status() === 200) {
       const body = (await prefsRes.json()) as {
-        data: { preferences: unknown[] };
+        data: {
+          preferences: unknown[];
+          preferenceOptions: { eventType: string; channels: string[] }[];
+        };
       };
 
       expect(Array.isArray(body.data.preferences)).toBeTruthy();
+      expect(body.data.preferenceOptions).toContainEqual({
+        eventType: 'rfi.submitted',
+        channels: ['IN_APP', 'REALTIME'],
+      });
     }
+  });
+
+  test('renders supported preferences when no overrides are saved', async ({ page }) => {
+    await page.goto(`/org/${orgId}/settings/notifications`);
+
+    await expect(page.getByRole('heading', { name: 'My notification preferences' })).toBeVisible();
+    await expect(page.getByText('RFI submitted')).toBeVisible();
+    await expect(
+      page.getByRole('switch', { name: 'In app notifications for RFI submitted' }),
+    ).toHaveAttribute('aria-checked', 'true');
   });
 
   test('updates preference', async ({ request }) => {
@@ -151,7 +168,7 @@ test.describe('Notifications: Preferences', () => {
       `/api/v1/organizations/${orgId}/notifications/preferences`,
       {
         data: {
-          eventType: 'RfiOverdue',
+          eventType: 'rfi.submitted',
           channel: 'IN_APP',
           enabled: true,
         },
@@ -171,7 +188,7 @@ test.describe('Notifications: Preferences', () => {
         };
       };
 
-      expect(body.data.preference.eventType).toBe('RfiOverdue');
+      expect(body.data.preference.eventType).toBe('rfi.submitted');
       expect(body.data.preference.channel).toBe('IN_APP');
       expect(body.data.preference.enabled).toBe(true);
     }

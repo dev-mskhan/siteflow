@@ -138,15 +138,13 @@ test.describe('Notification Integration (UI)', () => {
     // First, get the user's organization ID from the auth session
     const response = await request.get('/api/v1/auth/me');
     if (!response.ok()) {
-      console.log('Skipping UI test: Unable to get user info');
-      return;
+      test.skip(true, 'Unable to get user info');
     }
     const userData = await response.json();
     const orgId = userData.data?.currentOrgId || userData.data?.organizations?.[0]?.id;
     
     if (!orgId) {
-      console.log('Skipping UI test: User has no organization');
-      return;
+      test.skip(true, 'User has no organization');
     }
     
     // Navigate to dashboard - this should establish SSE connection via AppLayout
@@ -233,9 +231,8 @@ test.describe('Notification UI Components', () => {
     
     // Page should load
     await expect(page.locator('body')).toBeVisible();
-    // Should have some settings content
-    const hasSettings = await page.locator('h1, h2, [role="heading"]').isVisible();
-    expect(hasSettings).toBe(true);
+    await expect(page.getByRole('heading', { name: 'My notification preferences' })).toBeVisible();
+    await expect(page.getByText('RFI submitted')).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'In app notifications for RFI submitted' })).toBeVisible();
   });
 });
-

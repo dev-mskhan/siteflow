@@ -108,6 +108,35 @@ describe('Members Routes — comprehensive integration', () => {
     await app.close();
   });
 
+  describe('GET /api/v1/organizations/:id/roles', () => {
+    it('returns all organization roles with their database IDs', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/organizations/${orgId}/roles`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json<ApiSuccessResponse<{
+        roles: { id: string; name: string }[];
+      }>>();
+      expect(body.data.roles).toHaveLength(7);
+      expect(body.data.roles.map((role) => role.name)).toContain('Finance');
+      expect(body.data.roles.find((role) => role.name === 'Finance')?.id)
+        .toBe(roleMap.get('Finance'));
+    });
+
+    it('denies role listing to members without member:read', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/organizations/${orgId}/roles`,
+        headers: { authorization: `Bearer ${subcontractorToken}` },
+      });
+
+      expect(res.statusCode).toBe(403);
+    });
+  });
+
   // ─────────────────────────────────────────────────────────────────────────────
   describe('GET /api/v1/organizations/:id/members', () => {
     it('no auth → 401', async () => {

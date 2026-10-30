@@ -40,6 +40,13 @@ export interface NotificationPreference {
   enabled: boolean;
 }
 
+export type NotificationPreferenceChannel = 'EMAIL' | 'IN_APP' | 'REALTIME';
+
+export interface NotificationPreferenceOption {
+  eventType: string;
+  channels: NotificationPreferenceChannel[];
+}
+
 interface OrgArgs {
   orgId: string;
 }
@@ -142,7 +149,10 @@ export const notificationApi = baseApi.injectEndpoints({
     // ────────────────────────────────────────────────────────────────────────
 
     getNotificationPreferences: build.query<
-      { preferences: NotificationPreference[] },
+      {
+        preferences: NotificationPreference[];
+        preferenceOptions: NotificationPreferenceOption[];
+      },
       OrgArgs
     >({
       query: ({ orgId }) => ({
@@ -151,7 +161,12 @@ export const notificationApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: { preferences: NotificationPreference[] } }) => raw.data,
+      transformResponse: (raw: {
+        data: {
+          preferences: NotificationPreference[];
+          preferenceOptions: NotificationPreferenceOption[];
+        };
+      }) => raw.data,
       providesTags: (_r, _e, { orgId }) => [{ type: 'Notification', id: `prefs_${orgId}` }],
     }),
 
@@ -182,4 +197,3 @@ export const {
   useGetNotificationPreferencesQuery,
   useUpdateNotificationPreferenceMutation,
 } = notificationApi;
-

@@ -14,7 +14,6 @@ import { CustomSelect } from '../../../components/ui/CustomSelect';
 import { InlineAlert } from '../../../components/ui/InlineAlert';
 import { PermissionGate } from '../../../components/guards/PermissionGate';
 import { useGetSettingsQuery, useUpdateSettingsMutation } from '../../../features/org/settingsApi';
-import type { DateFormat, TimeFormat, UnitSystem } from '../../../features/org/settingsApi';
 import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../../lib/authErrors';
 import { useToast } from '../../../components/ui/Toast';
 
@@ -53,6 +52,30 @@ const MONTH_OPTIONS = [
   'July','August','September','October','November','December',
 ].map((m, i) => ({ value: String(i + 1), label: m }));
 
+const CURRENCY_SUGGESTIONS = [
+  { value: 'PKR', label: 'Pakistani rupee' },
+  { value: 'USD', label: 'US dollar' },
+];
+
+const LOCALE_SUGGESTIONS = [
+  { value: 'en-PK', label: 'English (Pakistan)' },
+  { value: 'ur-PK', label: 'Urdu (Pakistan)' },
+  { value: 'en-US', label: 'English (United States)' },
+  { value: 'es-US', label: 'Spanish (United States)' },
+];
+
+const TIMEZONE_SUGGESTIONS = [
+  { value: 'Asia/Karachi', label: 'Pakistan Standard Time (UTC+05:00)' },
+  { value: 'America/New_York', label: 'US Eastern Time' },
+  { value: 'America/Chicago', label: 'US Central Time' },
+  { value: 'America/Denver', label: 'US Mountain Time' },
+  { value: 'America/Phoenix', label: 'US Mountain Time (Arizona)' },
+  { value: 'America/Los_Angeles', label: 'US Pacific Time' },
+  { value: 'America/Anchorage', label: 'Alaska Time' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time' },
+  { value: 'Etc/UTC', label: 'Coordinated Universal Time' },
+];
+
 export const GeneralSettingsPage: React.FC = () => {
   const { orgId } = useParams<{ orgId: string }>();
   const { success: toastOk, error: toastErr } = useToast();
@@ -88,21 +111,80 @@ export const GeneralSettingsPage: React.FC = () => {
       {inlineErr && <InlineAlert variant="error" message={inlineErr.message} />}
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Currency" error={errors.currency?.message} required>
-          {(id) => (
-            <input id={id} className={inputCls(!!errors.currency)} placeholder="USD" {...register('currency')} />
+        <FormField
+          label="Currency"
+          error={errors.currency?.message}
+          hint="Pakistan: PKR · United States: USD. Enter another 3-letter code if needed."
+          required
+        >
+          {(id, _errorId, hintId) => (
+            <>
+              <input
+                id={id}
+                list={`${id}-options`}
+                aria-describedby={hintId}
+                autoCapitalize="characters"
+                maxLength={3}
+                className={inputCls(!!errors.currency)}
+                placeholder="Select or enter a code"
+                {...register('currency')}
+              />
+              <datalist id={`${id}-options`}>
+                {CURRENCY_SUGGESTIONS.map(({ value, label }) => (
+                  <option key={value} value={value} label={label} />
+                ))}
+              </datalist>
+            </>
           )}
         </FormField>
-        <FormField label="Locale" error={errors.locale?.message} required>
-          {(id) => (
-            <input id={id} className={inputCls(!!errors.locale)} placeholder="en-US" {...register('locale')} />
+        <FormField
+          label="Locale"
+          error={errors.locale?.message}
+          hint="Choose a language and region, or enter another locale."
+          required
+        >
+          {(id, _errorId, hintId) => (
+            <>
+              <input
+                id={id}
+                list={`${id}-options`}
+                aria-describedby={hintId}
+                className={inputCls(!!errors.locale)}
+                placeholder="Select or enter a locale"
+                {...register('locale')}
+              />
+              <datalist id={`${id}-options`}>
+                {LOCALE_SUGGESTIONS.map(({ value, label }) => (
+                  <option key={value} value={value} label={label} />
+                ))}
+              </datalist>
+            </>
           )}
         </FormField>
       </div>
 
-      <FormField label="Timezone" error={errors.timezone?.message} required>
-        {(id) => (
-          <input id={id} className={inputCls(!!errors.timezone)} placeholder="Asia/Karachi" {...register('timezone')} />
+      <FormField
+        label="Timezone"
+        error={errors.timezone?.message}
+        hint="Pakistan: Asia/Karachi. US choices include Eastern, Central, Mountain, and Pacific. Other IANA timezones are accepted."
+        required
+      >
+        {(id, _errorId, hintId) => (
+          <>
+            <input
+              id={id}
+              list={`${id}-options`}
+              aria-describedby={hintId}
+              className={inputCls(!!errors.timezone)}
+              placeholder="Select or enter a timezone"
+              {...register('timezone')}
+            />
+            <datalist id={`${id}-options`}>
+              {TIMEZONE_SUGGESTIONS.map(({ value, label }) => (
+                <option key={value} value={value} label={label} />
+              ))}
+            </datalist>
+          </>
         )}
       </FormField>
 

@@ -82,6 +82,50 @@ export const listMembersSchemaDoc = {
   },
 };
 
+export const listRolesSchemaDoc = {
+  tags: ['members'],
+  summary: 'List organization roles',
+  description: 'Returns the roles configured for the given organization. Requires member:read permission.',
+  params: {
+    type: 'object',
+    required: ['organizationId'],
+    properties: {
+      organizationId: { type: 'string', example: '01J9Z0F8QPXKMPQ1VRFP1D5K3A' },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true], example: true },
+        data: {
+          type: 'object',
+          properties: {
+            roles: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  description: { type: 'string', nullable: true },
+                  isSystem: { type: 'boolean' },
+                },
+                required: ['id', 'name', 'isSystem'],
+              },
+            },
+          },
+          required: ['roles'],
+        },
+      },
+      required: ['success', 'data'],
+    },
+    401: responses[401],
+    403: responses[403],
+    500: responses[500],
+  },
+};
+
 export const getMemberSchemaDoc = {
   tags: ['members'],
   summary: 'Get member details by ID',

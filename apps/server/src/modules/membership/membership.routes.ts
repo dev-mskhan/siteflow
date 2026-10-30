@@ -4,12 +4,14 @@ import { authenticate } from '../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../rbac/permission.middleware.js';
 import {
   handleListMembers,
+  handleListRoles,
   handleGetMember,
   handleUpdateMember,
   handleRemoveMember,
 } from './membership.handler.js';
 import {
   listMembersSchemaDoc,
+  listRolesSchemaDoc,
   getMemberSchemaDoc,
   updateMemberSchemaDoc,
   removeMemberSchemaDoc,
@@ -20,6 +22,11 @@ export const membershipRoutes: FastifyPluginAsync = async (fastify) => {
     scopedRoutes.addHook('preHandler', authenticate);
     scopedRoutes.addHook('preHandler', organizationContext);
 
+    scopedRoutes.get(
+      '/:organizationId/roles',
+      { schema: listRolesSchemaDoc, preHandler: [requirePermission('member:read')] },
+      handleListRoles,
+    );
     scopedRoutes.get(
       '/:organizationId/members',
       { schema: listMembersSchemaDoc, preHandler: [requirePermission('member:read')] },

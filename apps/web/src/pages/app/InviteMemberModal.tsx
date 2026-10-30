@@ -17,7 +17,7 @@ import { FormField, inputCls } from '../../components/ui/FormField';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useCreateInvitationMutation } from '../../features/org/invitationApi';
-import { useListMembersQuery } from '../../features/org/memberApi';
+import { useListOrganizationRolesQuery } from '../../features/org/memberApi';
 import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../lib/authErrors';
 import { useToast } from '../../components/ui/Toast';
 
@@ -41,17 +41,21 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   onClose,
 }) => {
   const { error: toastErr, success: toastOk } = useToast();
-  const { data: membersData } = useListMembersQuery(orgId);
+  const {
+    data: rolesData,
+    isLoading: rolesLoading,
+    isError: rolesError,
+  } = useListOrganizationRolesQuery(orgId);
   const [createInvitation, { isLoading, error }] = useCreateInvitationMutation();
 
-  // Build role options from unique roles already in the org
-  const roleOptions = [...new Map(
-    (membersData?.members ?? []).map((m) => [m.roleId, { value: m.roleId, label: m.roleName }])
-  ).values()];
+  const roleOptions = (rolesData?.roles ?? []).map((role) => ({
+    value: role.id,
+    label: role.name,
+  }));
 
   const { register, control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', roleId: roleOptions[0]?.value ?? '' },
+    defaultValues: { email: '', roleId: '' },
   });
 
   useEffect(() => {
@@ -157,17 +161,25 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                       value={field.value}
                       onChange={field.onChange}
                       error={!!errors.roleId}
+                      disabled={rolesLoading || rolesError || roleOptions.length === 0}
+                      placeholder={rolesLoading ? 'Loading roles…' : 'Select a role'}
                       aria-label="Role"
                     />
                   )}
                 />
               )}
             </FormField>
+            {rolesError && (
+              <InlineAlert variant="error" message="Could not load organization roles. Close and reopen this form to try again." />
+            )}
+            {!rolesLoading && !rolesError && roleOptions.length === 0 && (
+              <InlineAlert variant="error" message="No organization roles are configured, so an invitation cannot be sent." />
+            )}
 
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || rolesLoading || rolesError || roleOptions.length === 0}
                 className="inline-flex items-center gap-2 min-h-10 flex-1 justify-center bg-[var(--ink)] px-4 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
               >
                 {isLoading ? 'Sending…' : 'Send invitation'}

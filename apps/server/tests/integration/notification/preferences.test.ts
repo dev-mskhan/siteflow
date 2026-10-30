@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { preferenceService } from '../../../src/modules/notification/preferences/preference.service.js';
+import { NOTIFICATION_PREFERENCE_OPTIONS } from '../../../src/modules/notification/preferences/preference.catalog.js';
 
 describe('F.9 Persisted Notification Preferences Integration', () => {
   const runId = Math.random().toString(36).substring(7);
@@ -7,6 +8,17 @@ describe('F.9 Persisted Notification Preferences Integration', () => {
   const org2Id = `org2_${runId}`;
   const user1Id = `usr1_${runId}`;
   const user2Id = `usr2_${runId}`;
+
+  it('lists only supported notification event and delivery channel combinations', () => {
+    expect(NOTIFICATION_PREFERENCE_OPTIONS).toContainEqual({
+      eventType: 'rfi.submitted',
+      channels: ['IN_APP', 'REALTIME'],
+    });
+    expect(NOTIFICATION_PREFERENCE_OPTIONS).toContainEqual({
+      eventType: 'billing.grace_reminder',
+      channels: ['EMAIL'],
+    });
+  });
 
   it('evaluates channel as enabled by default when no explicit override exists', async () => {
     const isEnabled = await preferenceService.isChannelEnabled(org1Id, user1Id, 'TaskCompleted', 'EMAIL');

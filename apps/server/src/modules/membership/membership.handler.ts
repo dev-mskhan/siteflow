@@ -6,6 +6,13 @@ import { updateMemberSchema } from './membership.validation.js';
 
 const membershipService = new MembershipService();
 
+export async function handleListRoles(request: FastifyRequest, reply: FastifyReply) {
+  const { organizationId } = request.params as { organizationId: string };
+  const roles = await membershipService.listRoles(organizationId);
+
+  return reply.send(createSuccessResponse({ roles }));
+}
+
 export async function handleListMembers(request: FastifyRequest, reply: FastifyReply) {
   const { organizationId } = request.params as { organizationId: string };
   const result = await membershipService.listMembers(organizationId);

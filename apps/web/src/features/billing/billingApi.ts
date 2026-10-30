@@ -90,7 +90,7 @@ export const billingApi = baseApi.injectEndpoints({
 
     listInvoices: build.query<{ invoices: SaaSInvoiceDTO[] }, OrgArgs>({
       query: ({ orgId }) => `/organizations/${orgId}/billing/invoices`,
-      transformResponse: (raw: { data: SaaSInvoiceDTO[] }) => ({ invoices: raw.data }),
+      transformResponse: (raw: { data: { invoices: SaaSInvoiceDTO[] } }) => raw.data,
       providesTags: (_r, _e, { orgId }) => [{ type: 'Invoice', id: orgId }],
     }),
 

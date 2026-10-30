@@ -6,6 +6,7 @@ import { NotFoundError } from '../auth/auth.errors.js';
 import { organizationContext } from '../rbac/permission.middleware.js';
 import { notificationService } from './notification.service.js';
 import { preferenceService } from './preferences/preference.service.js';
+import { NOTIFICATION_PREFERENCE_OPTIONS } from './preferences/preference.catalog.js';
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -81,7 +82,12 @@ export const notificationRoutes: FastifyPluginAsync = async (fastify) => {
         request.orgContext!.organizationId,
         request.orgContext!.userId,
       );
-      return reply.send(createSuccessResponse({ preferences }));
+      return reply.send(
+        createSuccessResponse({
+          preferences,
+          preferenceOptions: NOTIFICATION_PREFERENCE_OPTIONS,
+        }),
+      );
     },
   );
 
