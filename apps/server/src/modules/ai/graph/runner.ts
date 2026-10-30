@@ -50,7 +50,7 @@ type GraphBuilder = (ctx: RunContext, acc: UsageAccumulator) => {
 const GRAPH_REGISTRY: Record<AgentName, GraphBuilder> = {
   'echo':            (ctx, acc) => buildEchoGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'cost-financial':  (ctx, acc) => buildCostFinancialGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
-  'echo-approval':   (ctx) => buildEchoApprovalGraph(ctx) as unknown as ReturnType<GraphBuilder>,
+  'echo-approval':   (ctx, acc) => buildEchoApprovalGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-loop':       (ctx) => buildEchoLoopGraph(ctx) as unknown as ReturnType<GraphBuilder>,
   'echo-slow':       (ctx) => buildEchoSlowGraph(ctx) as unknown as ReturnType<GraphBuilder>,
 };
@@ -165,6 +165,7 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
     if (currentState.next && currentState.next.length > 0) {
       interrupted = true;
       logger.info({ runId, next: currentState.next }, 'Graph interrupted — awaiting approval');
+      await repo.updateRunningTokens(runId, accumulator.tokensIn, accumulator.tokensOut);
     }
 
     // Flush usage to daily aggregate (non-fatal)

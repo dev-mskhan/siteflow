@@ -6,6 +6,7 @@
 import { StateGraph, Annotation, END, interrupt } from '@langchain/langgraph';
 import type { RunContext } from '../../core/run-context.js';
 import type { AgentRunOutput } from '../../core/types.js';
+import type { UsageAccumulator } from '../../cost/usage.service.js';
 import { executeTool } from '../../tools/tool-factory.js';
 import { ApprovalService } from '../../approvals/approval.service.js';
 import { createHash } from 'node:crypto';
@@ -16,7 +17,7 @@ const EchoApprovalState = Annotation.Root({
   approvalRequested: Annotation<boolean>({ default: () => false, reducer: (_, b) => b }),
 });
 
-export function buildEchoApprovalGraph(ctx: RunContext) {
+export function buildEchoApprovalGraph(ctx: RunContext, acc?: UsageAccumulator) {
   const approvalService = new ApprovalService();
 
   async function stepNode(state: typeof EchoApprovalState.State): Promise<Partial<typeof EchoApprovalState.State>> {
@@ -41,11 +42,17 @@ export function buildEchoApprovalGraph(ctx: RunContext) {
       });
     }
 
+    // Record pre-interrupt tokens
+    acc?.record('fake', 10, 5);
+
     // Graph interrupt — pauses execution and awaits human sign-off
     const resumeValue = interrupt({
       tool: 'fake_approve_something',
       proposal: toolArgs,
     }) as { approved?: boolean; approvalId?: string; proposal?: Record<string, unknown> } | undefined;
+
+    // Record post-resume tokens
+    acc?.record('fake', 15, 8);
 
     // Resumed — execute the BINDING tool within the safety envelope
     const toolResult = await executeTool(

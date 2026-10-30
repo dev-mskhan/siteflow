@@ -5,6 +5,11 @@ import { writeOutboxEvent } from '../../../lib/outbox/outbox.service.js';
 import { ApprovalRepository } from './approval.repository.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { AI_QUEUES } from '../ai.jobs.js';
+import { sendJob } from '../../../lib/queue/queue.js';
+import {
+  ApprovalExpiredError,
+  ApprovalAlreadyDecidedError,
+} from '../core/errors.js';
 import type { AgentApproval } from '@siteflow/database/schema';
 import type { AgentName } from '../core/types.js';
 
@@ -62,17 +67,17 @@ export class ApprovalService {
       const approval = await this.approvalRepo.findById(id, organizationId);
       if (!approval) throw new Error(`Approval ${id} not found`);
       if (approval.status !== 'PENDING') {
-        throw new Error(`Approval ${id} is ${approval.status}, cannot approve`);
+        throw new ApprovalAlreadyDecidedError(id, approval.status);
       }
+      if (approval.expiresAt && approval.expiresAt < new Date()) {
+        throw new ApprovalExpiredError(id);
+      }
+
+      const run = await this.runRepo.findByIdInternal(approval.runId);
+      if (!run) throw new Error(`Agent run ${approval.runId} not found — cannot resume`);
 
       await getDb().transaction(async (tx) => {
         await this.approvalRepo.approve(id, userId, note, tx);
-
-        // Load the run to get its actual agent name and projectId.
-        // ARC-03: previously hardcoded agent: 'cost-financial' and projectId: undefined,
-        // which would route the resume to the wrong agent for any other agent type.
-        const run = await this.runRepo.findByIdInternal(approval.runId);
-        if (!run) throw new Error(`Agent run ${approval.runId} not found — cannot resume`);
 
         // Resume the run atomically by enqueuing the runId via transactional outbox
         // Worker will detect the APPROVED approval and call resumeRun()
@@ -89,6 +94,23 @@ export class ApprovalService {
           approval.organizationId,
         );
       });
+
+      // Immediate dispatch for zero-latency resumption (dual-write with outbox fallback)
+      try {
+        await sendJob(
+          AI_QUEUES.AGENT_RUN,
+          {
+            runId: approval.runId,
+            organizationId: approval.organizationId,
+            projectId: run.projectId ?? undefined,
+            agent: run.agent as AgentName,
+            createdBy: userId,
+          },
+          { retryLimit: 0, expireInSeconds: 300 },
+        );
+      } catch {
+        // Outbox poller will pick it up as fallback
+      }
     });
   }
 
@@ -97,7 +119,10 @@ export class ApprovalService {
       const approval = await this.approvalRepo.findById(id, organizationId);
       if (!approval) throw new Error(`Approval ${id} not found`);
       if (approval.status !== 'PENDING') {
-        throw new Error(`Approval ${id} is ${approval.status}, cannot reject`);
+        throw new ApprovalAlreadyDecidedError(id, approval.status);
+      }
+      if (approval.expiresAt && approval.expiresAt < new Date()) {
+        throw new ApprovalExpiredError(id);
       }
 
       await this.approvalRepo.reject(id, userId, note);

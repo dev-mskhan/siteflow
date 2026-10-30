@@ -13,6 +13,7 @@ const approvalParamsSchema = z.object({
 
 const decisionBodySchema = z.object({
   note: z.string().max(500).optional(),
+  reason: z.string().max(1000).optional(),
 });
 
 export async function handleGetApproval(
@@ -47,6 +48,6 @@ export async function handleReject(
   const body = decisionBodySchema.parse(request.body);
   const userId = request.user!.sub;
 
-  await approvalService.reject(approvalId, organizationId, userId, body.note);
+  await approvalService.reject(approvalId, organizationId, userId, body.reason ?? body.note);
   return reply.send(createSuccessResponse({ message: 'Approval rejected, run failed' }));
 }

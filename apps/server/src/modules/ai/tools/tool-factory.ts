@@ -47,24 +47,21 @@ async function checkApprovalGate(
     throw new ApprovalRequiredError(toolName, ctx.runId);
   }
 
-  // Exact-action binding: verify the approval was issued for this specific tool + args.
-  // approvedToolName / approvedArgsHash are null on rows created before this fix,
-  // so we skip the check when they are absent (backward-compatible).
-  if (approval.approvedToolName && approval.approvedToolName !== toolName) {
+  // Exact-action binding (H2 defense): verify the approval was issued for this specific tool + args.
+  // Fail closed immediately if approvedToolName or approvedArgsHash is null or mismatched.
+  if (!approval.approvedToolName || approval.approvedToolName !== toolName) {
     throw new ApprovalRequiredError(toolName, ctx.runId);
   }
 
-  if (approval.approvedArgsHash) {
-    const sortedArgs = JSON.stringify(
-      parsedArgs,
-      parsedArgs && typeof parsedArgs === 'object'
-        ? Object.keys(parsedArgs as Record<string, unknown>).sort()
-        : undefined,
-    );
-    const argsHash = createHash('sha256').update(sortedArgs).digest('hex');
-    if (approval.approvedArgsHash !== argsHash) {
-      throw new ApprovalRequiredError(toolName, ctx.runId);
-    }
+  const sortedArgs = JSON.stringify(
+    parsedArgs,
+    parsedArgs && typeof parsedArgs === 'object'
+      ? Object.keys(parsedArgs as Record<string, unknown>).sort()
+      : undefined,
+  );
+  const argsHash = createHash('sha256').update(sortedArgs).digest('hex');
+  if (!approval.approvedArgsHash || approval.approvedArgsHash !== argsHash) {
+    throw new ApprovalRequiredError(toolName, ctx.runId);
   }
 }
 

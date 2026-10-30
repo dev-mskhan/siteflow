@@ -108,6 +108,7 @@ export class ToolPermissionDeniedError extends AiError {
 export class ApprovalRequiredError extends AiError {
   readonly toolName: string;
   readonly runId: string;
+  readonly statusCode = 400;
   constructor(toolName: string, runId: string) {
     super(
       'APPROVAL_REQUIRED',
@@ -122,11 +123,37 @@ export class ApprovalRequiredError extends AiError {
 export class ApprovalRejectedError extends AiError {
   readonly approvalId: string;
   readonly note: string | undefined;
+  readonly statusCode = 400;
   constructor(approvalId: string, note?: string) {
     super('APPROVAL_REJECTED', `Approval ${approvalId} was rejected${note ? `: ${note}` : ''}`);
     this.name = 'ApprovalRejectedError';
     this.approvalId = approvalId;
     this.note = note;
+  }
+}
+
+export class ApprovalExpiredError extends AiError {
+  readonly approvalId: string;
+  readonly statusCode = 400;
+  constructor(approvalId: string) {
+    super('APPROVAL_EXPIRED', `Approval ${approvalId} has expired`);
+    this.name = 'ApprovalExpiredError';
+    this.approvalId = approvalId;
+  }
+}
+
+export class ApprovalAlreadyDecidedError extends AiError {
+  readonly approvalId: string;
+  readonly currentStatus: string;
+  readonly statusCode = 409;
+  constructor(approvalId: string, currentStatus: string) {
+    super(
+      'APPROVAL_ALREADY_DECIDED',
+      `Approval ${approvalId} has already been decided (status: ${currentStatus})`,
+    );
+    this.name = 'ApprovalAlreadyDecidedError';
+    this.approvalId = approvalId;
+    this.currentStatus = currentStatus;
   }
 }
 

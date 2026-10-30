@@ -187,7 +187,7 @@ export const agentApprovals = appSchema.table(
     index('agent_approvals_expires_idx').on(t.expiresAt),
     check(
       'agent_approvals_decision_metadata_check',
-      sql`${t.status} = 'PENDING' OR (${t.decidedBy} IS NOT NULL AND ${t.decidedAt} IS NOT NULL)`,
+      sql`${t.status} IN ('PENDING', 'EXPIRED') OR (${t.decidedBy} IS NOT NULL AND ${t.decidedAt} IS NOT NULL)`,
     ),
     check(
       'agent_approvals_expires_positive',
