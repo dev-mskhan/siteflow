@@ -114,7 +114,7 @@ export class AgentRunService {
       const run = await this.repo.findById(runId, organizationId);
       if (!run) throw new AgentRunNotFoundError(runId);
 
-      const cancellable: AgentRunStatus[] = ['QUEUED', 'AWAITING_APPROVAL'];
+      const cancellable: AgentRunStatus[] = ['QUEUED', 'AWAITING_APPROVAL', 'RUNNING'];
       if (!cancellable.includes(run.status)) {
         throw new Error(`Run ${runId} is in status ${run.status} and cannot be cancelled`);
       }

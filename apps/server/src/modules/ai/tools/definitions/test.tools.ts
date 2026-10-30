@@ -43,8 +43,22 @@ registerTool({
   }),
   riskTier: 'READ',
   requiredPermission: '',
-  async execute(args) {
-    await new Promise((resolve) => setTimeout(resolve, args.durationMs));
-    return { sleptMs: args.durationMs };
+  async execute(args, ctx) {
+    const start = Date.now();
+    const duration = args.durationMs;
+    const { AgentRunRepository } = await import('../../runs/agent-run.repository.js');
+    const { RunCancelledError, RunTimeoutError } = await import('../../core/errors.js');
+    const repo = new AgentRunRepository();
+
+    while (Date.now() - start < duration) {
+      if (ctx?.runId && (await repo.isCancelled(ctx.runId))) {
+        throw new RunCancelledError(ctx.runId);
+      }
+      if (ctx?.limits?.timeoutMs && Date.now() - (ctx.startedAt?.getTime() ?? start) >= ctx.limits.timeoutMs) {
+        throw new RunTimeoutError(ctx.runId, ctx.limits.timeoutMs);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return { sleptMs: duration };
   },
 });

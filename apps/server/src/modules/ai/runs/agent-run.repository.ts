@@ -169,7 +169,7 @@ export class AgentRunRepository {
         finishedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(agentRuns.id, id));
+      .where(and(eq(agentRuns.id, id), eq(agentRuns.status, 'RUNNING')));
   }
 
   async setFailed(

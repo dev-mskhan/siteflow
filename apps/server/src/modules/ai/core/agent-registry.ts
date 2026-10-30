@@ -93,5 +93,6 @@ registerAgent({
   outputSchema: z.any(),
   allowedTools: ['fake_sleep'],
   tier: 'cheap',
+  limitOverrides: { timeoutMs: 3000 }, // 3-second timeout for tests
   supportedChannels: ['api'],
 });

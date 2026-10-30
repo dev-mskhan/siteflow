@@ -21,6 +21,8 @@ import type { RunContext } from '../core/run-context.js';
 import { assertTenantScope } from '../core/run-context.js';
 import {
   ApprovalRequiredError,
+  RunCancelledError,
+  RunTimeoutError,
 } from '../core/errors.js';
 import type { ToolResult } from '../core/types.js';
 
@@ -235,6 +237,9 @@ export async function executeTool<T = unknown>(
     try {
       result = await tool.execute(parsedArgs, ctx) as T;
     } catch (err) {
+      if (err instanceof RunCancelledError || err instanceof RunTimeoutError) {
+        throw err;
+      }
       const message = err instanceof Error ? err.message : 'Tool execution error';
       await toolCallRepo.log({
         runId: ctx.runId,

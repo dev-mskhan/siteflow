@@ -65,4 +65,13 @@ export const agentRunRoutes: FastifyPluginAsync = async (fastify) => {
     },
     handleCancelRun,
   );
+
+  fastify.post(
+    '/:organizationId/ai/runs/:runId/cancel',
+    {
+      schema: cancelRunSchemaDoc,
+      preHandler: [requirePermission('ai.runs.cancel')],
+    },
+    handleCancelRun,
+  );
 };

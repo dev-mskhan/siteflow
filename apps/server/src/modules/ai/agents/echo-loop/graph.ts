@@ -6,6 +6,7 @@
 import { StateGraph, Annotation, END } from '@langchain/langgraph';
 import type { RunContext } from '../../core/run-context.js';
 import type { AgentRunOutput } from '../../core/types.js';
+import type { UsageAccumulator } from '../../cost/usage.service.js';
 import { executeTool } from '../../tools/tool-factory.js';
 
 const EchoLoopState = Annotation.Root({
@@ -13,9 +14,10 @@ const EchoLoopState = Annotation.Root({
   output: Annotation<AgentRunOutput | null>({ default: () => null, reducer: (_, b) => b }),
 });
 
-export function buildEchoLoopGraph(ctx: RunContext) {
+export function buildEchoLoopGraph(ctx: RunContext, acc?: UsageAccumulator) {
   async function loopNode(state: typeof EchoLoopState.State): Promise<Partial<typeof EchoLoopState.State>> {
     const current = state.count + 1;
+    acc?.record('cheap', 10, 5);
     await executeTool('fake_read_loop', { iteration: current }, ctx);
     return { count: 1 };
   }

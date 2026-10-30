@@ -51,7 +51,7 @@ const GRAPH_REGISTRY: Record<AgentName, GraphBuilder> = {
   'echo':            (ctx, acc) => buildEchoGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'cost-financial':  (ctx, acc) => buildCostFinancialGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-approval':   (ctx, acc) => buildEchoApprovalGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
-  'echo-loop':       (ctx) => buildEchoLoopGraph(ctx) as unknown as ReturnType<GraphBuilder>,
+  'echo-loop':       (ctx, acc) => buildEchoLoopGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-slow':       (ctx) => buildEchoSlowGraph(ctx) as unknown as ReturnType<GraphBuilder>,
 };
 
