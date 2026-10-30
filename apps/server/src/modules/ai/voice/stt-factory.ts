@@ -31,3 +31,7 @@ export function getSttProvider(): SttProvider {
 export function resetSttProvider(): void {
   cachedProvider = null;
 }
+
+export function setSttProvider(provider: SttProvider | null): void {
+  cachedProvider = provider;
+}

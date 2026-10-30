@@ -8,6 +8,14 @@ import { handleVoiceMessage } from './voice.handler.js';
 import { voiceMessageSchemaDoc } from '../docs/ai.api.schemas.js';
 
 export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.addContentTypeParser(
+    ['application/octet-stream', /^audio\/.*/, /^video\/.*/],
+    { parseAs: 'buffer' },
+    (_request, body, done) => {
+      done(null, body ?? Buffer.alloc(0));
+    },
+  );
+
   fastify.addHook('preHandler', authenticate);
   fastify.addHook('preHandler', organizationContext);
 

@@ -97,10 +97,8 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
             return;
           }
 
-          await repo.setSucceeded(runId, result.output, result.tokensIn, result.tokensOut, result.costUsd, result.traceId);
-          emitRunSucceeded(run, result.costUsd);
-
-          const conversationId = (run.inputSnapshot as Record<string, unknown>)?.conversationId;
+          const conversationId =
+            ((run.inputSnapshot as Record<string, unknown>)?.conversationId ?? run.conversationId) as string | undefined;
           if (typeof conversationId === 'string') {
             await convService.saveAssistantReply(
               conversationId,
@@ -110,6 +108,9 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
               (run.channel as 'chat' | 'voice') ?? 'chat',
             );
           }
+
+          await repo.setSucceeded(runId, result.output, result.tokensIn, result.tokensOut, result.costUsd, result.traceId);
+          emitRunSucceeded(run, result.costUsd);
           logger.info({ runId }, 'Resumed run succeeded');
         } catch (err: unknown) {
           const message = classifyError(err);
@@ -161,17 +162,8 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
           return;
         }
 
-        await repo.setSucceeded(
-          runId,
-          result.output,
-          result.tokensIn,
-          result.tokensOut,
-          result.costUsd,
-          result.traceId,
-        );
-        emitRunSucceeded(run, result.costUsd);
-
-        const conversationId = (run.inputSnapshot as Record<string, unknown>)?.conversationId;
+        const conversationId =
+          ((run.inputSnapshot as Record<string, unknown>)?.conversationId ?? run.conversationId) as string | undefined;
         if (typeof conversationId === 'string') {
           await convService.saveAssistantReply(
             conversationId,
@@ -181,6 +173,16 @@ export async function registerAgentRunWorkers(boss: PgBoss): Promise<void> {
             (run.channel as 'chat' | 'voice') ?? 'chat',
           );
         }
+
+        await repo.setSucceeded(
+          runId,
+          result.output,
+          result.tokensIn,
+          result.tokensOut,
+          result.costUsd,
+          result.traceId,
+        );
+        emitRunSucceeded(run, result.costUsd);
 
         logger.info(
           { runId, tokensIn: result.tokensIn, tokensOut: result.tokensOut, costUsd: result.costUsd },

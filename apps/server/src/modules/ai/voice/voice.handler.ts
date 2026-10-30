@@ -53,7 +53,7 @@ export async function handleVoiceMessage(
   } else {
     // Direct raw audio body
     mimeType = request.headers['content-type'] || 'audio/webm';
-    buffer = await request.body as Buffer;
+    buffer = ((await request.body) as Buffer) ?? Buffer.alloc(0);
   }
 
   if (!buffer || buffer.length === 0) {

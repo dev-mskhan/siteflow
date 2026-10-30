@@ -4,10 +4,12 @@
 
 export class AiError extends Error {
   readonly code: string;
-  constructor(code: string, message: string) {
+  readonly statusCode: number;
+  constructor(code: string, message: string, statusCode = 500) {
     super(message);
     this.name = 'AiError';
     this.code = code;
+    this.statusCode = statusCode;
   }
 }
 
@@ -81,7 +83,7 @@ export class RunCancelledError extends AiError {
 export class GuardrailBlockedError extends AiError {
   readonly reason: string;
   constructor(reason: string) {
-    super('GUARDRAIL_BLOCKED', `Input blocked by guardrail: ${reason}`);
+    super('GUARDRAIL_BLOCKED', `Input blocked by guardrail: ${reason}`, 422);
     this.name = 'GuardrailBlockedError';
     this.reason = reason;
   }

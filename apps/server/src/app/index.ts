@@ -66,6 +66,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Gap 6: hard limit on how long a request can stay alive
     connectionTimeout: 30000,
     requestTimeout: serverEnv.REQUEST_TIMEOUT_MS,
+    pluginTimeout: 120000,
     // Gap G.1: cap request body size to prevent memory exhaustion
     bodyLimit: serverEnv.BODY_LIMIT_BYTES,
   });
