@@ -9,6 +9,7 @@ import { sendJob } from '../../../lib/queue/queue.js';
 import {
   ApprovalExpiredError,
   ApprovalAlreadyDecidedError,
+  ApprovalNotFoundError,
 } from '../core/errors.js';
 import type { AgentApproval } from '@siteflow/database/schema';
 import type { AgentName } from '../core/types.js';
@@ -65,7 +66,7 @@ export class ApprovalService {
       span.setAttribute('approval.id', id);
 
       const approval = await this.approvalRepo.findById(id, organizationId);
-      if (!approval) throw new Error(`Approval ${id} not found`);
+      if (!approval) throw new ApprovalNotFoundError(id);
       if (approval.status !== 'PENDING') {
         throw new ApprovalAlreadyDecidedError(id, approval.status);
       }
@@ -117,7 +118,7 @@ export class ApprovalService {
   async reject(id: string, organizationId: string, userId: string, note?: string): Promise<void> {
     return withSpan(tracer, 'ai.approval.reject', async () => {
       const approval = await this.approvalRepo.findById(id, organizationId);
-      if (!approval) throw new Error(`Approval ${id} not found`);
+      if (!approval) throw new ApprovalNotFoundError(id);
       if (approval.status !== 'PENDING') {
         throw new ApprovalAlreadyDecidedError(id, approval.status);
       }

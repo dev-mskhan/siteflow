@@ -173,14 +173,23 @@ export class TenantLeakError extends AiError {
 
 export class AgentRunNotFoundError extends AiError {
   constructor(runId: string) {
-    super('AGENT_RUN_NOT_FOUND', `Agent run "${runId}" not found`);
+    super('AGENT_RUN_NOT_FOUND', `Agent run "${runId}" not found`, 404);
     this.name = 'AgentRunNotFoundError';
+  }
+}
+
+export class ApprovalNotFoundError extends AiError {
+  readonly approvalId: string;
+  constructor(approvalId: string) {
+    super('APPROVAL_NOT_FOUND', `Approval "${approvalId}" not found`, 404);
+    this.name = 'ApprovalNotFoundError';
+    this.approvalId = approvalId;
   }
 }
 
 export class AgentNotFoundError extends AiError {
   constructor(agentName: string) {
-    super('AGENT_NOT_FOUND', `Agent "${agentName}" is not registered`);
+    super('AGENT_NOT_FOUND', `Agent "${agentName}" is not registered`, 404);
     this.name = 'AgentNotFoundError';
   }
 }
