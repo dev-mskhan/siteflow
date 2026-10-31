@@ -169,6 +169,38 @@ export class TenantLeakError extends AiError {
   }
 }
 
+// ── Project access ────────────────────────────────────────────────────────────
+
+/** Thrown when a user tries to scope an AI run to a project they are not an active member of. */
+export class ProjectAccessDeniedError extends AiError {
+  readonly projectId: string;
+  constructor(projectId: string) {
+    super(
+      'PROJECT_ACCESS_DENIED',
+      `User is not an active member of project "${projectId}"`,
+      403,
+    );
+    this.name = 'ProjectAccessDeniedError';
+    this.projectId = projectId;
+  }
+}
+
+// ── Self-approval ─────────────────────────────────────────────────────────────
+
+/** Thrown when the run creator attempts to approve their own pending approval (four-eyes violation). */
+export class SelfApprovalError extends AiError {
+  readonly approvalId: string;
+  constructor(approvalId: string) {
+    super(
+      'SELF_APPROVAL_FORBIDDEN',
+      `Approval ${approvalId} cannot be decided by the user who triggered the run (four-eyes principle)`,
+      403,
+    );
+    this.name = 'SelfApprovalError';
+    this.approvalId = approvalId;
+  }
+}
+
 // ── Not found ─────────────────────────────────────────────────────────────────
 
 export class AgentRunNotFoundError extends AiError {

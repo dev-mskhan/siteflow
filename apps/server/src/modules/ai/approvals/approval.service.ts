@@ -10,6 +10,7 @@ import {
   ApprovalExpiredError,
   ApprovalAlreadyDecidedError,
   ApprovalNotFoundError,
+  SelfApprovalError,
 } from '../core/errors.js';
 import type { AgentApproval } from '@siteflow/database/schema';
 import type { AgentName } from '../core/types.js';
@@ -76,6 +77,11 @@ export class ApprovalService {
 
       const run = await this.runRepo.findByIdInternal(approval.runId);
       if (!run) throw new Error(`Agent run ${approval.runId} not found — cannot resume`);
+
+      // ── Four-eyes principle: the run creator cannot approve their own run ──
+      if (run.createdBy === userId) {
+        throw new SelfApprovalError(id);
+      }
 
       await getDb().transaction(async (tx) => {
         await this.approvalRepo.approve(id, userId, note, tx);

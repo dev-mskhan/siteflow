@@ -98,3 +98,23 @@ export function assertTenantScope(
     throw new TenantLeakError(ctx.runId, `${toolName}:project_mismatch`);
   }
 }
+
+/**
+ * Asserts tenant scope for every element in an array of data objects.
+ * Use this instead of assertTenantScope when a tool returns a list of records —
+ * assertTenantScope only checks the top-level object and would fail open on arrays.
+ *
+ * @example
+ *   const rows = await db.select().from(projects).where(...);
+ *   assertTenantScopeAll(ctx, rows, 'list_projects');
+ *   return rows;
+ */
+export function assertTenantScopeAll(
+  ctx: RunContext,
+  items: Array<{ organizationId?: string | null; projectId?: string | null } | null | undefined>,
+  toolName: string,
+): void {
+  for (const item of items) {
+    assertTenantScope(ctx, item, toolName);
+  }
+}

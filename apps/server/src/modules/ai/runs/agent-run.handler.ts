@@ -125,6 +125,7 @@ export async function handleCancelRun(
   reply: FastifyReply,
 ): Promise<void> {
   const { organizationId, runId } = runIdParamSchema.parse(request.params);
-  await runService.cancelRun(runId, organizationId);
+  const userId = request.user!.sub;
+  await runService.cancelRun(runId, organizationId, userId);
   return reply.send(createSuccessResponse({ message: 'Run cancelled' }));
 }

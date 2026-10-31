@@ -4,9 +4,10 @@ import { createLogger, withSpan } from '@siteflow/observability/server';
 import { sendJob } from '../../../lib/queue/queue.js';
 import { AgentRunRepository } from './agent-run.repository.js';
 import { AI_QUEUES, type AgentRunJobPayload } from '../ai.jobs.js';
-import { AgentRunNotFoundError } from '../core/errors.js';
+import { AgentRunNotFoundError, ProjectAccessDeniedError } from '../core/errors.js';
 import type { AgentName, AgentRunStatus, AgentRunTrigger } from '../core/types.js';
 import type { AgentRun } from '@siteflow/database/schema';
+import { projectMemberRepository } from '../../project/members/project-member.repository.js';
 
 const logger = createLogger({ name: 'agent-run-service' });
 const tracer = trace.getTracer('agent-run-service');
@@ -45,6 +46,21 @@ export class AgentRunService {
     return withSpan(tracer, 'ai.startRun', async (span) => {
       span.setAttribute('ai.agent', input.agent);
       span.setAttribute('organization.id', input.organizationId);
+
+      // ── Q2 fix: verify project membership when projectId is supplied ──────
+      // Only org-level RBAC is checked by the route middleware. If the caller
+      // scopes the run to a specific project we must confirm they are an active
+      // member of that project — not just a member of the org.
+      if (input.projectId) {
+        const membership = await projectMemberRepository.findActiveByProjectAndUser(
+          input.organizationId,
+          input.projectId,
+          input.createdBy,
+        );
+        if (!membership) {
+          throw new ProjectAccessDeniedError(input.projectId);
+        }
+      }
 
       const run = await this.repo.create({
         organizationId: input.organizationId,
@@ -109,10 +125,17 @@ export class AgentRunService {
 
   // ── Cancel a queued/running run ───────────────────────────────────────────
 
-  async cancelRun(runId: string, organizationId: string): Promise<void> {
+  async cancelRun(runId: string, organizationId: string, requestingUserId?: string): Promise<void> {
     return withSpan(tracer, 'ai.cancelRun', async () => {
       const run = await this.repo.findById(runId, organizationId);
       if (!run) throw new AgentRunNotFoundError(runId);
+
+      // ── Q3 fix: non-admin users may only cancel their own runs ─────────────
+      // If a requestingUserId is provided and it differs from the run owner,
+      // return 404 (not 403) to avoid leaking that the run exists for another user.
+      if (requestingUserId && run.createdBy !== requestingUserId) {
+        throw new AgentRunNotFoundError(runId);
+      }
 
       const cancellable: AgentRunStatus[] = ['QUEUED', 'AWAITING_APPROVAL', 'RUNNING'];
       if (!cancellable.includes(run.status)) {
