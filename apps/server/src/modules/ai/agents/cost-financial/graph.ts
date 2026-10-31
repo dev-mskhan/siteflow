@@ -12,8 +12,10 @@
 import { StateGraph, Annotation, END, messagesStateReducer } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
+import { tool } from '@langchain/core/tools';
 import type { BaseMessage } from '@langchain/core/messages';
 import { createModel } from '../../graph/model-factory.js';
+import { getAgent } from '../../core/agent-registry.js';
 import { getToolsForAgent } from '../../tools/tool-registry.js';
 import { executeTool } from '../../tools/tool-factory.js';
 import { validateOutput } from '../../guardrails/output-guard.js';
@@ -49,22 +51,23 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
   const toolDefs = getToolsForAgent(ALLOWED_TOOLS);
 
   // Convert ToolDefinition[] → LangChain DynamicStructuredTool[] for ToolNode
-  const langchainTools = toolDefs.map((def) => ({
-    name: def.name,
-    description: def.description,
-    schema: def.argsSchema,
-    func: async (args: unknown) => {
+  const langchainTools = toolDefs.map((def) =>
+    tool(async (args: unknown) => {
       const result = await executeTool(def.name, args, ctx);
       if (!result.ok) return `Error: ${result.message}`;
       return JSON.stringify(result.data);
-    },
-  }));
+    }, {
+      name: def.name,
+      description: def.description,
+      schema: def.argsSchema,
+    }),
+  );
 
-  // Model bound with tools — "cheap" tier for multi-step reasoning
-  const model = createModel('cheap', { accumulator: acc });
-  const modelWithTools = typeof (model as any).bindTools === 'function'
-    ? (model as any).bindTools(langchainTools)
-    : model;
+  const manifest = getAgent(ctx.agent);
+  if (!manifest) throw new Error(`Agent "${ctx.agent}" is not registered`);
+  const model = createModel(manifest.tier, { accumulator: acc });
+  if (!model.bindTools) throw new Error(`The model for "${ctx.agent}" does not support tool binding`);
+  const modelWithTools = model.bindTools(langchainTools);
 
   // ── Nodes ──────────────────────────────────────────────────────────────────
 
@@ -123,7 +126,7 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
     return END;
   }
 
-  const toolNode = new ToolNode(langchainTools as any);
+  const toolNode = new ToolNode(langchainTools);
 
   // ── Graph ──────────────────────────────────────────────────────────────────
 

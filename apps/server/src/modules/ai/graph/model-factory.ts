@@ -21,24 +21,103 @@ import type { UsageAccumulator } from '../cost/usage.service.js';
 
 const logger = createLogger({ name: 'ai-model-factory' });
 
+export interface TokenUsage {
+  tokensIn: number;
+  tokensOut: number;
+  usageSource: 'provider-reported' | 'estimated';
+}
+
+export function resolveTokenUsage(
+  usage: {
+    promptTokens?: number;
+    completionTokens?: number;
+    input_tokens?: number;
+    output_tokens?: number;
+  } | undefined,
+  promptCharacters: number,
+  outputCharacters: number,
+): TokenUsage {
+  const tokensIn = usage?.promptTokens ?? usage?.input_tokens;
+  const tokensOut = usage?.completionTokens ?? usage?.output_tokens;
+  const estimated = tokensIn === undefined || tokensOut === undefined;
+  return {
+    tokensIn: tokensIn ?? Math.ceil(promptCharacters / 4),
+    tokensOut: tokensOut ?? Math.ceil(outputCharacters / 4),
+    usageSource: estimated ? 'estimated' : 'provider-reported',
+  };
+}
+
+function isPrivateOrLoopbackHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return true;
+  if (host.startsWith('::ffff:')) return isPrivateOrLoopbackHostname(host.slice(7));
+
+  const octets = host.split('.').map(Number);
+  if (octets.length === 4 && octets.every((part) => Number.isInteger(part) && part >= 0 && part <= 255)) {
+    const [first, second] = octets;
+    return first === 0 || first === 10 || first === 127 ||
+      (first === 169 && second === 254) ||
+      (first === 172 && second !== undefined && second >= 16 && second <= 31) ||
+      (first === 192 && second === 168);
+  }
+
+  return host === '::1' || /^f[cd]/.test(host) || /^fe[89ab]/.test(host);
+}
+
+export function isLoopbackOrPrivateBaseUrl(baseUrl: string): boolean {
+  return isPrivateOrLoopbackHostname(new URL(baseUrl).hostname);
+}
+
+export function assertSafeLlmBaseUrl(
+  nodeEnv: string,
+  baseUrl: string | undefined,
+): void {
+  if (nodeEnv === 'production' && baseUrl && isLoopbackOrPrivateBaseUrl(baseUrl)) {
+    throw new Error('OPENAI_BASE_URL cannot point to a loopback or private address in production.');
+  }
+}
+
+assertSafeLlmBaseUrl(serverEnv.NODE_ENV, serverEnv.OPENAI_BASE_URL);
+
 // ── Callback handler — wires token counts into the accumulator ────────────────
 
 function makeUsageCallback(accumulator: UsageAccumulator, defaultModel: string): Partial<BaseCallbackHandler> {
+  const promptCharactersByRun = new Map<string, number>();
+  const savePromptLength = (runId: string, prompt: string): void => {
+    promptCharactersByRun.set(runId, prompt.length);
+  };
   return {
     name: 'ai-usage-callback',
-    handleLLMEnd(output, _runId) {
+    handleLLMStart(_llm, prompts, runId) {
+      savePromptLength(runId, prompts.join(''));
+    },
+    handleChatModelStart(_llm, messages, runId) {
+      savePromptLength(runId, JSON.stringify(messages));
+    },
+    handleLLMEnd(output, runId) {
       try {
-        // LangChain surfaces token usage in output.llmOutput.tokenUsage or usage_metadata
-        const usage = (output as any)?.llmOutput?.tokenUsage ?? (output as any)?.llmOutput?.usage;
+        const llmOutput = output.llmOutput as Record<string, unknown> | undefined;
+        const usage = (llmOutput?.tokenUsage ?? llmOutput?.usage) as
+          | Parameters<typeof resolveTokenUsage>[0]
+          | undefined;
         const modelId: string =
           (output as any)?.generations?.[0]?.[0]?.generationInfo?.model ??
           defaultModel;
-
+        const outputCharacters = output.generations
+          .flat()
+          .reduce((total, generation) => total + (generation.text?.length ?? 0), 0);
+        const usageCounts = resolveTokenUsage(
+          usage,
+          promptCharactersByRun.get(runId) ?? 0,
+          outputCharacters,
+        );
         accumulator.record(
           modelId,
-          usage?.promptTokens ?? usage?.input_tokens ?? 0,
-          usage?.completionTokens ?? usage?.output_tokens ?? 0,
+          usageCounts.tokensIn,
+          usageCounts.tokensOut,
+          usageCounts.usageSource,
         );
+        promptCharactersByRun.delete(runId);
       } catch (err) {
         // Never throw from a callback — just log and continue
         logger.warn({ err }, 'Usage callback error — token counts may be incomplete');

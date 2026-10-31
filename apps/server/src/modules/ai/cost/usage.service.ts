@@ -12,9 +12,12 @@
 //     agent_runs by agent-run.service.markSucceeded / markFailed.
 
 import { createLogger } from '@siteflow/observability/server';
+import { Decimal } from 'decimal.js';
 import { calculateCostUsd } from './pricing.js';
 import type { RunContext } from '../core/run-context.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
+import { serverEnv } from '../../../config/env.js';
+import { isLoopbackOrPrivateBaseUrl } from '../graph/model-factory.js';
 
 const logger = createLogger({ name: 'ai-usage-service' });
 
@@ -25,6 +28,7 @@ export interface UsageRecord {
   tokensIn: number;
   tokensOut: number;
   costUsd: string;
+  usageSource: 'provider-reported' | 'estimated';
   /** ISO timestamp of the call */
   calledAt: string;
 }
@@ -50,13 +54,22 @@ export class UsageAccumulator {
    * Record a completed LLM call.
    * Called by model-factory's callback hook after every invoke().
    */
-  record(modelId: string, tokensIn: number, tokensOut: number): UsageRecord {
-    const costUsd = calculateCostUsd(modelId, tokensIn, tokensOut);
+  record(
+    modelId: string,
+    tokensIn: number,
+    tokensOut: number,
+    usageSource: UsageRecord['usageSource'] = 'provider-reported',
+  ): UsageRecord {
+    const localProxy = serverEnv.NODE_ENV !== 'production' &&
+      serverEnv.OPENAI_BASE_URL !== undefined &&
+      isLoopbackOrPrivateBaseUrl(serverEnv.OPENAI_BASE_URL);
+    const costUsd = calculateCostUsd(modelId, tokensIn, tokensOut, localProxy);
     const record: UsageRecord = {
       modelId,
       tokensIn,
       tokensOut,
       costUsd,
+      usageSource,
       calledAt: new Date().toISOString(),
     };
     this._tokensIn  += tokensIn;
@@ -64,7 +77,7 @@ export class UsageAccumulator {
     this._calls.push(record);
 
     logger.debug(
-      { runId: this.ctx.runId, modelId, tokensIn, tokensOut, costUsd },
+      { runId: this.ctx.runId, modelId, tokensIn, tokensOut, costUsd, usageSource },
       'LLM call usage recorded',
     );
 
@@ -79,8 +92,8 @@ export class UsageAccumulator {
 
   get totalCostUsd(): string {
     const total = this._calls.reduce(
-      (sum, r) => sum + parseFloat(r.costUsd),
-      0,
+      (sum, record) => sum.plus(record.costUsd),
+      new Decimal(0),
     );
     return total.toFixed(6);
   }

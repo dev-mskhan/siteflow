@@ -7,6 +7,8 @@
 // Rule: this file is pure config — no imports, no side-effects, no DB calls.
 // usage.service.ts reads from here; nothing else should.
 
+import { Decimal } from 'decimal.js';
+
 export interface ModelPricing {
   /** USD per 1 000 input (prompt) tokens */
   inputPer1k: number;
@@ -50,11 +52,20 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   'fake-chat-model':             { inputPer1k: 0.000000, outputPer1k: 0.000000 },
 };
 
+const LOCAL_PROXY_PRICING: Record<string, ModelPricing> = {
+  'gemini-3.5-flash': { inputPer1k: 0, outputPer1k: 0 },
+  'gemini-3.1-pro': { inputPer1k: 0, outputPer1k: 0 },
+};
+
 /**
  * Returns the pricing entry for a model, or a safe fallback if unknown.
  * The fallback uses gpt-4o rates (conservative — avoids under-counting cost).
  */
-export function getPricing(modelId: string): ModelPricing {
+export function getPricing(modelId: string, allowLocalProxyPricing = false): ModelPricing {
+  if (allowLocalProxyPricing && LOCAL_PROXY_PRICING[modelId]) {
+    return LOCAL_PROXY_PRICING[modelId]!;
+  }
+
   // Exact match first
   const exact = MODEL_PRICING[modelId];
   if (exact) return exact;
@@ -76,10 +87,10 @@ export function calculateCostUsd(
   modelId: string,
   tokensIn: number,
   tokensOut: number,
+  allowLocalProxyPricing = false,
 ): string {
-  const p = getPricing(modelId);
-  const inputCost  = (tokensIn  * p.inputPer1k)  / 1000;
-  const outputCost = (tokensOut * p.outputPer1k) / 1000;
-  // Return as a fixed-precision string (6 decimal places) — same as the DB column
-  return (inputCost + outputCost).toFixed(6);
+  const p = getPricing(modelId, allowLocalProxyPricing);
+  const inputCost = new Decimal(tokensIn).mul(p.inputPer1k).div(1000);
+  const outputCost = new Decimal(tokensOut).mul(p.outputPer1k).div(1000);
+  return inputCost.plus(outputCost).toFixed(6);
 }
