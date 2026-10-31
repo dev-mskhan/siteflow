@@ -26,9 +26,9 @@
  *   scope='PROJECT' → projectId required
  *   scope='ORGANIZATION' → projectId must be null
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Tag } from 'lucide-react';
+import { Plus, RefreshCw, Tag } from 'lucide-react';
 import {
   useListRateVersionsQuery,
   useCreateRateVersionMutation,
@@ -40,7 +40,6 @@ import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { isToastError, toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';
-import { MOCK_MATERIAL_NAMES_PRECONSTRUCTION } from '../../fixtures/preconstruction.fixtures';
 import type { PricingRateStatus } from '../../types/preconstructionTypes';
 
 const STATUS_BADGE: Record<PricingRateStatus, string> = {
@@ -55,7 +54,7 @@ export const PricingPage: React.FC = () => {
   const canApprove = usePermission('project.pricing.approve');
   const { success: toastOk, error: toastErr } = useToast();
 
-  const [selectedMaterialId, setSelectedMaterialId] = useState('mat_01');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [retiringId, setRetiringId] = useState<string | null>(null);
   const [retireDate, setRetireDate] = useState('');
@@ -67,13 +66,30 @@ export const PricingPage: React.FC = () => {
   const [effectiveTo, setEffectiveTo] = useState('');
   const [scope, setScope] = useState<'PROJECT' | 'ORGANIZATION'>('PROJECT');
 
-  const { data: rates = [], isLoading: ratesLoading } = useListRateVersionsQuery({
+  const {
+    data: rates = [],
+    isLoading: ratesLoading,
+    isError: ratesError,
+    refetch: refetchRates,
+  } = useListRateVersionsQuery({
     orgId: orgId!,
     projectId: projectId!,
     materialId: selectedMaterialId,
   }, { skip: !selectedMaterialId });
 
-  const { data: materialsData } = useListMaterialsQuery({ orgId: orgId! });
+  const {
+    data: materialsData,
+    isLoading: materialsLoading,
+    isError: materialsError,
+    refetch: refetchMaterials,
+  } = useListMaterialsQuery({ orgId: orgId! });
+  const materials = materialsData?.data ?? [];
+
+  useEffect(() => {
+    if (!materials.some((material) => material.id === selectedMaterialId)) {
+      setSelectedMaterialId(materials[0]?.id ?? '');
+    }
+  }, [materials, selectedMaterialId]);
 
   const [createRate, { isLoading: creating }] = useCreateRateVersionMutation();
   const [approveRate, { isLoading: approving }] = useApproveRateVersionMutation();
@@ -88,7 +104,7 @@ export const PricingPage: React.FC = () => {
           materialId: selectedMaterialId,
           scope,
           projectId: scope === 'PROJECT' ? projectId : undefined,
-          unitCode: materialsData?.materials.find((m) => m.id === selectedMaterialId)?.defaultUnitCode ?? 'KG',
+          unitCode: materials.find((material) => material.id === selectedMaterialId)?.defaultUnitCode ?? 'KG',
           unitPrice: unitPrice.trim(),
           currencyCode: currencyCode.toUpperCase(),
           effectiveFrom,
@@ -119,9 +135,8 @@ export const PricingPage: React.FC = () => {
     } catch (err) { toastErr('Retire failed', toastErrorMessage(err as never)); }
   };
 
-  const materials = materialsData?.materials ?? [];
   const materialName = (id: string) =>
-    materials.find((m) => m.id === id)?.name ?? MOCK_MATERIAL_NAMES_PRECONSTRUCTION[id] ?? id;
+    materials.find((material) => material.id === id)?.name ?? id;
 
   return (
     <div className="p-6 sm:p-8 max-w-4xl">
@@ -143,15 +158,48 @@ export const PricingPage: React.FC = () => {
       {/* Material selector */}
       <div className="mb-6">
         <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Material</label>
-        <select value={selectedMaterialId} onChange={(e) => setSelectedMaterialId(e.target.value)}
+        <select
+          value={selectedMaterialId}
+          onChange={(e) => setSelectedMaterialId(e.target.value)}
+          disabled={materialsLoading || materials.length === 0}
           className="border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)] min-w-[280px]">
-          {materials.length > 0
-            ? materials.map((m) => <option key={m.id} value={m.id}>{m.materialCode} — {m.name}</option>)
-            : Object.entries(MOCK_MATERIAL_NAMES_PRECONSTRUCTION).map(([id, name]) => (
-                <option key={id} value={id}>{name}</option>
-              ))}
+          {materials.length === 0 ? (
+            <option value="">
+              {materialsLoading
+                ? 'Loading materials…'
+                : materialsError
+                  ? 'Unable to load materials'
+                  : 'No materials available'}
+            </option>
+          ) : (
+            materials.map((material) => (
+              <option key={material.id} value={material.id}>
+                {material.materialCode} — {material.name}
+              </option>
+            ))
+          )}
         </select>
       </div>
+
+      {materialsError && (
+        <div role="alert" className="mb-4 flex items-center justify-between gap-4 border border-[#fecaca] bg-[var(--paper)] p-4">
+          <p className="text-sm text-[#991b1b]">Materials could not be loaded.</p>
+          <button
+            type="button"
+            onClick={() => void refetchMaterials()}
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--ink)] hover:opacity-70"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!materialsLoading && !materialsError && materials.length === 0 && (
+        <p className="mb-4 text-sm text-[var(--muted)]">
+          Add a material to this organization before configuring project rates.
+        </p>
+      )}
 
       {/* Create form */}
       {showCreate && (
@@ -160,7 +208,15 @@ export const PricingPage: React.FC = () => {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Scope</label>
-              <select value={scope} onChange={(e) => setScope(e.target.value as any)} className={inputCls()}>
+              <select
+                value={scope}
+                onChange={(e) => {
+                  if (e.target.value === 'PROJECT' || e.target.value === 'ORGANIZATION') {
+                    setScope(e.target.value);
+                  }
+                }}
+                className={inputCls()}
+              >
                 <option value="PROJECT">Project</option>
                 <option value="ORGANIZATION">Organisation</option>
               </select>
@@ -215,7 +271,19 @@ export const PricingPage: React.FC = () => {
           ))}
         </div>
 
-        {!selectedMaterialId ? (
+        {ratesError ? (
+          <div role="alert" className="flex items-center justify-between gap-4 p-4">
+            <p className="text-sm text-[#991b1b]">Pricing rates could not be loaded.</p>
+            <button
+              type="button"
+              onClick={() => void refetchRates()}
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--ink)] hover:opacity-70"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </button>
+          </div>
+        ) : !selectedMaterialId ? (
           <div className="px-4 py-10 text-center text-sm text-[var(--muted)]">Select a material to view rates.</div>
         ) : ratesLoading ? (
           [1, 2].map((i) => <div key={i} className="h-10 animate-pulse bg-[var(--surface-2)] border-b border-[var(--hairline-2)]" />)

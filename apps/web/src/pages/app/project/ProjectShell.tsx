@@ -4,8 +4,8 @@
  * Sub-nav tabs: Overview | Phases | Cost Codes | Budget | Team | Settings
  */
 import React, { useEffect } from 'react';
-import { Outlet, useParams, useNavigate } from 'react-router-dom';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Outlet, useParams } from 'react-router-dom';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { useGetProjectQuery } from '../../../features/project/projectApi';
 import { useAppDispatch } from '../../../app/store';
 import {
@@ -17,20 +17,12 @@ import { ProjectStatusBadge } from '../../../components/project/ProjectStatusBad
 import { useActiveProject } from '../../../features/project/useActiveProject';
 import { SectionNavDropdown } from '../../../components/ui/SectionNavDropdown';
 
-import { MOCK_PROJECTS, MOCK_PROJECT_VERSIONS } from '../../../mocks/project.fixtures';
-
 export const ProjectShell: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const { activeProject } = useActiveProject();
 
-  // When bypass is active the API may fail (no server) — fall back to fixtures on error.
-  // Key change: we NO LONGER skip the query when bypass is true. We always try the
-  // live API first, and only fall back to fixtures if the API call fails.
-  const bypass = import.meta.env.VITE_DEV_BYPASS === 'true';
-
-  const { data, isLoading, isError } = useGetProjectQuery(
+  const { data, isLoading, isError, refetch } = useGetProjectQuery(
     { orgId: orgId!, projectId: projectId! },
     { skip: !orgId || !projectId },
   );
@@ -49,25 +41,25 @@ export const ProjectShell: React.FC = () => {
     }
   }, [data, dispatch]);
 
-  // Handle errors: in bypass mode, fall back to fixtures; in live mode, redirect
-  useEffect(() => {
-    if (isError) {
-      if (bypass) {
-        // API failed (server not running) — fall back to fixture data
-        const project = MOCK_PROJECTS.find((p) => p.id === projectId);
-        if (project) {
-          dispatch(projectLoaded({ project, version: (projectId ? MOCK_PROJECT_VERSIONS[projectId] : undefined) ?? 1 }));
-        } else {
-          navigate(`/org/${orgId}/projects`, { replace: true });
-        }
-      } else {
-        // Live mode — redirect to projects list on error
-        navigate(`/org/${orgId}/projects`, { replace: true });
-      }
-    }
-  }, [isError, bypass, projectId, orgId, navigate, dispatch]);
-
   const base = `/org/${orgId}/projects/${projectId}`;
+
+  if (isError) {
+    return (
+      <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+        <p className="text-sm text-[var(--muted)]">
+          This project could not be loaded. Check your organization access and try again.
+        </p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="inline-flex items-center gap-2 text-sm font-medium text-[var(--ink)] hover:opacity-70"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading || !activeProject) {
     return (

@@ -10,11 +10,11 @@ import {
   useGetInventoryTransactionsQuery,
   useAdjustInventoryMutation,
 } from '../../features/project/procurementApi';
+import { useListMaterialsQuery } from '../../features/material/materialApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
 import { getServerError, isInlineError, isToastError, toastErrorMessage } from '../../lib/authErrors';
-import { MOCK_MATERIAL_NAMES } from '../../fixtures/procurement.fixtures';
 import type { InventoryTransactionDTO } from '../../types/procurementTypes';
 
 const TX_TYPE_BADGE: Record<InventoryTransactionDTO['transactionType'], string> = {
@@ -42,6 +42,9 @@ export const InventoryLedgerPage: React.FC = () => {
   const [adjLocation, setAdjLocation] = useState('default');
 
   const { data: balances = [], isLoading: balLoading } = useListInventoryQuery({ orgId: orgId!, projectId: projectId! });
+  const { data: materialsData } = useListMaterialsQuery({ orgId: orgId!, status: 'ACTIVE' });
+  const materials = materialsData?.data ?? [];
+  const materialsById = new Map(materials.map((material) => [material.id, material]));
   const { data: transactions = [] } = useGetInventoryTransactionsQuery(
     { orgId: orgId!, projectId: projectId!, materialId: selectedMaterialId! },
     { skip: !selectedMaterialId },
@@ -88,10 +91,18 @@ export const InventoryLedgerPage: React.FC = () => {
           {isInlineError(adjErr) && <InlineAlert variant="error" message={getServerError(adjErr)?.message ?? 'Error'} />}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Material ID *</label>
-              <input type="text" value={adjMaterialId} onChange={(e) => setAdjMaterialId(e.target.value)}
-                placeholder="e.g. mat_01"
-                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]" />
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Material *</label>
+              <select value={adjMaterialId} onChange={(e) => {
+                const material = materialsById.get(e.target.value);
+                setAdjMaterialId(e.target.value);
+                setAdjUnitCode(material?.defaultUnitCode ?? '');
+              }}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]">
+                <option value="">Select material…</option>
+                {materials.map((material) => (
+                  <option key={material.id} value={material.id}>{material.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Direction</label>
@@ -159,7 +170,7 @@ export const InventoryLedgerPage: React.FC = () => {
                 <div key={`${b.materialId}:${b.location}`}
                   onClick={() => setSelectedMaterialId(b.materialId)}
                   className={`grid grid-cols-[2fr_80px_80px] gap-4 items-center px-4 py-3 border-b border-[var(--hairline-2)] last:border-b-0 cursor-pointer transition-colors ${selectedMaterialId === b.materialId ? 'bg-[var(--surface-2)]' : 'bg-[var(--paper)] hover:bg-[var(--surface-2)]'}`}>
-                  <p className="text-sm truncate">{MOCK_MATERIAL_NAMES[b.materialId] ?? b.materialId}</p>
+                  <p className="text-sm truncate">{materialsById.get(b.materialId)?.name ?? b.materialId}</p>
                   <p className="font-mono text-[11px] font-medium">{parseFloat(b.balance).toLocaleString()}</p>
                   <p className="font-mono text-[10px] text-[var(--muted)]">{b.location}</p>
                 </div>
@@ -171,7 +182,7 @@ export const InventoryLedgerPage: React.FC = () => {
         {/* Transactions panel */}
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] mb-3">
-            {selectedMaterialId ? `Transactions — ${MOCK_MATERIAL_NAMES[selectedMaterialId] ?? selectedMaterialId}` : 'Select a material to view transactions'}
+            {selectedMaterialId ? `Transactions — ${materialsById.get(selectedMaterialId)?.name ?? selectedMaterialId}` : 'Select a material to view transactions'}
           </p>
           {selectedMaterialId ? (
             <div className="border border-[var(--hairline-2)]">

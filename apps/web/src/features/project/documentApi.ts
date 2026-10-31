@@ -40,9 +40,11 @@ export const documentApi = baseApi.injectEndpoints({
         const query = params.toString() ? `?${params.toString()}` : '';
         return `/organizations/${orgId}/projects/${projectId}/documents${query}`;
       },
-      transformResponse: (raw: { data: DocumentDTO[]; meta: { nextCursor: string | null } }) => ({
-        data: raw.data,
-        nextCursor: raw.meta.nextCursor,
+      transformResponse: (raw: {
+        data: { data: DocumentDTO[]; nextCursor: string | null };
+      }) => ({
+        data: raw.data.data,
+        nextCursor: raw.data.nextCursor,
       }),
       providesTags: (_r, _e, { projectId }) => [{ type: 'Document', id: projectId }],
     }),
@@ -50,7 +52,7 @@ export const documentApi = baseApi.injectEndpoints({
     getDocument: build.query<DocumentDTO, OrgProjectArgs & { documentId: string }>({
       query: ({ orgId, projectId, documentId }) =>
         `/organizations/${orgId}/projects/${projectId}/documents/${documentId}`,
-      transformResponse: (raw: { data: DocumentDTO }) => raw.data,
+      transformResponse: (raw: { data: { document: DocumentDTO } }) => raw.data.document,
       providesTags: (_r, _e, { documentId }) => [{ type: 'Document', id: documentId }],
     }),
 
@@ -59,7 +61,7 @@ export const documentApi = baseApi.injectEndpoints({
       OrgProjectArgs & { input: InitiateUploadInput }
     >({
       query: ({ orgId, projectId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/documents/upload/initiate`,
+        url: `/organizations/${orgId}/projects/${projectId}/documents`,
         method: 'POST',
         body: input,
       }),
@@ -72,11 +74,11 @@ export const documentApi = baseApi.injectEndpoints({
       OrgProjectArgs & { documentId: string; checksum: string }
     >({
       query: ({ orgId, projectId, documentId, checksum }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/documents/${documentId}/upload/complete`,
+        url: `/organizations/${orgId}/projects/${projectId}/documents/${documentId}/complete`,
         method: 'POST',
         body: { checksum },
       }),
-      transformResponse: (raw: { data: DocumentDTO }) => raw.data,
+      transformResponse: (raw: { data: { document: DocumentDTO } }) => raw.data.document,
       invalidatesTags: (_r, _e, { documentId, projectId }) => [
         { type: 'Document', id: documentId },
         { type: 'Document', id: projectId },
@@ -109,10 +111,13 @@ export const documentApi = baseApi.injectEndpoints({
 
     // ── Document Versions ──────────────────────────────────────────────────
 
-    listDocumentVersions: build.query<DocumentVersionDTO[], OrgProjectArgs & { documentId: string }>({
+    listDocumentVersions: build.query<
+      { versions: DocumentVersionDTO[] },
+      OrgProjectArgs & { documentId: string }
+    >({
       query: ({ orgId, projectId, documentId }) =>
         `/organizations/${orgId}/projects/${projectId}/documents/${documentId}/versions`,
-      transformResponse: (raw: { data: DocumentVersionDTO[] }) => raw.data,
+      transformResponse: (raw: { data: { versions: DocumentVersionDTO[] } }) => raw.data,
       providesTags: (_r, _e, { documentId }) => [{ type: 'DocumentVersion', id: documentId }],
     }),
 
@@ -121,7 +126,7 @@ export const documentApi = baseApi.injectEndpoints({
       OrgProjectArgs & { documentId: string; input: InitiateVersionInput }
     >({
       query: ({ orgId, projectId, documentId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/documents/${documentId}/versions/initiate`,
+        url: `/organizations/${orgId}/projects/${projectId}/documents/${documentId}/versions`,
         method: 'POST',
         body: input,
       }),
@@ -138,7 +143,8 @@ export const documentApi = baseApi.injectEndpoints({
         method: 'POST',
         body: { checksum },
       }),
-      transformResponse: (raw: { data: DocumentVersionDTO }) => raw.data,
+      transformResponse: (raw: { data: { version: DocumentVersionDTO; document: DocumentDTO } }) =>
+        raw.data.version,
       invalidatesTags: (_r, _e, { documentId }) => [
         { type: 'DocumentVersion', id: documentId },
         { type: 'Document', id: documentId },

@@ -142,12 +142,16 @@ export interface ScheduleMetrics {
 
 export interface ScheduleHistoryEntry {
   id: string;
+  organizationId: string;
   projectId: string;
-  taskId?: string;
-  revision: number;
-  changeType: 'RECALCULATED' | 'TASK_UPDATED' | 'DEPENDENCY_CHANGED' | 'BASELINE_CREATED';
-  changedBy: string;
-  changedAt: string;
-  changes?: Record<string, unknown>;
-  description?: string;
+  taskId: string;
+  sourceType: 'USER' | 'ISSUE' | 'RFI' | 'CHANGE_ORDER' | 'MATERIAL_DELAY' | 'WEATHER' | 'SYSTEM_CALCULATION';
+  sourceId: string | null;
+  oldStartDate: string | null;
+  oldFinishDate: string | null;
+  newStartDate: string | null;
+  newFinishDate: string | null;
+  reason: string | null;
+  actorUserId: string | null;
+  createdAt: string;
 }

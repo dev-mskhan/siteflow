@@ -22,7 +22,6 @@ import {
   isToastError,
   toastErrorMessage,
 } from '../../lib/authErrors';
-import { MOCK_SUPPLIER_NAMES } from '../../fixtures/procurement.fixtures';
 import type { PurchaseOrderStatus } from '../../types/procurementTypes';
 
 const STATUS_BADGE: Record<PurchaseOrderStatus, string> = {
@@ -94,6 +93,7 @@ export const PurchaseOrdersPage: React.FC = () => {
 
   const all = data ?? [];
   const rows = filter === 'ALL' ? all : all.filter((p) => p.status === filter);
+  const suppliersById = new Map((suppliersData?.data ?? []).map((supplier) => [supplier.id, supplier]));
 
   return (
     <div className="p-6 sm:p-8">
@@ -134,7 +134,7 @@ export const PurchaseOrdersPage: React.FC = () => {
                 className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
               >
                 <option value="">Select supplier…</option>
-                {(suppliersData?.suppliers ?? []).map((s) => (
+                {(suppliersData?.data ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.displayName}
                   </option>
@@ -243,7 +243,7 @@ export const PurchaseOrdersPage: React.FC = () => {
             >
               <p className="font-mono text-[10px] text-[var(--muted)]">{po.poNumber}</p>
               <p className="text-sm truncate">
-                {MOCK_SUPPLIER_NAMES[po.supplierId] ?? po.supplierId}
+                {suppliersById.get(po.supplierId)?.displayName ?? po.supplierId}
               </p>
               <span
                 className={`inline-block font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 w-fit ${STATUS_BADGE[po.status]}`}

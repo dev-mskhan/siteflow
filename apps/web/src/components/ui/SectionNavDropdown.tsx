@@ -51,10 +51,6 @@ export const SectionNavDropdown: React.FC<SectionNavDropdownProps> = ({
   const currentLabel = activeItem?.label ?? fallbackLabel;
 
   useEffect(() => {
-    setOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
     if (!open) return;
     const closeOnOutsideClick = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
@@ -67,12 +63,9 @@ export const SectionNavDropdown: React.FC<SectionNavDropdownProps> = ({
     };
     document.addEventListener('pointerdown', closeOnOutsideClick, true);
     document.addEventListener('keydown', closeOnEscape);
-    const closeOnWindowBlur = () => setOpen(false);
-    window.addEventListener('blur', closeOnWindowBlur);
     return () => {
       document.removeEventListener('pointerdown', closeOnOutsideClick, true);
       document.removeEventListener('keydown', closeOnEscape);
-      window.removeEventListener('blur', closeOnWindowBlur);
     };
   }, [open]);
 
@@ -109,9 +102,9 @@ export const SectionNavDropdown: React.FC<SectionNavDropdownProps> = ({
         {open && (
           <motion.div
             id={optionsId}
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -3 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
             className="absolute left-4 right-4 sm:left-8 sm:right-auto top-[calc(100%-1px)] z-50 w-auto sm:w-[min(48rem,calc(100vw-4rem))] max-h-[75dvh] overflow-y-auto border border-[var(--ink)] bg-[var(--paper)]"
           >

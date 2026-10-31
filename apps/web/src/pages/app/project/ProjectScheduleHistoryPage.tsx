@@ -3,38 +3,42 @@
  * Backend: GET /:orgId/projects/:projectId/schedule/history  (optional taskId filter)
  * Shows the full schedule change log — who changed what task dates and when.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { History } from 'lucide-react';
+import { History, RefreshCw } from 'lucide-react';
+import { useListScheduleHistoryQuery } from '../../../features/project/scheduleApi';
+import { useListTasksQuery } from '../../../features/project/taskApi';
 
-interface ScheduleHistoryEntry {
-  id: string;
-  taskId: string;
-  taskName: string;
-  field: string;
-  oldValue: string | null;
-  newValue: string | null;
-  changedBy: string;
-  changedAt: string;
-  reason: string | null;
+function formatDates(start: string | null, finish: string | null): string {
+  const values = [
+    start ? `Start ${start}` : null,
+    finish ? `Finish ${finish}` : null,
+  ].filter((value): value is string => value !== null);
+  return values.length ? values.join(' · ') : '—';
 }
 
-const MOCK_HISTORY: ScheduleHistoryEntry[] = [
-  { id: 'sh_01', taskId: 'task_01', taskName: 'Site mobilisation', field: 'currentStartDate', oldValue: '2024-01-20', newValue: '2024-01-20', changedBy: 'Tariq Mehmood', changedAt: '2024-01-15T09:00:00.000Z', reason: 'Initial scheduling' },
-  { id: 'sh_02', taskId: 'task_05', taskName: 'Superstructure Level 1', field: 'currentFinishDate', oldValue: '2024-06-30', newValue: '2024-07-14', changedBy: 'Tariq Mehmood', changedAt: '2024-06-01T10:00:00.000Z', reason: 'Weather delay — 14 days variance' },
-  { id: 'sh_03', taskId: 'task_08', taskName: 'MEP Rough-in', field: 'currentStartDate', oldValue: '2024-07-01', newValue: '2024-07-15', changedBy: 'Tariq Mehmood', changedAt: '2024-06-28T14:00:00.000Z', reason: 'Dependency shift from superstructure' },
-  { id: 'sh_04', taskId: 'task_03', taskName: 'Foundation pour', field: 'progressPercent', oldValue: '50', newValue: '100', changedBy: 'Tariq Mehmood', changedAt: '2024-03-28T16:00:00.000Z', reason: null },
-  { id: 'sh_05', taskId: 'task_05', taskName: 'Superstructure Level 1', field: 'currentDurationDays', oldValue: '30', newValue: '44', changedBy: 'Tariq Mehmood', changedAt: '2024-06-01T10:00:00.000Z', reason: 'Weather delay extension' },
-];
-
 export const ProjectScheduleHistoryPage: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
   const [filterTask, setFilterTask] = useState('');
 
-  const entries = MOCK_HISTORY; // In mock mode, all entries belong to proj_01
+  const {
+    data: entries = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useListScheduleHistoryQuery({ orgId: orgId!, projectId: projectId! });
+  const { data: tasksData } = useListTasksQuery({ orgId: orgId!, projectId: projectId! });
+  const taskNames = useMemo(
+    () => new Map((tasksData?.tasks ?? []).map((task) => [task.id, task.name])),
+    [tasksData?.tasks],
+  );
 
   const filtered = filterTask.trim()
-    ? entries.filter((e) => e.taskName.toLowerCase().includes(filterTask.toLowerCase()) || e.taskId.includes(filterTask.trim()))
+    ? entries.filter((entry) => {
+        const taskName = taskNames.get(entry.taskId) ?? entry.taskId;
+        const filter = filterTask.trim().toLowerCase();
+        return taskName.toLowerCase().includes(filter) || entry.taskId.toLowerCase().includes(filter);
+      })
     : entries;
 
   return (
@@ -56,33 +60,53 @@ export const ProjectScheduleHistoryPage: React.FC = () => {
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {isError ? (
+        <div role="alert" className="flex items-center justify-between gap-4 border border-[#fecaca] bg-[var(--paper)] p-4">
+          <p className="text-sm text-[#991b1b]">Schedule history could not be loaded.</p>
+          <button
+              type="button"
+              onClick={() => void refetch()}
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--ink)] hover:opacity-70"
+          >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+          </button>
+        </div>
+      ) : isLoading ? (
+        <div className="h-32 animate-pulse border border-[var(--hairline-2)] bg-[var(--surface-2)]" />
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 border border-[var(--hairline-2)] bg-[var(--paper)]">
           <History className="h-10 w-10 text-[var(--muted)] mb-3" strokeWidth={1.5} />
-          <p className="text-sm text-[var(--muted)]">No schedule changes recorded.</p>
+          <p className="text-sm text-[var(--muted)]">
+              {filterTask.trim() ? 'No schedule changes match this task.' : 'No schedule changes recorded.'}
+          </p>
         </div>
       ) : (
-        <div className="border border-[var(--hairline-2)]">
-          <div className="grid grid-cols-[120px_2fr_110px_100px_100px_100px] gap-3 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]">
-            {['Date', 'Task', 'Field', 'Old', 'New', 'By'].map((h) => (
-              <p key={h} className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">{h}</p>
-            ))}
-          </div>
-          {filtered.map((h) => (
-            <div key={h.id} className="grid grid-cols-[120px_2fr_110px_100px_100px_100px] gap-3 items-center px-4 py-3 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)] hover:bg-[var(--surface-2)] transition-colors">
-              <p className="font-mono text-[9px] text-[var(--muted)]">
-                {new Date(h.changedAt).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </p>
-              <div className="min-w-0">
-                <p className="text-sm truncate">{h.taskName}</p>
-                {h.reason && <p className="font-mono text-[9px] text-[var(--muted)] truncate">{h.reason}</p>}
+        <div className="overflow-x-auto border border-[var(--hairline-2)]">
+          <div className="min-w-[48rem]">
+              <div className="grid grid-cols-[120px_2fr_130px_1.5fr_1.5fr_110px] gap-3 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]">
+                {['Date', 'Task', 'Source', 'Previous dates', 'Current dates', 'Actor ID'].map((h) => (
+                <p key={h} className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">{h}</p>
+                ))}
               </div>
-              <p className="font-mono text-[9px] uppercase text-[var(--muted)]">{h.field}</p>
-              <p className="font-mono text-[10px] text-[var(--muted)]">{h.oldValue ?? '—'}</p>
-              <p className="font-mono text-[10px] font-medium text-[var(--ink)]">{h.newValue ?? '—'}</p>
-              <p className="font-mono text-[9px] text-[var(--muted)] truncate">{h.changedBy}</p>
-            </div>
-          ))}
+              {filtered.map((entry) => (
+                <div key={entry.id} className="grid grid-cols-[120px_2fr_130px_1.5fr_1.5fr_110px] gap-3 items-center px-4 py-3 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)] hover:bg-[var(--surface-2)] transition-colors">
+                  <p className="font-mono text-[9px] text-[var(--muted)]">
+                    {new Date(entry.createdAt).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                  <div className="min-w-0">
+                    <p className="text-sm truncate">{taskNames.get(entry.taskId) ?? entry.taskId}</p>
+                    {entry.reason && <p className="font-mono text-[9px] text-[var(--muted)] truncate">{entry.reason}</p>}
+                  </div>
+                  <p className="font-mono text-[9px] uppercase text-[var(--muted)]">{entry.sourceType.replace(/_/g, ' ')}</p>
+                  <p className="font-mono text-[10px] text-[var(--muted)]">{formatDates(entry.oldStartDate, entry.oldFinishDate)}</p>
+                  <p className="font-mono text-[10px] font-medium text-[var(--ink)]">{formatDates(entry.newStartDate, entry.newFinishDate)}</p>
+                  <p className="font-mono text-[9px] text-[var(--muted)] truncate">
+                    {entry.actorUserId ? entry.actorUserId.slice(0, 8) : 'System'}
+                  </p>
+                </div>
+              ))}
+          </div>
         </div>
       )}
     </div>

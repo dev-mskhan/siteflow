@@ -38,7 +38,7 @@ import { buildEchoSlowGraph } from '../agents/echo-slow/graph.js';
 
 interface CompiledGraphLike {
   stream(input: unknown, config: unknown): Promise<AsyncIterable<unknown>>;
-  getState(config: unknown): Promise<{ next?: readonly string[] }>;
+  getState(config: unknown): Promise<{ next?: readonly string[]; values?: unknown }>;
 }
 
 type GraphBuilder = (ctx: RunContext, acc: UsageAccumulator) => {

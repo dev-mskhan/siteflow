@@ -60,6 +60,7 @@ export type PermissionKey =
   | 'project.subcontractor.update'
   | 'project.subcontractor.assign'
   | 'project.performance.read'
+  | 'project.document.manage'
   | 'project.proposal.read'
   | 'project.proposal.create'
   | 'project.proposal.update'
@@ -93,6 +94,7 @@ export type PermissionKey =
   | 'project.pricing.manage'
   | 'project.pricing.approve'
   | 'project.task.create'
+  | 'project.task.read'
   | 'project.task.update'
   | 'project.task.delete'
   | 'project.baseline.read'
@@ -199,6 +201,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'project.subcontractor.update',
     'project.subcontractor.assign',
     'project.performance.read',
+    'project.document.manage',
     'project.proposal.read', 'project.proposal.create', 'project.proposal.update', 'project.proposal.submit', 'project.proposal.approve', 'project.proposal.issue', 'project.proposal.respond', 'project.proposal.withdraw', 'project.proposal.convert',
     'project.estimate.read', 'project.estimate.create', 'project.estimate.update', 'project.estimate.submit', 'project.estimate.review', 'project.estimate.actuals.read',
     'project.boq.read', 'project.boq.create', 'project.boq.update', 'project.boq.approve', 'project.boq.import', 'project.boq.export',
@@ -278,6 +281,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'project.subcontractor.update',
     'project.subcontractor.assign',
     'project.performance.read',
+    'project.document.manage',
     'project.proposal.read', 'project.proposal.create', 'project.proposal.update', 'project.proposal.submit', 'project.proposal.approve', 'project.proposal.issue', 'project.proposal.respond', 'project.proposal.withdraw', 'project.proposal.convert',
     'project.estimate.read', 'project.estimate.create', 'project.estimate.update', 'project.estimate.submit', 'project.estimate.review', 'project.estimate.actuals.read',
     'project.boq.read', 'project.boq.create', 'project.boq.update', 'project.boq.approve', 'project.boq.import', 'project.boq.export',
@@ -425,6 +429,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     'project.issue.create',
     'project.issue.update',
     'project.issue.transition',
+    'project.document.manage',
   ],
   Subcontractor: ['organization:read', 'project:read', 'task:update:own', 'document:read'],
   Client: ['organization:read', 'project:read', 'document:read'],

@@ -148,6 +148,7 @@ export const baseApi = createApi({
     'FinancialSummary',
     // Documents
     'Document',
+    'DocumentVersion',
     'DocumentFolder',
     // RFI & Submittals
     'RFI',

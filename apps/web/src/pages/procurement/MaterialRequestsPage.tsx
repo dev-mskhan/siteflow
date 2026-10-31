@@ -14,13 +14,13 @@ import {
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
+import { useListMaterialsQuery } from '../../features/material/materialApi';
 import {
   getServerError,
   isInlineError,
   isToastError,
   toastErrorMessage,
 } from '../../lib/authErrors';
-import { MOCK_MATERIAL_NAMES } from '../../fixtures/procurement.fixtures';
 import type { MaterialRequestStatus } from '../../types/procurementTypes';
 
 const STATUS_BADGE: Record<MaterialRequestStatus, string> = {
@@ -61,6 +61,7 @@ export const MaterialRequestsPage: React.FC = () => {
     orgId: orgId!,
     projectId: projectId!,
   });
+  const { data: materialsData } = useListMaterialsQuery({ orgId: orgId! });
   const [createMR, { isLoading: creating, error: createErr }] = useCreateMaterialRequestMutation();
   const [submitMR, { isLoading: submitting }] = useSubmitMaterialRequestMutation();
   const [cancelMR] = useCancelMaterialRequestMutation();
@@ -112,6 +113,7 @@ export const MaterialRequestsPage: React.FC = () => {
 
   const all = data ?? [];
   const rows = filter === 'ALL' ? all : all.filter((r) => r.status === filter);
+  const materialsById = new Map((materialsData?.data ?? []).map((material) => [material.id, material]));
 
   return (
     <div className="p-6 sm:p-8">
@@ -264,7 +266,14 @@ export const MaterialRequestsPage: React.FC = () => {
               <p className="font-mono text-[10px] text-[var(--muted)]">{mr.requestNumber}</p>
               <p className="text-sm truncate">
                 {mr.items.length > 0 ? (
-                  mr.items.map((i) => MOCK_MATERIAL_NAMES[i.materialId] ?? i.materialId).join(', ')
+                  mr.items
+                    .map(
+                      (item) =>
+                        item.description ??
+                        materialsById.get(item.materialId)?.name ??
+                        item.materialId,
+                    )
+                    .join(', ')
                 ) : (
                   <span className="text-[var(--muted)]">No items</span>
                 )}

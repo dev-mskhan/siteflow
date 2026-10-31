@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DollarSign } from 'lucide-react';
 import { useListCommittedCostsQuery } from '../../api/procurementApi';
-import { MOCK_SUPPLIER_NAMES } from '../../fixtures/procurement.fixtures';
+import { useListSuppliersQuery } from '../../features/supplier/supplierApi';
 import type { CommittedCostStatus } from '../../types/procurementTypes';
 
 const STATUS_BADGE: Record<CommittedCostStatus, string> = {
@@ -30,9 +30,11 @@ export const CommittedCostsPage: React.FC = () => {
   const [filter, setFilter] = useState<typeof FILTERS[number]>('ALL');
 
   const { data, isLoading } = useListCommittedCostsQuery({ orgId: orgId!, projectId: projectId! });
+  const { data: suppliersData } = useListSuppliersQuery({ orgId: orgId! });
 
-  const all = data?.data ?? [];
+  const all = data ?? [];
   const rows = filter === 'ALL' ? all : all.filter((c) => c.status === filter);
+  const suppliersById = new Map((suppliersData?.data ?? []).map((supplier) => [supplier.id, supplier]));
 
   const totalActive = all
     .filter((c) => c.status === 'ACTIVE')
@@ -85,7 +87,7 @@ export const CommittedCostsPage: React.FC = () => {
             <div key={cc.id} className="grid grid-cols-[2fr_90px_110px_110px_110px_100px] gap-4 items-center px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]">
               <div>
                 <p className="font-mono text-[10px] text-[var(--muted)]">{cc.purchaseOrderId}</p>
-                {cc.supplierId && <p className="text-xs text-[var(--muted)] mt-0.5">{MOCK_SUPPLIER_NAMES[cc.supplierId] ?? cc.supplierId}</p>}
+                {cc.supplierId && <p className="text-xs text-[var(--muted)] mt-0.5">{suppliersById.get(cc.supplierId)?.displayName ?? cc.supplierId}</p>}
               </div>
               <span className={`inline-block font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 w-fit ${STATUS_BADGE[cc.status]}`}>{cc.status}</span>
               <span className={`inline-block font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 w-fit ${LIFECYCLE_BADGE[cc.lifecycleStatus]}`}>{cc.lifecycleStatus}</span>

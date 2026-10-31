@@ -1,7 +1,7 @@
 /**
  * ProjectDocumentsPage — /org/:orgId/projects/:projectId/documents
  *
- * S3 two-phase upload flow (mock bypasses S3):
+ * S3 two-phase upload flow:
  *   1. initiateUpload → { document, uploadUrl }
  *   2. completeUpload({ checksum }) → status ACTIVE
  *
@@ -9,7 +9,7 @@
  */
 import React, { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, FileText, Download, Trash2, ChevronDown, ChevronRight, Upload } from 'lucide-react';
+import { Plus, FileText, Trash2, ChevronDown, ChevronRight, Upload } from 'lucide-react';
 import { cn } from '../lib/cn';
 import {
   useListDocumentsQuery,
@@ -65,7 +65,7 @@ export const ProjectDocumentsPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
   const navigate = useNavigate();
   const { success: toastOk, error: toastErr } = useToast();
-  const canUpload = usePermission('project.document.upload');
+  const canUpload = usePermission('document:upload');
   const canManage = usePermission('project.document.manage');
 
   const [catFilter, setCatFilter] = useState<typeof CATEGORY_FILTERS[number]>('ALL');
@@ -102,7 +102,7 @@ export const ProjectDocumentsPage: React.FC = () => {
     setUploading(true);
     try {
       // Phase 1: initiate
-      const { document: doc } = await initiateUpload({
+      const { document: doc, uploadUrl } = await initiateUpload({
         orgId: orgId!, projectId: projectId!,
         input: {
           title: uploadTitle.trim(),
@@ -116,12 +116,36 @@ export const ProjectDocumentsPage: React.FC = () => {
         },
       }).unwrap();
 
-      // Phase 2: In mock mode — skip actual S3 PUT, use fake checksum
-      // In production: await uploadToS3(selectedFile, uploadUrl)
-      const fakeChecksum = Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      // Phase 2: upload the file to the presigned object-storage URL.
+      const uploadController = new AbortController();
+      const uploadTimeout = window.setTimeout(() => uploadController.abort(), 30_000);
+      let uploadResponse: Response;
+      try {
+        uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': selectedFile.type || 'application/octet-stream' },
+          body: selectedFile,
+          signal: uploadController.signal,
+        });
+      } catch (error) {
+        if (uploadController.signal.aborted) {
+          throw new Error('Storage upload timed out. Check the storage connection and try again.');
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(uploadTimeout);
+      }
+      if (!uploadResponse.ok) {
+        throw new Error(`Storage upload failed (${uploadResponse.status})`);
+      }
+
+      const digest = await crypto.subtle.digest('SHA-256', await selectedFile.arrayBuffer());
+      const checksum = Array.from(new Uint8Array(digest), (byte) =>
+        byte.toString(16).padStart(2, '0'),
+      ).join('');
 
       // Phase 3: complete
-      await completeUpload({ orgId: orgId!, projectId: projectId!, documentId: doc.id, checksum: fakeChecksum }).unwrap();
+      await completeUpload({ orgId: orgId!, projectId: projectId!, documentId: doc.id, checksum }).unwrap();
 
       toastOk('Document uploaded', doc.title);
       setShowUpload(false);
@@ -129,7 +153,7 @@ export const ProjectDocumentsPage: React.FC = () => {
       setUploadTitle(''); setUploadDesc(''); setUploadExpiry('');
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
-      toastErr('Upload failed', toastErrorMessage(err as never));
+      toastErr('Upload failed', err instanceof Error ? err.message : toastErrorMessage(err as never));
     } finally {
       setUploading(false);
     }
@@ -178,13 +202,13 @@ export const ProjectDocumentsPage: React.FC = () => {
             {selectedFile
               ? <p className="text-sm font-medium">{selectedFile.name} <span className="text-[var(--muted)]">({(selectedFile.size / 1024).toFixed(0)} KB)</span></p>
               : <p className="text-sm text-[var(--muted)]">Click to select file</p>}
-            <input ref={fileRef} type="file" className="hidden" onChange={onFileChange} />
+            <input ref={fileRef} type="file" aria-label="Document file" className="hidden" onChange={onFileChange} />
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="sm:col-span-2">
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Title *</label>
-              <input value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} maxLength={500} className={inputCls()} />
+              <input aria-label="Document title" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} maxLength={500} className={inputCls()} />
             </div>
             <div>
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Category</label>

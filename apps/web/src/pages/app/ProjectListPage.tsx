@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Plus, Search, ArrowUpRight, FolderOpen } from 'lucide-react';
+import { Plus, Search, ArrowUpRight, FolderOpen, RefreshCw } from 'lucide-react';
 import { useListProjectsQuery } from '../../features/project/projectApi';
 import { ProjectStatusBadge } from '../../components/project/ProjectStatusBadge';
 import { PermissionGate } from '../../components/guards/PermissionGate';
@@ -40,11 +40,14 @@ export const ProjectListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('');
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [pageCursors, setPageCursors] = useState<string[]>([]);
+  const cursor = pageCursors[pageCursors.length - 1];
 
-  const { data, isLoading } = useListProjectsQuery({
+  const { data, isLoading, isFetching, isError, refetch } = useListProjectsQuery({
     orgId: orgId!,
     status: statusFilter || undefined,
     search: search || undefined,
+    cursor,
   });
 
   const projects = data?.projects ?? [];
@@ -56,7 +59,7 @@ export const ProjectListPage: React.FC = () => {
         <div>
           <h1 className="text-xl font-medium tracking-[-0.03em]">Projects</h1>
           <p className="mt-0.5 text-sm text-[var(--muted)]">
-            {projects.length} project{projects.length !== 1 ? 's' : ''}
+            Showing {projects.length} project{projects.length !== 1 ? 's' : ''}
           </p>
         </div>
         <PermissionGate require="project:create">
@@ -82,7 +85,10 @@ export const ProjectListPage: React.FC = () => {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPageCursors([]);
+            }}
             placeholder="Search projects…"
             className="w-full pl-9 pr-3 py-2 border border-[var(--hairline-2)] bg-[var(--paper)] text-sm text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)] transition-colors"
           />
@@ -94,7 +100,10 @@ export const ProjectListPage: React.FC = () => {
             <button
               key={value}
               type="button"
-              onClick={() => setStatusFilter(value)}
+              onClick={() => {
+                setStatusFilter(value);
+                setPageCursors([]);
+              }}
               className={cn(
                 'shrink-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors duration-[120ms]',
                 statusFilter === value
@@ -109,7 +118,21 @@ export const ProjectListPage: React.FC = () => {
       </div>
 
       {/* Project grid */}
-      {isLoading ? (
+      {isError && !data ? (
+        <div role="alert" className="flex items-center justify-between gap-4 border border-[#fecaca] bg-[var(--paper)] p-4">
+          <p className="text-sm text-[#991b1b]">
+            Projects could not be loaded. Check your organization access and try again.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--ink)] hover:opacity-70"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
+        </div>
+      ) : isLoading || (isFetching && !data) ? (
         <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-48 animate-pulse bg-[var(--surface-2)]" />
@@ -175,6 +198,37 @@ export const ProjectListPage: React.FC = () => {
             </Link>
           ))}
         </div>
+      )}
+
+      {isError && data && (
+        <p role="status" className="mt-4 text-sm text-[#991b1b]">
+          The latest project list could not be refreshed. Showing the last loaded results.
+        </p>
+      )}
+
+      {(pageCursors.length > 0 || data?.nextCursor) && (
+        <nav aria-label="Project list pages" className="mt-5 flex items-center justify-between">
+          <button
+            type="button"
+            disabled={pageCursors.length === 0 || isFetching}
+            onClick={() => setPageCursors((cursors) => cursors.slice(0, -1))}
+            className="border border-[var(--hairline-2)] px-3 py-2 text-sm disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="font-mono text-xs text-[var(--muted)]">Page {pageCursors.length + 1}</span>
+          <button
+            type="button"
+            disabled={!data?.nextCursor || isFetching}
+            onClick={() => {
+              const nextCursor = data?.nextCursor;
+              if (nextCursor) setPageCursors((cursors) => [...cursors, nextCursor]);
+            }}
+            className="border border-[var(--hairline-2)] px-3 py-2 text-sm disabled:opacity-40"
+          >
+            Next
+          </button>
+        </nav>
       )}
 
       {createOpen && <CreateProjectModal orgId={orgId!} onClose={() => setCreateOpen(false)} />}

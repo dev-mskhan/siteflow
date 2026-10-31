@@ -45,7 +45,7 @@ registerTool({
   requiredPermission: '',
   async execute(args, ctx) {
     const start = Date.now();
-    const duration = args.durationMs;
+    const duration = args.durationMs ?? 5000;
     const { AgentRunRepository } = await import('../../runs/agent-run.repository.js');
     const { RunCancelledError, RunTimeoutError } = await import('../../core/errors.js');
     const repo = new AgentRunRepository();
