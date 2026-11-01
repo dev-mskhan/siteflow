@@ -55,7 +55,6 @@ export const PaymentsPage: React.FC = () => {
   const [paymentDate, setPaymentDate]   = useState(new Date().toISOString().split('T')[0]!);
   const [method, setMethod]             = useState<PaymentMethod>('BANK_TRANSFER');
   const [amount, setAmount]             = useState('');
-  const [currency, setCurrency]         = useState('PKR');
   const [reference, setReference]       = useState('');
 
   const { data, isLoading } = useListPaymentsQuery({ orgId: orgId!, projectId: projectId! });
@@ -67,8 +66,9 @@ export const PaymentsPage: React.FC = () => {
     if (!invoiceId || !amount) { toastErr('Invoice and amount required', ''); return; }
     try {
       await createPayment({
-        orgId: orgId!, projectId: projectId!, invoiceId,
-        input: { paymentDate, paymentMethod: method, amount, currencyCode: currency.toUpperCase(), reference: reference || undefined },
+        orgId: orgId!, projectId: projectId!,
+        invoiceId,
+        input: { paymentDate, method, amount, reference: reference || undefined },
       }).unwrap();
       toastOk('Payment created', '');
       setShowCreate(false); setInvoiceId(''); setAmount(''); setReference('');
@@ -129,10 +129,6 @@ export const PaymentsPage: React.FC = () => {
             <div>
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Amount *</label>
               <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className={inputCls()} />
-            </div>
-            <div>
-              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Currency</label>
-              <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} className={inputCls()} />
             </div>
             <div className="sm:col-span-2">
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Reference</label>

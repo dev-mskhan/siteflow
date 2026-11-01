@@ -44,30 +44,19 @@ export interface CreateBaselineInput {
 }
 
 export interface BaselineComparison {
-  baselineId: string;
-  baselineName: string;
-  totalTasks: number;
-  changes: {
-    added: number;
-    removed: number;
-    modified: number;
-  };
-  scheduleVariance: {
-    earlyTasks: number;
-    lateTasks: number;
-    averageDaysVariance: number;
-  };
-  tasks?: Array<{
-    taskId: string;
-    taskName: string;
-    changeType: 'ADDED' | 'REMOVED' | 'MODIFIED';
-    baselineStart?: string;
-    currentStart?: string;
-    baselineFinish?: string;
-    currentFinish?: string;
-    varianceDays?: number;
-  }>;
+  taskId: string;
+  taskCode: string;
+  taskName: string;
+  currentStart: string | null;
+  currentFinish: string | null;
+  baselineStart: string;
+  baselineFinish: string;
+  baselineDurationDays: number;
+  currentDurationDays: number;
+  startVarianceDays: number;
+  finishVarianceDays: number;
 }
+
 
 // ── Calendar Types ──────────────────────────────────────────────────────
 

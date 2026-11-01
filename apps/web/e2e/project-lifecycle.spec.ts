@@ -1,7 +1,6 @@
 /**
- * E2E: Project lifecycle — creates an org, creates a project through the real
- * modal, then opens the project's Phases page. Every step asserts a real
- * request to /api/v1 so the flow proves the frontend talks to the live server.
+ * E2E: Project lifecycle — creates an org and project through the real UI,
+ * then exercises every project section against its live server endpoint.
  * Depends on auth.setup.ts (saved session in .auth/user.json).
  */
 import { test, expect } from '@playwright/test';
@@ -11,11 +10,15 @@ test.describe('Project lifecycle', () => {
     test.setTimeout(180_000);
     const pageErrors: string[] = [];
     const storageRequestErrors: string[] = [];
+    const apiRequestErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
     page.on('requestfailed', (request) => {
       const url = new URL(request.url());
       if (url.port === '9000') {
         storageRequestErrors.push(`${request.method()} ${url.host}: ${request.failure()?.errorText ?? 'failed'}`);
+      }
+      if (url.port === '3000' && url.pathname.startsWith('/api/v1/')) {
+        apiRequestErrors.push(`${request.method()} ${url.pathname}: ${request.failure()?.errorText ?? 'failed'}`);
       }
     });
 
@@ -56,6 +59,17 @@ test.describe('Project lifecycle', () => {
     const created = JSON.parse(createResponseBody) as { data: { project: { id: string } } };
     const projectId = created.data.project.id;
     await expect(page).toHaveURL(new RegExp(`/org/${orgId}/projects/${projectId}`));
+
+    const failedApiResponses: string[] = [];
+    page.on('response', (res) => {
+      const url = new URL(res.url());
+      if (
+        url.pathname.startsWith(`/api/v1/organizations/${orgId}/`) &&
+        res.status() >= 400
+      ) {
+        failedApiResponses.push(`${res.status()} ${res.request().method()} ${url.pathname}`);
+      }
+    });
 
     const phasesCall = page.waitForResponse(
       (res) =>
@@ -142,100 +156,95 @@ test.describe('Project lifecycle', () => {
       await expect(page.getByText(/Add a material to this organization/)).toBeVisible();
     }
 
-    const failedProjectResponses: string[] = [];
-    const projectApiPrefix = `/api/v1/organizations/${orgId}/projects/${projectId}/`;
-    page.on('response', (res) => {
-      if (res.url().includes(projectApiPrefix) && res.status() >= 400) {
-        failedProjectResponses.push(`${res.status()} ${res.request().method()} ${res.url()}`);
-      }
-    });
-
-    const sectionGroups = [
+    const sectionGroups: {
+      group: string;
+      items: Array<[label: string, route: string, expectedApiPaths: string[]]>;
+    }[] = [
       {
         group: 'Planning',
         items: [
-          ['Phases', 'phases'],
-          ['Tasks', 'tasks'],
-          ['Baselines', 'baselines'],
-          ['Calendar', 'calendar'],
-          ['Schedule history', 'schedule-history'],
-          ['Cost codes', 'cost-codes'],
-          ['Budget', 'budget'],
+          ['Phases', 'phases', ['/phases']],
+          ['Tasks', 'tasks', ['/tasks']],
+          ['Baselines', 'baselines', ['/baselines']],
+          ['Calendar', 'calendar', ['/calendar']],
+          ['Schedule history', 'schedule-history', ['/schedule/history']],
+          ['Cost codes', 'cost-codes', ['/cost-codes']],
+          ['Budget', 'budget', ['/budgets']],
         ],
       },
       {
         group: 'Field operations',
         items: [
-          ['Team', 'team'],
-          ['Field logs', 'field-logs'],
-          ['Issues', 'issues'],
-          ['Subcontractors', 'subcontractors'],
-          ['Safety', 'safety'],
-          ['Quality', 'quality'],
-          ['RFIs', 'rfis'],
-          ['Submittals', 'submittals'],
+          ['Team', 'team', ['/members']],
+          ['Field logs', 'field-logs', ['/field-logs']],
+          ['Issues', 'issues', ['/issues']],
+          ['Subcontractors', 'subcontractors', ['/subcontractors']],
+          ['Safety', 'safety', ['/safety-events']],
+          ['Quality', 'quality', ['/quality-inspections']],
+          ['RFIs', 'rfis', ['/rfis']],
+          ['Submittals', 'submittals', ['/submittals']],
         ],
       },
       {
         group: 'Commercial',
         items: [
-          ['Change orders', 'commercial/change-orders'],
-          ['Schedule of values', 'commercial/sov'],
-          ['Payment applications', 'commercial/payment-applications'],
-          ['Invoices', 'commercial/invoices'],
-          ['Payments', 'commercial/payments'],
-          ['Retainage', 'commercial/retainage'],
-          ['Cost transactions', 'commercial/cost-transactions'],
-          ['Commercial summary', 'commercial/commercial-summary'],
-          ['Financial summary', 'commercial/financial-summary'],
+          ['Change orders', 'commercial/change-orders', ['/change-orders']],
+          ['Schedule of values', 'commercial/sov', ['/schedule-of-values']],
+          ['Payment applications', 'commercial/payment-applications', ['/payment-applications']],
+          ['Invoices', 'commercial/invoices', ['/invoices']],
+          ['Payments', 'commercial/payments', ['/payments']],
+          ['Retainage', 'commercial/retainage', ['/retainage']],
+          ['Cost transactions', 'commercial/cost-transactions', ['/cost-transactions']],
+          ['Commercial summary', 'commercial/commercial-summary', ['/commercial-summary']],
+          ['Financial summary', 'commercial/financial-summary', ['/financial-summary']],
         ],
       },
       {
         group: 'Pre-construction',
         items: [
-          ['Proposals', 'preconstruction/proposals'],
-          ['Estimates', 'preconstruction/estimates'],
-          ['Bill of quantities', 'preconstruction/boq'],
-          ['Takeoffs', 'preconstruction/takeoffs'],
-          ['Pricing', 'preconstruction/pricing'],
+          ['Proposals', 'preconstruction/proposals', ['/proposals']],
+          ['Estimates', 'preconstruction/estimates', ['/estimates']],
+          ['Bill of quantities', 'preconstruction/boq', ['/boqs']],
+          ['Takeoffs', 'preconstruction/takeoffs', ['/takeoffs/sheets']],
+          ['Pricing', 'preconstruction/pricing', [`/organizations/${orgId}/materials`]],
         ],
       },
       {
         group: 'Procurement',
         items: [
-          ['Material requests', 'procurement/requests'],
-          ['Quotes', 'procurement/quotes'],
-          ['Purchase orders', 'procurement/orders'],
-          ['Approvals', 'procurement/approvals'],
-          ['Deliveries', 'procurement/deliveries'],
-          ['Committed costs', 'procurement/committed'],
-          ['Inventory', 'inventory'],
+          ['Material requests', 'procurement/requests', ['/material-requests']],
+          ['Quotes', 'procurement/quotes', ['/quotes']],
+          ['Purchase orders', 'procurement/orders', ['/purchase-orders']],
+          ['Approvals', 'procurement/approvals', ['/procurement-approvals']],
+          ['Deliveries', 'procurement/deliveries', ['/deliveries']],
+          ['Committed costs', 'procurement/committed', ['/committed-costs']],
+          ['Inventory', 'inventory', ['/inventory']],
         ],
       },
       {
         group: 'Records & controls',
         items: [
-          ['Documents', 'documents'],
-          ['Compliance', 'compliance'],
-          ['Audit', 'audit'],
-          ['Settings', 'settings'],
+          ['Documents', 'documents', ['/documents']],
+          ['Compliance', 'compliance', ['/permits', '/compliance-inspections', '/compliance-records']],
+          ['Audit', 'audit', ['/audit']],
+          ['Settings', 'settings', ['/settings']],
         ],
       },
       {
         group: 'Reports',
         items: [
-          ['Project health', 'reports/health'],
-          ['Schedule', 'reports/schedule'],
-          ['Cost', 'reports/cost'],
-          ['Procurement', 'reports/procurement'],
-          ['Subcontractors', 'reports/subcontractor'],
-          ['Executive', 'reports/executive'],
+          ['Project health', 'reports/health', ['/reports/health']],
+          ['Schedule', 'reports/schedule', ['/reports/schedule']],
+          ['Cost', 'reports/cost', ['/reports/cost']],
+          ['Procurement', 'reports/procurement', ['/reports/procurement']],
+          ['Subcontractors', 'reports/subcontractor', ['/reports/subcontractor']],
+          ['Executive', 'reports/executive', ['/reports/executive-summary']],
         ],
       },
     ];
 
     for (const sectionGroup of sectionGroups) {
-      for (const [label, route] of sectionGroup.items) {
+      for (const [label, route, expectedApiPaths] of sectionGroup.items) {
         const menuButton = page.locator('button[aria-controls^="section-navigation-"]');
         if ((await menuButton.getAttribute('aria-expanded')) !== 'true') {
           await menuButton.click();
@@ -254,7 +263,17 @@ test.describe('Project lifecycle', () => {
           .getByRole('navigation', { name: 'Page sections' })
           .getByRole('link', { name: label, exact: true });
         await expect(sectionLink).toBeVisible();
-        await sectionLink.click();
+        const sectionApiResponse = page.waitForResponse((response) => {
+          const path = new URL(response.url()).pathname;
+          return (
+            path.startsWith(`/api/v1/organizations/${orgId}/`) &&
+            expectedApiPaths.some((expectedPath) => path.endsWith(expectedPath))
+          );
+        });
+        const [, apiResponse] = await Promise.all([sectionLink.click(), sectionApiResponse]);
+        expect(apiResponse.status(), `${label}: ${apiResponse.url()}`).toBe(200);
+        const apiBody = (await apiResponse.json()) as { success?: boolean };
+        expect(apiBody.success, `${label}: ${apiResponse.url()} response envelope`).toBe(true);
         await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
         await expect(page).toHaveURL(new RegExp(`/org/${orgId}/projects/${projectId}/${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
         await expect(page.locator('h2').first()).toBeVisible();
@@ -282,7 +301,8 @@ test.describe('Project lifecycle', () => {
         }
       }
     }
-    expect(failedProjectResponses).toEqual([]);
+    expect(failedApiResponses).toEqual([]);
+    expect(apiRequestErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
   });
 });

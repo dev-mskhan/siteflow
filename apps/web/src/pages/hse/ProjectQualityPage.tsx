@@ -15,6 +15,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
 import { inputCls } from '../../components/ui/FormField';
+import type { CorrectiveActionSourceType, QualitySeverity } from '../../types/hseTypes';
 
 type Tab = 'inspections' | 'deficiencies' | 'actions';
 const TabBtn: React.FC<{ label: string; active: boolean; onClick: () => void }> = ({ label, active, onClick }) => (
@@ -39,12 +40,12 @@ export const ProjectQualityPage: React.FC = () => {
   const [inspLoc, setInspLoc]   = useState('');
   // Deficiency form
   const [defTitle, setDefTitle] = useState('');
-  const [defSeverity, setDefSeverity] = useState('HIGH');
+  const [defSeverity, setDefSeverity] = useState<QualitySeverity>('HIGH');
   const [defDesc, setDefDesc]   = useState('');
   const [defDue, setDefDue]     = useState('');
   // CA form
   const [caTitle, setCaTitle]   = useState('');
-  const [caSource, setCaSource] = useState('QUALITY_DEFICIENCY');
+  const [caSource, setCaSource] = useState<CorrectiveActionSourceType>('QUALITY_DEFICIENCY');
   const [caSourceId, setCaSourceId] = useState('');
   const [caDesc, setCaDesc]     = useState('');
   const [caDue, setCaDue]       = useState('');
@@ -149,7 +150,7 @@ export const ProjectQualityPage: React.FC = () => {
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">New deficiency</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2"><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Title *</label><input value={defTitle} onChange={(e) => setDefTitle(e.target.value)} className={inputCls()} /></div>
-            <div><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Severity</label><select value={defSeverity} onChange={(e) => setDefSeverity(e.target.value)} className={inputCls()}>{['LOW','MEDIUM','HIGH','CRITICAL'].map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+            <div><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Severity</label><select value={defSeverity} onChange={(e) => setDefSeverity(e.target.value as QualitySeverity)} className={inputCls()}>{(['LOW','MEDIUM','HIGH','CRITICAL'] as QualitySeverity[]).map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
             <div><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Due date</label><input type="date" value={defDue} onChange={(e) => setDefDue(e.target.value)} className={inputCls()} /></div>
             <div className="col-span-2"><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Description</label><textarea value={defDesc} onChange={(e) => setDefDesc(e.target.value)} rows={2} className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm resize-none focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]" /></div>
           </div>
@@ -165,7 +166,7 @@ export const ProjectQualityPage: React.FC = () => {
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">New corrective action</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2"><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Title *</label><input value={caTitle} onChange={(e) => setCaTitle(e.target.value)} className={inputCls()} /></div>
-            <div><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Source type</label><select value={caSource} onChange={(e) => setCaSource(e.target.value)} className={inputCls()}>{['QUALITY_DEFICIENCY','SAFETY_INCIDENT','SAFETY_OBSERVATION'].map((s) => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}</select></div>
+            <div><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Source type</label><select value={caSource} onChange={(e) => setCaSource(e.target.value as CorrectiveActionSourceType)} className={inputCls()}>{(['QUALITY_DEFICIENCY','SAFETY_INCIDENT','SAFETY_OBSERVATION'] as CorrectiveActionSourceType[]).map((s) => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}</select></div>
             <div><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Source ID *</label><input value={caSourceId} onChange={(e) => setCaSourceId(e.target.value)} placeholder="qd_01 or sev_01" className={inputCls()} /></div>
             <div><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Due date</label><input type="date" value={caDue} onChange={(e) => setCaDue(e.target.value)} className={inputCls()} /></div>
             <div className="col-span-2"><label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Description</label><textarea value={caDesc} onChange={(e) => setCaDesc(e.target.value)} rows={2} className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm resize-none focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]" /></div>

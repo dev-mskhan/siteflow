@@ -86,7 +86,7 @@ export const ProjectSafetyPage: React.FC = () => {
   const onCreateMeeting = async () => {
     if (!mtgTitle.trim()) { toastErr('Title required', ''); return; }
     try {
-      await createMeeting({ orgId: orgId!, projectId: projectId!, input: { meetingType: mtgType, title: mtgTitle.trim(), scheduledAt: new Date(mtgAt).toISOString(), attendeeCount: mtgAttendees ? parseInt(mtgAttendees) : undefined, notes: [mtgLoc.trim() && `Location: ${mtgLoc.trim()}`, mtgAgenda.trim() && `Agenda: ${mtgAgenda.trim()}`].filter(Boolean).join('\n') || undefined } }).unwrap();
+      await createMeeting({ orgId: orgId!, projectId: projectId!, input: { meetingType: mtgType, title: mtgTitle.trim(), scheduledAt: new Date(mtgAt), attendeeCount: mtgAttendees ? parseInt(mtgAttendees) : undefined, notes: [mtgLoc.trim() && `Location: ${mtgLoc.trim()}`, mtgAgenda.trim() && `Agenda: ${mtgAgenda.trim()}`].filter(Boolean).join('\n') || undefined } }).unwrap();
       toastOk('Meeting recorded', '');
       setShowMtgCreate(false); setMtgTitle(''); setMtgAgenda(''); setMtgLoc(''); setMtgAttendees('');
     } catch (err) { toastErr('Create failed', toastErrorMessage(err as never)); }

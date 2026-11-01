@@ -4,6 +4,18 @@
  * providesTags/invalidatesTags entry across the API slices.
  */
 export interface NotificationTag {
-  type: string;
+  type:
+    | 'Notification'
+    | 'RFI'
+    | 'Submittal'
+    | 'Trial'
+    | 'Invoice'
+    | 'PlatformOrg'
+    | 'Document'
+    | 'PO'
+    | 'MR'
+    | 'Task'
+    | 'ChangeOrder'
+    | 'SafetyEvent';
   id: string | number;
 }

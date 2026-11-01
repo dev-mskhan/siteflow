@@ -34,7 +34,7 @@ const FILTERS = ['ALL', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJEC
 
 const RevisionsPanel: React.FC<{ orgId: string; projectId: string; submittalId: string }> = ({ orgId, projectId, submittalId }) => {
   const { data } = useListSubmittalRevisionsQuery({ orgId, projectId, submittalId });
-  const revisions = data?.revisions ?? [];
+  const revisions = data ?? [];
   if (revisions.length === 0) return <div className="px-6 py-3 text-sm text-[var(--muted)]">No revision history.</div>;
   return (
     <div className="px-4 pb-4 bg-[var(--paper)]">

@@ -54,12 +54,17 @@ interface OrgProjectArgs {
   projectId: string;
 }
 
+interface PageResult<T> {
+  items: T[];
+  nextCursor?: string | null;
+}
+
 export const preconstructionApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
 
     // ── Tenders ────────────────────────────────────────────────────────────
 
-    listTenders: build.query<TenderDTO[], { orgId: string; status?: string }>({
+    listTenders: build.query<PageResult<TenderDTO>, { orgId: string; status?: string }>({
       query: ({ orgId, status }) => ({
         url: `/organizations/${orgId}/tenders`,
         params: status ? { status } : undefined,
@@ -196,7 +201,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
 
     // ── Proposals ──────────────────────────────────────────────────────────
 
-    listProposals: build.query<ProposalDTO[], OrgProjectArgs>({
+    listProposals: build.query<PageResult<ProposalDTO>, OrgProjectArgs>({
       query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/proposals`,
       transformResponse: (raw: { data: { items: ProposalDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'Proposal', id: projectId }],
@@ -215,7 +220,10 @@ export const preconstructionApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Proposal', id: projectId }],
     }),
 
-    getProposal: build.query<ProposalDTO, OrgProjectArgs & { proposalId: string }>({
+    getProposal: build.query<
+      { proposal: ProposalDTO; revision: ProposalRevisionDTO; lines: ProposalDTO['lines'] },
+      OrgProjectArgs & { proposalId: string }
+    >({
       query: ({ orgId, projectId, proposalId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/proposals/${proposalId}`,
         method: 'GET',
@@ -223,7 +231,8 @@ export const preconstructionApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: { proposal: ProposalDTO } }) => raw.data.proposal,
+      transformResponse: (raw: { data: { proposal: ProposalDTO; revision: ProposalRevisionDTO; lines: ProposalDTO['lines'] } }) =>
+        raw.data,
       providesTags: (_r, _e, { proposalId }) => [{ type: 'Proposal', id: proposalId }],
     }),
 
@@ -339,7 +348,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
       ],
     }),
 
-    listProposalRevisions: build.query<ProposalRevisionDTO[], OrgProjectArgs & { proposalId: string }>({
+    listProposalRevisions: build.query<PageResult<ProposalRevisionDTO>, OrgProjectArgs & { proposalId: string }>({
       query: ({ orgId, projectId, proposalId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/proposals/${proposalId}/revisions`,
         method: 'GET',
@@ -384,7 +393,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
 
     // ── Estimates ──────────────────────────────────────────────────────────
 
-    listEstimates: build.query<EstimateDTO[], OrgProjectArgs>({
+    listEstimates: build.query<PageResult<EstimateDTO>, OrgProjectArgs>({
       query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/estimates`,
       transformResponse: (raw: { data: { items: EstimateDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'Estimate', id: projectId }],
@@ -494,7 +503,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
 
     // ── BOQ (Bill of Quantities) ───────────────────────────────────────────
 
-    listBoqs: build.query<BoqDTO[], OrgProjectArgs>({
+    listBoqs: build.query<PageResult<BoqDTO>, OrgProjectArgs>({
       query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/boqs`,
       transformResponse: (raw: { data: { items: BoqDTO[]; nextCursor?: string | null } }) => raw.data,
       providesTags: (_r, _e, { projectId }) => [{ type: 'BOQ', id: projectId }],
@@ -589,7 +598,7 @@ export const preconstructionApi = baseApi.injectEndpoints({
       ],
     }),
 
-    listBoqRevisions: build.query<BoqRevisionDTO[], OrgProjectArgs & { boqId: string }>({
+    listBoqRevisions: build.query<PageResult<BoqRevisionDTO>, OrgProjectArgs & { boqId: string }>({
       query: ({ orgId, projectId, boqId }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/boqs/${boqId}/revisions`,
         method: 'GET',
@@ -615,19 +624,18 @@ export const preconstructionApi = baseApi.injectEndpoints({
       ],
     }),
 
-    previewBoqImport: build.mutation<BoqImportPreviewResult, OrgProjectArgs & { boqId: string; file: File }>({
-      query: ({ orgId, projectId, boqId, file }) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        return {
-          url: `/organizations/${orgId}/projects/${projectId}/boqs/${boqId}/imports/preview`,
-          method: 'POST',
-          body: formData,
-          headers: {
-            'X-Idempotency-Key': crypto.randomUUID(),
-          },
-        };
-      },
+    previewBoqImport: build.mutation<
+      BoqImportPreviewResult,
+      OrgProjectArgs & { boqId: string; csvText: string; expectedVersion: number }
+    >({
+      query: ({ orgId, projectId, boqId, csvText, expectedVersion }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/boqs/${boqId}/imports/preview`,
+        method: 'POST',
+        body: { csvText, expectedVersion },
+        headers: {
+          'X-Idempotency-Key': crypto.randomUUID(),
+        },
+      }),
       transformResponse: (raw: { data: { preview: BoqImportPreviewResult } }) => raw.data.preview,
     }),
 

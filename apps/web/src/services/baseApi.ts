@@ -108,6 +108,7 @@ export const baseApi = createApi({
     'ProjectSettings',
     // Field ops
     'FieldLog',
+    'Amendment',
     'Task',
     'Issue',
     // Schedule Engine
@@ -145,6 +146,7 @@ export const baseApi = createApi({
     'Payment',
     'Retainage',
     'CostTransaction',
+    'CommercialSummary',
     'FinancialSummary',
     // Documents
     'Document',
@@ -158,11 +160,20 @@ export const baseApi = createApi({
     'QualityInspection',
     'Permit',
     'Compliance',
+    'ComplianceInspection',
+    'ComplianceRecord',
+    'CorrectiveAction',
+    'QualityDeficiency',
+    'SafetyMeeting',
+    'SubmittalRevision',
     // Reporting & Export
     'Report',
     'Export',
     // Billing & Platform
     'Billing',
+    'Trial',
+    'MR',
+    'PO',
     'Platform',
     'PlatformOrg',
     'PlatformAccount',

@@ -97,7 +97,7 @@ const EditRow: React.FC<{
 
   return (
     <div className="col-span-full px-4 py-4 bg-[var(--surface-2)] border-b border-[var(--hairline-2)] space-y-3">
-      {isInlineError(updateErr) && <InlineAlert variant="error" message={getServerError(updateErr).message} />}
+      {isInlineError(updateErr) && <InlineAlert variant="error" message={getServerError(updateErr)?.message ?? 'Update failed.'} />}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="col-span-2">
           <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1">Name</label>
@@ -164,7 +164,7 @@ export const MaterialsPage: React.FC = () => {
   });
   const [createMaterial, { isLoading: creating, error: createErr }] = useCreateMaterialMutation();
 
-  const allMaterials = data?.materials ?? [];
+  const allMaterials = data?.data ?? [];
   const materials = allMaterials.filter(
     (m) => !search || m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.materialCode.toLowerCase().includes(search.toLowerCase()) ||
@@ -230,7 +230,7 @@ export const MaterialsPage: React.FC = () => {
       {showCreate && (
         <div className="mb-6 border border-[var(--hairline-2)] bg-[var(--paper)] p-6 space-y-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">New material</p>
-          {isInlineError(createErr) && <InlineAlert variant="error" message={getServerError(createErr).message} />}
+          {isInlineError(createErr) && <InlineAlert variant="error" message={getServerError(createErr)?.message ?? 'Create failed.'} />}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: 'Material code *', key: 'materialCode', hint: '1–100 chars' },

@@ -35,8 +35,8 @@ const FILTERS = ['ALL', 'DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'] as const;
 
 // Linked payments for a single invoice
 const InvoicePayments: React.FC<{ orgId: string; projectId: string; invoiceId: string }> = ({ orgId, projectId, invoiceId }) => {
-  const { data } = useListPaymentsQuery({ orgId, projectId, invoiceId });
-  const pmts = data?.items ?? [];
+  const { data } = useListPaymentsQuery({ orgId, projectId });
+  const pmts = data?.items.filter((payment) => payment.invoiceId === invoiceId) ?? [];
   if (pmts.length === 0) return <div className="px-4 py-3 text-sm text-[var(--muted)]">No payments linked.</div>;
   return (
     <div className="px-4 pb-3 bg-[var(--paper)]">

@@ -62,7 +62,7 @@ export const SupplierDetailPage: React.FC = () => {
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [editContactForm, setEditContactForm] = useState<Record<string, string>>({});
 
-  const supplier = supplierData?.supplier;
+  const supplier = supplierData;
   const contacts = contactsData?.contacts ?? [];
 
   const openEdit = () => {
@@ -212,7 +212,7 @@ export const SupplierDetailPage: React.FC = () => {
       {editMode && (
         <div className="border border-[var(--hairline-2)] bg-[var(--paper)] p-6 space-y-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Edit supplier</p>
-          {isInlineError(updateErr) && <InlineAlert variant="error" message={getServerError(updateErr).message} />}
+          {isInlineError(updateErr) && <InlineAlert variant="error" message={getServerError(updateErr)?.message ?? 'Update failed.'} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { label: 'Legal name', key: 'legalName' },

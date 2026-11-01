@@ -46,10 +46,10 @@ const ComparePanel: React.FC<{ orgId: string; projectId: string; baselineId: str
           <p key={h} className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">{h}</p>
         ))}
       </div>
-      {data.tasks.map((t) => (
+      {data.map((t) => (
         <div key={t.taskId} className="grid grid-cols-[2fr_90px_90px_90px_90px_80px_80px] gap-3 items-center px-6 py-2.5 border-t border-[var(--hairline-2)] bg-[var(--paper)]">
           <div>
-            <p className="text-sm truncate">{t.name}</p>
+            <p className="text-sm truncate">{t.taskName}</p>
             <p className="font-mono text-[9px] text-[var(--muted)]">{t.taskCode}</p>
           </div>
           <p className="font-mono text-[10px] text-[var(--muted)]">{t.baselineStart ?? '—'}</p>

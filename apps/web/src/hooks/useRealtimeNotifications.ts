@@ -33,7 +33,7 @@ interface SSEConnectionStatus {
 export function useRealtimeNotifications(orgId: string, enabled = true) {
   const dispatch = useAppDispatch();
   const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const reconnectAttempts = useRef(0);
   const [status, setStatus] = useState<SSEConnectionStatus>({
     connected: false,
@@ -192,4 +192,3 @@ export function useRealtimeNotifications(orgId: string, enabled = true) {
     reconnect: connect,
   };
 }
-

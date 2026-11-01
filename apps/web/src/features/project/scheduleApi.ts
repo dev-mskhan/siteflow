@@ -217,7 +217,7 @@ export const scheduleApi = baseApi.injectEndpoints({
     }),
 
     compareBaseline: builder.query<
-      BaselineComparison,
+      BaselineComparison[],
       { orgId: string; projectId: string; baselineId: string }
     >({
       query: ({ orgId, projectId, baselineId }) => ({
@@ -227,7 +227,7 @@ export const scheduleApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      transformResponse: (raw: { data: BaselineComparison }) => raw.data,
+      transformResponse: (raw: { data: BaselineComparison[] }) => raw.data,
       providesTags: (_result, _error, { baselineId }) => [
         { type: 'Baseline', id: `${baselineId}_COMPARE` },
       ],

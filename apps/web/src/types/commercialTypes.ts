@@ -344,11 +344,9 @@ export interface PaymentDTO {
 
 export interface CreatePaymentInput {
   paymentDate: string;         // YYYY-MM-DD
-  paymentMethod: PaymentMethod;
+  method: PaymentMethod;
   amount: string;              // decimal
-  currencyCode: string;
   reference?: string;
-  notes?: string;
 }
 
 // ── Retainage ─────────────────────────────────────────────────────────────────

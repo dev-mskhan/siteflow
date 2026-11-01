@@ -10,85 +10,34 @@
  * All mutations require password re-entry in body: { password, reasonCode, reasonNote }
  */
 import { baseApi } from '../../services/baseApi';
+import type {
+  HealthView,
+  LifecycleInput,
+  LifecycleReasonCode,
+  OrganizationBillingView,
+  OrganizationDiagnosticsView,
+  PlatformAccountRow,
+  PlatformOrgRow,
+  QueueDiagnosticsView,
+  SupportGrantRequestInput,
+  SupportGrantScope,
+  WebhookInboxSummary,
+} from '../../types/platformTypes';
 
-export interface PlatformOrgRow {
-  id: string;
-  name: string;
-  slug: string;
-  status: 'ACTIVE' | 'SUSPENDED' | 'DELETED';
-  createdAt: string;
-  memberCount: number;
-  ownerUserId: string;
-  ownerEmailMasked: string;
-}
+export type {
+  LifecycleInput,
+  LifecycleReasonCode,
+  PlatformAccountRow,
+  PlatformOrgRow,
+  SupportGrantRequestInput,
+};
 
-export interface PlatformAccountRow {
-  id: string;
-  emailMasked: string;
-  firstName: string | null;
-  lastName: string | null;
-  status: 'ACTIVE' | 'SUSPENDED' | 'DELETED';
-  emailVerified: boolean;
-  lastLoginAt: string | null;
-  createdAt: string;
-  membershipCount: number;
-}
-
-export interface OrganizationBillingView {
+interface SupportGrantView {
   organizationId: string;
-  stripeCustomerId: string | null;
-  stripeSubscriptionId: string | null;
-  planTier: string | null;
-  status: string | null;
-  trialStatus: string | null;
-  trialExpiresAt: string | null;
-}
-
-export interface HealthView {
-  status: 'HEALTHY' | 'DEGRADED' | 'DOWN';
-  timestamp: string;
-  services: Record<string, { status: string; latency?: number }>;
-}
-
-export type LifecycleReasonCode = 'PAYMENT_FAILURE' | 'ABUSE' | 'GDPR_REQUEST' | 'SUPPORT' | 'OTHER';
-
-export interface LifecycleInput {
-  password: string;
-  reasonCode: LifecycleReasonCode;
-  reasonNote: string;
-}
-
-export interface SupportGrantRequestInput {
-  operatorUserId: string;
-  organizationId: string;
-  scopes: ('read:organizations' | 'write:billing' | 'admin')[];
-  password: string;
-  reasonCode: LifecycleReasonCode;
-  reasonNote: string;
-}
-
-export interface WebhookInboxSummary {
-  pending: number;
-  failed: number;
-  oldestPending: string | null;
-}
-
-export interface QueueDiagnostics {
-  queueName: string;
-  activeCount: number;
-  waitingCount: number;
-  completedCount: number;
-  failedCount: number;
-  windowHours: number;
-}
-
-export interface OrganizationDiagnostics {
-  organizationId: string;
-  memberCount: number;
-  projectCount: number;
-  storageUsedMB: number;
-  apiCallsLast24h: number;
-  lastActivityAt: string | null;
+  scope: SupportGrantScope;
+  organization?: unknown;
+  subscription?: unknown;
+  entitlements?: unknown;
 }
 
 export const platformApi = baseApi.injectEndpoints({
@@ -107,8 +56,8 @@ export const platformApi = baseApi.injectEndpoints({
         const query = params.toString() ? `?${params.toString()}` : '';
         return `/platform/organizations${query}`;
       },
-      transformResponse: (raw: { data: PlatformOrgRow[]; meta: { nextCursor: string | null } }) => ({
-        organizations: raw.data,
+      transformResponse: (raw: { data: { organizations: PlatformOrgRow[] }; meta: { nextCursor: string | null } }) => ({
+        organizations: raw.data.organizations,
         nextCursor: raw.meta.nextCursor,
       }),
       providesTags: ['PlatformOrg'],
@@ -116,17 +65,17 @@ export const platformApi = baseApi.injectEndpoints({
 
     listAccounts: build.query<
       { accounts: PlatformAccountRow[]; nextCursor: string | null },
-      { search?: string; cursor?: string }
+      { emailPrefix?: string; cursor?: string }
     >({
-      query: ({ search, cursor }) => {
+      query: ({ emailPrefix, cursor }) => {
         const params = new URLSearchParams();
-        if (search) params.set('search', search);
+        if (emailPrefix) params.set('emailPrefix', emailPrefix);
         if (cursor) params.set('cursor', cursor);
         const query = params.toString() ? `?${params.toString()}` : '';
         return `/platform/accounts${query}`;
       },
-      transformResponse: (raw: { data: PlatformAccountRow[]; meta: { nextCursor: string | null } }) => ({
-        accounts: raw.data,
+      transformResponse: (raw: { data: { accounts: PlatformAccountRow[] }; meta: { nextCursor: string | null } }) => ({
+        accounts: raw.data.accounts,
         nextCursor: raw.meta.nextCursor,
       }),
       providesTags: ['PlatformAccount'],
@@ -158,14 +107,14 @@ export const platformApi = baseApi.injectEndpoints({
       providesTags: ['PlatformBilling'],
     }),
 
-    triggerWebhookRecovery: build.mutation<{ status: string }, LifecycleInput>({
+    triggerWebhookRecovery: build.mutation<{ processedCount: number }, LifecycleInput>({
       query: (input) => ({
         url: '/platform/billing/webhook-recovery',
         method: 'POST',
         body: input,
         headers: { 'idempotency-key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: { status: string } }) => raw.data,
+      transformResponse: (raw: { data: { processedCount: number } }) => raw.data,
       invalidatesTags: ['PlatformBilling'],
     }),
 
@@ -177,18 +126,18 @@ export const platformApi = baseApi.injectEndpoints({
       providesTags: ['PlatformDiagnostics'],
     }),
 
-    getQueueDiagnostics: build.query<QueueDiagnostics, { windowHours?: number }>({
+    getQueueDiagnostics: build.query<QueueDiagnosticsView, { windowHours?: number }>({
       query: ({ windowHours = 24 }) => ({
         url: '/platform/diagnostics/queue',
         params: { windowHours },
       }),
-      transformResponse: (raw: { data: QueueDiagnostics }) => raw.data,
+      transformResponse: (raw: { data: QueueDiagnosticsView }) => raw.data,
       providesTags: ['PlatformDiagnostics'],
     }),
 
-    getOrganizationDiagnostics: build.query<OrganizationDiagnostics, { orgId: string }>({
+    getOrganizationDiagnostics: build.query<OrganizationDiagnosticsView, { orgId: string }>({
       query: ({ orgId }) => `/platform/organizations/${orgId}/diagnostics`,
-      transformResponse: (raw: { data: OrganizationDiagnostics }) => raw.data,
+      transformResponse: (raw: { data: OrganizationDiagnosticsView }) => raw.data,
       providesTags: (_r, _e, { orgId }) => [{ type: 'PlatformDiagnostics', id: orgId }],
     }),
 
@@ -258,19 +207,19 @@ export const platformApi = baseApi.injectEndpoints({
 
     // ── Support Grants ─────────────────────────────────────────────────────
 
-    requestSupportGrant: build.mutation<{ grantId: string; status: string }, SupportGrantRequestInput>({
+    requestSupportGrant: build.mutation<{ grantId: string }, SupportGrantRequestInput>({
       query: (input) => ({
         url: '/platform/support-grants',
         method: 'POST',
         body: input,
         headers: { 'idempotency-key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: { grantId: string; status: string } }) => raw.data,
+      transformResponse: (raw: { data: { grantId: string } }) => raw.data,
       invalidatesTags: ['SupportGrant'],
     }),
 
     approveSupportGrant: build.mutation<
-      { grantId: string; expiresAt: string },
+      { expiresAt: string },
       { grantId: string; password: string; durationMinutes: number }
     >({
       query: ({ grantId, password, durationMinutes }) => ({
@@ -279,7 +228,7 @@ export const platformApi = baseApi.injectEndpoints({
         body: { password, durationMinutes },
         headers: { 'idempotency-key': crypto.randomUUID() },
       }),
-      transformResponse: (raw: { data: { grantId: string; expiresAt: string } }) => raw.data,
+      transformResponse: (raw: { data: { expiresAt: string } }) => raw.data,
       invalidatesTags: ['SupportGrant'],
     }),
 
@@ -297,15 +246,12 @@ export const platformApi = baseApi.injectEndpoints({
       invalidatesTags: ['SupportGrant'],
     }),
 
-    useSupportGrant: build.query<
-      { organizationId: string; scope: string; data: unknown },
-      { grantId: string; scope: string }
-    >({
+    useSupportGrant: build.query<SupportGrantView, { grantId: string; scope: SupportGrantScope }>({
       query: ({ grantId, scope }) => ({
         url: `/platform/support-grants/${grantId}/organization`,
         params: { scope },
       }),
-      transformResponse: (raw: { data: { organizationId: string; scope: string; [key: string]: unknown } }) =>
+      transformResponse: (raw: { data: SupportGrantView }) =>
         raw.data,
       providesTags: ['SupportGrant'],
     }),

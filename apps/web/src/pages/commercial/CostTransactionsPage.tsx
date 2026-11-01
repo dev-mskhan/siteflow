@@ -92,7 +92,7 @@ export const CostTransactionsPage: React.FC = () => {
   const onPost = async (transactionId: string, version: number, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await postTxn({ orgId: orgId!, projectId: projectId!, transactionId, expectedVersion: version }).unwrap();
+      await postTxn({ orgId: orgId!, projectId: projectId!, transactionId, input: { expectedVersion: version } }).unwrap();
       toastOk('Transaction posted', '');
     } catch (err) { toastErr('Post failed', toastErrorMessage(err as never)); }
   };
@@ -100,7 +100,12 @@ export const CostTransactionsPage: React.FC = () => {
   const onVoid = async () => {
     if (!voidState || !voidReason.trim()) { toastErr('Reason required', ''); return; }
     try {
-      await voidTxn({ orgId: orgId!, projectId: projectId!, transactionId: voidState.id, expectedVersion: voidState.version, reason: voidReason }).unwrap();
+      await voidTxn({
+        orgId: orgId!,
+        projectId: projectId!,
+        transactionId: voidState.id,
+        input: { expectedVersion: voidState.version, reason: voidReason },
+      }).unwrap();
       toastOk('Transaction voided', '');
       setVoidState(null); setVoidReason('');
     } catch (err) { toastErr('Void failed', toastErrorMessage(err as never)); }

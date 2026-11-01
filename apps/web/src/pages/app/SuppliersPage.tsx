@@ -135,7 +135,7 @@ export const SuppliersPage: React.FC = () => {
         <div className="mb-6 border border-[var(--hairline-2)] bg-[var(--paper)] p-6 space-y-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">New supplier</p>
           {isInlineError(createErr) && (
-            <InlineAlert variant="error" message={getServerError(createErr).message} />
+            <InlineAlert variant="error" message={getServerError(createErr)?.message ?? 'Create failed.'} />
           )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[

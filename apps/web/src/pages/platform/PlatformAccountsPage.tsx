@@ -38,10 +38,16 @@ export const PlatformAccountsPage: React.FC = () => {
     }
     try {
       if (actionState.action === 'suspend') {
-        await suspend({ userId: actionState.userId, password, reasonCode, reasonNote: reasonNote.trim() }).unwrap();
+        await suspend({
+          userId: actionState.userId,
+          input: { password, reasonCode, reasonNote: reasonNote.trim() },
+        }).unwrap();
         toastOk('Account suspended', 'All sessions have been revoked.');
       } else {
-        await reactivate({ userId: actionState.userId, password, reasonCode, reasonNote: reasonNote.trim() }).unwrap();
+        await reactivate({
+          userId: actionState.userId,
+          input: { password, reasonCode, reasonNote: reasonNote.trim() },
+        }).unwrap();
         toastOk('Account reactivated', '');
       }
       setActionState(null); setPassword(''); setReasonNote('');

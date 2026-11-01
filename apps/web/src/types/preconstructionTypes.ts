@@ -67,6 +67,7 @@ export interface CreateTenderInput {
 
 export interface UpdateTenderInput {
   title?: string;
+  clientName?: string;
   description?: string;
   clientReference?: string;
   issuerName?: string;
@@ -233,17 +234,24 @@ export interface RejectProposalInput extends ProposalTransitionInput {
 }
 
 export interface IssueProposalInput extends ProposalTransitionInput {
-  deliveryMethod: 'EMAIL' | 'PORTAL' | 'MANUAL';
-  recipientEmails?: string[];
+  deliveryMethod: 'INTERNAL' | 'EMAIL';
+  deliveryNotes?: string | null;
 }
 
-export interface RecordClientResponseInput extends ProposalTransitionInput {
-  responseType: 'ACCEPTED' | 'REJECTED' | 'NEGOTIATION';
-  feedback?: string;
+export interface RecordClientResponseInput {
+  expectedVersion: number;
+  event: 'ACCEPTED' | 'REJECTED';
+  clientSignatoryName?: string | null;
+  responseReference?: string | null;
+  notes?: string | null;
 }
 
-export interface ConvertProposalInput extends ProposalTransitionInput {
-  targetType: 'PROJECT' | 'CHANGE_ORDER';
+export interface ConvertProposalInput {
+  expectedVersion: number;
+  idempotencyKey: string;
+  projectName: string;
+  projectType?: 'COMMERCIAL' | 'RESIDENTIAL' | 'INDUSTRIAL' | 'INFRASTRUCTURE' | 'OTHER' | null;
+  plannedStartDate?: string | null;
 }
 
 // ── Estimate ──────────────────────────────────────────────────────────────────

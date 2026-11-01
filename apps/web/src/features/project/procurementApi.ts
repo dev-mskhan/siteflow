@@ -481,21 +481,21 @@ export const procurementApi = baseApi.injectEndpoints({
 
     getInventoryBalance: build.query<InventoryBalanceDTO, OrgProjectArgs & { materialId: string }>({
       query: ({ orgId, projectId, materialId }) =>
-        `/organizations/${orgId}/projects/${projectId}/inventory/balance/${materialId}`,
+        `/organizations/${orgId}/projects/${projectId}/inventory/${materialId}`,
       transformResponse: (raw: { data: InventoryBalanceDTO }) => raw.data,
       providesTags: (_r, _e, { materialId }) => [{ type: 'Inventory', id: materialId }],
     }),
 
     getInventoryTransactions: build.query<InventoryTransactionDTO[], OrgProjectArgs & { materialId: string }>({
       query: ({ orgId, projectId, materialId }) =>
-        `/organizations/${orgId}/projects/${projectId}/inventory/transactions/${materialId}`,
+        `/organizations/${orgId}/projects/${projectId}/inventory/${materialId}/transactions`,
       transformResponse: (raw: { data: InventoryTransactionDTO[] }) => raw.data,
       providesTags: (_r, _e, { materialId }) => [{ type: 'Inventory', id: `tx-${materialId}` }],
     }),
 
     adjustInventory: build.mutation<void, OrgProjectArgs & { input: AdjustInventoryInput }>({
       query: ({ orgId, projectId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/inventory/adjust`,
+        url: `/organizations/${orgId}/projects/${projectId}/inventory/adjustments`,
         method: 'POST',
         body: input,
         headers: { 'idempotency-key': crypto.randomUUID() },

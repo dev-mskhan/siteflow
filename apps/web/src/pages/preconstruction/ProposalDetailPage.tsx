@@ -132,11 +132,13 @@ export const ProposalDetailPage: React.FC = () => {
     try {
       await recordResponse({
         orgId: orgId!, projectId: projectId!, proposalId: proposal.id,
-        expectedVersion: proposal.version,
-        event: respondEvent,
-        clientSignatoryName: signatory.trim() || undefined,
-        responseReference: responseRef.trim() || undefined,
-        notes: respondNotes.trim() || undefined,
+        input: {
+          expectedVersion: proposal.version,
+          event: respondEvent,
+          clientSignatoryName: signatory.trim() || undefined,
+          responseReference: responseRef.trim() || undefined,
+          notes: respondNotes.trim() || undefined,
+        },
       }).unwrap();
       toastOk(`Client response recorded: ${respondEvent}`, '');
       setActionOpen(null);
@@ -153,9 +155,11 @@ export const ProposalDetailPage: React.FC = () => {
     try {
       const result = await convertProposal({
         orgId: orgId!, projectId: projectId!, proposalId: proposal.id,
-        expectedVersion: proposal.version,
-        idempotencyKey: uuidv4(),
-        projectName: convertName.trim(),
+        input: {
+          expectedVersion: proposal.version,
+          idempotencyKey: uuidv4(),
+          projectName: convertName.trim(),
+        },
       }).unwrap();
       if (result.alreadyConverted) {
         toastOk('Already converted', `Linked project: ${result.conversion.linkedProjectId}`);

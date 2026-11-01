@@ -450,7 +450,7 @@ export const hseApi = baseApi.injectEndpoints({
       ],
     }),
 
-    verifyComplianceRecord: build.mutation<ComplianceRecordDTO, OrgProjectArgs & { recordId: string; verificationRef: string }>({
+    verifyComplianceRecord: build.mutation<ComplianceRecordDTO, OrgProjectArgs & { recordId: string; verificationRef?: string }>({
       query: ({ orgId, projectId, recordId, verificationRef }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/compliance-records/${recordId}/verify`,
         method: 'POST',

@@ -11,10 +11,12 @@ import type {
   FinancialAuditPageDTO,
   ChangeOrderDTO,
   SOVDTO,
+  SOVProgressDTO,
   PaymentApplicationDTO,
   InvoiceDTO,
   PaymentDTO,
   RetainageDTO,
+  RetainageReleaseDTO,
   CostTransactionDTO,
   CommercialSummaryDTO,
   FinancialSummaryDTO,
@@ -200,7 +202,8 @@ export const commercialApi = baseApi.injectEndpoints({
     // ── Schedule of Values ─────────────────────────────────────────────────
 
     listSOVs: build.query<CommercialList<SOVDTO>, OrgProjectArgs>({
-      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/sov`,
+      query: ({ orgId, projectId }) =>
+        `/organizations/${orgId}/projects/${projectId}/schedule-of-values`,
       transformResponse: (raw: { data: { scheduleOfValues: SOVDTO[]; nextCursor?: string | null } }) => ({
         items: raw.data.scheduleOfValues,
         nextCursor: raw.data.nextCursor ?? null,
@@ -210,7 +213,7 @@ export const commercialApi = baseApi.injectEndpoints({
 
     createSOV: build.mutation<SOVDTO, OrgProjectArgs & { input: CreateSOVInput }>({
       query: ({ orgId, projectId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/sov`,
+        url: `/organizations/${orgId}/projects/${projectId}/schedule-of-values`,
         method: 'POST',
         body: input,
       }),
@@ -220,14 +223,14 @@ export const commercialApi = baseApi.injectEndpoints({
 
     getSOV: build.query<SOVDTO, OrgProjectArgs & { sovId: string }>({
       query: ({ orgId, projectId, sovId }) =>
-        `/organizations/${orgId}/projects/${projectId}/sov/${sovId}`,
+        `/organizations/${orgId}/projects/${projectId}/schedule-of-values/${sovId}`,
       transformResponse: (raw: { data: { scheduleOfValues: SOVDTO } }) => raw.data.scheduleOfValues,
       providesTags: (_r, _e, { sovId }) => [{ type: 'SOV', id: sovId }],
     }),
 
     updateSOV: build.mutation<SOVDTO, OrgProjectArgs & { sovId: string; input: UpdateSOVInput }>({
       query: ({ orgId, projectId, sovId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/sov/${sovId}`,
+        url: `/organizations/${orgId}/projects/${projectId}/schedule-of-values/${sovId}`,
         method: 'PATCH',
         body: input,
       }),
@@ -240,7 +243,7 @@ export const commercialApi = baseApi.injectEndpoints({
 
     submitSOV: build.mutation<SOVDTO, OrgProjectArgs & { sovId: string; input: TransitionInput }>({
       query: ({ orgId, projectId, sovId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/sov/${sovId}/submit`,
+        url: `/organizations/${orgId}/projects/${projectId}/schedule-of-values/${sovId}/submit`,
         method: 'POST',
         body: input,
       }),
@@ -253,7 +256,7 @@ export const commercialApi = baseApi.injectEndpoints({
 
     approveSOV: build.mutation<SOVDTO, OrgProjectArgs & { sovId: string; input: TransitionInput }>({
       query: ({ orgId, projectId, sovId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/sov/${sovId}/approve`,
+        url: `/organizations/${orgId}/projects/${projectId}/schedule-of-values/${sovId}/approve`,
         method: 'POST',
         body: input,
       }),
@@ -264,10 +267,10 @@ export const commercialApi = baseApi.injectEndpoints({
       ],
     }),
 
-    getSOVProgress: build.query<any, OrgProjectArgs & { sovId: string }>({
+    getSOVProgress: build.query<SOVProgressDTO, OrgProjectArgs & { sovId: string }>({
       query: ({ orgId, projectId, sovId }) =>
-        `/organizations/${orgId}/projects/${projectId}/sov/${sovId}/progress`,
-      transformResponse: (raw: { data: { progress: any } }) => raw.data.progress,
+        `/organizations/${orgId}/projects/${projectId}/schedule-of-values/${sovId}/progress`,
+      transformResponse: (raw: { data: { progress: SOVProgressDTO } }) => raw.data.progress,
       providesTags: (_r, _e, { sovId }) => [{ type: 'SOV', id: `${sovId}-progress` }],
     }),
 
@@ -479,9 +482,9 @@ export const commercialApi = baseApi.injectEndpoints({
       providesTags: (_r, _e, { projectId }) => [{ type: 'Payment', id: projectId }],
     }),
 
-    createPayment: build.mutation<PaymentDTO, OrgProjectArgs & { input: CreatePaymentInput }>({
-      query: ({ orgId, projectId, input }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/payments`,
+    createPayment: build.mutation<PaymentDTO, OrgProjectArgs & { invoiceId: string; input: CreatePaymentInput }>({
+      query: ({ orgId, projectId, invoiceId, input }) => ({
+        url: `/organizations/${orgId}/projects/${projectId}/invoices/${invoiceId}/payments`,
         method: 'POST',
         body: input,
         headers: { 'idempotency-key': crypto.randomUUID() },
@@ -653,7 +656,7 @@ export const commercialApi = baseApi.injectEndpoints({
       ],
     }),
 
-    voidCostTransaction: build.mutation<CostTransactionDTO, OrgProjectArgs & { transactionId: string; input: TransitionInput }>({
+    voidCostTransaction: build.mutation<CostTransactionDTO, OrgProjectArgs & { transactionId: string; input: RejectInput }>({
       query: ({ orgId, projectId, transactionId, input }) => ({
         url: `/organizations/${orgId}/projects/${projectId}/cost-transactions/${transactionId}/void`,
         method: 'POST',
@@ -682,7 +685,7 @@ export const commercialApi = baseApi.injectEndpoints({
 
     transitionSOV: build.mutation<SOVDTO, OrgProjectArgs & { sovId: string; action: SOVAction } & TransitionArgs>({
       query: ({ orgId, projectId, sovId, action, ...args }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/sov/${sovId}/${action}`,
+        url: `/organizations/${orgId}/projects/${projectId}/schedule-of-values/${sovId}/${action}`,
         method: 'POST',
         body: transitionBody(action, args),
       }),

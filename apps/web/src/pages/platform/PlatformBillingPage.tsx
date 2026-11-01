@@ -120,7 +120,7 @@ export const PlatformBillingPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                     <div><p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-0.5">Plan</p><p className="text-sm font-medium">{orgBilling.subscription.planName ?? '—'}</p></div>
                     <div><p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-0.5">Status</p><p className="text-sm font-medium">{orgBilling.subscription.status}</p></div>
-                    <div><p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-0.5">Amount</p><p className="font-mono text-sm">{(orgBilling.subscription.amountCents! / 100).toFixed(2)} {orgBilling.subscription.currency?.toUpperCase()}</p></div>
+                    <div><p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-0.5">Amount</p><p className="font-mono text-sm">{orgBilling.subscription.amountCents != null ? (orgBilling.subscription.amountCents / 100).toFixed(2) : '—'} {orgBilling.subscription.currency?.toUpperCase() ?? ''}</p></div>
                     <div><p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-0.5">Grace</p><p className="text-sm">{orgBilling.subscription.graceStartsAt ? new Date(orgBilling.subscription.graceStartsAt).toLocaleDateString() : '—'}</p></div>
                   </div>
                 </div>

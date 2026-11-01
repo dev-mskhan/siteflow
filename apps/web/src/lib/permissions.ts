@@ -136,7 +136,8 @@ export type PermissionKey =
   | 'project.receipt.post'
   | 'project.receipt.void'
   | 'project.inventory.read'
-  | 'project.inventory.adjust';
+  | 'project.inventory.adjust'
+  | `project.${string}`;
 
 export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   'Organization Admin': [
