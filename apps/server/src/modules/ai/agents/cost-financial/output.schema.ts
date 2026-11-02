@@ -14,6 +14,14 @@ export const costFinancialOutputSchema = z.object({
         }),
       )
       .default([]),
+    confidence: z
+      .enum(['HIGH', 'MEDIUM', 'LOW', 'INSUFFICIENT_DATA'])
+      .default('HIGH')
+      .describe('Confidence level in the answer based on data availability'),
+    missingData: z
+      .array(z.string())
+      .optional()
+      .describe('List of missing data points that would improve the answer'),
   }),
   summary: z.string().max(500),
   citations: z.array(

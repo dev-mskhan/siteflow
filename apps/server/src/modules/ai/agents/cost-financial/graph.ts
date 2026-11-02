@@ -18,7 +18,7 @@ import { createModel } from '../../graph/model-factory.js';
 import { getAgent } from '../../core/agent-registry.js';
 import { getToolsForAgent } from '../../tools/tool-registry.js';
 import { executeTool } from '../../tools/tool-factory.js';
-import { validateOutput } from '../../guardrails/output-guard.js';
+import { validateOutput, enforceNumberProvenance } from '../../guardrails/output-guard.js';
 import { costFinancialOutputSchema, type CostFinancialOutput } from './output.schema.js';
 import { SYSTEM_PROMPT } from './prompts.js';
 import type { RunContext } from '../../core/run-context.js';
@@ -39,10 +39,11 @@ const ALLOWED_TOOLS = [
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const CostFinancialState = Annotation.Root({
-  messages:  Annotation<BaseMessage[]>({ reducer: messagesStateReducer, default: () => [] }),
-  input:     Annotation<Record<string, unknown>>(),
-  output:    Annotation<AgentRunOutput | null>({ default: () => null, reducer: (_, b) => b }),
-  toolCalls: Annotation<number>({ default: () => 0, reducer: (a, b) => a + b }),
+  messages:     Annotation<BaseMessage[]>({ reducer: messagesStateReducer, default: () => [] }),
+  input:        Annotation<Record<string, unknown>>(),
+  output:       Annotation<AgentRunOutput | null>({ default: () => null, reducer: (_, b) => b }),
+  toolCalls:    Annotation<number>({ default: () => 0, reducer: (a, b) => a + b }),
+  toolResults:  Annotation<Array<Record<string, unknown>>>({ default: () => [], reducer: (a, b) => [...a, ...b] }),
 });
 
 // ── Build ─────────────────────────────────────────────────────────────────────
@@ -96,16 +97,72 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
 
     // No tool calls → LLM has the final answer; parse and validate output
     let finalOutput: AgentRunOutput;
+    let repairAttempted = false;
+    
     try {
       const parsed = JSON.parse(response.content as string) as CostFinancialOutput;
       const validated = validateOutput(parsed, costFinancialOutputSchema, 'cost-financial');
+      
+      // STRICT PROVENANCE ENFORCEMENT: All numbers must come from tool results
+      enforceNumberProvenance(
+        { answer: validated.answer, summary: validated.summary, citations: validated.citations },
+        state.toolResults,
+        'cost-financial',
+      );
+      
       finalOutput = {
         answer: validated.answer,
         summary: validated.summary,
         citations: validated.citations,
       };
-    } catch {
-      // LLM returned plain text instead of JSON — wrap it gracefully
+    } catch (firstError) {
+      // Check if this is a JSON syntax error (malformed JSON) vs plain text response
+      const isJsonSyntaxError = firstError instanceof SyntaxError && 
+        (response.content as string).trim().startsWith('{');
+      
+      // BOUNDED JSON REPAIR: One attempt to fix malformed JSON
+      // Only attempt repair if it looks like an attempt at JSON (starts with {)
+      if (!repairAttempted && isJsonSyntaxError) {
+        repairAttempted = true;
+        
+        // Ask model to fix the JSON
+        const repairPrompt = new HumanMessage(
+          `Your previous response was not valid JSON. Please fix the syntax errors and return a valid JSON response that matches the required schema. ` +
+          `The response must have this structure: { "answer": { "narrative": "...", "figures": [...], "confidence": "HIGH" }, "summary": "...", "citations": [...] }`
+        );
+        
+        const repairedResponse = await modelWithTools.invoke([...messages, response, repairPrompt]);
+        
+        try {
+          const parsed = JSON.parse(repairedResponse.content as string) as CostFinancialOutput;
+          const validated = validateOutput(parsed, costFinancialOutputSchema, 'cost-financial');
+          
+          enforceNumberProvenance(
+            { answer: validated.answer, summary: validated.summary, citations: validated.citations },
+            state.toolResults,
+            'cost-financial',
+          );
+          
+          finalOutput = {
+            answer: validated.answer,
+            summary: validated.summary,
+            citations: validated.citations,
+          };
+          
+          // Repair succeeded - return with updated messages
+          return { messages: [response, repairPrompt, repairedResponse], output: finalOutput, toolCalls: 0 };
+        } catch (secondError) {
+          // Repair failed - fall back to plain text wrapper
+          finalOutput = {
+            answer: { narrative: repairedResponse.content as string, figures: [] },
+            summary: (repairedResponse.content as string).slice(0, 200),
+            citations: [],
+          };
+          return { messages: [response, repairPrompt, repairedResponse], output: finalOutput, toolCalls: 0 };
+        }
+      }
+      
+      // Plain text response or repair already attempted - wrap as plain text
       finalOutput = {
         answer: { narrative: response.content as string, figures: [] },
         summary: (response.content as string).slice(0, 200),
@@ -128,11 +185,37 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
 
   const toolNode = new ToolNode(langchainTools);
 
+  // Wrap tool node to capture results for provenance checking
+  async function toolNodeWithCapture(
+    state: typeof CostFinancialState.State,
+  ): Promise<Partial<typeof CostFinancialState.State>> {
+    // Execute tools via LangChain's ToolNode
+    const toolOutput = await toolNode.invoke(state, {});
+    
+    // Extract tool results from the messages added by ToolNode
+    const newMessages = (toolOutput as any).messages || [];
+    const toolResults: Array<Record<string, unknown>> = [];
+    
+    for (const msg of newMessages) {
+      if (msg.constructor.name === 'ToolMessage' && msg.content) {
+        try {
+          const parsed = JSON.parse(msg.content);
+          toolResults.push(parsed);
+        } catch {
+          // If tool returned non-JSON (e.g., error string), wrap it
+          toolResults.push({ raw: msg.content });
+        }
+      }
+    }
+    
+    return { ...toolOutput, toolResults };
+  }
+
   // ── Graph ──────────────────────────────────────────────────────────────────
 
   return new StateGraph(CostFinancialState)
     .addNode('agent', agentNode)
-    .addNode('tools', toolNode)
+    .addNode('tools', toolNodeWithCapture)
     .addEdge('__start__', 'agent')
     .addConditionalEdges('agent', shouldContinue, { tools: 'tools', [END]: END })
     .addEdge('tools', 'agent');

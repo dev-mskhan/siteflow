@@ -82,3 +82,36 @@ export function checkNumberProvenance(
 
   return warnings;
 }
+
+/**
+ * STRICT provenance enforcement: throws if any numeric values in the answer
+ * cannot be traced to tool results. This is the hardened version that blocks
+ * runs where the LLM invented numbers.
+ *
+ * Use this for production cost-financial agent to enforce NO-DRIFT rule #7:
+ * "Model never computes numbers — all figures must come from tool results."
+ *
+ * @param output - The validated agent output
+ * @param toolResultSummaries - Array of tool call results from the run
+ * @param agentName - Agent name for error messages
+ * @throws Error if any numbers are not found in tool results
+ */
+export function enforceNumberProvenance(
+  output: AgentRunOutput,
+  toolResultSummaries: Array<Record<string, unknown>>,
+  agentName: string,
+): void {
+  const warnings = checkNumberProvenance(output, toolResultSummaries);
+
+  if (warnings.length > 0) {
+    const details = warnings.map((w) => `${w.path}=${w.value}`).join(', ');
+    logger.error(
+      { agentName, warnings },
+      'Provenance enforcement FAILED: numbers not found in tool results',
+    );
+    throw new Error(
+      `Provenance violation in agent "${agentName}": The following numeric values were not found in any tool result: ${details}. ` +
+      `All figures must come directly from tool calls — the model must not compute or invent numbers.`,
+    );
+  }
+}
