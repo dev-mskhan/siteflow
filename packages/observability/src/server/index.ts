@@ -34,8 +34,10 @@ export function initTelemetry(config: TelemetryConfig): void {
   const { serviceName, serviceVersion = '0.0.0', otlpEndpoint, enabled = true } = config;
   const isTest = process.env.NODE_ENV === 'test';
   const enableInTest = process.env.OTEL_ENABLE_IN_TEST === 'true';
+  const sdkDisabled = process.env.OTEL_SDK_DISABLED === 'true';
 
-  if (!enabled || (isTest && !enableInTest)) {
+  if (!enabled || (isTest && !enableInTest) || sdkDisabled) {
+    console.warn('[otel] SDK disabled via environment configuration');
     return;
   }
 

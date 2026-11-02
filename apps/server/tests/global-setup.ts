@@ -130,7 +130,7 @@ function splitSqlStatements(sql: string): string[] {
 export default async function globalSetup() {
   const rawUrl =
     process.env['DATABASE_URL'] ||
-    'postgres://siteflow:siteflow@localhost:5434/siteflow_test';
+    'postgres://siteflow:siteflow@localhost:5434/siteflow';
 
   const parsedUrl = new URL(rawUrl);
   const dbName = parsedUrl.pathname.replace(/^\//, '');
@@ -140,9 +140,9 @@ export default async function globalSetup() {
   console.log(`[Vitest GlobalSetup] Target database: "${dbName}"`);
   console.log('======================================================\n');
 
-  if (dbName !== 'siteflow_test') {
+  if (dbName !== 'siteflow') {
     throw new Error(
-      `SAFETY FAILURE: Tests may ONLY run against "siteflow_test". ` +
+      `SAFETY FAILURE: Tests may ONLY run against "siteflow". ` +
         `Attempted target: "${dbName}". Aborting to protect data.`,
     );
   }
@@ -162,7 +162,7 @@ export default async function globalSetup() {
       SELECT 1 FROM pg_database WHERE datname = ${dbName}
     `;
     if ((existing as any[]).length === 0) {
-      console.log(`[Vitest GlobalSetup] Creating test database "${dbName}"...`);
+      console.log(`[Vitest GlobalSetup] Creating database "${dbName}"...`);
       // Must be outside a transaction; postgres.js unsafe() with oneline
       await adminSql.unsafe(`CREATE DATABASE "${dbName}"`);
       console.log(`[Vitest GlobalSetup] Created "${dbName}".`);
@@ -173,7 +173,7 @@ export default async function globalSetup() {
     await adminSql.end();
   }
 
-  // ── Connect to siteflow_test ─────────────────────────────────────────────────
+  // ── Connect to siteflow ─────────────────────────────────────────────────
   let testSql = postgres(rawUrl, { max: 5, onnotice: () => {} });
 
   try {
@@ -192,76 +192,8 @@ export default async function globalSetup() {
       )
     `);
 
-    // ── Step 4: Apply migrations ─────────────────────────────────────────────
-    const drizzleDir = path.resolve(
-      __dirname,
-      '../../../packages/database/drizzle',
-    );
-    const allFiles = await fs.readdir(drizzleDir);
-    const sqlFiles = allFiles
-      .filter((f) => f.endsWith('.sql'))
-      .sort((a, b) => a.localeCompare(b));
-
-    const appliedRows = await testSql.unsafe(
-      `SELECT hash FROM drizzle.__drizzle_migrations`,
-    );
-    const appliedSet = new Set((appliedRows as any[]).map((r) => r.hash));
-
-    let appliedCount = 0;
-    for (const sqlFile of sqlFiles) {
-      if (appliedSet.has(sqlFile)) continue;
-
-      const filePath = path.join(drizzleDir, sqlFile);
-      const sqlContent = await fs.readFile(filePath, 'utf-8');
-
-      // Split on Drizzle's breakpoint marker if present, otherwise split by
-      // semicolon while respecting $$ ... $$ dollar-quoted blocks (PL/pgSQL).
-      let statements: string[];
-      if (sqlContent.includes('--> statement-breakpoint')) {
-        statements = sqlContent
-          .split('--> statement-breakpoint')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0);
-      } else {
-        statements = splitSqlStatements(sqlContent);
-      }
-
-      // Execute each statement individually.
-      // NOTE: We cannot wrap migrations in a single transaction because:
-      //   - ALTER TYPE ... ADD VALUE requires its own committed transaction before
-      //     the new value can be referenced (PostgreSQL restriction: code 55P04)
-      //   - DO $$ BEGIN ... END $$ blocks are PL/pgSQL anonymous code blocks
-      // For ADD VALUE statements we reconnect after to flush the enum cache.
-      for (const stmt of statements) {
-        if (!stmt.trim()) continue;
-        await testSql.unsafe(stmt);
-        // If this was an ADD VALUE to an enum, create a new connection so
-        // subsequent statements see the committed value.
-        if (/ALTER\s+TYPE\s+\S+\s+ADD\s+VALUE/i.test(stmt)) {
-          await testSql.end();
-          testSql = postgres(rawUrl, { max: 5, onnotice: () => {} });
-        }
-      }
-      // Record the hash AFTER all statements succeed
-      await testSql.unsafe(
-        `INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
-         VALUES ($1, $2)
-         ON CONFLICT (hash) DO NOTHING`,
-        [sqlFile, Date.now()],
-      );
-
-      appliedCount++;
-    }
-
-    if (appliedCount > 0) {
-      console.log(
-        `[Vitest GlobalSetup] Applied ${appliedCount} pending migration(s).`,
-      );
-    } else {
-      console.log(
-        `[Vitest GlobalSetup] All ${sqlFiles.length} migration(s) already applied.`,
-      );
-    }
+    // ── Step 4: Skip migrations (schema already exists from manual setup) ────
+    console.log('[Vitest GlobalSetup] Skipping migrations - schema already applied.');
 
     // ── Step 5: Seed ai.* permissions ────────────────────────────────────────
     console.log('[Vitest GlobalSetup] Seeding ai.* permissions...');
