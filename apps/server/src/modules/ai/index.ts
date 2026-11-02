@@ -4,6 +4,7 @@
 
 // Import tool definitions and agent registry for side-effect registrations
 import './tools/definitions/cost.tools.js';
+import './tools/definitions/procurement.tools.js';
 import './tools/definitions/test.tools.js';
 import './core/agent-registry.js';
 

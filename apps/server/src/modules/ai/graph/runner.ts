@@ -32,6 +32,7 @@ import type { AgentRunOutput, AgentName } from '../core/types.js';
 
 import { buildEchoGraph } from '../agents/echo/graph.js';
 import { buildCostFinancialGraph } from '../agents/cost-financial/graph.js';
+import { buildProcurementGraph } from '../agents/procurement/graph.js';
 import { buildEchoApprovalGraph } from '../agents/echo-approval/graph.js';
 import { buildEchoLoopGraph } from '../agents/echo-loop/graph.js';
 import { buildEchoSlowGraph } from '../agents/echo-slow/graph.js';
@@ -50,6 +51,7 @@ type GraphBuilder = (ctx: RunContext, acc: UsageAccumulator) => {
 const GRAPH_REGISTRY: Record<AgentName, GraphBuilder> = {
   'echo':            (ctx, acc) => buildEchoGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'cost-financial':  (ctx, acc) => buildCostFinancialGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
+  'procurement':     (ctx, acc) => buildProcurementGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-approval':   (ctx, acc) => buildEchoApprovalGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-loop':       (ctx, acc) => buildEchoLoopGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-slow':       (ctx) => buildEchoSlowGraph(ctx) as unknown as ReturnType<GraphBuilder>,

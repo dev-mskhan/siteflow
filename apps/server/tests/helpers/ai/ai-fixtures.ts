@@ -101,15 +101,18 @@ export async function createProjectForOrg(
 /**
  * Polls app.agent_runs using raw SQL until the target status is reached,
  * or throws an informative timeout/failure error.
+ *
+ * @param targetStatus A single status string or an array of acceptable statuses.
  */
 export async function waitForRunStatus(
   runId: string,
-  targetStatus: AgentRunStatus,
+  targetStatus: AgentRunStatus | AgentRunStatus[],
   timeoutMs = 15000,
   pollIntervalMs = 150,
 ) {
   const sql = getTestSql();
   const startTime = Date.now();
+  const accepted = Array.isArray(targetStatus) ? targetStatus : [targetStatus];
   let lastStatus: string | null = null;
   let lastError: string | null = null;
   let lastRow: any = null;
@@ -140,14 +143,14 @@ export async function waitForRunStatus(
       lastStatus = lastRow.status;
       lastError = lastRow.error;
 
-      if (lastStatus === targetStatus) {
+      if (accepted.includes(lastStatus as AgentRunStatus)) {
         return lastRow;
       }
 
       // If run already reached an unexpected terminal state, fail early with clear diagnostic
       if (
-        (lastStatus === 'FAILED' && targetStatus !== 'FAILED') ||
-        (lastStatus === 'CANCELLED' && targetStatus !== 'CANCELLED')
+        (lastStatus === 'FAILED' && !accepted.includes('FAILED' as AgentRunStatus)) ||
+        (lastStatus === 'CANCELLED' && !accepted.includes('CANCELLED' as AgentRunStatus))
       ) {
         throw new Error(
           `Run ${runId} entered unexpected terminal status "${lastStatus}" (waiting for "${targetStatus}"). Error: ${lastError}`,

@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import type { AgentName, ModelTier, RunLimits } from './types.js';
 import { costFinancialOutputSchema } from '../agents/cost-financial/output.schema.js';
+import { procurementOutputSchema } from '../agents/procurement/output.schema.js';
 
 export interface AgentManifest {
   name: AgentName;
@@ -50,6 +51,24 @@ registerAgent({
     'get_budget',
     'get_budget_summary',
     'list_financial_audit_events',
+  ],
+  tier: 'cheap',
+  supportedChannels: ['api', 'chat'],
+});
+
+registerAgent({
+  name: 'procurement',
+  version: '1.0.0',
+  inputSchema: z.object({ question: z.string().optional() }).passthrough(),
+  outputSchema: procurementOutputSchema,
+  allowedTools: [
+    'list_purchase_orders',
+    'get_purchase_order',
+    'list_quotes',
+    'get_quote',
+    'compare_quotes',
+    'get_procurement_report',
+    'check_delivery_status',
   ],
   tier: 'cheap',
   supportedChannels: ['api', 'chat'],
