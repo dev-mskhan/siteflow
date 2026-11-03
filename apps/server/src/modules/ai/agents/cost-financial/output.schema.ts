@@ -29,4 +29,4 @@ export const costFinancialOutputSchema = z.object({
   ),
 });
 
-export type CostFinancialOutput = z.infer<typeof costFinancialOutputSchema>;
+export type CostFinancialOutput = z.output<typeof costFinancialOutputSchema>;

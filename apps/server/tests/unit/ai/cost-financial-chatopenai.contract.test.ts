@@ -65,10 +65,26 @@ describe('cost-financial ChatOpenAI contract', () => {
               }],
               usage: { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 },
             }
-          : {
+          : requests.length === 2
+            ? {
+                id: 'chatcmpl-markdown',
+                object: 'chat.completion',
+                created: 2,
+                model: 'stub-model',
+                choices: [{
+                  index: 0,
+                  message: {
+                    role: 'assistant',
+                    content: 'Here is the total: 125 USD.',
+                  },
+                  finish_reason: 'stop',
+                }],
+                usage: { prompt_tokens: 15, completion_tokens: 6, total_tokens: 21 },
+              }
+            : {
               id: 'chatcmpl-final',
               object: 'chat.completion',
-              created: 2,
+              created: 3,
               model: 'stub-model',
               choices: [{
                 index: 0,
@@ -77,7 +93,7 @@ describe('cost-financial ChatOpenAI contract', () => {
                   content: JSON.stringify({
                     answer: {
                       narrative: 'The total is 125 USD.',
-                      figures: [{ label: 'Total', value: 125, currency: 'USD' }],
+                      figures: [{ label: 'Total', value: '125.00', currency: 'USD' }],
                     },
                     summary: 'Total 125 USD',
                     citations: [{ toolName: 'get_financial_summary', snippet: 'Total 125 USD' }],
@@ -127,17 +143,27 @@ describe('cost-financial ChatOpenAI contract', () => {
       organizationId: 'org-contract',
       agent: 'cost-financial',
       createdBy: 'user-contract',
+      inputSnapshot: {
+        question: 'What is the total?',
+        projectId: 'project-contract',
+      },
     });
     const graph = buildCostFinancialGraph(ctx, new UsageAccumulator(ctx)).compile();
-    const result = await graph.invoke({ input: { question: 'What is the total?' } });
+    const result = await graph.invoke({ input: ctx.input });
 
     expect(selectedTier).toBe('cheap');
+    expect(mocks.executeTool).toHaveBeenCalledWith(
+      'get_financial_summary',
+      { projectId: 'project-contract' },
+      ctx,
+    );
     expect(result.output).toMatchObject({
-      answer: { figures: [{ label: 'Total', value: 125, currency: 'USD' }] },
+      answer: { figures: [{ label: 'Total', value: '125.00', currency: 'USD' }] },
       summary: 'Total 125 USD',
     });
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     expect(requests.map(({ path }) => path)).toEqual([
+      '/v1/chat/completions',
       '/v1/chat/completions',
       '/v1/chat/completions',
     ]);
@@ -147,11 +173,24 @@ describe('cost-financial ChatOpenAI contract', () => {
         function: expect.objectContaining({ name: 'get_financial_summary' }),
       }),
     ]));
+    const firstMessages = requests[0]?.body['messages'] as Array<Record<string, unknown>>;
+    expect(firstMessages.some(
+      (message) =>
+        message['role'] === 'system' &&
+        String(message['content']).includes('project-contract'),
+    )).toBe(true);
     const secondMessages = requests[1]?.body['messages'] as Array<Record<string, unknown>>;
     expect(secondMessages.some((message) =>
       message['role'] === 'tool' &&
       String(message['content']).includes('"total":"125.00"'),
     )).toBe(true);
+    const repairMessages = requests[2]?.body['messages'] as Array<Record<string, unknown>>;
+    expect(repairMessages.some(
+      (message) =>
+        message['role'] === 'user' &&
+        String(message['content']).includes('Return only a JSON object'),
+    )).toBe(true);
+    expect(requests[2]?.body).not.toHaveProperty('tools');
   });
 
   it.skipIf(process.env['AI_LIVE_SMOKE'] !== 'true')(

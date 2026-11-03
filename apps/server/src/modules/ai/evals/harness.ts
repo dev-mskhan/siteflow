@@ -7,9 +7,11 @@
 //   import { runEval } from './harness.js';
 //   const results = await runEval('cost-financial', dataset, scorers);
 
+import { randomUUID } from 'node:crypto';
 import { createLogger } from '@siteflow/observability/server';
 import { buildRunContext } from '../core/run-context.js';
 import { executeRun } from '../graph/runner.js';
+import { recordTraceScore } from '../observability/tracing.js';
 import type { AgentName } from '../core/types.js';
 import type { AgentRunOutput } from '../core/types.js';
 
@@ -86,32 +88,62 @@ export async function runEval(
     const start = Date.now();
     let output: AgentRunOutput | null = null;
     let error: string | null = null;
+    let traceId: string | undefined;
 
     try {
-      // Build a throwaway RunContext — uses a deterministic fake runId per case
+      // Use a unique UUID so concurrent/repeated evals never share a trace or checkpoint.
       const ctx = buildRunContext({
-        id: `eval-${evalCase.id}`,
+        id: randomUUID(),
         organizationId: evalCase.context.organizationId,
         projectId: evalCase.context.projectId ?? null,
         agent,
         createdBy: evalCase.context.userId,
       });
 
+      traceId = ctx.runId;
       const result = await executeRun(ctx, evalCase.input);
       output = result.output;
+      traceId = result.traceId ?? ctx.runId;
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     }
 
     const durationMs = Date.now() - start;
 
-    const scores = await Promise.all(
-      scorers.map((scorer) =>
-        scorer({ evalCase, output, error, durationMs }),
-      ),
-    );
+    const scores = await Promise.all(scorers.map(async (scorer) => {
+      try {
+        return await scorer({ evalCase, output, error, durationMs });
+      } catch (scorerError) {
+        const reason = scorerError instanceof Error ? scorerError.message : String(scorerError);
+        logger.warn({ caseId: evalCase.id, scorer: scorer.name, err: scorerError }, 'Eval scorer failed');
+        return {
+          name: scorer.name,
+          passed: false,
+          score: 0,
+          reason: `Scorer failed: ${reason}`,
+        };
+      }
+    }));
 
     const passed = scores.every((s) => s.passed);
+    if (traceId) {
+      for (const score of scores) {
+        recordTraceScore(
+          traceId,
+          `eval:${score.name}`,
+          score.score,
+          score.reason,
+          { caseId: evalCase.id, passed: score.passed },
+        );
+      }
+      recordTraceScore(
+        traceId,
+        'eval:pass-rate',
+        passed ? 1 : 0,
+        passed ? 'All evaluation scorers passed' : 'One or more evaluation scorers failed',
+        { caseId: evalCase.id, scorerCount: scores.length },
+      );
+    }
 
     results.push({
       caseId: evalCase.id,

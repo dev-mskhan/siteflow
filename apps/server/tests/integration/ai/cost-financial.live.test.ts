@@ -1,237 +1,236 @@
-// apps/server/tests/integration/ai/cost-financial.live.test.ts
+// Live smoke test against the already-running API database and PgBoss worker.
 //
-// LIVE TESTS for cost-financial agent with REAL Gemini LLM via web2api
+// Run from apps/server with:
+//   $env:AI_LIVE='1'
+//   $env:AI_LIVE_PROJECT_ID='<existing test project UUID>'
+//   pnpm exec vitest run tests/integration/ai/cost-financial.live.test.ts --testTimeout=270000
 //
-// Run with: AI_LIVE=1 pnpm test tests/integration/ai/cost-financial.live.test.ts
-//
-// Requirements:
-// - web2api running at http://127.0.0.1:8081
-// - Langfuse running at http://localhost:3020
-// - All docker services running (postgres, redis, minio)
-//
-// Unlike deterministic tests, these use REAL Gemini and results may vary.
+// The selected project must have "test" in its name and populated financial
+// data. This test enqueues one real model request and does not start a worker.
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import type PgBoss from 'pg-boss';
+import { eq } from 'drizzle-orm';
+import { agentToolCalls, projects } from '@siteflow/database/schema';
+import { serverEnv } from '../../../src/config/env.js';
+import { getDb } from '../../../src/lib/db/index.js';
+import { stopQueue } from '../../../src/lib/queue/index.js';
+import { AgentRunRepository } from '../../../src/modules/ai/runs/agent-run.repository.js';
+import { AgentRunService } from '../../../src/modules/ai/runs/agent-run.service.js';
+import { rbacService } from '../../../src/modules/rbac/rbac.service.js';
+import { financialSummaryService } from '../../../src/modules/project/financial-summary/financial-summary.service.js';
+import { costFinancialOutputSchema } from '../../../src/modules/ai/agents/cost-financial/output.schema.js';
 
-import { createTestApp } from '../../helpers/test-app.js';
-import {
-  waitForRunStatus,
-  getTestSql,
-  closeTestSql,
-} from '../../helpers/ai/ai-fixtures.js';
-import {
-  seedCostFinancialFixtures,
-  type CostFinancialFixtures,
-} from '../../helpers/ai/cost-financial-fixtures.js';
-import { startQueue, stopQueue } from '../../../src/lib/queue/index.js';
-import { registerAgentRunWorkers } from '../../../src/modules/ai/workers/agent-run.worker.js';
-
-// Register tool definitions
-import '../../../src/modules/ai/index.js';
-
-// Helper to check if live tests are enabled
 const LIVE_ENABLED = process.env.AI_LIVE === '1';
-const skipIfNotLive = LIVE_ENABLED ? it : it.skip;
+const PROJECT_ID = process.env.AI_LIVE_PROJECT_ID;
+const MAX_WAIT_MS = 240_000;
+const POLL_INTERVAL_MS = 1_500;
+const TERMINAL_STATUSES = new Set([
+  'SUCCEEDED',
+  'FAILED',
+  'CANCELLED',
+  'AWAITING_APPROVAL',
+]);
 
-describe.skipIf(!LIVE_ENABLED)('Cost-Financial Agent - LIVE TESTS (Real Gemini)', () => {
-  let app: FastifyInstance;
-  let boss: PgBoss;
-  let seed: CostFinancialFixtures;
-  const sql = getTestSql();
+if (LIVE_ENABLED && !PROJECT_ID) {
+  throw new Error('AI_LIVE_PROJECT_ID must identify an existing test project');
+}
+
+describe.skipIf(!LIVE_ENABLED)('cost-financial live worker smoke test', () => {
+  const runs = new AgentRunRepository();
+  const runService = new AgentRunService();
+  let expectedFigures: Array<{
+    label: string;
+    value: string;
+    currency: string;
+    sourceKey: string;
+  }> = [];
+  let project: {
+    id: string;
+    organizationId: string;
+    createdBy: string;
+    name: string;
+  };
 
   beforeAll(async () => {
-    app = await createTestApp();
-    boss = await startQueue();
-    await registerAgentRunWorkers(boss);
-    seed = await seedCostFinancialFixtures(app);
+    const databaseHost = new URL(serverEnv.DATABASE_URL).hostname;
+    if (!['localhost', '127.0.0.1', '::1'].includes(databaseHost)) {
+      throw new Error(
+        `Refusing live AI test against non-local database host "${databaseHost}"`,
+      );
+    }
+    if (serverEnv.AI_PROVIDER === 'fake') {
+      throw new Error('AI_PROVIDER=fake; refusing to run a live model test');
+    }
+    if (!serverEnv.LANGFUSE_PUBLIC_KEY || !serverEnv.LANGFUSE_SECRET_KEY) {
+      throw new Error('Langfuse is not configured; refusing a trace-evaluation run');
+    }
 
-    console.log('\n========================================');
-    console.log('🚀 LIVE TEST SETUP COMPLETE');
-    console.log('========================================');
-    console.log(`Organization: ${seed.orgA.orgId}`);
-    console.log(`Project: ${seed.orgA.projectId}`);
-    console.log(`Langfuse: http://localhost:3020`);
-    console.log('🔴 Using REAL Gemini LLM (not fake model)');
-    console.log('========================================\n');
-  }, 120_000);
+    const rows = await getDb()
+      .select({
+        id: projects.id,
+        organizationId: projects.organizationId,
+        createdBy: projects.createdBy,
+        name: projects.name,
+      })
+      .from(projects)
+      .where(eq(projects.id, PROJECT_ID!))
+      .limit(1);
+    const candidate = rows[0];
+    if (!candidate || !candidate.createdBy || !candidate.name.toLowerCase().includes('test')) {
+      throw new Error('AI_LIVE_PROJECT_ID must belong to an existing test project with an owner');
+    }
+    project = { ...candidate, createdBy: candidate.createdBy };
+
+    const orgContext = await rbacService.getOrganizationContext(
+      project.organizationId,
+      project.createdBy,
+    );
+    if (!rbacService.hasPermission(orgContext, 'project:read')) {
+      throw new Error('The test project owner does not have project:read permission');
+    }
+
+    const summary = await financialSummaryService.getCostSummary(
+      project.organizationId,
+      project.id,
+    );
+    const hasFinancialData = summary.currencyBreakdown.some((row) =>
+      [row.originalBudget, row.approvedBudgetChanges, row.revisedBudget, row.committed, row.postedActual]
+        .some((value) => Number(value) > 0),
+    );
+    if (!hasFinancialData) {
+      throw new Error('The selected test project has no non-zero budget, commitment, or actual data');
+    }
+    expectedFigures = summary.currencyBreakdown.map((row) => ({
+      label: 'Committed Costs',
+      value: row.committed,
+      currency: row.currencyCode,
+      sourceKey: 'committed',
+    }));
+  }, 30_000);
 
   afterAll(async () => {
-    try {
-      await stopQueue();
-    } catch {
-      /* ignore */
-    }
-    if (app) await app.close();
-    await closeTestSql();
+    await stopQueue();
+    await getDb().$client.end();
   });
 
-  // Helper to start a run and wait for completion
-  async function executeRun(question: string, runNumber: number = 1) {
-    const startTime = Date.now();
-    const { orgId, token, projectId } = seed.orgA;
-
-    const createRes = await app.inject({
-      method: 'POST',
-      url: `/api/v1/organizations/${orgId}/ai/runs`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: {
+  it(
+    'enqueues one cost inquiry and evaluates the result from the running worker',
+    async () => {
+      const question =
+        'Retrieve the cost summary for the selected project. Report the exact committed costs from ' +
+        'that source only; do not calculate or combine totals. Cite the source data.';
+      const startedAt = Date.now();
+      const { runId } = await runService.startRun({
+        organizationId: project.organizationId,
         agent: 'cost-financial',
-        input: { question, projectId },
-      },
-    });
+        input: { question, projectId: project.id },
+        createdBy: project.createdBy,
+        channel: 'api',
+        trigger: 'USER',
+      });
 
-    expect([201, 202]).toContain(createRes.statusCode);
-    const runId: string = createRes.json().data?.runId ?? createRes.json().runId;
+      console.log(`[cost-financial live] queued run ${runId} for ${project.name}`);
 
-    console.log(`[Run ${runNumber}] Started: ${runId}`);
+      const deadline = startedAt + MAX_WAIT_MS;
+      let nextProgressLog = startedAt + 15_000;
+      let run = await runs.findByIdInternal(runId);
 
-    // Wait for completion (real LLM takes 5-15 seconds)
-    const run = await waitForRunStatus(runId, 'SUCCEEDED', 90_000);
-
-    const duration = Date.now() - startTime;
-
-    console.log(`[Run ${runNumber}] ✅ ${run.status} (${duration}ms)`);
-    console.log(`[Run ${runNumber}] 🔗 Trace: http://localhost:3020/traces/${run.trace_id}`);
-    console.log(`[Run ${runNumber}] 📊 Tokens: ${run.tokens_in}/${run.tokens_out}`);
-
-    return { run, duration, runId };
-  }
-
-  skipIfNotLive(
-    'LIVE-1: Simple budget inquiry',
-    async () => {
-      const question = `What is the current budget for this project?`;
-
-      const { run } = await executeRun(question, 1);
-
-      expect(run.status).toBe('SUCCEEDED');
-      expect(run.trace_id).toBeTruthy();
-
-      const output = typeof run.output === 'string' ? JSON.parse(run.output) : run.output;
-
-      console.log('\n📝 OUTPUT:');
-      console.log('  Narrative:', output.answer.narrative.substring(0, 150) + '...');
-      console.log('  Figures:', output.answer.figures.length);
-      console.log('  Confidence:', output.answer.confidence);
-      console.log('  Citations:', output.citations.length, '\n');
-
-      expect(output.answer.narrative).toBeTruthy();
-      expect(output.answer.confidence).toMatch(/HIGH|MEDIUM|LOW|INSUFFICIENT_DATA/);
-      expect(output.citations.length).toBeGreaterThan(0);
-    },
-    120_000,
-  );
-
-  skipIfNotLive(
-    'LIVE-2: Budget vs actuals comparison',
-    async () => {
-      const question = `Is this project over budget or under budget?`;
-
-      const { run } = await executeRun(question, 2);
-
-      expect(run.status).toBe('SUCCEEDED');
-
-      const output = typeof run.output === 'string' ? JSON.parse(run.output) : run.output;
-
-      console.log('\n📝 OUTPUT:');
-      console.log('  Narrative:', output.answer.narrative.substring(0, 200) + '...');
-      console.log('  Confidence:', output.answer.confidence, '\n');
-
-      expect(output.answer.confidence).toMatch(/HIGH|MEDIUM/);
-    },
-    120_000,
-  );
-
-  skipIfNotLive(
-    'LIVE-3: Multi-tool question',
-    async () => {
-      const question = `What is the financial health of this project?`;
-
-      const { run } = await executeRun(question, 3);
-
-      expect(run.status).toBe('SUCCEEDED');
-
-      const output = typeof run.output === 'string' ? JSON.parse(run.output) : run.output;
-
-      console.log('\n📝 OUTPUT:');
-      console.log('  Tools used:', output.citations.map((c: any) => c.toolName).join(', '));
-      console.log('  Confidence:', output.answer.confidence, '\n');
-
-      expect(output.citations.length).toBeGreaterThanOrEqual(1);
-    },
-    120_000,
-  );
-
-  skipIfNotLive(
-    'LIVE-4: Abstention test',
-    async () => {
-      const question = `What is the weather forecast for the construction site?`;
-
-      const { run } = await executeRun(question, 4);
-
-      expect(run.status).toBe('SUCCEEDED');
-
-      const output = typeof run.output === 'string' ? JSON.parse(run.output) : run.output;
-
-      console.log('\n📝 OUTPUT:');
-      console.log('  Narrative:', output.answer.narrative.substring(0, 150) + '...');
-      console.log('  Confidence:', output.answer.confidence);
-      console.log('  Missing data:', output.answer.missingData, '\n');
-
-      const narrative = output.answer.narrative.toLowerCase();
-      const abstained =
-        narrative.includes('cannot') ||
-        narrative.includes('unable') ||
-        output.answer.confidence === 'INSUFFICIENT_DATA';
-
-      expect(abstained).toBe(true);
-    },
-    120_000,
-  );
-
-  skipIfNotLive(
-    'LIVE-5: Variability test (3 runs)',
-    async () => {
-      const question = `Summarize the financial status of this project.`;
-
-      console.log('\n🔄 VARIABILITY TEST: Running same question 3 times...\n');
-
-      const runs = [];
-
-      for (let i = 1; i <= 3; i++) {
-        const { run, duration } = await executeRun(question, i);
-        runs.push({ run, duration, iteration: i });
-
-        // Wait between runs to avoid rate limits
-        if (i < 3) {
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+      while (
+        run &&
+        !TERMINAL_STATUSES.has(run.status) &&
+        Date.now() < deadline
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+        run = await runs.findByIdInternal(runId);
+        if (Date.now() >= nextProgressLog) {
+          console.log(
+            `[cost-financial live] ${runId}: ${run?.status ?? 'missing'} after ${Math.round((Date.now() - startedAt) / 1000)}s`,
+          );
+          nextProgressLog += 15_000;
         }
       }
 
-      runs.forEach((r) => expect(r.run.status).toBe('SUCCEEDED'));
+      if (!run || !TERMINAL_STATUSES.has(run.status)) {
+        await runService.cancelRun(runId, project.organizationId, project.createdBy);
+        throw new Error(
+          `Timed out after ${MAX_WAIT_MS}ms; run ${runId} remained ${run?.status ?? 'missing'}. ` +
+            'If still QUEUED, the running worker is not consuming this database/queue.',
+        );
+      }
 
-      console.log('\n📊 VARIABILITY ANALYSIS:');
-      runs.forEach((r, idx) => {
-        const output = typeof r.run.output === 'string' ? JSON.parse(r.run.output) : r.run.output;
-        console.log(`\nRun ${idx + 1}:`);
-        console.log(`  Duration: ${r.duration}ms`);
-        console.log(`  Tokens: ${r.run.tokens_in}/${r.run.tokens_out}`);
-        console.log(`  Confidence: ${output.answer.confidence}`);
-        console.log(`  Tools: ${output.citations.map((c: any) => c.toolName).join(', ')}`);
-      });
+      const toolRows = await getDb()
+        .select({
+          toolName: agentToolCalls.toolName,
+          status: agentToolCalls.status,
+          durationMs: agentToolCalls.durationMs,
+        })
+        .from(agentToolCalls)
+        .where(eq(agentToolCalls.runId, runId));
 
-      const durations = runs.map((r) => r.duration);
-      const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
-      const minDuration = Math.min(...durations);
-      const maxDuration = Math.max(...durations);
+      console.log(
+        JSON.stringify({
+          runId,
+          status: run.status,
+          elapsedMs: Date.now() - startedAt,
+          traceId: run.traceId,
+          tokens: { input: run.tokensIn, output: run.tokensOut },
+          costUsd: run.costUsd,
+          error: run.error,
+          tools: toolRows,
+        }),
+      );
 
-      console.log('\n📈 METRICS:');
-      console.log(`  Average: ${Math.round(avgDuration)}ms`);
-      console.log(`  Range: ${minDuration}ms - ${maxDuration}ms`);
-      console.log(`  Variability: ${Math.round(((maxDuration - minDuration) / avgDuration) * 100)}%\n`);
+      expect(run.status, run.error ?? 'worker did not complete successfully').toBe('SUCCEEDED');
+      expect(run.traceId, 'Langfuse trace ID was not recorded').toBeTruthy();
+      expect((run.tokensIn ?? 0) + (run.tokensOut ?? 0)).toBeGreaterThan(0);
+
+      const output =
+        typeof run.output === 'string' ? JSON.parse(run.output) : run.output;
+      const parsed = costFinancialOutputSchema.safeParse(output);
+      expect(parsed.success, 'agent output did not match the output contract').toBe(true);
+      if (!parsed.success) return;
+
+      console.log(
+        JSON.stringify({
+          confidence: parsed.data.answer.confidence,
+          figures: parsed.data.answer.figures.length,
+          citations: parsed.data.citations.map((citation) => citation.toolName),
+          summary: parsed.data.summary,
+        }),
+      );
+      expect(parsed.data.answer.confidence).not.toBe('INSUFFICIENT_DATA');
+      expect(
+        parsed.data.citations.some(
+          (citation) =>
+            citation.toolName === 'get_cost_summary' ||
+            citation.toolName === 'get_financial_summary',
+        ),
+        'answer did not cite a financial-summary tool',
+      ).toBe(true);
+      expect(
+        toolRows.some(
+          (toolCall) =>
+            ['get_cost_summary', 'get_financial_summary'].includes(toolCall.toolName) &&
+            toolCall.status === 'SUCCESS',
+        ),
+        'worker did not successfully execute a financial-summary tool',
+      ).toBe(true);
+
+      const costCitation = parsed.data.citations.find(
+        (citation) => citation.toolName === 'get_cost_summary',
+      );
+      expect(costCitation, 'cost summary citation was not returned').toBeDefined();
+      for (const expected of expectedFigures) {
+        const figure = parsed.data.answer.figures.find(
+          (item) =>
+            item.currency === expected.currency &&
+            item.label.toLowerCase().includes('committed'),
+        );
+        expect(String(figure?.value), `${expected.label} did not match the database source`)
+          .toBe(expected.value);
+        expect(costCitation?.snippet).toContain(`"${expected.sourceKey}":"${expected.value}"`);
+      }
     },
-    300_000, // 5 minutes for 3 runs
+    260_000,
   );
 });

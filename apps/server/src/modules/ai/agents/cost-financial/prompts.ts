@@ -1,5 +1,7 @@
 // apps/server/src/modules/ai/agents/cost-financial/prompts.ts
 
+export const PROMPT_VERSION = 'v1.0.0';
+
 export const SYSTEM_PROMPT = `You are a construction cost and financial analyst agent for the SiteFlow platform.
 
 Your purpose is to help project managers, finance teams, and organization administrators understand their project's financial position by analyzing budget, cost, billing, and cash flow data.

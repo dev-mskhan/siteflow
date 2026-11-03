@@ -11,14 +11,18 @@
 
 import { StateGraph, Annotation, END, messagesStateReducer } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage, AIMessage, ToolMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
 import type { BaseMessage } from '@langchain/core/messages';
 import { createModel } from '../../graph/model-factory.js';
 import { getAgent } from '../../core/agent-registry.js';
 import { getToolsForAgent } from '../../tools/tool-registry.js';
 import { executeTool } from '../../tools/tool-factory.js';
-import { validateOutput, enforceNumberProvenance } from '../../guardrails/output-guard.js';
+import {
+  validateOutput,
+  enforceNumberProvenance,
+  enforceFigureProvenance,
+} from '../../guardrails/output-guard.js';
 import { costFinancialOutputSchema, type CostFinancialOutput } from './output.schema.js';
 import { SYSTEM_PROMPT } from './prompts.js';
 import type { RunContext } from '../../core/run-context.js';
@@ -36,6 +40,10 @@ const ALLOWED_TOOLS = [
   'list_financial_audit_events',
 ];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const CostFinancialState = Annotation.Root({
@@ -44,17 +52,25 @@ const CostFinancialState = Annotation.Root({
   output:       Annotation<AgentRunOutput | null>({ default: () => null, reducer: (_, b) => b }),
   toolCalls:    Annotation<number>({ default: () => 0, reducer: (a, b) => a + b }),
   toolResults:  Annotation<Array<Record<string, unknown>>>({ default: () => [], reducer: (a, b) => [...a, ...b] }),
+  toolNames:    Annotation<string[]>({ default: () => [], reducer: (a, b) => [...a, ...b] }),
 });
 
 // ── Build ─────────────────────────────────────────────────────────────────────
 
 export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) {
   const toolDefs = getToolsForAgent(ALLOWED_TOOLS);
+  const selectedProjectId =
+    ctx.projectId ??
+    (typeof ctx.input?.projectId === 'string' ? ctx.input.projectId : undefined);
 
   // Convert ToolDefinition[] → LangChain DynamicStructuredTool[] for ToolNode
   const langchainTools = toolDefs.map((def) =>
     tool(async (args: unknown) => {
-      const result = await executeTool(def.name, args, ctx);
+      const scopedArgs =
+        selectedProjectId && isRecord(args)
+          ? { ...args, projectId: selectedProjectId }
+          : args;
+      const result = await executeTool(def.name, scopedArgs, ctx);
       if (!result.ok) return `Error: ${result.message}`;
       return JSON.stringify(result.data);
     }, {
@@ -79,7 +95,11 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
     const messages: BaseMessage[] =
       state.messages.length === 0
         ? [
-            new SystemMessage(SYSTEM_PROMPT),
+            new SystemMessage(
+              selectedProjectId
+                ? `${SYSTEM_PROMPT}\n\nAuthoritative selected project ID for this run: ${selectedProjectId}. Use only this project for project-scoped tools.`
+                : SYSTEM_PROMPT,
+            ),
             new HumanMessage(
               typeof state.input.question === 'string'
                 ? state.input.question
@@ -96,81 +116,85 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
     }
 
     // No tool calls → LLM has the final answer; parse and validate output
-    let finalOutput: AgentRunOutput;
-    let repairAttempted = false;
-    
-    try {
-      const parsed = JSON.parse(response.content as string) as CostFinancialOutput;
+    const parseAndValidate = (message: AIMessage): CostFinancialOutput => {
+      if (typeof message.content !== 'string') {
+        throw new Error('Agent response must be a JSON string');
+      }
+
+      const parsed: unknown = JSON.parse(message.content);
       const validated = validateOutput(parsed, costFinancialOutputSchema, 'cost-financial');
-      
-      // STRICT PROVENANCE ENFORCEMENT: All numbers must come from tool results
       enforceNumberProvenance(
         { answer: validated.answer, summary: validated.summary, citations: validated.citations },
         state.toolResults,
         'cost-financial',
       );
-      
-      finalOutput = {
-        answer: validated.answer,
-        summary: validated.summary,
-        citations: validated.citations,
-      };
-    } catch (firstError) {
-      // Check if this is a JSON syntax error (malformed JSON) vs plain text response
-      const isJsonSyntaxError = firstError instanceof SyntaxError && 
-        (response.content as string).trim().startsWith('{');
-      
-      // BOUNDED JSON REPAIR: One attempt to fix malformed JSON
-      // Only attempt repair if it looks like an attempt at JSON (starts with {)
-      if (!repairAttempted && isJsonSyntaxError) {
-        repairAttempted = true;
-        
-        // Ask model to fix the JSON
-        const repairPrompt = new HumanMessage(
-          `Your previous response was not valid JSON. Please fix the syntax errors and return a valid JSON response that matches the required schema. ` +
-          `The response must have this structure: { "answer": { "narrative": "...", "figures": [...], "confidence": "HIGH" }, "summary": "...", "citations": [...] }`
-        );
-        
-        const repairedResponse = await modelWithTools.invoke([...messages, response, repairPrompt]);
-        
-        try {
-          const parsed = JSON.parse(repairedResponse.content as string) as CostFinancialOutput;
-          const validated = validateOutput(parsed, costFinancialOutputSchema, 'cost-financial');
-          
-          enforceNumberProvenance(
-            { answer: validated.answer, summary: validated.summary, citations: validated.citations },
-            state.toolResults,
-            'cost-financial',
+
+      enforceFigureProvenance(validated.answer.figures, state.toolResults, 'cost-financial');
+
+      const citationsByTool = new Map<string, number>();
+      for (const citation of validated.citations) {
+        if (citation.snippet.trim()) {
+          citationsByTool.set(
+            citation.toolName,
+            (citationsByTool.get(citation.toolName) ?? 0) + 1,
           );
-          
-          finalOutput = {
-            answer: validated.answer,
-            summary: validated.summary,
-            citations: validated.citations,
-          };
-          
-          // Repair succeeded - return with updated messages
-          return { messages: [response, repairPrompt, repairedResponse], output: finalOutput, toolCalls: 0 };
-        } catch (secondError) {
-          // Repair failed - fall back to plain text wrapper
-          finalOutput = {
-            answer: { narrative: repairedResponse.content as string, figures: [] },
-            summary: (repairedResponse.content as string).slice(0, 200),
-            citations: [],
-          };
-          return { messages: [response, repairPrompt, repairedResponse], output: finalOutput, toolCalls: 0 };
         }
       }
-      
-      // Plain text response or repair already attempted - wrap as plain text
-      finalOutput = {
-        answer: { narrative: response.content as string, figures: [] },
-        summary: (response.content as string).slice(0, 200),
-        citations: [],
+      const uncitedTools = state.toolNames.filter((toolName) => {
+        const citedCount = citationsByTool.get(toolName) ?? 0;
+        if (citedCount > 0) {
+          citationsByTool.set(toolName, citedCount - 1);
+          return false;
+        }
+        return true;
+      });
+      if (uncitedTools.length > 0) {
+        throw new Error(`Missing citations for tool calls: ${uncitedTools.join(', ')}`);
+      }
+
+      return validated;
+    };
+
+    let validated: CostFinancialOutput;
+    try {
+      validated = parseAndValidate(response);
+    } catch (firstError) {
+      const repairPrompt = new HumanMessage(
+        `Your previous response did not satisfy the required cost-financial output contract: ${firstError instanceof Error ? firstError.message : String(firstError)}. ` +
+          'Return only a JSON object with this shape: {"answer":{"narrative":"...","figures":[{"label":"Committed Costs","value":"15000.00","currency":"USD"}],"confidence":"HIGH","missingData":[]},"summary":"...","citations":[{"toolName":"exact tool name","snippet":"supporting excerpt from its result"}]}. ' +
+          'Every figures entry must be an object with label, value, and optional currency; never use strings as figure entries. ' +
+          'Do not include Markdown, tables, XML, or text outside the JSON. Do not invent or calculate figures. Cite every tool call.',
+      );
+      const repairedResponse = await model.invoke([...messages, response, repairPrompt]);
+
+      try {
+        validated = parseAndValidate(repairedResponse);
+      } catch (repairError) {
+        throw new Error(
+          `Cost-financial response remained invalid after one repair attempt: ${repairError instanceof Error ? repairError.message : String(repairError)}`,
+          { cause: repairError },
+        );
+      }
+
+      return {
+        messages: [response, repairPrompt, repairedResponse],
+        output: {
+          answer: validated.answer,
+          summary: validated.summary,
+          citations: validated.citations,
+        },
+        toolCalls: 0,
       };
     }
 
-    return { messages: [response], output: finalOutput };
+    return {
+      messages: [response],
+      output: {
+        answer: validated.answer,
+        summary: validated.summary,
+        citations: validated.citations,
+      },
+    };
   }
 
   function shouldContinue(
@@ -193,22 +217,26 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
     const toolOutput = await toolNode.invoke(state, {});
     
     // Extract tool results from the messages added by ToolNode
-    const newMessages = (toolOutput as any).messages || [];
+    const newMessages = toolOutput.messages ?? [];
     const toolResults: Array<Record<string, unknown>> = [];
+    const toolNames: string[] = [];
     
     for (const msg of newMessages) {
-      if (msg.constructor.name === 'ToolMessage' && msg.content) {
+      if (msg instanceof ToolMessage && msg.content) {
+        if (msg.name) toolNames.push(msg.name);
+        const content =
+          typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
         try {
-          const parsed = JSON.parse(msg.content);
+          const parsed = JSON.parse(content);
           toolResults.push(parsed);
         } catch {
           // If tool returned non-JSON (e.g., error string), wrap it
-          toolResults.push({ raw: msg.content });
+          toolResults.push({ raw: content });
         }
       }
     }
     
-    return { ...toolOutput, toolResults };
+    return { ...toolOutput, toolResults, toolNames };
   }
 
   // ── Graph ──────────────────────────────────────────────────────────────────

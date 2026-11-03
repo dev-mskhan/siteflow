@@ -28,6 +28,7 @@ import {
 } from '../core/errors.js';
 import { realtimeDeliveryManager } from '../../notification/realtime/realtime.delivery.js';
 import { notificationService } from '../../notification/notification.service.js';
+import { flushLangfuse } from '../observability/langfuse-client.js';
 
 const logger = createLogger({ name: 'agent-run-worker' });
 
@@ -309,6 +310,7 @@ function emitRunFailed(
 // Called from worker.ts shutdown hook so the checkpointer pool drains cleanly.
 
 export async function teardownAiWorkers(): Promise<void> {
+  await flushLangfuse();
   await teardownCheckpointer();
 }
 

@@ -7,10 +7,13 @@ import { z } from 'zod';
 import type { AgentName, ModelTier, RunLimits } from './types.js';
 import { costFinancialOutputSchema } from '../agents/cost-financial/output.schema.js';
 import { procurementOutputSchema } from '../agents/procurement/output.schema.js';
+import { PROMPT_VERSION as COST_FINANCIAL_PROMPT_VERSION } from '../agents/cost-financial/prompts.js';
+import { PROMPT_VERSION as PROCUREMENT_PROMPT_VERSION } from '../agents/procurement/prompts.js';
 
 export interface AgentManifest {
   name: AgentName;
   version: string;
+  promptVersion?: string;
   inputSchema: z.ZodType;
   outputSchema: z.ZodType;
   allowedTools: string[];
@@ -41,6 +44,7 @@ export function listAgents(): AgentManifest[] {
 registerAgent({
   name: 'cost-financial',
   version: '1.0.0',
+  promptVersion: COST_FINANCIAL_PROMPT_VERSION,
   inputSchema: z.object({ question: z.string().optional() }).passthrough(),
   outputSchema: costFinancialOutputSchema,
   allowedTools: [
@@ -59,6 +63,7 @@ registerAgent({
 registerAgent({
   name: 'procurement',
   version: '1.0.0',
+  promptVersion: PROCUREMENT_PROMPT_VERSION,
   inputSchema: z.object({ question: z.string().optional() }).passthrough(),
   outputSchema: procurementOutputSchema,
   allowedTools: [

@@ -13,7 +13,7 @@
 
 import { createLogger } from '@siteflow/observability/server';
 import { Decimal } from 'decimal.js';
-import { calculateCostUsd } from './pricing.js';
+import { calculateCostBreakdown } from './pricing.js';
 import type { RunContext } from '../core/run-context.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { serverEnv } from '../../../config/env.js';
@@ -27,7 +27,10 @@ export interface UsageRecord {
   modelId: string;
   tokensIn: number;
   tokensOut: number;
+  inputCostUsd: string;
+  outputCostUsd: string;
   costUsd: string;
+  costSource: 'model-price-table' | 'configured-zero-cost-local-proxy';
   usageSource: 'provider-reported' | 'estimated';
   /** ISO timestamp of the call */
   calledAt: string;
@@ -63,12 +66,15 @@ export class UsageAccumulator {
     const localProxy = serverEnv.NODE_ENV !== 'production' &&
       serverEnv.OPENAI_BASE_URL !== undefined &&
       isLoopbackOrPrivateBaseUrl(serverEnv.OPENAI_BASE_URL);
-    const costUsd = calculateCostUsd(modelId, tokensIn, tokensOut, localProxy);
+    const cost = calculateCostBreakdown(modelId, tokensIn, tokensOut, localProxy);
     const record: UsageRecord = {
       modelId,
       tokensIn,
       tokensOut,
-      costUsd,
+      inputCostUsd: cost.inputCostUsd,
+      outputCostUsd: cost.outputCostUsd,
+      costUsd: cost.totalCostUsd,
+      costSource: localProxy ? 'configured-zero-cost-local-proxy' : 'model-price-table',
       usageSource,
       calledAt: new Date().toISOString(),
     };
@@ -77,7 +83,14 @@ export class UsageAccumulator {
     this._calls.push(record);
 
     logger.debug(
-      { runId: this.ctx.runId, modelId, tokensIn, tokensOut, costUsd, usageSource },
+      {
+        runId: this.ctx.runId,
+        modelId,
+        tokensIn,
+        tokensOut,
+        costUsd: record.costUsd,
+        usageSource,
+      },
       'LLM call usage recorded',
     );
 
@@ -99,6 +112,7 @@ export class UsageAccumulator {
   }
 
   get calls(): readonly UsageRecord[] { return this._calls; }
+  get traceHandle(): RunContext['traceHandle'] { return this.ctx.traceHandle; }
 
   // ── Flush — called once at run completion ─────────────────────────────────
 

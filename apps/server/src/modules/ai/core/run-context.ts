@@ -13,6 +13,7 @@ import type { AgentName, RunLimits } from './types.js';
 import { DEFAULT_RUN_LIMITS } from './types.js';
 import { TenantLeakError } from './errors.js';
 import type { AgentRun } from '@siteflow/database/schema';
+import type { RunTraceHandle } from '../observability/tracing.js';
 
 // ── Type ──────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ export interface RunContext {
   readonly startedAt: Date;
   /** LangGraph thread ID used for checkpointing (== runId unless resuming) */
   readonly threadId: string;
+  /** Per-execution observer; attached by the runner and never persisted. */
+  readonly traceHandle?: RunTraceHandle;
 }
 
 // ── Builder ───────────────────────────────────────────────────────────────────
@@ -75,6 +78,10 @@ export function buildRunContext(
 
   // Freeze so nothing downstream can mutate org/project/user IDs
   return Object.freeze(ctx);
+}
+
+export function attachRunTraceHandle(ctx: RunContext, traceHandle: RunTraceHandle): RunContext {
+  return Object.freeze({ ...ctx, traceHandle });
 }
 
 // ── Guard ─────────────────────────────────────────────────────────────────────

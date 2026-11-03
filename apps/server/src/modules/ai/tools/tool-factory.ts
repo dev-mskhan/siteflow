@@ -125,7 +125,13 @@ export async function executeTool<T = unknown>(
   rawArgs: unknown,
   ctx: RunContext,
 ): Promise<ToolResult<T>> {
-  return withSpan(tracer, `ai.tool.${toolName}`, async (span) => {
+  const observation = ctx.traceHandle?.startSpan(`tool:${toolName}`, rawArgs, {
+    runId: ctx.runId,
+    organizationId: ctx.organizationId,
+  });
+
+  try {
+    const result = await withSpan(tracer, `ai.tool.${toolName}`, async (span): Promise<ToolResult<T>> => {
     span.setAttribute('ai.tool.name', toolName);
     span.setAttribute('ai.run.id', ctx.runId);
     span.setAttribute('organization.id', ctx.organizationId);
@@ -286,6 +292,20 @@ export async function executeTool<T = unknown>(
       durationMs: Date.now() - startMs,
     });
 
-    return { ok: true, data: result };
-  });
+      return { ok: true, data: result };
+    });
+
+    observation?.end(
+      result.ok
+        ? { status: 'SUCCESS', result: result.data }
+        : { status: 'ERROR', code: result.code, message: result.message },
+      result.ok ? 'DEFAULT' : 'ERROR',
+      result.ok ? undefined : result.message,
+    );
+    return result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    observation?.end({ status: 'ERROR', message }, 'ERROR', message);
+    throw err;
+  }
 }

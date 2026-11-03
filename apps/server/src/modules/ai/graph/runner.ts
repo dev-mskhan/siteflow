@@ -17,6 +17,7 @@ import { getCheckpointer } from './checkpointer.js';
 import { UsageAccumulator } from '../cost/usage.service.js';
 import { BudgetGuard } from '../guardrails/budget-guard.js';
 import { buildTraceHandle } from '../observability/tracing.js';
+import { attachRunTraceHandle } from '../core/run-context.js';
 import {
   AgentNotFoundError,
   MaxStepsExceededError,
@@ -83,13 +84,15 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
   if (!builder) throw new AgentNotFoundError(ctx.agent);
 
   // ── 2. Create per-run accumulator + budget guard ──────────────────────────
-  const accumulator = new UsageAccumulator(ctx);
-  const budgetGuard = new BudgetGuard(ctx, accumulator);
-  const traceHandle = buildTraceHandle(ctx);
+  const runInput = initialInput ?? ctx.input ?? {};
+  const traceHandle = buildTraceHandle(ctx, runInput);
+  const runCtx = attachRunTraceHandle(ctx, traceHandle);
+  const accumulator = new UsageAccumulator(runCtx);
+  const budgetGuard = new BudgetGuard(runCtx, accumulator);
 
   // ── 3. Compile graph with checkpointer ───────────────────────────────────
   const checkpointer = await getCheckpointer();
-  const compiledGraph = builder(ctx, accumulator).compile({ checkpointer });
+  const compiledGraph = builder(runCtx, accumulator).compile({ checkpointer });
 
   // ── 4. Build LangGraph config ─────────────────────────────────────────────
   // thread_id == runId ensures each run has its own isolated checkpoint thread.
@@ -115,7 +118,6 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
     let interrupted = false;
 
     // stream('values') yields the full state after each node completes
-    const runInput = initialInput ?? ctx.input ?? {};
     const stream = await compiledGraph.stream(
       { input: runInput },
       { ...lgConfig, signal: abort },
@@ -172,7 +174,11 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
 
     // Flush usage to daily aggregate (non-fatal)
     await accumulator.flush();
-    traceHandle.end(finalOutput, interrupted ? 'DEFAULT' : 'DEFAULT');
+    traceHandle.end(
+      finalOutput,
+      'DEFAULT',
+      interrupted ? 'AWAITING_APPROVAL' : 'SUCCEEDED',
+    );
 
     return {
       output: finalOutput ?? {
@@ -189,7 +195,7 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
   } catch (err) {
     // Flush whatever usage we accumulated before failing
     await accumulator.flush();
-    traceHandle.end(err, 'ERROR');
+    traceHandle.end(err, 'ERROR', 'FAILED');
 
     if (
       err instanceof MaxStepsExceededError ||
@@ -227,15 +233,16 @@ export async function resumeRun(
   const builder = GRAPH_REGISTRY[ctx.agent as keyof typeof GRAPH_REGISTRY];
   if (!builder) throw new AgentNotFoundError(ctx.agent);
 
+  const traceHandle = buildTraceHandle(ctx, ctx.input ?? { resumed: true });
+  const runCtx = attachRunTraceHandle(ctx, traceHandle);
   const accumulator = new UsageAccumulator(
-    ctx,
+    runCtx,
     initialUsage?.tokensIn ?? 0,
     initialUsage?.tokensOut ?? 0,
   );
-  const budgetGuard = new BudgetGuard(ctx, accumulator);
-  const traceHandle = buildTraceHandle(ctx);
+  const budgetGuard = new BudgetGuard(runCtx, accumulator);
   const checkpointer = await getCheckpointer();
-  const compiledGraph = builder(ctx, accumulator).compile({ checkpointer });
+  const compiledGraph = builder(runCtx, accumulator).compile({ checkpointer });
 
   const lgConfig = {
     configurable: { thread_id: threadId, checkpoint_ns: '' },
@@ -287,7 +294,7 @@ export async function resumeRun(
     }
 
     await accumulator.flush();
-    traceHandle.end(finalOutput);
+    traceHandle.end(finalOutput, 'DEFAULT', 'SUCCEEDED');
 
     // Check if still interrupted (e.g. multiple approval steps)
     const interrupted = !!(currentState.next && currentState.next.length > 0);
@@ -302,7 +309,7 @@ export async function resumeRun(
     };
   } catch (err) {
     await accumulator.flush();
-    traceHandle.end(err, 'ERROR');
+    traceHandle.end(err, 'ERROR', 'FAILED');
     if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
       throw new RunTimeoutError(runId, limits.timeoutMs);
     }

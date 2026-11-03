@@ -18,11 +18,11 @@ const logger = createLogger({ name: 'ai-output-guard' });
  * Validates the agent's raw output against a Zod schema.
  * Returns the parsed output on success, throws on failure.
  */
-export function validateOutput<T>(
+export function validateOutput<TSchema extends z.ZodTypeAny>(
   output: unknown,
-  schema: z.ZodType<T>,
+  schema: TSchema,
   agentName: string,
-): T {
+): z.output<TSchema> {
   const result = schema.safeParse(output);
   if (!result.success) {
     const issues = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
@@ -112,6 +112,38 @@ export function enforceNumberProvenance(
     throw new Error(
       `Provenance violation in agent "${agentName}": The following numeric values were not found in any tool result: ${details}. ` +
       `All figures must come directly from tool calls — the model must not compute or invent numbers.`,
+    );
+  }
+}
+
+export function enforceFigureProvenance(
+  figures: Array<{ label: string; value: string | number; currency?: string }>,
+  toolResults: Array<Record<string, unknown>>,
+  agentName: string,
+): void {
+  const sourceValues = new Set<string>();
+  const collect = (value: unknown): void => {
+    if (typeof value === 'string' || typeof value === 'number') {
+      sourceValues.add(String(value));
+    } else if (Array.isArray(value)) {
+      value.forEach(collect);
+    } else if (value !== null && typeof value === 'object') {
+      Object.values(value).forEach(collect);
+    }
+  };
+  collect(toolResults);
+
+  const unsupported = figures.filter((figure) => {
+    const value = String(figure.value);
+    const numeric = typeof figure.value === 'number' || /^-?\d+(?:\.\d+)?$/.test(value);
+    return (numeric || figure.currency !== undefined) && !sourceValues.has(value);
+  });
+  if (unsupported.length > 0) {
+    const details = unsupported.map((figure) => `${figure.label}=${figure.value}`).join(', ');
+    logger.error({ agentName, unsupportedFigures: details }, 'Figure provenance enforcement FAILED');
+    throw new Error(
+      `Figure provenance violation in agent "${agentName}": ${details}. ` +
+      'Numeric figures must appear verbatim in tool results.',
     );
   }
 }

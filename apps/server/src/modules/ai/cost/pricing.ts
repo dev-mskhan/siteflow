@@ -16,6 +16,12 @@ export interface ModelPricing {
   outputPer1k: number;
 }
 
+export interface ModelCostBreakdown {
+  inputCostUsd: string;
+  outputCostUsd: string;
+  totalCostUsd: string;
+}
+
 /**
  * Pricing table keyed by the model ID string.
  * Covers the models used for "cheap" and "strong" tiers plus common variants.
@@ -89,8 +95,21 @@ export function calculateCostUsd(
   tokensOut: number,
   allowLocalProxyPricing = false,
 ): string {
+  return calculateCostBreakdown(modelId, tokensIn, tokensOut, allowLocalProxyPricing).totalCostUsd;
+}
+
+export function calculateCostBreakdown(
+  modelId: string,
+  tokensIn: number,
+  tokensOut: number,
+  allowLocalProxyPricing = false,
+): ModelCostBreakdown {
   const p = getPricing(modelId, allowLocalProxyPricing);
   const inputCost = new Decimal(tokensIn).mul(p.inputPer1k).div(1000);
   const outputCost = new Decimal(tokensOut).mul(p.outputPer1k).div(1000);
-  return inputCost.plus(outputCost).toFixed(6);
+  return {
+    inputCostUsd: inputCost.toFixed(6),
+    outputCostUsd: outputCost.toFixed(6),
+    totalCostUsd: inputCost.plus(outputCost).toFixed(6),
+  };
 }

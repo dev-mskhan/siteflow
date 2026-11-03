@@ -18,6 +18,7 @@ import { serverEnv } from '../../../config/env.js';
 import { createLogger } from '@siteflow/observability/server';
 import type { ModelTier } from '../core/types.js';
 import type { UsageAccumulator } from '../cost/usage.service.js';
+import type { GenerationHandle } from '../observability/tracing.js';
 
 const logger = createLogger({ name: 'ai-model-factory' });
 
@@ -83,16 +84,25 @@ assertSafeLlmBaseUrl(serverEnv.NODE_ENV, serverEnv.OPENAI_BASE_URL);
 
 function makeUsageCallback(accumulator: UsageAccumulator, defaultModel: string): Partial<BaseCallbackHandler> {
   const promptCharactersByRun = new Map<string, number>();
+  const generationsByRun = new Map<string, GenerationHandle>();
   const savePromptLength = (runId: string, prompt: string): void => {
     promptCharactersByRun.set(runId, prompt.length);
+  };
+  const startGeneration = (runId: string, input: unknown): void => {
+    if (generationsByRun.has(runId)) return;
+    const generation = accumulator.traceHandle?.startGeneration(`llm:${defaultModel}`, input);
+    if (generation) generationsByRun.set(runId, generation);
   };
   return {
     name: 'ai-usage-callback',
     handleLLMStart(_llm, prompts, runId) {
       savePromptLength(runId, prompts.join(''));
+      startGeneration(runId, prompts);
     },
     handleChatModelStart(_llm, messages, runId) {
-      savePromptLength(runId, JSON.stringify(messages));
+      const serialized = JSON.stringify(messages);
+      savePromptLength(runId, serialized);
+      startGeneration(runId, messages);
     },
     handleLLMEnd(output, runId) {
       try {
@@ -111,17 +121,40 @@ function makeUsageCallback(accumulator: UsageAccumulator, defaultModel: string):
           promptCharactersByRun.get(runId) ?? 0,
           outputCharacters,
         );
-        accumulator.record(
+        const usageRecord = accumulator.record(
           modelId,
           usageCounts.tokensIn,
           usageCounts.tokensOut,
           usageCounts.usageSource,
         );
+        const generationOutput = output.generations.flat().map((generation) => ({
+          text: generation.text,
+          generationInfo: generation.generationInfo,
+        }));
+        generationsByRun.get(runId)?.end(generationOutput, {
+          inputTokens: usageRecord.tokensIn,
+          outputTokens: usageRecord.tokensOut,
+          inputCostUsd: usageRecord.inputCostUsd,
+          outputCostUsd: usageRecord.outputCostUsd,
+          totalCostUsd: usageRecord.costUsd,
+          costSource: usageRecord.costSource,
+          usageSource: usageRecord.usageSource,
+        });
+        generationsByRun.delete(runId);
         promptCharactersByRun.delete(runId);
       } catch (err) {
         // Never throw from a callback — just log and continue
         logger.warn({ err }, 'Usage callback error — token counts may be incomplete');
       }
+    },
+    handleLLMError(error, runId) {
+      generationsByRun.get(runId)?.end(
+        { error: error instanceof Error ? error.message : String(error) },
+        undefined,
+        error instanceof Error ? error.message : String(error),
+      );
+      generationsByRun.delete(runId);
+      promptCharactersByRun.delete(runId);
     },
   };
 }

@@ -139,6 +139,8 @@ export const serverEnv = createEnv({
     LANGFUSE_SECRET_KEY: z.string().optional(),
     /** Langfuse host — defaults to Langfuse Cloud */
     LANGFUSE_HOST: z.string().url().optional(),
+    /** Langfuse observation content policy. Redaction is the safe default. */
+    LANGFUSE_CAPTURE_CONTENT: z.enum(['metadata-only', 'redacted', 'full']).default('redacted'),
 
     // STT / VoiceStudio (Audio)
     VOICESTUDIO_URL: z.string().url().optional(),
