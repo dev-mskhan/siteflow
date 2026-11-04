@@ -142,6 +142,11 @@ export const serverEnv = createEnv({
     /** Langfuse observation content policy. Redaction is the safe default. */
     LANGFUSE_CAPTURE_CONTENT: z.enum(['metadata-only', 'redacted', 'full']).default('redacted'),
 
+    // Jina AI — embeddings for RAG pipeline
+    JINA_API_KEY: z.string().optional(),
+    JINA_EMBEDDING_MODEL: z.string().default('jina-embeddings-v3'),
+    JINA_EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1024),
+
     // STT / VoiceStudio (Audio)
     VOICESTUDIO_URL: z.string().url().optional(),
     VOICESTUDIO_API_KEY: z.string().optional(),

@@ -1,6 +1,7 @@
 // packages/database/src/schema/ai.schema.ts
 // AI module persistence layer — agent_runs, agent_tool_calls, agent_approvals,
-// agent_usage_daily. All tables are tenant-scoped (organizationId mandatory).
+// agent_usage_daily, knowledge_chunks.
+// All tables are tenant-scoped (organizationId mandatory).
 // NEVER import domain tables from here — keep AI schema self-contained.
 
 import { sql } from 'drizzle-orm';
@@ -15,6 +16,7 @@ import {
   uniqueIndex,
   date,
 } from 'drizzle-orm/pg-core';
+import { vector } from 'drizzle-orm/pg-core/columns/vector_extension/vector';
 import { appSchema } from './auth.schema';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
@@ -228,6 +230,41 @@ export const agentUsageDaily = appSchema.table(
     check('agent_usage_daily_cost_nonneg', sql`${t.costUsd} >= 0`),
   ],
 );
+
+// ── knowledge_chunks ──────────────────────────────────────────────────────────
+// One row per text chunk extracted from a document version.
+// Embeddings are 1024-dim float vectors (jina-embeddings-v3).
+// Status: ACTIVE = searchable; SUPERSEDED = replaced by a newer document version.
+// HNSW index created via raw SQL migration (not in Drizzle schema).
+
+export const knowledgeChunks = appSchema.table(
+  'knowledge_chunks',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id').notNull(),
+    projectId: text('project_id').notNull(),
+    documentId: text('document_id').notNull(),
+    documentVersionId: text('document_version_id').notNull(),
+    versionNumber: integer('version_number').notNull(),
+    chunkIndex: integer('chunk_index').notNull(),
+    content: text('content').notNull(),
+    embedding: vector({ dimensions: 1024 }).notNull(),
+    pageReference: text('page_reference'),
+    status: text('status').notNull().default('ACTIVE'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('knowledge_chunks_org_project_idx').on(t.organizationId, t.projectId),
+    index('knowledge_chunks_document_idx').on(t.documentId, t.documentVersionId),
+    index('knowledge_chunks_status_idx').on(t.organizationId, t.projectId, t.status),
+    check('knowledge_chunks_status_check', sql`${t.status} IN ('ACTIVE', 'SUPERSEDED')`),
+    check('knowledge_chunks_version_positive', sql`${t.versionNumber} > 0`),
+    check('knowledge_chunks_chunk_nonneg', sql`${t.chunkIndex} >= 0`),
+  ],
+);
+
+export type KnowledgeChunk = typeof knowledgeChunks.$inferSelect;
+export type NewKnowledgeChunk = typeof knowledgeChunks.$inferInsert;
 
 // ── TypeScript types ──────────────────────────────────────────────────────────
 
