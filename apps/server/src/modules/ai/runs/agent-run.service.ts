@@ -20,6 +20,7 @@ export interface StartRunInput {
   triggerRef?: string;
   channel?: 'api' | 'chat' | 'voice';
   conversationId?: string;
+  parentRunId?: string; // For sub-runs created by coordinator or other agents
   correlationId?: string;
   input: Record<string, unknown>;
   createdBy: string; // userId — resolved from request.user server-side
@@ -70,6 +71,7 @@ export class AgentRunService {
         triggerRef: input.triggerRef ?? null,
         channel: input.channel ?? 'api',
         conversationId: input.conversationId ?? null,
+        parentRunId: input.parentRunId ?? null,
         correlationId: input.correlationId ?? null,
         status: 'QUEUED',
         inputSnapshot: input.input,

@@ -34,6 +34,7 @@ export const agentRunTriggerEnum = appSchema.enum('agent_run_trigger', [
   'USER',
   'EVENT',
   'SCHEDULE',
+  'AGENT', // Sub-run triggered by another agent (e.g. coordinator)
 ]);
 
 export const agentToolCallStatusEnum = appSchema.enum('agent_tool_call_status', [

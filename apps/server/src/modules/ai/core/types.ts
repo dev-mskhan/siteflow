@@ -27,6 +27,7 @@ export type AgentName =
   | 'procurement'
   | 'compliance'
   | 'estimating-boq'
+  | 'coordinator' // Routes questions to specialized agents
   | 'echo'
   | 'echo-approval'
   | 'echo-loop'

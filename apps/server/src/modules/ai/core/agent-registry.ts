@@ -13,6 +13,8 @@ import { complianceOutputSchema } from '../agents/compliance/output.schema.js';
 import { PROMPT_VERSION as COMPLIANCE_PROMPT_VERSION } from '../agents/compliance/prompts.js';
 import { estimatingBoqOutputSchema } from '../agents/estimating-boq/output.schema.js';
 import { PROMPT_VERSION as ESTIMATING_BOQ_PROMPT_VERSION } from '../agents/estimating-boq/prompts.js';
+import { coordinatorOutputSchema } from '../agents/coordinator/output.schema.js';
+import { PROMPT_VERSION as COORDINATOR_PROMPT_VERSION } from '../agents/coordinator/prompts.js';
 
 export interface AgentManifest {
   name: AgentName;
@@ -168,5 +170,18 @@ registerAgent({
     'search_knowledge_base',
   ],
   tier: 'strong',
+  supportedChannels: ['api', 'chat'],
+});
+
+// ── WAVE 4 Agents ─────────────────────────────────────────────────────────────
+
+registerAgent({
+  name: 'coordinator',
+  version: '1.0.0',
+  promptVersion: COORDINATOR_PROMPT_VERSION,
+  inputSchema: z.object({ question: z.string().optional() }).passthrough(),
+  outputSchema: coordinatorOutputSchema,
+  allowedTools: ['route_to_agent', 'list_available_agents'],
+  tier: 'cheap', // Uses gpt-4o-mini for classification/routing
   supportedChannels: ['api', 'chat'],
 });
