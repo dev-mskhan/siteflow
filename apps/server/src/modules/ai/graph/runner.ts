@@ -37,6 +37,8 @@ import { buildProcurementGraph } from '../agents/procurement/graph.js';
 import { buildEchoApprovalGraph } from '../agents/echo-approval/graph.js';
 import { buildEchoLoopGraph } from '../agents/echo-loop/graph.js';
 import { buildEchoSlowGraph } from '../agents/echo-slow/graph.js';
+import { buildComplianceGraph } from '../agents/compliance/graph.js';
+import { buildEstimatingBoqGraph } from '../agents/estimating-boq/graph.js';
 
 interface CompiledGraphLike {
   stream(input: unknown, config: unknown): Promise<AsyncIterable<unknown>>;
@@ -56,6 +58,8 @@ const GRAPH_REGISTRY: Record<AgentName, GraphBuilder> = {
   'echo-approval':   (ctx, acc) => buildEchoApprovalGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-loop':       (ctx, acc) => buildEchoLoopGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
   'echo-slow':       (ctx) => buildEchoSlowGraph(ctx) as unknown as ReturnType<GraphBuilder>,
+  'compliance':      (ctx, acc) => buildComplianceGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
+  'estimating-boq':  (ctx, acc) => buildEstimatingBoqGraph(ctx, acc) as unknown as ReturnType<GraphBuilder>,
 };
 
 // ── Result type ───────────────────────────────────────────────────────────────

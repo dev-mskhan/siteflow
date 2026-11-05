@@ -9,6 +9,10 @@ import { costFinancialOutputSchema } from '../agents/cost-financial/output.schem
 import { procurementOutputSchema } from '../agents/procurement/output.schema.js';
 import { PROMPT_VERSION as COST_FINANCIAL_PROMPT_VERSION } from '../agents/cost-financial/prompts.js';
 import { PROMPT_VERSION as PROCUREMENT_PROMPT_VERSION } from '../agents/procurement/prompts.js';
+import { complianceOutputSchema } from '../agents/compliance/output.schema.js';
+import { PROMPT_VERSION as COMPLIANCE_PROMPT_VERSION } from '../agents/compliance/prompts.js';
+import { estimatingBoqOutputSchema } from '../agents/estimating-boq/output.schema.js';
+import { PROMPT_VERSION as ESTIMATING_BOQ_PROMPT_VERSION } from '../agents/estimating-boq/prompts.js';
 
 export interface AgentManifest {
   name: AgentName;
@@ -119,4 +123,50 @@ registerAgent({
   tier: 'cheap',
   limitOverrides: { timeoutMs: 3000 }, // 3-second timeout for tests
   supportedChannels: ['api'],
+});
+
+// ── WAVE 3 Agents ─────────────────────────────────────────────────────────────
+
+registerAgent({
+  name: 'compliance',
+  version: '1.0.0',
+  promptVersion: COMPLIANCE_PROMPT_VERSION,
+  inputSchema: z.object({ question: z.string().optional() }).passthrough(),
+  outputSchema: complianceOutputSchema,
+  allowedTools: [
+    'read_okf_page',
+    'list_quality_inspections',
+    'list_quality_deficiencies',
+    'list_corrective_actions',
+    'list_safety_events',
+    'list_permits',
+    'list_compliance_inspections',
+    'list_compliance_records',
+    'get_expiring_items',
+    'search_knowledge_base',
+  ],
+  tier: 'cheap',
+  supportedChannels: ['api', 'chat'],
+});
+
+registerAgent({
+  name: 'estimating-boq',
+  version: '1.0.0',
+  promptVersion: ESTIMATING_BOQ_PROMPT_VERSION,
+  inputSchema: z.object({ question: z.string().optional() }).passthrough(),
+  outputSchema: estimatingBoqOutputSchema,
+  allowedTools: [
+    'read_okf_page',
+    'list_boqs',
+    'get_boq_revision',
+    'list_estimates',
+    'get_estimate',
+    'list_takeoff_sheets',
+    'get_takeoff_measurements',
+    'get_takeoff_summary',
+    'list_cost_codes',
+    'search_knowledge_base',
+  ],
+  tier: 'strong',
+  supportedChannels: ['api', 'chat'],
 });

@@ -6,6 +6,8 @@
 import './tools/definitions/cost.tools.js';
 import './tools/definitions/procurement.tools.js';
 import './tools/definitions/knowledge.tools.js';
+import './tools/definitions/compliance.tools.js';
+import './tools/definitions/estimating-boq.tools.js';
 import './tools/definitions/test.tools.js';
 import './core/agent-registry.js';
 
@@ -16,3 +18,4 @@ export { voiceRoutes } from './voice/voice.routes.js';
 export { registerAgentRunWorkers } from './workers/agent-run.worker.js';
 export { registerAiTranscribeWorker } from './voice/transcribe.worker.js';
 export { registerAiReaperWorker, runReaperSweep } from './workers/reaper.worker.js';
+export { registerIngestionWorker } from './ingestion/ingestion.worker.js';

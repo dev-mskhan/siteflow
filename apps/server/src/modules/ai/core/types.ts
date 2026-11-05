@@ -25,6 +25,8 @@ export type {
 export type AgentName =
   | 'cost-financial'
   | 'procurement'
+  | 'compliance'
+  | 'estimating-boq'
   | 'echo'
   | 'echo-approval'
   | 'echo-loop'

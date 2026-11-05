@@ -111,3 +111,14 @@ export async function calculateObjectSha256(key: string): Promise<string> {
   }
   return hash.digest('hex');
 }
+
+/** Download an object from MinIO and return its full contents as a Buffer. */
+export async function downloadBuffer(key: string): Promise<Buffer> {
+  validateObjectKey(key);
+  const stream = await minioClient.getObject(serverEnv.MINIO_BUCKET_DOCUMENTS, key) as Readable;
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
