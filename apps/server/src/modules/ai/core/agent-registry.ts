@@ -15,6 +15,8 @@ import { estimatingBoqOutputSchema } from '../agents/estimating-boq/output.schem
 import { PROMPT_VERSION as ESTIMATING_BOQ_PROMPT_VERSION } from '../agents/estimating-boq/prompts.js';
 import { coordinatorOutputSchema } from '../agents/coordinator/output.schema.js';
 import { PROMPT_VERSION as COORDINATOR_PROMPT_VERSION } from '../agents/coordinator/prompts.js';
+import { reportsOutputSchema } from '../agents/reports/output.schema.js';
+import { PROMPT_VERSION as REPORTS_PROMPT_VERSION } from '../agents/reports/prompts.js';
 
 export interface AgentManifest {
   name: AgentName;
@@ -183,5 +185,24 @@ registerAgent({
   outputSchema: coordinatorOutputSchema,
   allowedTools: ['route_to_agent', 'list_available_agents'],
   tier: 'cheap', // Uses gpt-4o-mini for classification/routing
+  supportedChannels: ['api', 'chat'],
+});
+
+registerAgent({
+  name: 'reports',
+  version: '1.0.0',
+  promptVersion: REPORTS_PROMPT_VERSION,
+  inputSchema: z.object({ question: z.string().optional() }).passthrough(),
+  outputSchema: reportsOutputSchema,
+  allowedTools: [
+    'get_health_report',
+    'get_schedule_report',
+    'get_cost_report',
+    'get_procurement_report',
+    'get_subcontractor_report',
+    'get_executive_summary',
+    'get_portfolio_report',
+  ],
+  tier: 'cheap',
   supportedChannels: ['api', 'chat'],
 });

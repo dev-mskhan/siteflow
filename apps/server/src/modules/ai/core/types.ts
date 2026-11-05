@@ -28,6 +28,7 @@ export type AgentName =
   | 'compliance'
   | 'estimating-boq'
   | 'coordinator' // Routes questions to specialized agents
+  | 'reports' // Generates project and portfolio reports
   | 'echo'
   | 'echo-approval'
   | 'echo-loop'
