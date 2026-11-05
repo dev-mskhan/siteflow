@@ -1,5 +1,12 @@
 # Directory Update Log
 
+## 2026-11-05
+
+- **Addition**: Added [computations/](computations/) directory with attested computation concepts
+- **Creation**: Added [Budget Variance Calculation](computations/budget-variance.md) attested computation
+- **Creation**: Added [Retainage Calculation](computations/retainage-calculation.md) attested computation
+- **Conformance**: OKF v0.2 bundle now includes all planned concept types (Metrics, Tables, Computations, Playbooks, References)
+
 ## 2026-11-02
 
 - **Initialization**: Created OKF v0.2 bundle for SiteFlow construction management platform
