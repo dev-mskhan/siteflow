@@ -21,6 +21,7 @@
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { TraceCollector } from '../harness/trace-collector.js';
+import '../../../src/modules/ai/index.js'; // Import to trigger tool registration
 import { executeTool } from '../../../src/modules/ai/tools/tool-factory.js';
 import { buildRunContext, type RunContext } from '../../../src/modules/ai/core/run-context.js';
 import { getDb } from '../../../src/lib/db/db.js';
