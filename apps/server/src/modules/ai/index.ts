@@ -9,7 +9,7 @@ import './tools/definitions/knowledge.tools.js';
 import './tools/definitions/compliance.tools.js';
 import './tools/definitions/estimating-boq.tools.js';
 import './tools/definitions/test.tools.js';
-import './tools/definitions/binding.tools.js';
+// import './tools/definitions/binding.tools.js'; // TODO: Enable after ToolApprovalService is implemented
 import './core/agent-registry.js';
 
 export { agentRunRoutes } from './runs/agent-run.routes.js';
