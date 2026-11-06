@@ -15,6 +15,7 @@ import {
   registerAiTranscribeWorker,
   registerAiReaperWorker,
 } from './modules/ai/index.js';
+import { registerMemoryCleanupWorker } from './modules/ai/memory/memory-cleanup.worker.js';
 import { registerPlatformAccountNoticeWorkers } from './modules/platform/platform-account-notice.worker.js';
 import { registerEventNotificationWorkers } from './modules/notification/event-notification.worker.js';
 import { registerDocumentWorkers } from './modules/project/documents/document.worker.js';
@@ -37,6 +38,7 @@ export async function registerWorkers(boss: PgBoss): Promise<void> {
   await registerAgentRunWorkers(boss);
   await registerAiTranscribeWorker(boss);
   await registerAiReaperWorker(boss);
+  await registerMemoryCleanupWorker(boss);
   await registerPlatformAccountNoticeWorkers(boss);
   await registerEventNotificationWorkers(boss);
   await registerDocumentWorkers(boss);

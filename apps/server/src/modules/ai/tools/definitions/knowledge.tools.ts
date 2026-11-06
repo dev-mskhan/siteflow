@@ -261,13 +261,79 @@ registerTool({
       ORDER BY rc.similarity DESC
     `) as unknown as any[];
 
-    if (!rows || rows.length === 0) {
+    // Also fetch APPROVED OKF pages for this organization
+    const okfPages = await db.execute(drizzleSql`
+      SELECT
+        id,
+        page_path AS "pagePath",
+        title,
+        content,
+        version,
+        approved_at AS "approvedAt"
+      FROM app.okf_pages
+      WHERE organization_id = ${ctx.organizationId}
+        AND status = 'APPROVED'
+      ORDER BY approved_at DESC
+      LIMIT 5
+    `) as unknown as any[];
+
+    if ((!rows || rows.length === 0) && (!okfPages || okfPages.length === 0)) {
       return {
         chunks: [],
-        message: 'not found in documents — no sufficiently similar content found for this query.',
+        okfPages: [],
+        message: 'not found in documents or knowledge base — no sufficiently similar content found for this query.',
       };
     }
 
-    return { chunks: rows, message: null };
+    return { chunks: rows || [], okfPages: okfPages || [], message: null };
+  },
+});
+
+
+// ── 3. propose_okf_page ───────────────────────────────────────────────────────
+// Learning loop: Agent proposes OKF knowledge page based on user correction
+
+import { OkfService } from '../../okf/okf.service.js';
+
+registerTool({
+  name: 'propose_okf_page',
+  description:
+    'Propose a new OKF knowledge page based on user correction. ' +
+    'Creates a DRAFT page that requires admin approval before being served to agents. ' +
+    'Use when a user corrects your answer and the correction should become org knowledge.',
+  argsSchema: z.object({
+    pagePath: z
+      .string()
+      .regex(/^[a-z0-9\/-]+$/)
+      .describe('Path for the page (e.g., "corrections/cost-code-naming"). Use lowercase, hyphens, slashes only.'),
+    title: z.string().max(200).describe('Brief title for the knowledge page'),
+    content: z.string().max(5000).describe('Markdown content explaining the correction'),
+    correctionContext: z.object({
+      originalQuestion: z.string(),
+      agentAnswer: z.string(),
+      userCorrection: z.string(),
+      timestamp: z.string(),
+    }).describe('Context about what was corrected'),
+  }),
+  riskTier: 'WRITE',
+  requiredPermission: 'okf:propose', // Auto-granted to agents
+  async execute({ pagePath, title, content, correctionContext }, ctx) {
+    const okfService = new OkfService();
+
+    const page = await okfService.createProposedPage({
+      organizationId: ctx.organizationId,
+      pagePath,
+      title,
+      content,
+      source: 'AGENT_CORRECTION',
+      correctionContext,
+      createdBy: ctx.userId,
+    });
+
+    return {
+      pageId: page.id,
+      status: 'DRAFT',
+      message: 'Proposed knowledge page created. An admin must approve it before agents can use it.',
+    };
   },
 });

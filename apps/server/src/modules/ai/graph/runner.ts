@@ -17,7 +17,8 @@ import { getCheckpointer } from './checkpointer.js';
 import { UsageAccumulator } from '../cost/usage.service.js';
 import { BudgetGuard } from '../guardrails/budget-guard.js';
 import { buildTraceHandle } from '../observability/tracing.js';
-import { attachRunTraceHandle } from '../core/run-context.js';
+import { attachRunTraceHandle, attachMemory } from '../core/run-context.js';
+import { getMemoryStore } from '../memory/memory-store.js';
 import {
   AgentNotFoundError,
   MaxStepsExceededError,
@@ -91,10 +92,16 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
   const builder = GRAPH_REGISTRY[ctx.agent as keyof typeof GRAPH_REGISTRY];
   if (!builder) throw new AgentNotFoundError(ctx.agent);
 
-  // ── 2. Create per-run accumulator + budget guard ──────────────────────────
+  // ── 2. Create per-run accumulator + budget guard + memory ─────────────────
   const runInput = initialInput ?? ctx.input ?? {};
   const traceHandle = buildTraceHandle(ctx, runInput);
-  const runCtx = attachRunTraceHandle(ctx, traceHandle);
+  
+  // Attach memory store
+  const memoryStore = getMemoryStore();
+  const memory = memoryStore.forContext(ctx);
+  let runCtx = attachMemory(ctx, memory);
+  runCtx = attachRunTraceHandle(runCtx, traceHandle);
+  
   const accumulator = new UsageAccumulator(runCtx);
   const budgetGuard = new BudgetGuard(runCtx, accumulator);
 

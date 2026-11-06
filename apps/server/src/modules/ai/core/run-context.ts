@@ -14,6 +14,7 @@ import { DEFAULT_RUN_LIMITS } from './types.js';
 import { TenantLeakError } from './errors.js';
 import type { AgentRun } from '@siteflow/database/schema';
 import type { RunTraceHandle } from '../observability/tracing.js';
+import type { NamespacedMemory } from '../memory/memory-store.js';
 
 // ── Type ──────────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,8 @@ export interface RunContext {
   readonly threadId: string;
   /** Per-execution observer; attached by the runner and never persisted. */
   readonly traceHandle?: RunTraceHandle;
+  /** Namespaced memory store for agent preferences and corrections (Wave 5) */
+  readonly memory?: NamespacedMemory;
 }
 
 // ── Builder ───────────────────────────────────────────────────────────────────
@@ -82,6 +85,18 @@ export function buildRunContext(
 
 export function attachRunTraceHandle(ctx: RunContext, traceHandle: RunTraceHandle): RunContext {
   return Object.freeze({ ...ctx, traceHandle });
+}
+
+/**
+ * Attach memory store to RunContext.
+ * Called by runner after building context.
+ */
+/**
+ * Attach memory store to RunContext.
+ * Called by runner after building context.
+ */
+export function attachMemory(ctx: RunContext, memory: NamespacedMemory): RunContext {
+  return Object.freeze({ ...ctx, memory });
 }
 
 // ── Guard ─────────────────────────────────────────────────────────────────────
