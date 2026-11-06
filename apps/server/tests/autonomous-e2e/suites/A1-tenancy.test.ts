@@ -31,7 +31,7 @@ import { eq } from 'drizzle-orm';
 describe('A1: Tenancy Isolation', () => {
   let orgA: { id: string; name: string };
   let orgB: { id: string; name: string };
-  let projectA: { id: string; name: string; budget: number };
+  let projectA: { id: string; name: string; contractValue: string | null };
   let userB: { id: string; email: string };
   let traceCollector: TraceCollector;
 
@@ -43,8 +43,10 @@ describe('A1: Tenancy Isolation', () => {
     const [testAdmin] = await db.insert(users).values({
       id: generateId(),
       email: 'test-admin@siteflow.test',
+      firstName: 'Test',
+      lastName: 'Admin',
       passwordHash: 'not-used-in-tests',
-      emailVerified: true,
+      emailVerifiedAt: new Date(),
     }).returning();
 
     // Create org-A with project-A and sensitive data
@@ -58,10 +60,12 @@ describe('A1: Tenancy Isolation', () => {
     [projectA] = await db.insert(projects).values({
       id: generateId(),
       organizationId: orgA.id,
+      projectNumber: 'PRJ-001',
       name: 'Tower Project Alpha',
+      currency: 'USD',
       status: 'ACTIVE',
       // This is the sensitive data we're protecting
-      budget: 1000000, // $1M
+      contractValue: '1000000', // $1M
     }).returning();
 
     // Create org-B with attacker user
@@ -75,8 +79,10 @@ describe('A1: Tenancy Isolation', () => {
     [userB] = await db.insert(users).values({
       id: generateId(),
       email: 'attacker@org-b.com',
+      firstName: 'Evil',
+      lastName: 'Attacker',
       passwordHash: 'not-used-in-tests',
-      emailVerified: true,
+      emailVerifiedAt: new Date(),
     }).returning();
 
     // Link user-B to org-B (would be done via memberships in real system)
