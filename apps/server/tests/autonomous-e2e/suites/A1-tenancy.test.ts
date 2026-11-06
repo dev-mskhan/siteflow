@@ -24,6 +24,7 @@ import { TraceCollector } from '../harness/trace-collector.js';
 import { executeTool } from '../../../src/modules/ai/tools/tool-factory.js';
 import { RunContext } from '../../../src/modules/ai/core/run-context.js';
 import { getDb } from '../../../src/lib/db/db.js';
+import { generateId } from '../../../src/lib/id.js';
 import { organizations, projects, users } from '@siteflow/database/schema';
 import { eq } from 'drizzle-orm';
 
@@ -38,13 +39,24 @@ describe('A1: Tenancy Isolation', () => {
     const db = getDb();
     traceCollector = new TraceCollector();
 
+    // Create test users first
+    const [testAdmin] = await db.insert(users).values({
+      id: generateId(),
+      email: 'test-admin@siteflow.test',
+      passwordHash: 'not-used-in-tests',
+      emailVerified: true,
+    }).returning();
+
     // Create org-A with project-A and sensitive data
     [orgA] = await db.insert(organizations).values({
+      id: generateId(),
       name: 'Acme Construction (Org-A)',
       slug: 'org-a-test',
+      createdBy: testAdmin.id,
     }).returning();
 
     [projectA] = await db.insert(projects).values({
+      id: generateId(),
       organizationId: orgA.id,
       name: 'Tower Project Alpha',
       status: 'ACTIVE',
@@ -54,11 +66,14 @@ describe('A1: Tenancy Isolation', () => {
 
     // Create org-B with attacker user
     [orgB] = await db.insert(organizations).values({
+      id: generateId(),
       name: 'Evil Corp (Org-B)',
       slug: 'org-b-test',
+      createdBy: testAdmin.id,
     }).returning();
 
     [userB] = await db.insert(users).values({
+      id: generateId(),
       email: 'attacker@org-b.com',
       passwordHash: 'not-used-in-tests',
       emailVerified: true,
