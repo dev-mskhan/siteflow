@@ -5,9 +5,9 @@
 // - Percentiles (p50, p95, p99) for latency/cost
 // - Chi-squared test for routing accuracy
 
-import { createLogger } from '@siteflow/observability/server';
+import pino from 'pino';
 
-const logger = createLogger({ name: 'stats' });
+const logger = pino({ name: 'stats' });
 
 /**
  * Calculate Wilson score confidence interval for a proportion

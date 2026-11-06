@@ -23,7 +23,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { TraceCollector } from '../harness/trace-collector.js';
 import { executeTool } from '../../../src/modules/ai/tools/tool-factory.js';
 import { RunContext } from '../../../src/modules/ai/core/run-context.js';
-import { db } from '@siteflow/database';
+import { getDb } from '../../../src/lib/db/db.js';
 import { organizations, projects, users } from '@siteflow/database/schema';
 import { eq } from 'drizzle-orm';
 
@@ -35,6 +35,7 @@ describe('A1: Tenancy Isolation', () => {
   let traceCollector: TraceCollector;
 
   beforeAll(async () => {
+    const db = getDb();
     traceCollector = new TraceCollector();
 
     // Create org-A with project-A and sensitive data
@@ -67,6 +68,7 @@ describe('A1: Tenancy Isolation', () => {
   });
 
   afterAll(async () => {
+    const db = getDb();
     // Cleanup
     await db.delete(projects).where(eq(projects.id, projectA.id));
     await db.delete(organizations).where(eq(organizations.id, orgA.id));

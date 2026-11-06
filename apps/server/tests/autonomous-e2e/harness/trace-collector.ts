@@ -6,10 +6,10 @@
 // - Errors and retries
 // Used for assertions + metrics collection
 
-import { config } from '@siteflow/env/server';
-import { createLogger } from '@siteflow/observability/server';
+import { serverEnv } from '../../../src/config/env.js';
+import pino from 'pino';
 
-const logger = createLogger({ name: 'trace-collector' });
+const logger = pino({ name: 'trace-collector' });
 
 export interface ToolCallTrace {
   name: string;
@@ -47,9 +47,9 @@ export class TraceCollector {
   private readonly secretKey: string;
 
   constructor() {
-    this.baseUrl = config.LANGFUSE_HOST || 'http://localhost:3020';
-    this.publicKey = config.LANGFUSE_PUBLIC_KEY || '';
-    this.secretKey = config.LANGFUSE_SECRET_KEY || '';
+    this.baseUrl = serverEnv.LANGFUSE_HOST || 'http://localhost:3020';
+    this.publicKey = serverEnv.LANGFUSE_PUBLIC_KEY || '';
+    this.secretKey = serverEnv.LANGFUSE_SECRET_KEY || '';
   }
 
   /**

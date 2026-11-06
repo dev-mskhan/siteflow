@@ -6,9 +6,9 @@
 
 import { z } from 'zod';
 import { GeminiWrapper } from './gemini-wrapper.js';
-import { createLogger } from '@siteflow/observability/server';
+import pino from 'pino';
 
-const logger = createLogger({ name: 'judge' });
+const logger = pino({ name: 'judge' });
 
 // Judgment schemas
 const GroundednessJudgment = z.object({

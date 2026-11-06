@@ -5,10 +5,10 @@
 // - Langfuse auto-tracing integration
 // - Timeout enforcement
 
-import { createLogger } from '@siteflow/observability/server';
-import { config } from '@siteflow/env/server';
+import { serverEnv } from '../../../src/config/env.js';
+import pino from 'pino';
 
-const logger = createLogger({ name: 'gemini-wrapper' });
+const logger = pino({ name: 'gemini-wrapper' });
 
 export class BudgetExceededError extends Error {
   constructor(spent: number, cap: number) {
@@ -25,8 +25,8 @@ export class GeminiWrapper {
 
   constructor(budgetCap: number) {
     this.cap = budgetCap;
-    this.baseUrl = config.OPENAI_BASE_URL || 'http://127.0.0.1:8081/v1';
-    this.apiKey = config.OPENAI_API_KEY || 'sk-your-key';
+    this.baseUrl = serverEnv.OPENAI_BASE_URL || 'http://127.0.0.1:8081/v1';
+    this.apiKey = serverEnv.OPENAI_API_KEY || 'sk-your-key';
   }
 
   /**
