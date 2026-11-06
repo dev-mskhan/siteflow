@@ -39,10 +39,12 @@ describe('A1: Tenancy Isolation', () => {
     const db = getDb();
     traceCollector = new TraceCollector();
 
+    const testRunId = generateId().slice(0, 8); // Unique suffix for this test run
+
     // Create test users first
     const [testAdmin] = await db.insert(users).values({
       id: generateId(),
-      email: 'test-admin@siteflow.test',
+      email: `test-admin-${testRunId}@siteflow.test`,
       firstName: 'Test',
       lastName: 'Admin',
       passwordHash: 'not-used-in-tests',
@@ -53,14 +55,14 @@ describe('A1: Tenancy Isolation', () => {
     [orgA] = await db.insert(organizations).values({
       id: generateId(),
       name: 'Acme Construction (Org-A)',
-      slug: 'org-a-test',
+      slug: `org-a-test-${testRunId}`,
       createdBy: testAdmin.id,
     }).returning();
 
     [projectA] = await db.insert(projects).values({
       id: generateId(),
       organizationId: orgA.id,
-      projectNumber: 'PRJ-001',
+      projectNumber: `PRJ-${testRunId}`,
       name: 'Tower Project Alpha',
       currency: 'USD',
       status: 'ACTIVE',
@@ -72,13 +74,13 @@ describe('A1: Tenancy Isolation', () => {
     [orgB] = await db.insert(organizations).values({
       id: generateId(),
       name: 'Evil Corp (Org-B)',
-      slug: 'org-b-test',
+      slug: `org-b-test-${testRunId}`,
       createdBy: testAdmin.id,
     }).returning();
 
     [userB] = await db.insert(users).values({
       id: generateId(),
-      email: 'attacker@org-b.com',
+      email: `attacker-${testRunId}@org-b.com`,
       firstName: 'Evil',
       lastName: 'Attacker',
       passwordHash: 'not-used-in-tests',
