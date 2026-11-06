@@ -25,6 +25,7 @@ import {
   RunTimeoutError,
 } from '../core/errors.js';
 import type { ToolResult } from '../core/types.js';
+import { redactPII } from '../guardrails/output-guard.js';
 
 const tracer = trace.getTracer('ai-tool-factory');
 const toolCallRepo = new ToolCallRepository();
@@ -259,6 +260,11 @@ export async function executeTool<T = unknown>(
       });
       return { ok: false, code: 'TOOL_EXECUTION_ERROR', message };
     }
+
+    // ── 5.5. PII Redaction ──────────────────────────────────────────────────
+    // Redact sensitive data from tool result BEFORE storage/logging/return to LLM
+    // This prevents PII leakage in: DB (outputSnapshot), Langfuse traces, user responses
+    result = redactPII(result, toolName);
 
     // ── 6. Tenant assertion ─────────────────────────────────────────────────
     // If the result is an object with organizationId, it must match the RunContext.

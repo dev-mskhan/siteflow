@@ -147,3 +147,72 @@ export function enforceFigureProvenance(
     );
   }
 }
+
+// ── PII Redaction ─────────────────────────────────────────────────────────────
+// Redacts sensitive data patterns from tool results before returning to LLM/storage
+
+const PII_PATTERNS: Array<{ pattern: RegExp; replacement: string; label: string }> = [
+  // SSN: 123-45-6789 or 123456789
+  { pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: '[REDACTED_SSN]', label: 'ssn' },
+  { pattern: /\b\d{9}\b/g, replacement: '[REDACTED_SSN]', label: 'ssn-no-dash' },
+  
+  // Credit card: 4532-1234-5678-9010 or 4532123456789010
+  { pattern: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, replacement: '[REDACTED_CARD]', label: 'credit-card' },
+  
+  // Email: user@domain.com
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, replacement: '[REDACTED_EMAIL]', label: 'email' },
+  
+  // Phone: +1-555-123-4567, (555) 123-4567, 555.123.4567, 5551234567
+  { pattern: /\b(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, replacement: '[REDACTED_PHONE]', label: 'phone' },
+  
+  // API keys: sk_test_abc123, pk_live_xyz789
+  { pattern: /\b[a-z]{2}_(?:test|live)_[A-Za-z0-9]{16,}\b/g, replacement: '[REDACTED_API_KEY]', label: 'api-key' },
+  
+  // Bearer tokens: Bearer eyJhbGciOi...
+  { pattern: /Bearer\s+[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/gi, replacement: 'Bearer [REDACTED_JWT]', label: 'jwt' },
+  
+  // Generic secrets (common env var patterns)
+  { pattern: /\b(secret|password|token|key)\s*[:=]\s*['"]?([^'"\s,}]+)['"]?/gi, replacement: '$1: [REDACTED]', label: 'secret-kv' },
+];
+
+/**
+ * Redacts PII and sensitive data from tool results before storage/logging.
+ * This is applied to the result AFTER execution and BEFORE audit log + return.
+ * 
+ * @param result - Tool execution result (any type)
+ * @param toolName - Tool name for logging
+ * @returns Redacted copy of result (original unchanged)
+ */
+export function redactPII<T>(result: T, toolName: string): T {
+  if (result === null || result === undefined) {
+    return result;
+  }
+
+  // Convert to JSON, apply patterns, parse back
+  const json = JSON.stringify(result);
+  let redacted = json;
+  const appliedPatterns: string[] = [];
+
+  for (const { pattern, replacement, label } of PII_PATTERNS) {
+    const before = redacted;
+    redacted = redacted.replace(pattern, replacement);
+    if (before !== redacted) {
+      appliedPatterns.push(label);
+    }
+  }
+
+  if (appliedPatterns.length > 0) {
+    logger.info(
+      { toolName, patterns: appliedPatterns },
+      'PII redaction applied to tool result',
+    );
+  }
+
+  try {
+    return JSON.parse(redacted) as T;
+  } catch {
+    // If parse fails (shouldn't happen), return original
+    logger.warn({ toolName }, 'PII redaction JSON parse failed, returning original');
+    return result;
+  }
+}
