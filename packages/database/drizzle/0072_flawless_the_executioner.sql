@@ -1,8 +1,8 @@
 CREATE TYPE "public"."tool_approval_status" AS ENUM('PENDING', 'APPROVED', 'REJECTED');--> statement-breakpoint
 ALTER TYPE "app"."agent_run_trigger" ADD VALUE 'AGENT';--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "okf_pages" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"organization_id" uuid NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
+	"organization_id" text NOT NULL,
 	"page_path" text NOT NULL,
 	"title" text NOT NULL,
 	"content" text NOT NULL,
@@ -10,22 +10,22 @@ CREATE TABLE IF NOT EXISTS "okf_pages" (
 	"version" integer DEFAULT 1 NOT NULL,
 	"source" text DEFAULT 'MANUAL' NOT NULL,
 	"correction_context" jsonb,
-	"created_by" uuid NOT NULL,
-	"approved_by" uuid,
+	"created_by" text NOT NULL,
+	"approved_by" text,
 	"approval_notes" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"approved_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "tool_approvals" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"organization_id" uuid NOT NULL,
+	"id" text PRIMARY KEY NOT NULL,
+	"organization_id" text NOT NULL,
 	"tool_name" varchar(100) NOT NULL,
-	"requested_by" uuid NOT NULL,
+	"requested_by" text NOT NULL,
 	"request_context" jsonb NOT NULL,
 	"tool_args" jsonb NOT NULL,
 	"status" "tool_approval_status" DEFAULT 'PENDING' NOT NULL,
-	"approved_by" uuid,
+	"approved_by" text,
 	"approved_at" timestamp,
 	"rejection_reason" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,

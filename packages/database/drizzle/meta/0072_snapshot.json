@@ -1,5 +1,5 @@
 {
-  "id": "4870ea06-7c62-4193-beac-069f3ad27982",
+  "id": "9d10dd8e-7f37-4a16-a63e-f7f5af592d58",
   "prevId": "5086e62f-254e-4d71-9e93-28703fcf4334",
   "version": "7",
   "dialect": "postgresql",
@@ -10512,14 +10512,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "organization_id": {
           "name": "organization_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -10570,13 +10569,13 @@
         },
         "created_by": {
           "name": "created_by",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "approved_by": {
           "name": "approved_by",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -31770,14 +31769,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "organization_id": {
           "name": "organization_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -31789,7 +31787,7 @@
         },
         "requested_by": {
           "name": "requested_by",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -31815,7 +31813,7 @@
         },
         "approved_by": {
           "name": "approved_by",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

@@ -3,13 +3,13 @@
 // OKF (Organizational Knowledge Framework) pages schema
 // Learning loop: Agent corrections create DRAFT pages for admin approval
 
-import { pgTable, uuid, text, integer, jsonb, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, jsonb, timestamp } from 'drizzle-orm/pg-core';
 import { organizations } from './org.schema';
 import { users } from './auth.schema';
 
 export const okfPages = pgTable('okf_pages', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   pagePath: text('page_path').notNull(), // e.g., "corrections/cost-code-naming"
   title: text('title').notNull(),
   content: text('content').notNull(), // Markdown
@@ -22,8 +22,8 @@ export const okfPages = pgTable('okf_pages', {
     userCorrection?: string;
     timestamp?: string;
   }>(),
-  createdBy: uuid('created_by').notNull().references(() => users.id),
-  approvedBy: uuid('approved_by').references(() => users.id),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  approvedBy: text('approved_by').references(() => users.id),
   approvalNotes: text('approval_notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   approvedAt: timestamp('approved_at', { withTimezone: true }),
