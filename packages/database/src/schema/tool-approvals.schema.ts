@@ -1,7 +1,7 @@
 // packages/database/src/schema/tool-approvals.schema.ts
 import { pgTable, uuid, varchar, text, jsonb, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import { organizations } from './org.schema.js';
-import { users } from './user.schema.js';
+import { users } from './auth.schema.js';
 
 export const toolApprovalStatusEnum = pgEnum('tool_approval_status', [
   'PENDING',

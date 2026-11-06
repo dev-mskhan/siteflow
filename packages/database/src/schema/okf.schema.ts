@@ -5,7 +5,7 @@
 
 import { pgTable, uuid, text, integer, jsonb, timestamp } from 'drizzle-orm/pg-core';
 import { organizations } from './org.schema.js';
-import { users } from './user.schema.js';
+import { users } from './auth.schema.js';
 
 export const okfPages = pgTable('okf_pages', {
   id: uuid('id').primaryKey().defaultRandom(),
