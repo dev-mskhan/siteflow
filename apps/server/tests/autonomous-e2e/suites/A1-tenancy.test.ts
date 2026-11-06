@@ -22,11 +22,28 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { TraceCollector } from '../harness/trace-collector.js';
 import { executeTool } from '../../../src/modules/ai/tools/tool-factory.js';
-import { RunContext } from '../../../src/modules/ai/core/run-context.js';
+import { buildRunContext, type RunContext } from '../../../src/modules/ai/core/run-context.js';
 import { getDb } from '../../../src/lib/db/db.js';
 import { generateId } from '../../../src/lib/id.js';
 import { organizations, projects, users } from '@siteflow/database/schema';
 import { eq } from 'drizzle-orm';
+
+// Helper to create RunContext for tests
+function createTestRunContext(params: {
+  runId: string;
+  organizationId: string;
+  projectId?: string | null;
+  userId: string;
+  agentName: string;
+}): RunContext {
+  return buildRunContext({
+    id: params.runId,
+    organizationId: params.organizationId,
+    projectId: params.projectId ?? undefined,
+    createdBy: params.userId,
+    agent: params.agentName as any,
+  });
+}
 
 describe('A1: Tenancy Isolation', () => {
   let orgA: { id: string; name: string };
@@ -101,15 +118,12 @@ describe('A1: Tenancy Isolation', () => {
 
   describe('IDOR Attacks via Tool Args', () => {
     test('T1.1: Cannot access org-A financial data with org-A project ID', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-1',
         organizationId: orgB.id, // Attacker from org-B
         projectId: null,
         userId: userB.id,
         agentName: 'cost-financial',
-        trigger: 'api',
-        limits: { maxSteps: 10, maxTokens: 5000 },
-        traceHandle: null,
       });
 
       // Attacker tries to access org-A project data
@@ -132,7 +146,7 @@ describe('A1: Tenancy Isolation', () => {
     });
 
     test('T1.2: Cannot list org-A purchase orders', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-2',
         organizationId: orgB.id,
         projectId: null,
@@ -152,7 +166,7 @@ describe('A1: Tenancy Isolation', () => {
     });
 
     test('T1.3: Cannot access org-A compliance data', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-3',
         organizationId: orgB.id,
         projectId: null,
@@ -172,7 +186,7 @@ describe('A1: Tenancy Isolation', () => {
     });
 
     test('T1.4: Cannot access org-A BOQ/estimates', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-4',
         organizationId: orgB.id,
         projectId: null,
@@ -207,7 +221,7 @@ describe('A1: Tenancy Isolation', () => {
 
   describe('OKF/RAG Document Leakage', () => {
     test('T1.7: search_knowledge_base does not return org-A documents', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-7',
         organizationId: orgB.id,
         projectId: null,
@@ -234,7 +248,7 @@ describe('A1: Tenancy Isolation', () => {
     });
 
     test('T1.8: read_okf_page does not return org-A pages', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-8',
         organizationId: orgB.id,
         projectId: null,
@@ -294,7 +308,7 @@ describe('A1: Tenancy Isolation', () => {
 
   describe('Error Response Safety', () => {
     test('T1.15: Permission denied returns 403, not 500', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-15',
         organizationId: orgB.id,
         projectId: null,
@@ -320,7 +334,7 @@ describe('A1: Tenancy Isolation', () => {
     test('T1.16: Tenant leak returns proper error, not org-A data', async () => {
       // This tests the assertTenantScope() function
       // If somehow a tool returns org-A data, tenant assertion should catch it
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-16',
         organizationId: orgB.id,
         projectId: null,
@@ -357,7 +371,7 @@ describe('A1: Tenancy Isolation', () => {
 
   describe('Langfuse Trace Isolation', () => {
     test('T1.19: Langfuse traces do not contain org-A data', async () => {
-      const ctx = RunContext.create({
+      const ctx = createTestRunContext({
         runId: 'test-run-t1-19',
         organizationId: orgB.id,
         projectId: null,
