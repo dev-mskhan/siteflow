@@ -4,8 +4,8 @@
 // Learning loop: Agent corrections create DRAFT pages for admin approval
 
 import { pgTable, uuid, text, integer, jsonb, timestamp } from 'drizzle-orm/pg-core';
-import { organizations } from './org.schema.js';
-import { users } from './auth.schema.js';
+import { organizations } from './org.schema';
+import { users } from './auth.schema';
 
 export const okfPages = pgTable('okf_pages', {
   id: uuid('id').primaryKey().defaultRandom(),

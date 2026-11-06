@@ -505,6 +505,13 @@
       "when": 1793723782776,
       "tag": "0064_lonely_rictor",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793980717425,
+      "tag": "0072_cute_azazel",
+      "breakpoints": true
     }
   ]
 }
