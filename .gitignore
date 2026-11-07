@@ -48,3 +48,4 @@ apps/web/test-results/
 apps/web/playwright-report/
 apps/web/e2e/.auth/
 scripts/
+siteflow-backend-server-key-pair.pem
