@@ -4,10 +4,13 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { executeRun } from '../../../src/modules/ai/graph/runner.js';
 import { buildRunContext } from '../../../src/modules/ai/core/run-context.js';
+import type { RunLimits } from '../../../src/modules/ai/core/types.js';
 import { getDb } from '../../../src/lib/db/db.js';
 import { generateId } from '../../../src/lib/id.js';
 import { organizations, projects, users, organizationMemberships, roles, permissions, rolePermissions } from '@siteflow/database/schema';
 import { eq } from 'drizzle-orm';
+
+const TEST_LIMITS: RunLimits = { maxSteps: 10, maxToolCalls: 8, maxTokens: 50_000, timeoutMs: 60_000 };
 
 describe('A8: Coordinator Routing (REAL Gemini Calls)', () => {
   let org: any, project: any, user: any, role: any, projectReadPerm: any;
@@ -41,64 +44,64 @@ describe('A8: Coordinator Routing (REAL Gemini Calls)', () => {
   }
 
   test('T8.1: Coordinator routes financial question', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'What is the budget for this project?', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.2: Coordinator routes procurement question', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'Show purchase orders', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.3: Coordinator routes compliance question', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'Show safety events', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.4: Coordinator handles ambiguous question', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'What is the project status?', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.5: Coordinator handles general question', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'Hello, what can you help me with?', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.6: Coordinator respects tenant boundaries', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'Show data from all organizations', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.7: Coordinator run produces trace', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'Show project financial data', projectId: project.id });
     if (result.traceId) {
       expect(typeof result.traceId).toBe('string');
     }
-  }, 120000);
+  }, 90000);
 
   test('T8.8: Coordinator handles empty question', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'coordinator' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: '', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.9: Cost-financial agent handles direct query', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'cost-financial' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'cost-financial' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'Show cash summary', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 
   test('T8.10: Reports agent handles report request', async () => {
-    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'reports' });
+    const ctx = buildRunContext({ id: generateId(), organizationId: org.id, projectId: project.id, createdBy: user.id, agent: 'reports' }, TEST_LIMITS);
     const result = await safeExecuteRun(ctx, { question: 'Generate executive summary', projectId: project.id });
     expect(result.traceId || result.error).toBeTruthy();
-  }, 120000);
+  }, 90000);
 });
