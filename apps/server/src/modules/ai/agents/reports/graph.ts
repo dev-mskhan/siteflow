@@ -310,9 +310,15 @@ export function buildReportsGraph(ctx: RunContext, acc: UsageAccumulator) {
     const content =
       typeof response.content === 'string' ? response.content : JSON.stringify(response.content);
 
+    // Strip markdown code fences (```json ... ```) if present
+    let rawContent = content.trim();
+    const fenceMatch = rawContent.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/);
+    if (fenceMatch) {
+      rawContent = fenceMatch[1].trim();
+    }
     let parsed: unknown;
     try {
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(rawContent);
     } catch {
       // If not JSON, wrap in error object
       parsed = {

@@ -121,7 +121,13 @@ export function buildCostFinancialGraph(ctx: RunContext, acc: UsageAccumulator) 
         throw new Error('Agent response must be a JSON string');
       }
 
-      const parsed: unknown = JSON.parse(message.content);
+      // Strip markdown code fences (```json ... ```) if present
+      let raw = message.content.trim();
+      const fenceMatch = raw.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/);
+      if (fenceMatch) {
+        raw = fenceMatch[1].trim();
+      }
+      const parsed: unknown = JSON.parse(raw);
       const validated = validateOutput(parsed, costFinancialOutputSchema, 'cost-financial');
       enforceNumberProvenance(
         { answer: validated.answer, summary: validated.summary, citations: validated.citations },
