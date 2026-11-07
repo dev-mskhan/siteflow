@@ -71,12 +71,18 @@ describe('A2: RBAC & Tool Authorization (REAL Gemini Calls)', () => {
       status: 'ACTIVE',
     }).returning();
 
-    // Create permission
-    [projectReadPerm] = await db.insert(permissions).values({
-      id: generateId(),
-      key: 'project:read',
-      description: 'Read project data',
-    }).returning();
+    // Create or reuse permission (may already exist from other test runs)
+    const db = getDb();
+    const existingPerm = await db.select().from(permissions).where(eq(permissions.key, 'project:read')).limit(1);
+    if (existingPerm.length > 0) {
+      projectReadPerm = existingPerm[0] as any;
+    } else {
+      [projectReadPerm] = await db.insert(permissions).values({
+        id: generateId(),
+        key: 'project:read',
+        description: 'Read project data',
+      }).returning();
+    }
 
     // Create roles
     [adminRole] = await db.insert(roles).values({
@@ -124,7 +130,7 @@ describe('A2: RBAC & Tool Authorization (REAL Gemini Calls)', () => {
     await db.delete(organizationMemberships).where(eq(organizationMemberships.organizationId, org.id));
     await db.delete(rolePermissions).where(eq(rolePermissions.roleId, adminRole.id));
     await db.delete(roles).where(eq(roles.organizationId, org.id));
-    await db.delete(permissions).where(eq(permissions.id, projectReadPerm.id));
+    // Don't delete permission - may be shared with other test suites
     await db.delete(projects).where(eq(projects.id, project.id));
     await db.delete(organizations).where(eq(organizations.id, org.id));
     if (adminUser?.id) await db.delete(users).where(eq(users.id, adminUser.id));

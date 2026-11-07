@@ -89,11 +89,18 @@ describe('A1: Tenancy Isolation (REAL Gemini Calls)', () => {
     }).returning();
 
     // Create permissions and roles
-    [projectReadPerm] = await db.insert(permissions).values({
-      id: generateId(),
-      key: 'project:read',
-      description: 'Read project data',
-    }).returning();
+    // Create or reuse permission (may already exist from other test runs)
+    const db = getDb();
+    const existingPerm = await db.select().from(permissions).where(eq(permissions.key, 'project:read')).limit(1);
+    if (existingPerm.length > 0) {
+      projectReadPerm = existingPerm[0] as any;
+    } else {
+      [projectReadPerm] = await db.insert(permissions).values({
+        id: generateId(),
+        key: 'project:read',
+        description: 'Read project data',
+      }).returning();
+    }
 
     [role] = await db.insert(roles).values({
       id: generateId(),
@@ -144,7 +151,7 @@ describe('A1: Tenancy Isolation (REAL Gemini Calls)', () => {
     await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, projectReadPerm.id));
     await db.delete(roles).where(eq(roles.organizationId, orgA.id));
     await db.delete(roles).where(eq(roles.organizationId, orgB.id));
-    await db.delete(permissions).where(eq(permissions.id, projectReadPerm.id));
+    // Don't delete permission - may be shared with other test suites
     await db.delete(projects).where(eq(projects.id, projectA.id));
     await db.delete(projects).where(eq(projects.id, projectB.id));
     await db.delete(organizations).where(eq(organizations.id, orgA.id));
