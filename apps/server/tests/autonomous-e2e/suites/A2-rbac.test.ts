@@ -72,7 +72,6 @@ describe('A2: RBAC & Tool Authorization (REAL Gemini Calls)', () => {
     }).returning();
 
     // Create or reuse permission (may already exist from other test runs)
-    const db = getDb();
     const existingPerm = await db.select().from(permissions).where(eq(permissions.key, 'project:read')).limit(1);
     if (existingPerm.length > 0) {
       projectReadPerm = existingPerm[0] as any;

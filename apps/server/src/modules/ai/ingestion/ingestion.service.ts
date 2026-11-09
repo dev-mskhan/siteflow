@@ -26,15 +26,37 @@ const tracer = trace.getTracer('ai-ingestion');
 
 /**
  * Extract plain text from a Buffer based on content type.
- * Handles text/plain, text/markdown. PDF/DOCX deferred to WAVE 5.
+ *
+ * Supported:
+ *   - text/plain, text/markdown — decoded as UTF-8
+ *
+ * Not yet supported (returns empty with reason):
+ *   - application/pdf — requires pdfjs-dist or pdf-parse (not installed)
+ *   - application/vnd.openxmlformats-officedocument.wordprocessingml.document (docx)
+ *     — requires mammoth (not installed)
+ *   - Others — unsupported
+ *
+ * Note: Add pdf-parse and mammoth to package.json to enable PDF/DOCX ingestion.
  */
-function extractText(buffer: Buffer, contentType: string): string {
+function extractText(buffer: Buffer, contentType: string): { text: string; unsupportedReason?: string } {
   const ct = contentType.toLowerCase();
+
   if (ct.includes('text/') || ct.includes('markdown')) {
-    return buffer.toString('utf-8');
+    return { text: buffer.toString('utf-8') };
   }
-  logger.warn({ contentType }, 'Unsupported content type for text extraction — skipping');
-  return '';
+
+  if (ct.includes('application/pdf')) {
+    logger.warn({ contentType }, 'PDF ingestion not yet supported — install pdf-parse to enable');
+    return { text: '', unsupportedReason: 'PDF text extraction requires pdf-parse package (not installed)' };
+  }
+
+  if (ct.includes('wordprocessingml') || ct.includes('application/vnd.openxmlformats') || ct.includes('application/msword')) {
+    logger.warn({ contentType }, 'DOCX ingestion not yet supported — install mammoth to enable');
+    return { text: '', unsupportedReason: 'DOCX text extraction requires mammoth package (not installed)' };
+  }
+
+  logger.warn({ contentType }, 'Unsupported content type for text extraction');
+  return { text: '', unsupportedReason: `Unsupported content type: ${contentType}` };
 }
 
 /**
@@ -49,7 +71,7 @@ export async function ingestDocumentVersion(opts: {
   versionNumber: number;
   storageKey: string;
   contentType: string;
-}): Promise<{ chunksInserted: number; skipped: boolean }> {
+}): Promise<{ chunksInserted: number; skipped: boolean; skipReason?: string }> {
   const {
     organizationId, projectId, documentId, documentVersionId,
     versionNumber, storageKey, contentType,
@@ -93,10 +115,13 @@ export async function ingestDocumentVersion(opts: {
     }
 
     // ── 3. Extract text ────────────────────────────────────────────────────
-    const text = extractText(fileBuffer, contentType);
+    const { text, unsupportedReason } = extractText(fileBuffer, contentType);
     if (!text) {
-      logger.info({ documentVersionId, contentType }, 'No text extracted — skipping');
-      return { chunksInserted: 0, skipped: true };
+      logger.info(
+        { documentVersionId, contentType, reason: unsupportedReason ?? 'no text extracted' },
+        'No text extracted — skipping ingestion',
+      );
+      return { chunksInserted: 0, skipped: true, skipReason: unsupportedReason };
     }
 
     // ── 4. Structure-aware chunk ───────────────────────────────────────────

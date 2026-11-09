@@ -90,7 +90,6 @@ describe('A1: Tenancy Isolation (REAL Gemini Calls)', () => {
 
     // Create permissions and roles
     // Create or reuse permission (may already exist from other test runs)
-    const db = getDb();
     const existingPerm = await db.select().from(permissions).where(eq(permissions.key, 'project:read')).limit(1);
     if (existingPerm.length > 0) {
       projectReadPerm = existingPerm[0] as any;

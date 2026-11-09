@@ -26,8 +26,7 @@ import {
   RunCancelledError,
 } from '../core/errors.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
-import type { RunContext } from '../core/run-context.js';
-import type { AgentRunOutput, AgentName } from '../core/types.js';
+import { redactPII } from '../guardrails/output-guard.js';
 
 // ── Graph registry ────────────────────────────────────────────────────────────
 // Add new agents here — never import them directly in worker code.
@@ -195,8 +194,17 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
       interrupted ? 'AWAITING_APPROVAL' : 'SUCCEEDED',
     );
 
+    // ── Response-level PII redaction ──────────────────────────────────────
+    // Scan the agent's final LLM-generated output for PII before it is written
+    // to agent_runs.outputSnapshot and returned to the HTTP caller.
+    // Tool-level redaction (tool-factory.ts step 5.5) already scrubs tool results,
+    // but the LLM narrative (answer.narrative, summary) is generated fresh here.
+    const safeOutput: typeof finalOutput = finalOutput
+      ? redactPII(finalOutput, `${ctx.agent}:final_output`)
+      : null;
+
     return {
-      output: finalOutput ?? {
+      output: safeOutput ?? {
         answer: null,
         summary: 'Run completed with no output.',
         citations: [],
@@ -314,8 +322,12 @@ export async function resumeRun(
     // Check if still interrupted (e.g. multiple approval steps)
     const interrupted = !!(currentState.next && currentState.next.length > 0);
 
+    const safeResumeOutput = finalOutput
+      ? redactPII(finalOutput, `${ctx.agent}:resume_output`)
+      : null;
+
     return {
-      output: finalOutput ?? { answer: null, summary: 'Resumed run completed.', citations: [] },
+      output: safeResumeOutput ?? { answer: null, summary: 'Resumed run completed.', citations: [] },
       tokensIn:  accumulator.tokensIn,
       tokensOut: accumulator.tokensOut,
       costUsd:   accumulator.totalCostUsd,
