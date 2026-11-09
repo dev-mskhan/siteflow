@@ -33,9 +33,6 @@ export const scheduleApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/dependencies`,
         method: 'GET',
         params: query,
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
       }),
       transformResponse: (raw: { data: Dependency[] }) => raw.data,
       providesTags: (result) =>
@@ -114,13 +111,7 @@ export const scheduleApi = baseApi.injectEndpoints({
       ScheduleMetrics,
       { orgId: string; projectId: string }
     >({
-      query: ({ orgId, projectId }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/schedule/metrics`,
-        method: 'GET',
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
-      }),
+      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/schedule/metrics`,
       transformResponse: (raw: { data: ScheduleMetrics }) => raw.data,
       providesTags: [{ type: 'ScheduleMetrics', id: 'CURRENT' }],
     }),
@@ -133,9 +124,6 @@ export const scheduleApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/schedule/history`,
         method: 'GET',
         params: taskId ? { taskId } : undefined,
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
       }),
       transformResponse: (raw: { data: ScheduleHistoryEntry[] }) => raw.data,
       providesTags: [{ type: 'ScheduleHistory', id: 'LIST' }],
@@ -146,13 +134,7 @@ export const scheduleApi = baseApi.injectEndpoints({
     // ────────────────────────────────────────────────────────────────────────
 
     listBaselines: builder.query<Baseline[], { orgId: string; projectId: string }>({
-      query: ({ orgId, projectId }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/baselines`,
-        method: 'GET',
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
-      }),
+      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/baselines`,
       transformResponse: (raw: { data: Baseline[] }) => raw.data,
       providesTags: (result) =>
         result
@@ -186,13 +168,8 @@ export const scheduleApi = baseApi.injectEndpoints({
       Baseline,
       { orgId: string; projectId: string; baselineId: string }
     >({
-      query: ({ orgId, projectId, baselineId }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/baselines/${baselineId}`,
-        method: 'GET',
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
-      }),
+      query: ({ orgId, projectId, baselineId }) =>
+        `/organizations/${orgId}/projects/${projectId}/baselines/${baselineId}`,
       transformResponse: (raw: { data: Baseline }) => raw.data,
       providesTags: (_result, _error, { baselineId }) => [{ type: 'Baseline', id: baselineId }],
     }),
@@ -220,13 +197,8 @@ export const scheduleApi = baseApi.injectEndpoints({
       BaselineComparison[],
       { orgId: string; projectId: string; baselineId: string }
     >({
-      query: ({ orgId, projectId, baselineId }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/baselines/${baselineId}/compare`,
-        method: 'GET',
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
-      }),
+      query: ({ orgId, projectId, baselineId }) =>
+        `/organizations/${orgId}/projects/${projectId}/baselines/${baselineId}/compare`,
       transformResponse: (raw: { data: BaselineComparison[] }) => raw.data,
       providesTags: (_result, _error, { baselineId }) => [
         { type: 'Baseline', id: `${baselineId}_COMPARE` },
@@ -255,13 +227,7 @@ export const scheduleApi = baseApi.injectEndpoints({
     // ────────────────────────────────────────────────────────────────────────
 
     getCalendar: builder.query<Calendar, { orgId: string; projectId: string }>({
-      query: ({ orgId, projectId }) => ({
-        url: `/organizations/${orgId}/projects/${projectId}/calendar`,
-        method: 'GET',
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
-      }),
+      query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/calendar`,
       transformResponse: (raw: { data: Calendar }) => raw.data,
       providesTags: [{ type: 'Calendar', id: 'CURRENT' }],
     }),

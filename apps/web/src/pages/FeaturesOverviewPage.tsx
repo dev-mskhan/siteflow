@@ -11,6 +11,7 @@ import {
   TrendingDown,
   Receipt,
   FolderArchive,
+  Sparkles,
 } from 'lucide-react';
 import { Seo } from '../components/seo/Seo';
 import { SEO_DATA } from '../content/seo';
@@ -33,6 +34,7 @@ const iconMap: Record<string, React.ElementType> = {
   'cost-control': TrendingDown,
   'billing-and-payments': Receipt,
   documents: FolderArchive,
+  'ai-assistant': Sparkles,
 };
 
 export const FeaturesOverviewPage: React.FC = () => {
@@ -55,7 +57,7 @@ export const FeaturesOverviewPage: React.FC = () => {
             Complete operations suite
           </div>
           <h1 className="max-w-3xl text-[clamp(2.4rem,5vw,5rem)] font-medium leading-[0.96] tracking-[-0.065em]">
-            Nine modules built <em className="font-serif font-light not-italic italic">strictly</em>{' '}
+            Ten modules built <em className="font-serif font-light not-italic italic">strictly</em>{' '}
             for construction
           </h1>
           <p className="mt-6 max-w-[54ch] text-base leading-7 text-[var(--muted)]">
@@ -128,7 +130,7 @@ export const FeaturesOverviewPage: React.FC = () => {
               See it live
             </p>
             <h2 className="mt-6 max-w-2xl text-4xl font-medium leading-[1.02] tracking-[-0.055em] sm:text-5xl">
-              All 9 modules live on your active job.
+              All 10 modules live on your active job.
             </h2>
             <p className="mt-5 max-w-lg text-base leading-7 text-white/60">
               Start a free 14-day trial — or let our specialists configure a sample project in PKR

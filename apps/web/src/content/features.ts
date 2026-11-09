@@ -43,6 +43,10 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
         title: 'Dual currency calculations',
         description: 'Quote and budget in Pakistani Rupees (PKR) or US Dollars (USD) with local area units (Marla, Kanal, SqFt, Cubic Yards).',
       },
+      {
+        title: 'Ask the AI',
+        description: 'Type "How many BOQ items are pending?" and get an instant answer from your live estimates — no report building needed.',
+      },
     ],
     appPreviewDescription: 'Live Bill of Quantities grid linking quantities directly to material purchase orders and field inspection logs.',
     sampleItems: [
@@ -130,6 +134,10 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
       {
         title: 'Three-way matching before payment',
         description: 'Match the purchase order, the site delivery receipt, and the vendor invoice before finance releases payment.',
+      },
+      {
+        title: 'Ask the AI',
+        description: 'Type "When is the steel delivery expected?" and get an instant answer from your live purchase orders and quotes.',
       },
     ],
     appPreviewDescription: 'Procurement pipeline tracking orders from purchase request through delivery receipt and invoice settlement.',
@@ -307,6 +315,10 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
         title: 'Profit margin protection',
         description: 'Real-time forecast reveals whether the project will finish at the target 18% margin or if material increases are eating your profit.',
       },
+      {
+        title: 'Ask the AI',
+        description: 'Type "What is the budget variance on concrete?" and get an instant answer from your live budget data — no spreadsheets needed.',
+      },
     ],
     appPreviewDescription: 'Cost dashboard showing real-time budget utilization, committed obligations, and projected completion margins.',
     sampleItems: [
@@ -417,5 +429,73 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
       },
     ],
     relatedSlugs: ['field-logs', 'estimating-and-boq', 'subcontractors'],
+  },
+
+  'ai-assistant': {
+    slug: 'ai-assistant',
+    title: 'AI Assistant',
+    badge: 'Ask Your Project',
+    headline: 'Ask your project a question, get a real answer',
+    supportingSentence:
+      'Type a question in plain English and get an instant answer backed by your live project data — budgets, orders, safety records, and documents.',
+    problem:
+      'You need to know how much steel has been delivered versus ordered. So you open the procurement sheet, check the budget spreadsheet, scroll through delivery photos, and add it up yourself. Twenty minutes later you have an answer that is already out of date.',
+    benefits: [
+      {
+        title: 'Ask in plain English',
+        description:
+          'Type "How much steel has been delivered?" or "What is the budget variance on concrete?" and get an instant answer. No reports to build, no formulas to write.',
+      },
+      {
+        title: 'Every number is real',
+        description:
+          'The AI only uses numbers from your actual project data. If it says "PKR 78.5M committed," that figure came from a real budget query — not the AI guessing.',
+      },
+      {
+        title: 'AI cannot act without your approval',
+        description:
+          'When the AI wants to send a message or create a purchase request, it stops and asks for your sign-off first. You review the exact action before anything happens.',
+      },
+    ],
+    appPreviewDescription:
+      'Chat with the AI about your project finances, procurement status, safety records, and more.',
+    sampleItems: [
+      {
+        code: 'AGENT-01',
+        title: 'Cost & Finance',
+        meta: 'Budget, cost, billing, and cash flow questions',
+        status: 'ontrack',
+      },
+      {
+        code: 'AGENT-02',
+        title: 'Procurement',
+        meta: 'Purchase orders, quotes, and delivery tracking',
+        status: 'ontrack',
+      },
+      {
+        code: 'AGENT-03',
+        title: 'Safety & Compliance',
+        meta: 'Quality inspections, safety events, and permits',
+        status: 'ontrack',
+      },
+    ],
+    faqs: [
+      {
+        question: 'Does the AI make up numbers?',
+        answer:
+          'No. Every number in an AI response comes directly from your project data. If the AI cannot find a number in your records, it says so instead of guessing.',
+      },
+      {
+        question: 'Can the AI send messages or create orders by itself?',
+        answer:
+          'No. When the AI wants to take an action like sending a message or creating a purchase request, it pauses and asks you to approve it first. Nothing happens without your sign-off.',
+      },
+      {
+        question: 'What kind of questions can I ask?',
+        answer:
+          'Anything about your project: "What is the current budget variance?", "When is the steel delivery expected?", "Show me open safety incidents", or "How many BOQ items are pending approval?"',
+      },
+    ],
+    relatedSlugs: ['cost-control', 'procurement', 'documents'],
   },
 };

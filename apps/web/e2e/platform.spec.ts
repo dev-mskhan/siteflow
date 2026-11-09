@@ -202,7 +202,7 @@ test.describe('Platform: Support Grants', () => {
       data: {
         operatorUserId: 'user_test',
         organizationId: 'org_test',
-        scopes: ['read:organization'],
+        scopes: ['read:org_summary'],
         password: 'test-password-123',
         reasonCode: 'SUPPORT_TICKET',
         reasonNote: 'Customer support investigation for billing issue',
@@ -229,7 +229,7 @@ test.describe('Platform: Support Grants', () => {
       '/api/v1/platform/support-grants/grant_test/organization',
       {
         params: {
-          scope: 'read:organization',
+          scope: 'read:org_summary',
         },
       }
     );

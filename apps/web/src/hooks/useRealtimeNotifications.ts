@@ -61,13 +61,49 @@ export function useRealtimeNotifications(orgId: string, enabled = true) {
       withCredentials: true, // Send cookies for authentication
     });
 
+    // ── Heartbeat watchdog ────────────────────────────────────────────────────
+    // Server sends `: ping\n\n` comment every 15s. If no message arrives within
+    // 45s (3 missed pings), the connection is silently dead — force reconnect.
+    let lastActivityAt = Date.now();
+    const watchdog = setInterval(() => {
+      if (Date.now() - lastActivityAt > 45_000) {
+        console.warn('[SSE] No heartbeat for 45s — reconnecting');
+        clearInterval(watchdog);
+        es.close();
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect();
+        }, 1000);
+      }
+    }, 10_000);
+
     es.onopen = () => {
       console.log('[SSE] Connection established');
       reconnectAttempts.current = 0;
       setStatus({ connected: true, reconnectAttempts: 0 });
     };
 
+    // ── Revoked event ─────────────────────────────────────────────────────────
+    // Server sends a 'revoked' named event when membership is revoked or the
+    // SSE authorization is invalidated. Stop reconnecting — user must re-auth.
+    es.addEventListener('revoked', (ev: MessageEvent) => {
+      clearInterval(watchdog);
+      es.close();
+      eventSourceRef.current = null;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
+      }
+      setStatus({ connected: false, reconnectAttempts: 0, lastError: 'Session revoked' });
+      try {
+        const data = JSON.parse(ev.data);
+        console.warn('[SSE] Connection revoked:', data.reason);
+      } catch {
+        console.warn('[SSE] Connection revoked');
+      }
+    });
+
     es.onmessage = (event) => {
+      lastActivityAt = Date.now();
       try {
         const data = JSON.parse(event.data);
         console.log('[SSE] Event received:', data.type);
@@ -143,6 +179,7 @@ export function useRealtimeNotifications(orgId: string, enabled = true) {
 
     es.onerror = (err) => {
       console.error('[SSE] Connection error:', err);
+      clearInterval(watchdog);
       es.close();
 
       setStatus((prev) => ({

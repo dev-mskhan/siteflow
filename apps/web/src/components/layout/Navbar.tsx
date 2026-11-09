@@ -30,6 +30,7 @@ import {
   Receipt,
   FolderArchive,
   Globe2,
+  Sparkles,
 } from 'lucide-react';
 import { Logo } from '../ui/Logo';
 import { cn } from '../../lib/cn';
@@ -92,6 +93,13 @@ const featureLinks = [
     href: '/features/documents',
     icon: FolderArchive,
     desc: 'Drawings & mill tests',
+  },
+  {
+    title: 'AI Assistant',
+    href: '/features/ai-assistant',
+    icon: Sparkles,
+    desc: 'Six agents · cited answers',
+    highlight: true,
   },
 ];
 
@@ -187,19 +195,34 @@ const FeaturesDropdown: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) 
     className="absolute top-[calc(100%+4px)] left-0 w-[500px] bg-white border border-[rgba(10,10,10,0.12)] z-50 origin-top-left"
   >
     <div className="p-1.5 grid grid-cols-2 gap-0">
-      {featureLinks.map(({ title, href, icon: Icon, desc }) => (
+      {featureLinks.map(({ title, href, icon: Icon, desc, highlight }) => (
         <Link
           key={href}
           to={href}
           onClick={onNavigate}
-          className="group flex items-center gap-2.5 px-3 py-2 hover:bg-[#f3f3f3] transition-colors duration-[120ms]"
+          className={`group flex items-center gap-2.5 px-3 py-2 transition-colors duration-[120ms] ${
+            highlight
+              ? 'bg-[var(--action-subtle)] hover:bg-[rgba(255,30,0,0.10)]'
+              : 'hover:bg-[#f3f3f3]'
+          }`}
         >
-          <div className="shrink-0 w-6 h-6 bg-[#f3f3f3] flex items-center justify-center group-hover:bg-[#0a0a0a] group-hover:text-white transition-colors duration-[120ms]">
+          <div
+            className={`shrink-0 w-6 h-6 flex items-center justify-center transition-colors duration-[120ms] ${
+              highlight
+                ? 'bg-[var(--action)] text-white'
+                : 'bg-[#f3f3f3] group-hover:bg-[#0a0a0a] group-hover:text-white'
+            }`}
+          >
             <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
           </div>
           <div className="min-w-0">
-            <div className="text-[12px] font-semibold text-[#0a0a0a] leading-tight truncate">
+            <div className="text-[12px] font-semibold text-[#0a0a0a] leading-tight truncate flex items-center gap-1.5">
               {title}
+              {highlight && (
+                <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-[var(--action)]">
+                  New
+                </span>
+              )}
             </div>
             <div className="text-[10px] text-[#9b9b9b] leading-tight truncate">{desc}</div>
           </div>

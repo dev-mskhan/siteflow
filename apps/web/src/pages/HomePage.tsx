@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Truck,
   Users,
+  Sparkles,
+  Calculator,
 } from 'lucide-react';
 import { DemoModal } from '../components/ui/DemoModal';
 import { Seo } from '../components/seo/Seo';
@@ -122,6 +124,21 @@ export const HomePage: React.FC = () => {
               <span className="h-px w-10 bg-[var(--ink)]" />
               Construction operations, connected
             </div>
+            {/* AI badge */}
+            <Link
+              to="/features/ai-assistant"
+              className="group mb-6 inline-flex items-center gap-2 border border-[var(--action)] bg-[var(--action-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition-colors hover:bg-[rgba(255,30,0,0.10)]"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-[var(--action)]" strokeWidth={1.8} />
+              <span>Now with AI Assistant</span>
+              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--action)]">
+                New
+              </span>
+              <ArrowUpRight
+                className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                strokeWidth={1.8}
+              />
+            </Link>
             <h1 className="max-w-6xl text-[clamp(3rem,6vw,6rem)] font-medium leading-[0.96] tracking-[-0.065em]">
               The job is complex.
               <br />
@@ -345,6 +362,183 @@ export const HomePage: React.FC = () => {
               </Reveal>
             ))}
           </div>
+        </Rail>
+      </section>
+
+      {/* ── AI Assistant section ── */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--surface-2)] py-24 sm:py-32">
+        <Rail>
+          {/* Section header */}
+          <Reveal className="max-w-2xl">
+            <div className="mb-5 flex items-center gap-2 border border-[var(--action)] bg-[var(--action-subtle)] px-3 py-1 w-fit">
+              <Sparkles className="h-3.5 w-3.5 text-[var(--action)]" strokeWidth={1.8} />
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--action)]">
+                New
+              </span>
+            </div>
+            <h2 className="text-4xl font-medium leading-[1.02] tracking-[-0.05em] sm:text-6xl">
+              Ask your project a{' '}
+              <em className="font-serif font-light not-italic italic">question</em>.
+            </h2>
+            <p className="mt-6 max-w-[52ch] text-base leading-7 text-[var(--muted)]">
+              Type in plain English and get an instant answer from your live project data. No
+              reports to build, no formulas to write, no spreadsheets to open.
+            </p>
+          </Reveal>
+
+          {/* Chat preview mockup */}
+          <Reveal delay={0.08} className="mt-14">
+            <div className="overflow-hidden border border-[var(--hairline-2)] bg-[var(--paper)]">
+              {/* Window header */}
+              <div className="flex items-center justify-between border-b border-[var(--hairline-2)] px-5 py-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center bg-[var(--action)]">
+                    <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={1.8} />
+                  </div>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink)]">
+                    AI Assistant — Cost & Finance
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] text-[var(--muted)]">Live data</span>
+              </div>
+
+              {/* Chat body */}
+              <div className="space-y-4 p-6">
+                {/* User message */}
+                <div className="ml-auto max-w-[80%] border border-[var(--hairline-2)] bg-[var(--surface-2)] px-4 py-3">
+                  <p className="text-sm leading-6 text-[var(--ink)]">
+                    What is the budget variance on concrete and steel?
+                  </p>
+                </div>
+
+                {/* AI response */}
+                <div className="max-w-[85%] space-y-3">
+                  <p className="text-sm leading-6 text-[var(--ink)]">
+                    Here is the current budget status for structural works:
+                  </p>
+                  <div className="border border-[var(--hairline-2)] bg-[var(--surface)]">
+                    <div className="grid grid-cols-3 gap-px bg-[var(--hairline-2)]">
+                      <div className="bg-[var(--paper)] p-3">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                          Budget
+                        </p>
+                        <p className="mt-1 text-sm font-medium">PKR 78.5M</p>
+                      </div>
+                      <div className="bg-[var(--paper)] p-3">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                          Committed
+                        </p>
+                        <p className="mt-1 text-sm font-medium">PKR 64.2M</p>
+                      </div>
+                      <div className="bg-[var(--paper)] p-3">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                          Variance
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-[#166534]">+2.1%</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs leading-5 text-[var(--muted)]">
+                    Source: get_financial_summary tool call — figures from live project budget data.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Agent cards */}
+          <Reveal delay={0.12} className="mt-12">
+            <p className="mb-6 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+              Five specialised agents
+            </p>
+            <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                {
+                  icon: TrendingDown,
+                  name: 'Cost & Finance',
+                  desc: 'Budget, cost, billing, and cash flow',
+                },
+                {
+                  icon: Truck,
+                  name: 'Procurement',
+                  desc: 'Purchase orders, quotes, deliveries',
+                },
+                {
+                  icon: ShieldCheck,
+                  name: 'Safety & Compliance',
+                  desc: 'Inspections, incidents, permits',
+                },
+                {
+                  icon: Calculator,
+                  name: 'Estimating & BOQ',
+                  desc: 'Quantities, takeoffs, cost codes',
+                },
+                {
+                  icon: FileCheck2,
+                  name: 'Reports',
+                  desc: 'Executive summaries and exports',
+                },
+              ].map(({ icon: Icon, name, desc }) => (
+                <div
+                  key={name}
+                  className="group bg-[var(--paper)] p-5 transition-colors hover:bg-[var(--surface-2)]"
+                >
+                  <div className="mb-4 flex h-9 w-9 items-center justify-center border border-[var(--hairline-2)] bg-[var(--surface-2)] transition-colors group-hover:border-[var(--ink)] group-hover:bg-[var(--ink)] group-hover:text-white">
+                    <Icon className="h-4 w-4" strokeWidth={1.6} />
+                  </div>
+                  <h3 className="text-sm font-medium tracking-[-0.02em]">{name}</h3>
+                  <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+
+          {/* Trust signals */}
+          <Reveal delay={0.16} className="mt-10">
+            <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-3">
+              <div className="bg-[var(--paper)] p-6">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                  Real numbers only
+                </p>
+                <p className="mt-3 text-sm leading-6 text-[var(--ink)]">
+                  Every figure in an AI answer comes from your live project data. No guessing, no
+                  made-up numbers.
+                </p>
+              </div>
+              <div className="bg-[var(--paper)] p-6">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                  You stay in control
+                </p>
+                <p className="mt-3 text-sm leading-6 text-[var(--ink)]">
+                  The AI cannot send messages or create orders without your approval. You review
+                  every action first.
+                </p>
+              </div>
+              <div className="bg-[var(--paper)] p-6">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                  Works across modules
+                </p>
+                <p className="mt-3 text-sm leading-6 text-[var(--ink)]">
+                  Ask about budgets, procurement, safety, or documents. The AI routes your question
+                  to the right specialist.
+                </p>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* CTA */}
+          <Reveal delay={0.2} className="mt-10">
+            <Link
+              to="/features/ai-assistant"
+              className="group inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink)]"
+            >
+              Explore AI Assistant
+              <ArrowUpRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1"
+                strokeWidth={1.6}
+              />
+            </Link>
+          </Reveal>
         </Rail>
       </section>
 

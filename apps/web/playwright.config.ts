@@ -23,12 +23,17 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
-    // Setup project: authenticates user and saves storage state
+    // ── Setup: regular user authentication ──────────────────────────────────
     {
       name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      testMatch: /auth\.setup\.ts/,
     },
-    // Core test project reusing the authenticated session
+    // ── Setup: platform admin authentication ────────────────────────────────
+    {
+      name: 'setup-platform',
+      testMatch: /platform-admin\.setup\.ts/,
+    },
+    // ── Core tests: authenticated regular user ──────────────────────────────
     {
       name: 'chromium',
       use: {
@@ -36,6 +41,17 @@ export default defineConfig({
         storageState: './e2e/.auth/user.json',
       },
       dependencies: ['setup'],
+      testIgnore: /platform-admin\.spec\.ts/,
+    },
+    // ── Platform admin tests: requires platform admin session ────────────────
+    {
+      name: 'platform-tests',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: './e2e/.auth/platform-admin.json',
+      },
+      dependencies: ['setup-platform'],
+      testMatch: /platform-admin\.spec\.ts/,
     },
   ],
   webServer: [

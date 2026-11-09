@@ -35,6 +35,14 @@ export const orgApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, { orgId }) => [{ type: 'Organization', id: orgId }],
     }),
 
+    deleteOrg: b.mutation<void, { orgId: string }>({
+      query: ({ orgId }) => ({ url: `/organizations/${orgId}`, method: 'DELETE' }),
+      invalidatesTags: (_r, _e, { orgId }) => [
+        { type: 'Organization', id: orgId },
+        'Organization',
+      ],
+    }),
+
   }),
   overrideExisting: false,
 });
@@ -44,4 +52,5 @@ export const {
   useGetOrgQuery,
   useCreateOrgMutation,
   useUpdateOrgMutation,
+  useDeleteOrgMutation,
 } = orgApi;

@@ -79,9 +79,6 @@ export const notificationApi = baseApi.injectEndpoints({
       query: ({ orgId, limit = 50 }) => ({
         url: `/organizations/${orgId}/notifications`,
         params: { limit },
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
       }),
       transformResponse: (raw: { data: { notifications: NotificationRecord[] } }) => raw.data,
       providesTags: (_r, _e, { orgId }) => [{ type: 'Notification', id: orgId }],
@@ -92,12 +89,7 @@ export const notificationApi = baseApi.injectEndpoints({
     // ────────────────────────────────────────────────────────────────────────
 
     getUnreadCount: build.query<{ unreadCount: number }, OrgArgs>({
-      query: ({ orgId }) => ({
-        url: `/organizations/${orgId}/notifications/unread-count`,
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
-      }),
+      query: ({ orgId }) => `/organizations/${orgId}/notifications/unread-count`,
       transformResponse: (raw: { data: { unreadCount: number } }) => raw.data,
       providesTags: (_r, _e, { orgId }) => [{ type: 'Notification', id: `count_${orgId}` }],
     }),
@@ -155,12 +147,7 @@ export const notificationApi = baseApi.injectEndpoints({
       },
       OrgArgs
     >({
-      query: ({ orgId }) => ({
-        url: `/organizations/${orgId}/notifications/preferences`,
-        headers: {
-          'X-Idempotency-Key': crypto.randomUUID(),
-        },
-      }),
+      query: ({ orgId }) => `/organizations/${orgId}/notifications/preferences`,
       transformResponse: (raw: {
         data: {
           preferences: NotificationPreference[];
