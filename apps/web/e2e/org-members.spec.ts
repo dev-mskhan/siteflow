@@ -16,6 +16,8 @@ test.beforeAll(async ({ request }) => {
   }
   const orgBody = (await orgRes.json()) as { data: { organization: { id: string } } };
   orgId = orgBody.data.organization.id;
+
+  await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 });
 
 test.describe('Members: Roles', () => {
@@ -107,7 +109,7 @@ test.describe('Org: Settings', () => {
 test.describe('Org: Audit Log', () => {
   test('lists audit log', async ({ request }) => {
     if (!orgId) return test.skip();
-    const res = await request.get(`/api/v1/organizations/${orgId}/audit`);
+    const res = await request.get(`/api/v1/organizations/${orgId}/audit-logs`);
     expect([200, 403]).toContain(res.status());
     if (res.status() === 200) {
       const body = (await res.json()) as { data: unknown[] };

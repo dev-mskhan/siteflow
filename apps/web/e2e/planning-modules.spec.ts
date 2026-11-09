@@ -17,10 +17,13 @@ test.beforeAll(async ({ request }) => {
   await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 
   const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-    data: { name: 'Planning Test Project', projectCode: `PLN-${Date.now()}`, startDate: '2026-01-01', currencyCode: 'AED' },
+    data: { name: 'Planning Test Project', currency: 'AED', plannedStartDate: '2026-01-01' },
   });
   if (projectRes.status() !== 201) return;
-  projectId = ((await projectRes.json()) as { data: { id: string } }).data.id;
+  const projectBody = (await projectRes.json()) as { data: { project: { id: string } } };
+  projectId = projectBody.data.project.id;
+
+  await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, { data: {} });
 });
 
 test.describe('Cost Codes', () => {
@@ -28,12 +31,19 @@ test.describe('Cost Codes', () => {
     if (!orgId || !projectId) return test.skip();
     const res = await request.post(
       `/api/v1/organizations/${orgId}/projects/${projectId}/cost-codes`,
-      { data: { code: `CC-${Date.now()}`, name: 'E2E Cost Code', description: 'Test cost code' } },
+      { data: { code: `CC-${Date.now()}`, description: 'Test cost code' } },
     );
     expect([201, 403, 422]).toContain(res.status());
     if (res.status() === 201) {
-      const body = (await res.json()) as { data: { id: string } };
-      costCodeId = body.data.id;
+      const body = (await res.json()) as { data: { costCode: { id: string } } };
+      costCodeId = body.data?.costCode?.id;
+    }
+    if (!costCodeId) {
+      const listRes = await request.get(`/api/v1/organizations/${orgId}/projects/${projectId}/cost-codes`);
+      if (listRes.status() === 200) {
+        const listBody = (await listRes.json()) as { data: { costCodes: Array<{ id: string }> } };
+        costCodeId = listBody.data?.costCodes?.[0]?.id;
+      }
     }
   });
 

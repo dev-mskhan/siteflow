@@ -39,6 +39,10 @@ import {
   Bell,
   Boxes,
   HardHat as HardHatIcon,
+  Sparkles,
+  MessageSquare,
+  Activity,
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { Logo } from '../ui/Logo';
@@ -258,6 +262,29 @@ const NavContent: React.FC = () => {
         icon={BarChart3}
         items={[
           { to: `/org/${orgId}/reports/portfolio`, icon: BarChart3, label: 'Portfolio report' },
+        ]}
+      />
+
+      {/* AI Assistant group */}
+      <NavGroup
+        label="AI Assistant"
+        icon={Sparkles}
+        items={[
+          {
+            to: `/org/${orgId}/ai/chat`,
+            icon: MessageSquare,
+            label: 'Chat',
+          },
+          {
+            to: `/org/${orgId}/ai/runs`,
+            icon: Activity,
+            label: 'Runs',
+          },
+          {
+            to: `/org/${orgId}/ai/approvals`,
+            icon: CheckCircle2,
+            label: 'Approvals',
+          },
         ]}
       />
 

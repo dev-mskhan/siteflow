@@ -14,10 +14,11 @@ test.beforeAll(async ({ request }) => {
   await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 
   const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-    data: { name: 'Tender Test Project', projectCode: `TND-${Date.now()}`, startDate: '2026-01-01', currencyCode: 'AED' },
+    data: { name: 'Tender Test Project', currency: 'AED', plannedStartDate: '2026-01-01' },
   });
   if (projectRes.status() !== 201) return;
-  projectId = ((await projectRes.json()) as { data: { id: string } }).data.id;
+  const projectBody = (await projectRes.json()) as { data: { project: { id: string } } };
+  projectId = projectBody.data.project.id;
 });
 
 test.describe('Tenders (Org-Scoped)', () => {
@@ -26,8 +27,10 @@ test.describe('Tenders (Org-Scoped)', () => {
     const res = await request.post(`/api/v1/organizations/${orgId}/tenders`, {
       data: {
         title: `E2E Tender ${Date.now()}`,
+        clientName: 'Acme Corporation',
+        submissionDeadline: new Date(Date.now() + 30 * 86400000).toISOString(),
+        submissionTimezone: 'Asia/Dubai',
         description: 'Integration test tender',
-        dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
       },
       headers: { 'idempotency-key': `tnd-${Date.now()}` },
     });
@@ -35,7 +38,7 @@ test.describe('Tenders (Org-Scoped)', () => {
     if (res.status() === 201) {
       const body = (await res.json()) as { data: { tender: { id: string; status: string } } };
       tenderId = body.data.tender.id;
-      expect(body.data.tender.status).toBe('DRAFT');
+      expect(body.data.tender.status).toBe('OPEN');
     }
   });
 

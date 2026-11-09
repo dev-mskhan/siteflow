@@ -13,6 +13,7 @@ import {
   Truck,
   Users,
   Sparkles,
+  TrendingDown,
   Calculator,
 } from 'lucide-react';
 import { DemoModal } from '../components/ui/DemoModal';

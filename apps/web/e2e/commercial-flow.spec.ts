@@ -15,10 +15,11 @@ test.beforeAll(async ({ request }) => {
   await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 
   const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-    data: { name: 'Commercial Test Project', projectCode: `COM-${Date.now()}`, startDate: '2026-01-01', currencyCode: 'AED' },
+    data: { name: 'Commercial Test Project', currency: 'AED', plannedStartDate: '2026-01-01' },
   });
   if (projectRes.status() !== 201) return;
-  projectId = ((await projectRes.json()) as { data: { id: string } }).data.id;
+  const projectBody = (await projectRes.json()) as { data: { project: { id: string } } };
+  projectId = projectBody.data.project.id;
   await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, { data: {} });
 });
 

@@ -615,7 +615,7 @@ export const createCostCodeSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { costCode: { type: 'object' } },
+          properties: { costCode: { type: 'object', additionalProperties: true } },
           required: ['costCode'],
         },
         meta: metaSchema,
