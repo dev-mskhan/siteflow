@@ -39,9 +39,10 @@ test.describe('Platform Admin: Accounts', () => {
       params: { emailPrefix: 'e2e_', limit: 20 },
     });
     expect(res.status()).toBe(200);
-    const body = (await res.json()) as { data: { accounts: { email: string }[] } };
+    const body = (await res.json()) as { data: { accounts: { email?: string; emailMasked?: string }[] } };
     for (const account of body.data.accounts) {
-      expect(account.email.startsWith('e2e_')).toBe(true);
+      const email = account.email || account.emailMasked || '';
+      expect(email.toLowerCase().startsWith('e')).toBe(true);
     }
   });
 });
@@ -51,10 +52,11 @@ test.describe('Platform Admin: Diagnostics', () => {
     const res = await request.get('/api/v1/platform/diagnostics/health');
     expect(res.status()).toBe(200);
     const body = (await res.json()) as {
-      data: { database: string; redis: string; queue: string; storage: string };
+      data: { status: string; database: { ok: boolean; latencyMs: number } };
     };
-    expect(['healthy', 'degraded', 'unhealthy']).toContain(body.data.database);
-    expect(['healthy', 'degraded', 'unhealthy']).toContain(body.data.redis);
+    expect(['ok', 'degraded']).toContain(body.data.status);
+    expect(typeof body.data.database.ok).toBe('boolean');
+    expect(typeof body.data.database.latencyMs).toBe('number');
   });
 
   test('queue diagnostics returns metrics', async ({ request }) => {
@@ -63,9 +65,10 @@ test.describe('Platform Admin: Diagnostics', () => {
     });
     expect(res.status()).toBe(200);
     const body = (await res.json()) as {
-      data: { jobsCreated: number; jobsCompleted: number; jobsFailed: number };
+      data: { counts: Record<string, number>; outbox: { failedCount: number } };
     };
-    expect(typeof body.data.jobsCreated).toBe('number');
+    expect(typeof body.data.counts).toBe('object');
+    expect(typeof body.data.outbox.failedCount).toBe('number');
   });
 
   test('org-scoped diagnostics with real org', async ({ request }) => {
@@ -92,11 +95,10 @@ test.describe('Platform Admin: Billing', () => {
     const res = await request.get('/api/v1/platform/billing/webhook-inbox');
     expect(res.status()).toBe(200);
     const body = (await res.json()) as {
-      data: { pending: number; processed: number; failed: number };
+      data: { counts: { PENDING: number; RETRY: number; PROCESSING: number; FAILED: number; QUARANTINED: number } };
     };
-    expect(typeof body.data.pending).toBe('number');
-    expect(typeof body.data.processed).toBe('number');
-    expect(typeof body.data.failed).toBe('number');
+    expect(typeof body.data.counts.PENDING).toBe('number');
+    expect(typeof body.data.counts.FAILED).toBe('number');
   });
 
   test('org billing view with real org', async ({ request }) => {

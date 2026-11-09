@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, ChevronDown, LogOut, Settings, User } from 'lucide-react';
+import { Menu, ChevronDown, LogOut, Settings, User, Sparkles } from 'lucide-react';
 import { NotificationBell } from '../ui/NotificationBell';
+import { AskAIButton } from '../ai/AskAIButton';
 import { cn } from '../../lib/cn';
 import { useAuth } from '../../features/auth/useAuth';
 import { useOrgContext } from '../../features/org/useOrgContext';
@@ -72,8 +73,9 @@ export const AppTopbar: React.FC<AppTopbarProps> = ({ sidebarOpen, onToggleSideb
         )}
       </div>
 
-      {/* Right: notification bell + user avatar menu */}
+      {/* Right: AI assistant + notification bell + user avatar menu */}
       <div className="flex items-center gap-1">
+        <AskAIButton agent="coordinator" agentLabel="AI Assistant" variant="icon" />
         <NotificationBell />
         <div className="relative">
           <button

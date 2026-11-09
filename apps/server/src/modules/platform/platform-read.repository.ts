@@ -27,6 +27,7 @@ export interface PlatformOrgRow {
 
 export interface PlatformAccountRow {
   id: string;
+  email: string;
   emailMasked: string;
   firstName: string;
   lastName: string | null;
@@ -215,6 +216,7 @@ export class PlatformReadRepository {
 
     const rows: PlatformAccountRow[] = page.map((a) => ({
       id: a.id,
+      email: maskEmail(a.email),
       emailMasked: maskEmail(a.email),
       firstName: a.firstName,
       lastName: a.lastName,

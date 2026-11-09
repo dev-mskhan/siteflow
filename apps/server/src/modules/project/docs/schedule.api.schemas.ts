@@ -294,7 +294,7 @@ export const createBaselineSchemaDoc = {
     },
   },
   response: {
-    201: { description: 'Baseline created' },
+    201: { type: 'object', additionalProperties: true, description: 'Baseline created' },
     401: responses[401], 403: responses[403], 422: responses[422], 500: responses[500],
   },
 };
@@ -313,7 +313,7 @@ export const activateBaselineSchemaDoc = {
     },
   },
   response: {
-    200: { description: 'Baseline activated' },
+    200: { type: 'object', additionalProperties: true, description: 'Baseline activated' },
     401: responses[401], 403: responses[403], 404: responses[404], 422: responses[422], 500: responses[500],
   },
 };

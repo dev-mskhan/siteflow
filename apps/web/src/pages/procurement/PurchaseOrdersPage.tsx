@@ -16,6 +16,7 @@ import { useListSuppliersQuery } from '../../features/supplier/supplierApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
+import { AskAIButton } from '../../components/ai/AskAIButton';
 import {
   getServerError,
   isInlineError,
@@ -93,7 +94,9 @@ export const PurchaseOrdersPage: React.FC = () => {
 
   const all = data ?? [];
   const rows = filter === 'ALL' ? all : all.filter((p) => p.status === filter);
-  const suppliersById = new Map((suppliersData?.data ?? []).map((supplier) => [supplier.id, supplier]));
+  const suppliersById = new Map(
+    (suppliersData?.data ?? []).map((supplier) => [supplier.id, supplier]),
+  );
 
   return (
     <div className="p-6 sm:p-8">
@@ -104,15 +107,22 @@ export const PurchaseOrdersPage: React.FC = () => {
             {all.length} order{all.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {canCreate && !showCreate && (
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 min-h-9 bg-[var(--ink)] px-4 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} /> New PO
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <AskAIButton
+            agent="procurement"
+            agentLabel="Procurement"
+            prefillQuestion="Show all open purchase orders and delivery status"
+          />
+          {canCreate && !showCreate && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center gap-2 min-h-9 bg-[var(--ink)] px-4 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} /> New PO
+            </button>
+          )}
+        </div>
       </div>
 
       {showCreate && (

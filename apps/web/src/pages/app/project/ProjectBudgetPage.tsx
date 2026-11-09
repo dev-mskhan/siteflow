@@ -14,8 +14,9 @@
  */
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Trash2, CheckCircle2, Send, Edit2, XCircle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Send, Edit2, XCircle, Sparkles } from 'lucide-react';
 import { useActiveProject } from '../../../features/project/useActiveProject';
+import { AskAIButton } from '../../../components/ai/AskAIButton';
 import {
   useListBudgetsQuery,
   useGetBudgetQuery,
@@ -353,18 +354,25 @@ export const ProjectBudgetPage: React.FC = () => {
             </div>
           )}
         </div>
-        {!budget && !showCreate && (
-          <button
-            onClick={() => {
-              setShowCreate(true);
-              setDraftLines([emptyLine()]);
-            }}
-            className="inline-flex items-center gap-2 min-h-10 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <Plus className="h-4 w-4" strokeWidth={1.8} />
-            Create budget
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <AskAIButton
+            agent="cost-financial"
+            agentLabel="Cost & Finance"
+            prefillQuestion="What is the current budget summary and variance?"
+          />
+          {!budget && !showCreate && (
+            <button
+              onClick={() => {
+                setShowCreate(true);
+                setDraftLines([emptyLine()]);
+              }}
+              className="inline-flex items-center gap-2 min-h-10 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <Plus className="h-4 w-4" strokeWidth={1.8} />
+              Create budget
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Summary ── */}

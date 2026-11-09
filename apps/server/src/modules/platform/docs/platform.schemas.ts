@@ -46,6 +46,7 @@ const organizationSummarySchema = {
       properties: {
         id: { type: 'string' },
         email: { type: 'string', example: 'a***@acme.com', description: 'Masked' },
+    emailMasked: { type: 'string', example: 'a***@acme.com' },
       },
     },
     memberCount: { type: 'integer', example: 3 },
