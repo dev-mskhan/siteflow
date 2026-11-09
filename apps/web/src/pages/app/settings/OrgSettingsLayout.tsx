@@ -39,6 +39,7 @@ export const OrgSettingsLayout: React.FC = () => {
                 { to: `${base}/billing`, label: 'Billing' },
                 { to: `${base}/exports`, label: 'Exports' },
                 { to: `${base}/notifications`, label: 'Notifications' },
+                { to: `${base}/ai`, label: 'AI Assistant' },
               ],
             },
           ]}

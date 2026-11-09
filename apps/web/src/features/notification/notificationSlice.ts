@@ -204,6 +204,10 @@ export function getToastForEvent(event: SSEEventPayload): { title: string; messa
     'billing.grace.started':              { title: 'Billing grace period',      message: 'Your subscription entered its grace period.' },
     'billing.grace.ended':                { title: 'Grace period ended',        message: 'Your billing grace period has ended.' },
     'billing.entitlement.changed':        { title: 'Entitlements changed',      message: 'Your subscription entitlements have changed.' },
+    // AI run events
+    'ai.run.completed':                   { title: 'AI run completed',           message: 'Your AI agent has finished.' },
+    'ai.run.failed':                      { title: 'AI run failed',              message: 'Your AI agent run did not complete successfully.' },
+    'ai.approval.requested':              { title: 'AI approval needed',         message: 'An AI agent is waiting for your sign-off.' },
   };
 
   return map[event.type] ?? null;

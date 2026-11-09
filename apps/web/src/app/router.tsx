@@ -82,6 +82,11 @@ const NotificationPreferencesPage = lazy(() =>
     default: m.NotificationPreferencesPage,
   })),
 );
+const AISettingsPage = lazy(() =>
+  import('../pages/app/settings/AISettingsPage').then((m) => ({
+    default: m.AISettingsPage,
+  })),
+);
 
 // ── Project pages ─────────────────────────────────────────────────────────────
 const ProjectListPage = lazy(() =>
@@ -613,6 +618,7 @@ export const router = createBrowserRouter([
           { path: 'billing', element: <BillingPage /> },
           { path: 'exports', element: <ExportsPage /> },
           { path: 'notifications', element: <NotificationPreferencesPage /> },
+          { path: 'ai', element: <AISettingsPage /> },
         ],
       },
     ],
