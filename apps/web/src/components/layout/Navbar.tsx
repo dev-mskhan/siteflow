@@ -322,9 +322,9 @@ export const Navbar: React.FC = () => {
   /* ── Shared CTA button styles ─────────────────────────────────────────── */
   const solidCta = cn(
     'inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-heading font-semibold',
-    'bg-[#0a0a0a] text-white border border-[#0a0a0a]',
-    'hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a] focus-visible:ring-offset-2',
+    'bg-[var(--action)] text-white border border-[var(--action)]',
+    'hover:bg-[var(--action-hover)] hover:border-[var(--action-hover)] active:scale-[0.97] transition-[background-color,border-color] duration-[120ms]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2',
     isLoading && 'opacity-40 pointer-events-none',
   );
 
@@ -648,7 +648,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   to={smartCta.href}
                   onClick={closeAll}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-heading font-semibold bg-[#0a0a0a] text-white hover:opacity-80 active:scale-[0.97] transition-opacity duration-[120ms]"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-heading font-semibold bg-[var(--action)] text-white hover:bg-[var(--action-hover)] active:scale-[0.97] transition-[background-color] duration-[120ms]"
                 >
                   {smartCta.label} <ArrowRight className="w-4 h-4" strokeWidth={2} />
                 </Link>

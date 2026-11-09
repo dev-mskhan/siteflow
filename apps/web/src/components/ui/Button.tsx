@@ -29,8 +29,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
      * DESIGN.md hover rule (§1.1):
      *   "Hover resolves via opacity of the ink, not by hue."
      *
-     *   primary   — solid ink fill. Hover = opacity 0.80 on the whole button.
-     *               The ink dims uniformly; white text stays white. No hue shift.
+     *   primary   — action red (#FF1E00). Hover darkens to --action-hover.
+     *               Active: slight scale-down. Focus ring matches action red.
      *   secondary — paper surface, hairline border, ink text.
      *               Hover = background steps surface → surface-2 (#f3f3f3).
      *               Border strengthens from hairline to hairline-2.
@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
      *               Hover = same surface-2 fill as secondary.
      *   ghost     — no background, no border, muted ink text.
      *               Hover = surface-2 fill + text promoted to full ink.
-     *   danger    — semantic red, not a Vault color. Opacity hover same as primary.
+     *   danger    — semantic red, not an action CTA. Opacity hover same as primary.
      *
      * Radius = 0px everywhere (DESIGN.md §4 "engineered edges").
      * No shadows — depth via borders only.
@@ -48,18 +48,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const base =
       'inline-flex items-center justify-center font-heading font-semibold tracking-tight ' +
       'transition-[opacity,background-color,border-color,color] duration-[120ms] ' +
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a] ' +
-      'focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 ' +
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+      'disabled:pointer-events-none disabled:opacity-40 ' +
       'select-none whitespace-nowrap';
 
     const variants: Record<string, string> = {
       /*
-       * PRIMARY — ink block.
-       * Hover: whole button at 80% opacity (ink opacity rule).
-       * Active: slight scale-down.
+       * PRIMARY — action red. This is the ONLY place #FF1E00 appears on buttons.
+       * Hover: steps to --action-hover (#e01a00). Active: slight scale-down.
+       * Focus ring also uses action red to reinforce the visual signature.
        */
       primary:
-        'bg-[#0a0a0a] text-white border border-[#0a0a0a] ' + 'hover:opacity-80 active:scale-[0.97]',
+        'bg-[var(--action)] text-white border border-[var(--action)] ' +
+        'hover:bg-[var(--action-hover)] hover:border-[var(--action-hover)] ' +
+        'active:scale-[0.97] focus-visible:ring-[var(--action)]',
 
       /*
        * SECONDARY — paper surface with hairline border.
@@ -68,7 +70,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
        */
       secondary:
         'bg-white text-[#0a0a0a] border border-[rgba(10,10,10,0.16)] ' +
-        'hover:bg-[#f3f3f3] hover:border-[rgba(10,10,10,0.28)] active:scale-[0.97]',
+        'hover:bg-[#f3f3f3] hover:border-[rgba(10,10,10,0.28)] active:scale-[0.97] ' +
+        'focus-visible:ring-[#0a0a0a]',
 
       /*
        * OUTLINE — transparent, hairline border.
@@ -76,7 +79,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
        */
       outline:
         'bg-transparent text-[#0a0a0a] border border-[rgba(10,10,10,0.16)] ' +
-        'hover:bg-[#f3f3f3] hover:border-[rgba(10,10,10,0.28)] active:scale-[0.97]',
+        'hover:bg-[#f3f3f3] hover:border-[rgba(10,10,10,0.28)] active:scale-[0.97] ' +
+        'focus-visible:ring-[#0a0a0a]',
 
       /*
        * GHOST — invisible at rest; surface-2 fill on hover.
@@ -84,13 +88,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
        */
       ghost:
         'bg-transparent text-[#6b6b6b] border border-transparent ' +
-        'hover:bg-[#f3f3f3] hover:text-[#0a0a0a] active:scale-[0.97]',
+        'hover:bg-[#f3f3f3] hover:text-[#0a0a0a] active:scale-[0.97] ' +
+        'focus-visible:ring-[#0a0a0a]',
 
       /*
-       * DANGER — semantic red. Opacity hover same as primary.
+       * DANGER — semantic destructive action. Muted red, not the action CTA red.
        */
       danger:
-        'bg-[#991b1b] text-white border border-[#991b1b] ' + 'hover:opacity-80 active:scale-[0.97]',
+        'bg-[#991b1b] text-white border border-[#991b1b] ' +
+        'hover:opacity-80 active:scale-[0.97] focus-visible:ring-[#991b1b]',
     };
 
     const sizes: Record<string, string> = {

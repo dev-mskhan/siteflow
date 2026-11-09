@@ -10,6 +10,12 @@
   --surface: #fafafa;
   --surface-2: #f3f3f3;
   --paper: #ffffff;
+
+  /* ── Action red — primary CTA buttons + landing page accents only ── */
+  --action:        #FF1E00;
+  --action-hover:  #e01a00;
+  --action-glow:   rgba(255, 30, 0, 0.12);
+  --action-subtle: rgba(255, 30, 0, 0.06);
 }
 
 * {

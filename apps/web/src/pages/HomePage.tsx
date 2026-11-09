@@ -96,7 +96,21 @@ export const HomePage: React.FC = () => {
         faqs={faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
       />
 
+      {/* ── Hero ── */}
       <section className="relative border-b border-[var(--hairline)]">
+        {/*
+          Gradient accent: a faint action-red radial glow anchored bottom-left of the hero,
+          behind the headline. Stays well below the text so it's atmospheric not garish.
+        */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 h-[600px] w-[700px]"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 60% at 10% 100%, rgba(255,30,0,0.08) 0%, transparent 70%)',
+          }}
+        />
+
         <Rail className="grid min-h-[calc(100dvh-72px)] grid-cols-1 items-end gap-12 pb-12 pt-16 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16 lg:pb-16 lg:pt-20">
           <motion.div
             className="max-w-3xl self-center"
@@ -118,13 +132,15 @@ export const HomePage: React.FC = () => {
               decision is made from the same live job record.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
+              {/* Primary CTA — action red */}
               <Link
                 to={smartCta.href}
-                className={`inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--ink)] px-5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ink)]${smartCta.isLoading ? ' opacity-60 pointer-events-none' : ''}`}
+                className={`inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--action)] px-5 text-sm font-medium text-white transition-[background-color,transform] duration-[120ms] hover:bg-[var(--action-hover)] hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--action)]${smartCta.isLoading ? ' opacity-60 pointer-events-none' : ''}`}
               >
                 {smartCta.label}
                 <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
               </Link>
+              {/* Secondary CTA — neutral */}
               <button
                 type="button"
                 onClick={() => setDemoOpen(true)}
@@ -163,7 +179,7 @@ export const HomePage: React.FC = () => {
                 <div className="p-4 text-right text-[var(--ink)]">PKR / USD ready</div>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-px bg-[var(--hairline)] border border-[var(--hairline)]">
+            <div className="mt-4 grid grid-cols-2 gap-px border border-[var(--hairline)] bg-[var(--hairline)]">
               <div className="bg-[var(--surface)] p-4">
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
                   One source
@@ -181,6 +197,7 @@ export const HomePage: React.FC = () => {
         </Rail>
       </section>
 
+      {/* ── Marquee strip ── */}
       <div className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--surface-2)] py-3">
         <div className="marquee-track flex min-w-max gap-10 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
           {[
@@ -206,6 +223,7 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Bento features ── */}
       <section className="border-b border-[var(--hairline)] py-24 sm:py-32">
         <Rail>
           <Reveal className="max-w-2xl">
@@ -292,6 +310,7 @@ export const HomePage: React.FC = () => {
         </Rail>
       </section>
 
+      {/* ── Operating flow ── */}
       <section className="border-b border-[var(--hairline)] bg-[var(--surface-2)] py-24 sm:py-32">
         <Rail className="grid grid-cols-1 gap-14 lg:grid-cols-[0.72fr_1.28fr]">
           <Reveal className="lg:sticky lg:top-28 lg:self-start">
@@ -329,6 +348,7 @@ export const HomePage: React.FC = () => {
         </Rail>
       </section>
 
+      {/* ── Persona rail ── */}
       <section className="border-b border-[var(--hairline)] py-24 sm:py-32">
         <Rail>
           <Reveal className="max-w-2xl">
@@ -377,8 +397,21 @@ export const HomePage: React.FC = () => {
         </Rail>
       </section>
 
-      <section className="border-b border-[var(--hairline)] bg-[var(--ink)] py-24 text-white sm:py-32">
-        <Rail>
+      {/* ── CTA block — dark ink section with action-red gradient accent + action CTA ── */}
+      <section className="relative overflow-hidden border-b border-[var(--hairline)] bg-[var(--ink)] py-24 text-white sm:py-32">
+        {/*
+          Gradient: a tight action-red radial bloom at the top-right corner of the
+          dark section — gives it warmth without flooding the ink background.
+        */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 top-0 h-[480px] w-[480px]"
+          style={{
+            background:
+              'radial-gradient(ellipse 55% 55% at 100% 0%, rgba(255,30,0,0.18) 0%, transparent 70%)',
+          }}
+        />
+        <Rail className="relative">
           <Reveal>
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
               A clearer operating rhythm
@@ -390,13 +423,27 @@ export const HomePage: React.FC = () => {
               Replace scattered spreadsheets with a system that carries the project forward from
               estimate to final payment — without double entry.
             </p>
-            <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
-              Start a 14-day trial from the hero above, or explore the modules below.
-            </p>
+            {/* Action CTA on dark background — white variant so it reads clearly */}
+            <div className="mt-10 flex flex-wrap items-center gap-3">
+              <Link
+                to="/register"
+                className="inline-flex min-h-12 items-center gap-2 bg-[var(--action)] px-5 text-sm font-medium text-white transition-[background-color,transform] duration-[120ms] hover:bg-[var(--action-hover)] hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--action)]"
+              >
+                Start free trial
+                <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
+              </Link>
+              <Link
+                to="/features"
+                className="inline-flex min-h-12 items-center gap-2 border border-white/20 px-5 text-sm font-medium text-white/80 transition-colors duration-[120ms] hover:border-white/40 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              >
+                Explore modules
+              </Link>
+            </div>
           </Reveal>
         </Rail>
       </section>
 
+      {/* ── FAQ ── */}
       <section className="py-24 sm:py-32">
         <Rail className="max-w-4xl">
           <Reveal>
