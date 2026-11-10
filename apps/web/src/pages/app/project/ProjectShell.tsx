@@ -45,7 +45,10 @@ export const ProjectShell: React.FC = () => {
 
   if (isError) {
     return (
-      <div role="alert" className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+      <div
+        role="alert"
+        className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center"
+      >
         <p className="text-sm text-[var(--muted)]">
           This project could not be loaded. Check your organization access and try again.
         </p>
@@ -90,7 +93,6 @@ export const ProjectShell: React.FC = () => {
               <h1 className="text-xl font-medium tracking-[-0.03em]">{activeProject.name}</h1>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -167,6 +169,10 @@ export const ProjectShell: React.FC = () => {
               { to: `${base}/audit`, label: 'Audit' },
               { to: `${base}/settings`, label: 'Settings' },
             ],
+          },
+          {
+            label: 'AI Assistant',
+            items: [{ to: `${base}/ai`, label: 'Chat' }],
           },
           {
             label: 'Reports',

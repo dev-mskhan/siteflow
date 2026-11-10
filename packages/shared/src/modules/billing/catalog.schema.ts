@@ -28,6 +28,7 @@ export const PlanLimitsSchema = z.object({
   teamMembers: z.number().int().nonnegative(),
   storageGb: z.number().int().nonnegative(),
   apiCallsMonthly: z.number().int().nonnegative(),
+  aiTokensMonthly: z.number().int().nonnegative(), // AI assistant token budget per billing cycle
 });
 export type PlanLimits = z.infer<typeof PlanLimitsSchema>;
 
@@ -106,18 +107,21 @@ export const APPROVED_LIMITS: Record<PlanId, PlanLimits> = {
     teamMembers: 10,
     storageGb: 50,
     apiCallsMonthly: 5000,
+    aiTokensMonthly: 100_000, // ~$0.20/day at GPT-4o rates
   },
   professional: {
     activeProjects: 15,
     teamMembers: 50,
     storageGb: 250,
     apiCallsMonthly: 25000,
+    aiTokensMonthly: 500_000, // ~$1/day
   },
   enterprise: {
     activeProjects: 100,
     teamMembers: 500,
     storageGb: 1000,
     apiCallsMonthly: 100000,
+    aiTokensMonthly: 2_000_000, // ~$4/day
   },
 };
 

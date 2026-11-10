@@ -120,6 +120,9 @@ const ProjectSettingsPage = lazy(() =>
 const ProjectAuditPage = lazy(() =>
   import('../pages/app/project/ProjectAuditPage').then((m) => ({ default: m.ProjectAuditPage })),
 );
+const ProjectAIChatPage = lazy(() =>
+  import('../pages/app/project/ProjectAIChatPage').then((m) => ({ default: m.ProjectAIChatPage })),
+);
 const ProjectScheduleHistoryPage = lazy(() =>
   import('../pages/app/project/ProjectScheduleHistoryPage').then((m) => ({
     default: m.ProjectScheduleHistoryPage,
@@ -579,6 +582,7 @@ export const router = createBrowserRouter([
           { path: 'inventory', element: <InventoryLedgerPage /> },
           { path: 'settings', element: <ProjectSettingsPage /> },
           { path: 'audit', element: <ProjectAuditPage /> },
+          { path: 'ai', element: <ProjectAIChatPage /> },
           { path: 'schedule-history', element: <ProjectScheduleHistoryPage /> },
           // Group 9 — Documents
           { path: 'documents', element: <ProjectDocumentsPage /> },

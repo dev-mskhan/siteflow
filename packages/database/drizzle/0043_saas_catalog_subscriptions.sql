@@ -99,10 +99,10 @@ ON CONFLICT ("id") DO NOTHING;
 -- Seed approved price versions (v1)
 INSERT INTO "app"."saas_price_versions" ("id", "plan_id", "version", "interval", "currency", "unit_amount_cents", "stripe_price_id", "limits", "is_active")
 VALUES
-  ('starter_month_v1', 'starter', 'v1', 'month', 'usd', 19900, 'price_starter_month_v1', '{"activeProjects": 3, "teamMembers": 10, "storageGb": 50, "apiCallsMonthly": 5000}'::jsonb, true),
-  ('starter_year_v1', 'starter', 'v1', 'year', 'usd', 202900, 'price_starter_year_v1', '{"activeProjects": 3, "teamMembers": 10, "storageGb": 50, "apiCallsMonthly": 5000}'::jsonb, true),
-  ('pro_month_v1', 'professional', 'v1', 'month', 'usd', 49900, 'price_pro_month_v1', '{"activeProjects": 15, "teamMembers": 50, "storageGb": 250, "apiCallsMonthly": 25000}'::jsonb, true),
-  ('pro_year_v1', 'professional', 'v1', 'year', 'usd', 508900, 'price_pro_year_v1', '{"activeProjects": 15, "teamMembers": 50, "storageGb": 250, "apiCallsMonthly": 25000}'::jsonb, true),
-  ('ent_month_v1', 'enterprise', 'v1', 'month', 'usd', 99900, 'price_ent_month_v1', '{"activeProjects": 100, "teamMembers": 500, "storageGb": 1000, "apiCallsMonthly": 100000}'::jsonb, true),
-  ('ent_year_v1', 'enterprise', 'v1', 'year', 'usd', 1018900, 'price_ent_year_v1', '{"activeProjects": 100, "teamMembers": 500, "storageGb": 1000, "apiCallsMonthly": 100000}'::jsonb, true)
+  ('starter_month_v1', 'starter', 'v1', 'month', 'usd', 19900, 'price_starter_month_v1', '{"activeProjects": 3, "teamMembers": 10, "storageGb": 50, "apiCallsMonthly": 5000, "aiTokensMonthly": 100000}'::jsonb, true),
+  ('starter_year_v1', 'starter', 'v1', 'year', 'usd', 202900, 'price_starter_year_v1', '{"activeProjects": 3, "teamMembers": 10, "storageGb": 50, "apiCallsMonthly": 5000, "aiTokensMonthly": 100000}'::jsonb, true),
+  ('pro_month_v1', 'professional', 'v1', 'month', 'usd', 49900, 'price_pro_month_v1', '{"activeProjects": 15, "teamMembers": 50, "storageGb": 250, "apiCallsMonthly": 25000, "aiTokensMonthly": 500000}'::jsonb, true),
+  ('pro_year_v1', 'professional', 'v1', 'year', 'usd', 508900, 'price_pro_year_v1', '{"activeProjects": 15, "teamMembers": 50, "storageGb": 250, "aiCallsMonthly": 25000, "aiTokensMonthly": 500000}'::jsonb, true),
+  ('ent_month_v1', 'enterprise', 'v1', 'month', 'usd', 99900, 'price_ent_month_v1', '{"activeProjects": 100, "teamMembers": 500, "storageGb": 1000, "apiCallsMonthly": 100000, "aiTokensMonthly": 2000000}'::jsonb, true),
+  ('ent_year_v1', 'enterprise', 'v1', 'year', 'usd', 1018900, 'price_ent_year_v1', '{"activeProjects": 100, "teamMembers": 500, "storageGb": 1000, "apiCallsMonthly": 100000, "aiTokensMonthly": 2000000}'::jsonb, true)
 ON CONFLICT ("plan_id", "version", "interval") DO NOTHING;

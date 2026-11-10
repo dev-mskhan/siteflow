@@ -15,16 +15,14 @@ import { useListRunsQuery } from '../../../features/ai/aiApi';
 export const AISettingsPage: React.FC = () => {
   const { orgId } = useParams<{ orgId: string }>();
 
-  const { data: recentRuns } = useListRunsQuery(
-    { orgId: orgId!, limit: 5 },
-    { skip: !orgId },
-  );
+  const { data: recentRuns } = useListRunsQuery({ orgId: orgId!, limit: 5 }, { skip: !orgId });
 
   const succeeded = recentRuns?.filter((r) => r.status === 'SUCCEEDED').length ?? 0;
   const failed = recentRuns?.filter((r) => r.status === 'FAILED').length ?? 0;
-  const pending = recentRuns?.filter(
-    (r) => r.status === 'QUEUED' || r.status === 'RUNNING' || r.status === 'AWAITING_APPROVAL',
-  ).length ?? 0;
+  const pending =
+    recentRuns?.filter(
+      (r) => r.status === 'QUEUED' || r.status === 'RUNNING' || r.status === 'AWAITING_APPROVAL',
+    ).length ?? 0;
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -49,20 +47,36 @@ export const AISettingsPage: React.FC = () => {
         <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-3">
           {[
             { to: `/org/${orgId}/ai/chat`, icon: MessageSquare, label: 'Chat', desc: 'Ask the AI' },
-            { to: `/org/${orgId}/ai/runs`, icon: Activity, label: 'Runs', desc: 'Agent run history' },
-            { to: `/org/${orgId}/ai/approvals`, icon: CheckCircle2, label: 'Approvals', desc: 'Pending sign-offs' },
+            {
+              to: `/org/${orgId}/ai/runs`,
+              icon: Activity,
+              label: 'Runs',
+              desc: 'Agent run history',
+            },
+            {
+              to: `/org/${orgId}/ai/approvals`,
+              icon: CheckCircle2,
+              label: 'Approvals',
+              desc: 'Pending sign-offs',
+            },
           ].map(({ to, icon: Icon, label, desc }) => (
             <Link
               key={to}
               to={to}
               className="group flex items-center gap-3 bg-[var(--paper)] px-4 py-3 transition-colors hover:bg-[var(--surface-2)]"
             >
-              <Icon className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--ink)]" strokeWidth={1.6} />
+              <Icon
+                className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--ink)]"
+                strokeWidth={1.6}
+              />
               <div>
                 <p className="text-sm font-medium text-[var(--ink)]">{label}</p>
                 <p className="text-xs text-[var(--muted)]">{desc}</p>
               </div>
-              <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-[var(--muted)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={1.6} />
+              <ArrowUpRight
+                className="ml-auto h-3.5 w-3.5 text-[var(--muted)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                strokeWidth={1.6}
+              />
             </Link>
           ))}
         </div>
@@ -133,6 +147,36 @@ export const AISettingsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Tier-based limits */}
+      <div>
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
+          AI token budget (included in your plan)
+        </p>
+        <div className="border border-[var(--hairline-2)] bg-[var(--paper)] px-5 py-4">
+          <p className="text-sm text-[var(--muted)]">
+            Your AI assistant usage is metered by tokens. Each plan includes a monthly token budget:
+          </p>
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[var(--muted)]">Starter</span>
+              <span className="font-mono text-[var(--ink)]">100,000 tokens/month</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[var(--muted)]">Professional</span>
+              <span className="font-mono text-[var(--ink)]">500,000 tokens/month</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[var(--muted)]">Enterprise</span>
+              <span className="font-mono text-[var(--ink)]">2,000,000 tokens/month</span>
+            </div>
+          </div>
+          <p className="mt-4 text-xs text-[var(--muted)]">
+            One token is ~4 characters. A typical question + answer uses 1,000–3,000 tokens. When
+            you exceed your monthly budget, AI requests are paused until the next billing cycle.
+          </p>
+        </div>
+      </div>
+
       {/* Observability */}
       <div>
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
@@ -141,8 +185,8 @@ export const AISettingsPage: React.FC = () => {
         <div className="border border-[var(--hairline-2)] bg-[var(--paper)] px-5 py-4">
           <p className="text-sm font-medium text-[var(--ink)]">Langfuse traces</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Every AI run generates a trace with full token counts, tool calls, and latency.
-            View all traces in Langfuse.
+            Every AI run generates a trace with full token counts, tool calls, and latency. View all
+            traces in Langfuse.
           </p>
           <a
             href="http://localhost:3020"
