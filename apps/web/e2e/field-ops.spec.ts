@@ -23,11 +23,12 @@ test.describe('Field Operations: Tasks, Field Logs, Issues', () => {
 
     // Create project
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-      data: { name: 'Field Test Project', projectCode: `FT-${Date.now()}` },
+      data: { name: 'Field Test Project', currency: 'AED', plannedStartDate: '2026-01-01' },
     });
     expect(projectRes.status()).toBe(201);
     const projectBody = await projectRes.json();
     projectId = (projectBody.data.project?.id ?? projectBody.data.id);
+    await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, { data: {} });
   });
 
   test('creates task and transitions status', async ({ request }) => {

@@ -20,6 +20,7 @@ import {
   useCreateChangeOrderMutation,
   useTransitionChangeOrderMutation,
 } from '../../features/project/commercialApi';
+import { useListCostCodesQuery } from '../../features/project/costCodeApi';
 import { usePermission } from '../../hooks/usePermission';
 import { useToast } from '../../components/ui/Toast';
 import { toastErrorMessage } from '../../lib/authErrors';
@@ -65,20 +66,42 @@ export const ChangeOrdersPage: React.FC = () => {
   const [currency, setCurrency] = useState('PKR');
   const [reason, setReason]     = useState('');
   const [description, setDescription] = useState('');
+  const [selectedCostCodeId, setSelectedCostCodeId] = useState('');
+  const [costDelta, setCostDelta] = useState('0.00');
 
   const { data, isLoading } = useListChangeOrdersQuery({ orgId: orgId!, projectId: projectId! });
+  const { data: costCodesData } = useListCostCodesQuery({ orgId: orgId!, projectId: projectId! });
+  const costCodes = costCodesData?.costCodes ?? [];
   const [createCO, { isLoading: creating }] = useCreateChangeOrderMutation();
   const [transitionCO, { isLoading: transitioning }] = useTransitionChangeOrderMutation();
 
   const onCreate = async () => {
     if (!title.trim()) { toastErr('Title required', ''); return; }
+    const effectiveCostCodeId = selectedCostCodeId || costCodes[0]?.id;
+    if (!effectiveCostCodeId) {
+      toastErr('Cost code required', 'Please create a project cost code before creating a change order.');
+      return;
+    }
+    const effectiveReason = reason.trim() || title.trim();
     try {
       await createCO({
         orgId: orgId!, projectId: projectId!,
-        input: { title: title.trim(), currencyCode: currency.toUpperCase(), description: description.trim() || undefined, reason: reason.trim() || undefined, lines: [] },
+        input: {
+          title: title.trim(),
+          currencyCode: currency.toUpperCase(),
+          reason: effectiveReason,
+          lines: [
+            {
+              costCodeId: effectiveCostCodeId,
+              description: description.trim() || title.trim(),
+              costDelta: costDelta.trim() || '0.00',
+              revenueDelta: '0.00',
+            },
+          ],
+        },
       }).unwrap();
       toastOk('Change order created', '');
-      setShowCreate(false); setTitle(''); setCurrency('PKR'); setReason(''); setDescription('');
+      setShowCreate(false); setTitle(''); setCurrency('PKR'); setReason(''); setDescription(''); setCostDelta('0.00');
     } catch (err) { toastErr('Create failed', toastErrorMessage(err as never)); }
   };
 
@@ -134,6 +157,26 @@ export const ChangeOrdersPage: React.FC = () => {
             <div className="sm:col-span-3">
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Reason for change</label>
               <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={2000} className={inputCls()} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Cost Code *</label>
+              {costCodes.length === 0 ? (
+                <p className="text-xs text-[var(--muted)] italic">No cost codes found. Please create one in the Cost Codes tab first.</p>
+              ) : (
+                <select
+                  value={selectedCostCodeId || costCodes[0]?.id}
+                  onChange={(e) => setSelectedCostCodeId(e.target.value)}
+                  className={inputCls()}
+                >
+                  {costCodes.map((cc) => (
+                    <option key={cc.id} value={cc.id}>{cc.code} — {cc.description || 'No description'}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Cost Delta</label>
+              <input value={costDelta} onChange={(e) => setCostDelta(e.target.value)} placeholder="0.00" className={inputCls()} />
             </div>
             <div className="sm:col-span-3">
               <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">Description</label>

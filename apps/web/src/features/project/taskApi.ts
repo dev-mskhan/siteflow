@@ -100,7 +100,10 @@ export const taskApi = baseApi.injectEndpoints({
     listBaselines: build.query<BaselineDTO[], OrgProjectArgs>({
       query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/baselines`,
       transformResponse: (raw: { data: BaselineDTO[] }) => raw.data,
-      providesTags: (_r, _e, { projectId }) => [{ type: 'Baseline', id: projectId }],
+      providesTags: (_r, _e, { projectId }) => [
+        { type: 'Baseline', id: projectId },
+        { type: 'Baseline', id: 'LIST' },
+      ],
     }),
 
     getBaseline: build.query<BaselineDTO, OrgProjectArgs & { baselineId: string }>({
@@ -117,7 +120,10 @@ export const taskApi = baseApi.injectEndpoints({
         body: input,
       }),
       transformResponse: (raw: { data: BaselineDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Baseline', id: projectId }],
+      invalidatesTags: (_r, _e, { projectId }) => [
+        { type: 'Baseline', id: projectId },
+        { type: 'Baseline', id: 'LIST' },
+      ],
     }),
 
     activateBaseline: build.mutation<BaselineDTO, OrgProjectArgs & { baselineId: string }>({
@@ -126,7 +132,11 @@ export const taskApi = baseApi.injectEndpoints({
         method: 'POST',
       }),
       transformResponse: (raw: { data: BaselineDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Baseline', id: projectId }],
+      invalidatesTags: (_r, _e, { projectId, baselineId }) => [
+        { type: 'Baseline', id: projectId },
+        { type: 'Baseline', id: 'LIST' },
+        { type: 'Baseline', id: baselineId },
+      ],
     }),
 
     deleteBaseline: build.mutation<void, OrgProjectArgs & { baselineId: string }>({
@@ -134,7 +144,11 @@ export const taskApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/baselines/${baselineId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_r, _e, { projectId }) => [{ type: 'Baseline', id: projectId }],
+      invalidatesTags: (_r, _e, { projectId, baselineId }) => [
+        { type: 'Baseline', id: projectId },
+        { type: 'Baseline', id: 'LIST' },
+        { type: 'Baseline', id: baselineId },
+      ],
     }),
 
     // ── Calendar ───────────────────────────────────────────────────────────

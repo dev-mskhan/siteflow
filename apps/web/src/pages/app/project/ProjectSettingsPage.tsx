@@ -168,6 +168,11 @@ export const ProjectSettingsPage: React.FC = () => {
 
   return (
     <div className="p-6 sm:p-8 max-w-lg space-y-10">
+      <div>
+        <h2 className="text-lg font-medium tracking-[-0.03em]">Project settings</h2>
+        <p className="mt-0.5 text-sm text-[var(--muted)]">Configure project details and locale preferences</p>
+      </div>
+
       {/* Project details */}
       <section className="space-y-4">
         <div className="border-b border-[var(--hairline-2)] pb-2">

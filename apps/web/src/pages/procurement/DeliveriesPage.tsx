@@ -85,6 +85,16 @@ export const DeliveriesPage: React.FC = () => {
       toastErr('PO required', '');
       return;
     }
+    const selectedDlPo = (posData ?? []).find((p) => p.id === dlPoId);
+    const items = selectedDlPo?.items.map((it) => ({
+      purchaseOrderItemId: it.id,
+      quantity: it.quantity,
+      unitCode: it.unitCode,
+    })) ?? [];
+    if (items.length === 0) {
+      toastErr('PO items required', 'Selected Purchase Order has no line items.');
+      return;
+    }
     try {
       await createDelivery({
         orgId: orgId!,
@@ -94,7 +104,7 @@ export const DeliveriesPage: React.FC = () => {
           scheduledDate: dlScheduledDate || undefined,
           carrier: dlCarrier || undefined,
           notes: dlNotes || undefined,
-          items: [],
+          items,
         },
       }).unwrap();
       toastOk('Delivery scheduled', '');
@@ -113,6 +123,17 @@ export const DeliveriesPage: React.FC = () => {
       toastErr('PO required', '');
       return;
     }
+    const selectedRcPo = (posData ?? []).find((p) => p.id === rcPoId);
+    const items = selectedRcPo?.items.map((it) => ({
+      purchaseOrderItemId: it.id,
+      quantityDelivered: it.quantity,
+      quantityAccepted: it.quantity,
+      unitCode: it.unitCode,
+    })) ?? [];
+    if (items.length === 0) {
+      toastErr('PO items required', 'Selected Purchase Order has no line items.');
+      return;
+    }
     try {
       await createReceipt({
         orgId: orgId!,
@@ -121,7 +142,7 @@ export const DeliveriesPage: React.FC = () => {
           purchaseOrderId: rcPoId,
           receivedAt: new Date(rcReceivedAt).toISOString(),
           notes: rcNotes || undefined,
-          items: [],
+          items,
         },
       }).unwrap();
       toastOk('Receipt created', '');
@@ -159,6 +180,11 @@ export const DeliveriesPage: React.FC = () => {
 
   return (
     <div className="p-6 sm:p-8">
+      <div className="mb-6">
+        <h2 className="text-lg font-medium tracking-[-0.03em]">Deliveries &amp; receipts</h2>
+        <p className="mt-0.5 text-sm text-[var(--muted)]">Track purchase order shipments and material intake</p>
+      </div>
+
       {/* Tab switcher */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex border border-[var(--hairline-2)]">

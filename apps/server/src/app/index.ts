@@ -34,7 +34,7 @@ import { invoiceRoutes } from '../modules/billing/invoice.routes.js';
 import { lifecycleRoutes } from '../modules/billing/lifecycle.routes.js';
 import { webhookRoutes } from '../modules/billing/webhook.routes.js';
 import { platformRoutes } from '../modules/platform/platform.routes.js';
-import { agentRunRoutes, approvalRoutes, conversationRoutes, voiceRoutes } from '../modules/ai/index.js';
+import { agentRunRoutes, approvalRoutes, conversationRoutes, voiceRoutes, aiUsageRoutes } from '../modules/ai/index.js';
 
 /**
  * Creates and configures the Fastify application instance.
@@ -258,6 +258,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(platformRoutes, { prefix: '/api/v1/platform' });
   await app.register(agentRunRoutes, { prefix: '/api/v1/organizations' });
   await app.register(approvalRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(aiUsageRoutes, { prefix: '/api/v1/organizations' });
   await app.register(conversationRoutes, { prefix: '/api/v1/organizations' });
   await app.register(voiceRoutes, { prefix: '/api/v1/organizations' });
 

@@ -187,6 +187,9 @@ export class RealtimeDeliveryManager {
     try {
       const redis = await ensureRedisConnected();
       this.subscriber = redis.duplicate();
+      this.subscriber.on('error', (err: any) => {
+        logger.warn({ err: err?.message ?? String(err) }, 'Realtime Redis subscriber warning');
+      });
       this.subscriber.on('message', (channel, message) => {
         if (channel !== REALTIME_REDIS_CHANNEL) return;
         this.handleRedisMessage(message);

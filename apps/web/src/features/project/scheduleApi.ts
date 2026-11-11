@@ -158,8 +158,9 @@ export const scheduleApi = baseApi.injectEndpoints({
         },
       }),
       transformResponse: (raw: { data: Baseline }) => raw.data,
-      invalidatesTags: [
+      invalidatesTags: (_result, _error, { projectId }) => [
         { type: 'Baseline', id: 'LIST' },
+        { type: 'Baseline', id: projectId },
         { type: 'ScheduleHistory', id: 'LIST' },
       ],
     }),
@@ -186,9 +187,10 @@ export const scheduleApi = baseApi.injectEndpoints({
         },
       }),
       transformResponse: (raw: { data: Baseline }) => raw.data,
-      invalidatesTags: (_result, _error, { baselineId }) => [
+      invalidatesTags: (_result, _error, { baselineId, projectId }) => [
         { type: 'Baseline', id: baselineId },
         { type: 'Baseline', id: 'LIST' },
+        { type: 'Baseline', id: projectId },
         { type: 'ScheduleHistory', id: 'LIST' },
       ],
     }),
@@ -216,9 +218,10 @@ export const scheduleApi = baseApi.injectEndpoints({
           'X-Idempotency-Key': crypto.randomUUID(),
         },
       }),
-      invalidatesTags: (_result, _error, { baselineId }) => [
+      invalidatesTags: (_result, _error, { baselineId, projectId }) => [
         { type: 'Baseline', id: baselineId },
         { type: 'Baseline', id: 'LIST' },
+        { type: 'Baseline', id: projectId },
       ],
     }),
 

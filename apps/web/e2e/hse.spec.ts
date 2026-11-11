@@ -5,9 +5,14 @@
  */
 import { test, expect } from '@playwright/test';
 
+/** Helper: safe project-id extraction — server returns data.project.id */
+function projectId(body: { data: { project?: { id: string }; id?: string } }): string {
+  return body.data.project?.id ?? body.data.id ?? '';
+}
+
 test.describe('HSE: Safety Event Workflow', () => {
   let orgId: string;
-  let projectId: string;
+  let pid: string;
   let eventId: string;
 
   test.beforeAll(async ({ request }) => {
@@ -21,26 +26,17 @@ test.describe('HSE: Safety Event Workflow', () => {
     await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-      data: {
-        name: 'Safety Test Project',
-        projectCode: `SAFETY-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
-      },
+      data: { name: 'Safety Test Project', currency: 'AED', plannedStartDate: '2026-01-01' },
     });
     if (projectRes.status() !== 201) return;
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    pid = projectId((await projectRes.json()) as any);
   });
 
   test('creates safety event', async ({ request }) => {
-    if (!orgId || !projectId) {
-      console.log('Setup failed, skipping test');
-      return;
-    }
+    if (!orgId || !pid) { console.log('Setup failed, skipping test'); return; }
 
     const createRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/safety-events`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/safety-events`,
       {
         data: {
           eventType: 'INCIDENT',
@@ -56,22 +52,18 @@ test.describe('HSE: Safety Event Workflow', () => {
     expect([201, 403, 422]).toContain(createRes.status());
 
     if (createRes.status() === 201) {
-      const created = (await createRes.json()) as { data: { event?: { id: string; status: string } } };
-      if (created.data.event) {
-        eventId = created.data.event.id;
-        expect(created.data.event.status).toBe('REPORTED');
-      }
+      const created = (await createRes.json()) as { data: { event?: { id: string; status: string }; id?: string; status?: string } };
+      eventId = created.data.event?.id ?? created.data.id ?? '';
+      const status = created.data.event?.status ?? created.data.status;
+      if (status) expect(status).toBe('REPORTED');
     }
   });
 
   test('investigates safety event', async ({ request }) => {
-    if (!orgId || !projectId || !eventId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !eventId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const investigateRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/safety-events/${eventId}/investigate`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/safety-events/${eventId}/investigate`,
       {
         data: {
           rootCause: 'Floor not properly marked as wet',
@@ -83,18 +75,11 @@ test.describe('HSE: Safety Event Workflow', () => {
   });
 
   test('closes safety event', async ({ request }) => {
-    if (!orgId || !projectId || !eventId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !eventId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const closeRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/safety-events/${eventId}/close`,
-      {
-        data: {
-          notes: 'Corrective actions implemented, event resolved',
-        },
-      },
+      `/api/v1/organizations/${orgId}/projects/${pid}/safety-events/${eventId}/close`,
+      { data: { notes: 'Corrective actions implemented, event resolved' } },
     );
     expect([200, 404, 403, 422]).toContain(closeRes.status());
   });
@@ -102,7 +87,7 @@ test.describe('HSE: Safety Event Workflow', () => {
 
 test.describe('HSE: Quality Workflow', () => {
   let orgId: string;
-  let projectId: string;
+  let pid: string;
   let inspectionId: string;
   let deficiencyId: string;
 
@@ -117,26 +102,17 @@ test.describe('HSE: Quality Workflow', () => {
     await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-      data: {
-        name: 'Quality Test Project',
-        projectCode: `QUALITY-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
-      },
+      data: { name: 'Quality Test Project', currency: 'AED', plannedStartDate: '2026-01-01' },
     });
     if (projectRes.status() !== 201) return;
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    pid = projectId((await projectRes.json()) as any);
   });
 
   test('creates quality inspection', async ({ request }) => {
-    if (!orgId || !projectId) {
-      console.log('Setup failed, skipping test');
-      return;
-    }
+    if (!orgId || !pid) { console.log('Setup failed, skipping test'); return; }
 
     const createRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-inspections`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-inspections`,
       {
         data: {
           inspectionType: 'Concrete Pour Inspection',
@@ -149,34 +125,26 @@ test.describe('HSE: Quality Workflow', () => {
     expect([201, 403, 422]).toContain(createRes.status());
 
     if (createRes.status() === 201) {
-      const created = (await createRes.json()) as { data: { inspection?: { id: string } } };
-      if (created.data.inspection) {
-        inspectionId = created.data.inspection.id;
-      }
+      const created = (await createRes.json()) as { data: { inspection?: { id: string }; id?: string } };
+      inspectionId = created.data.inspection?.id ?? created.data.id ?? '';
     }
   });
 
   test('starts quality inspection', async ({ request }) => {
-    if (!orgId || !projectId || !inspectionId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !inspectionId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const startRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-inspections/${inspectionId}/start`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-inspections/${inspectionId}/start`,
       { data: {} },
     );
     expect([200, 404, 403, 422]).toContain(startRes.status());
   });
 
   test('completes quality inspection', async ({ request }) => {
-    if (!orgId || !projectId || !inspectionId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !inspectionId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const completeRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-inspections/${inspectionId}/complete`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-inspections/${inspectionId}/complete`,
       {
         data: {
           result: 'PASS_WITH_CONDITIONS',
@@ -189,13 +157,10 @@ test.describe('HSE: Quality Workflow', () => {
   });
 
   test('creates quality deficiency', async ({ request }) => {
-    if (!orgId || !projectId) {
-      console.log('Setup failed, skipping test');
-      return;
-    }
+    if (!orgId || !pid) { console.log('Setup failed, skipping test'); return; }
 
     const createRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-deficiencies`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-deficiencies`,
       {
         data: {
           title: 'Uneven concrete surface finish',
@@ -209,34 +174,26 @@ test.describe('HSE: Quality Workflow', () => {
     expect([201, 403, 422]).toContain(createRes.status());
 
     if (createRes.status() === 201) {
-      const created = (await createRes.json()) as { data: { deficiency?: { id: string } } };
-      if (created.data.deficiency) {
-        deficiencyId = created.data.deficiency.id;
-      }
+      const created = (await createRes.json()) as { data: { deficiency?: { id: string }; id?: string } };
+      deficiencyId = created.data.deficiency?.id ?? created.data.id ?? '';
     }
   });
 
   test('resolves quality deficiency', async ({ request }) => {
-    if (!orgId || !projectId || !deficiencyId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !deficiencyId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const resolveRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-deficiencies/${deficiencyId}/resolve`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-deficiencies/${deficiencyId}/resolve`,
       { data: {} },
     );
     expect([200, 404, 403, 422]).toContain(resolveRes.status());
   });
 
   test('closes quality deficiency', async ({ request }) => {
-    if (!orgId || !projectId || !deficiencyId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !deficiencyId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const closeRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-deficiencies/${deficiencyId}/close`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-deficiencies/${deficiencyId}/close`,
       { data: {} },
     );
     expect([200, 404, 403, 422]).toContain(closeRes.status());
@@ -245,7 +202,7 @@ test.describe('HSE: Quality Workflow', () => {
 
 test.describe('HSE: Compliance Workflow', () => {
   let orgId: string;
-  let projectId: string;
+  let pid: string;
   let permitId: string;
   let recordId: string;
 
@@ -260,26 +217,17 @@ test.describe('HSE: Compliance Workflow', () => {
     await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-      data: {
-        name: 'Compliance Test Project',
-        projectCode: `COMP-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
-      },
+      data: { name: 'Compliance Test Project', currency: 'AED', plannedStartDate: '2026-01-01' },
     });
     if (projectRes.status() !== 201) return;
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    pid = projectId((await projectRes.json()) as any);
   });
 
   test('creates permit', async ({ request }) => {
-    if (!orgId || !projectId) {
-      console.log('Setup failed, skipping test');
-      return;
-    }
+    if (!orgId || !pid) { console.log('Setup failed, skipping test'); return; }
 
     const createRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/permits`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/permits`,
       {
         data: {
           permitType: 'Hot Work Permit',
@@ -293,36 +241,26 @@ test.describe('HSE: Compliance Workflow', () => {
     expect([201, 403, 422]).toContain(createRes.status());
 
     if (createRes.status() === 201) {
-      const created = (await createRes.json()) as { data: { permit?: { id: string } } };
-      if (created.data.permit) {
-        permitId = created.data.permit.id;
-      }
+      const created = (await createRes.json()) as { data: { permit?: { id: string }; id?: string } };
+      permitId = created.data.permit?.id ?? created.data.id ?? '';
     }
   });
 
   test('transitions permit status', async ({ request }) => {
-    if (!orgId || !projectId || !permitId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !permitId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const transitionRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/permits/${permitId}/transition`,
-      {
-        data: { status: 'ISSUED' },
-      },
+      `/api/v1/organizations/${orgId}/projects/${pid}/permits/${permitId}/transition`,
+      { data: { status: 'ISSUED' } },
     );
     expect([200, 404, 403, 422]).toContain(transitionRes.status());
   });
 
   test('creates compliance record', async ({ request }) => {
-    if (!orgId || !projectId) {
-      console.log('Setup failed, skipping test');
-      return;
-    }
+    if (!orgId || !pid) { console.log('Setup failed, skipping test'); return; }
 
     const createRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/compliance-records`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/compliance-records`,
       {
         data: {
           requirementType: 'Insurance Certificate',
@@ -335,24 +273,17 @@ test.describe('HSE: Compliance Workflow', () => {
     expect([201, 403, 422]).toContain(createRes.status());
 
     if (createRes.status() === 201) {
-      const created = (await createRes.json()) as { data: { record?: { id: string } } };
-      if (created.data.record) {
-        recordId = created.data.record.id;
-      }
+      const created = (await createRes.json()) as { data: { record?: { id: string }; id?: string } };
+      recordId = created.data.record?.id ?? created.data.id ?? '';
     }
   });
 
   test('verifies compliance record', async ({ request }) => {
-    if (!orgId || !projectId || !recordId) {
-      console.log('Prerequisite test failed, skipping');
-      return;
-    }
+    if (!orgId || !pid || !recordId) { console.log('Prerequisite test failed, skipping'); return; }
 
     const verifyRes = await request.post(
-      `/api/v1/organizations/${orgId}/projects/${projectId}/compliance-records/${recordId}/verify`,
-      {
-        data: { verificationRef: 'CERT-2026-001' },
-      },
+      `/api/v1/organizations/${orgId}/projects/${pid}/compliance-records/${recordId}/verify`,
+      { data: { verificationRef: 'CERT-2026-001' } },
     );
     expect([200, 404, 403, 422]).toContain(verifyRes.status());
   });
@@ -374,29 +305,24 @@ test.describe('HSE: API Smoke Tests', () => {
 
     const orgBody = (await orgRes.json()) as { data: { organization: { id: string } } };
     const orgId = orgBody.data.organization.id;
+    await request.post(`/api/v1/organizations/${orgId}/billing/trial`, { data: {} });
 
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
-      data: {
-        name: 'Smoke HSE Project',
-        projectCode: `SMKHSE-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
-      },
+      data: { name: 'Smoke HSE Project', currency: 'AED', plannedStartDate: '2026-01-01' },
     });
 
     if (projectRes.status() !== 201) return;
 
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    const projectId = projectBody.data.id;
+    const pid = projectId((await projectRes.json()) as any);
 
     const endpoints = [
-      `/api/v1/organizations/${orgId}/projects/${projectId}/safety-events`,
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-inspections`,
-      `/api/v1/organizations/${orgId}/projects/${projectId}/quality-deficiencies`,
-      `/api/v1/organizations/${orgId}/projects/${projectId}/corrective-actions`,
-      `/api/v1/organizations/${orgId}/projects/${projectId}/permits`,
-      `/api/v1/organizations/${orgId}/projects/${projectId}/compliance-records`,
-      `/api/v1/organizations/${orgId}/projects/${projectId}/compliance-inspections`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/safety-events`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-inspections`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/quality-deficiencies`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/corrective-actions`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/permits`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/compliance-records`,
+      `/api/v1/organizations/${orgId}/projects/${pid}/compliance-inspections`,
     ];
 
     for (const endpoint of endpoints) {

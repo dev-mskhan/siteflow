@@ -347,6 +347,9 @@ const AIRunsPage = lazy(() =>
 const AIApprovalsPage = lazy(() =>
   import('../pages/app/ai/AIApprovalsPage').then((m) => ({ default: m.AIApprovalsPage })),
 );
+const AIUsagePage = lazy(() =>
+  import('../pages/AIUsagePage').then((m) => ({ default: m.AIUsagePage })),
+);
 
 // ── Platform admin console ──────────────────────────────────────────────────
 import { PlatformLayout } from '../components/layout/PlatformLayout';
@@ -519,6 +522,7 @@ export const router = createBrowserRouter([
       { path: 'ai/chat', element: <AIChatPage /> },
       { path: 'ai/runs', element: <AIRunsPage /> },
       { path: 'ai/approvals', element: <AIApprovalsPage /> },
+      { path: 'ai/usage', element: <AIUsagePage /> },
 
       // Project detail — ProjectShell owns the sub-nav + loads active project
       {
@@ -592,7 +596,9 @@ export const router = createBrowserRouter([
           { path: 'compliance', element: <ProjectCompliancePage /> },
           // Group 11 — RFI / Submittals
           { path: 'rfis', element: <ProjectRFIsPage /> },
+          { path: 'rfis/:rfiId', element: <ProjectRFIsPage /> },
           { path: 'submittals', element: <ProjectSubmittalsPage /> },
+          { path: 'submittals/:submittalId', element: <ProjectSubmittalsPage /> },
           // Group 12 — Reports
           {
             path: 'reports',

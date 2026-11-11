@@ -14,6 +14,7 @@ import {
   useRemoveCalendarExceptionMutation,
   useRecalculateScheduleMutation,
 } from '../features/project/taskApi';
+import type { WorkDaysConfig } from '../types/taskTypes';
 import { usePermission } from '../hooks/usePermission';
 import { inputCls } from '../components/ui/FormField';
 import { useToast } from '../components/ui/Toast';
@@ -21,6 +22,16 @@ import { toastErrorMessage } from '../lib/authErrors';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_FULL   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const DAY_INDEX_TO_KEY: Record<number, keyof WorkDaysConfig> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
 
 export const ProjectCalendarPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
@@ -48,23 +59,51 @@ export const ProjectCalendarPage: React.FC = () => {
   // Sync form with loaded calendar
   useEffect(() => {
     if (calendar) {
-      setWorkingDays(calendar.workingDays);
+      if (Array.isArray(calendar.workingDays)) {
+        setWorkingDays(calendar.workingDays);
+      } else if (calendar.workDays) {
+        const days: number[] = [];
+        Object.entries(DAY_INDEX_TO_KEY).forEach(([idx, key]) => {
+          if (calendar.workDays?.[key]) {
+            days.push(Number(idx));
+          }
+        });
+        setWorkingDays(days);
+      } else {
+        setWorkingDays([1, 2, 3, 4, 5]);
+      }
       setWorkStart(calendar.workStartTime ?? '08:00');
       setWorkEnd(calendar.workEndTime ?? '17:00');
     }
   }, [calendar]);
 
   const toggleDay = (day: number) => {
-    setWorkingDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort(),
-    );
+    setWorkingDays((prev) => {
+      const current = prev ?? [];
+      return current.includes(day) ? current.filter((d) => d !== day) : [...current, day].sort();
+    });
   };
 
   const onSaveCalendar = async () => {
     try {
+      const activeDays = workingDays ?? [];
+      const workDays: WorkDaysConfig = {
+        monday: activeDays.includes(1),
+        tuesday: activeDays.includes(2),
+        wednesday: activeDays.includes(3),
+        thursday: activeDays.includes(4),
+        friday: activeDays.includes(5),
+        saturday: activeDays.includes(6),
+        sunday: activeDays.includes(0),
+      };
       await updateCalendar({
         orgId: orgId!, projectId: projectId!,
-        input: { workingDays, workStartTime: workStart, workEndTime: workEnd },
+        input: {
+          workDays,
+          workingDays: activeDays,
+          workStartTime: workStart,
+          workEndTime: workEnd,
+        },
       }).unwrap();
       toastOk('Calendar saved', '');
     } catch (err) {
@@ -77,7 +116,14 @@ export const ProjectCalendarPage: React.FC = () => {
     try {
       await addException({
         orgId: orgId!, projectId: projectId!,
-        input: { date: exDate, exceptionType: exType, description: exDesc || undefined },
+        input: {
+          exceptionDate: exDate,
+          isWorkingDay: exType === 'WORKING_DAY',
+          name: exDesc.trim() || (exType === 'WORKING_DAY' ? 'Working day' : 'Non-working day'),
+          date: exDate,
+          exceptionType: exType,
+          description: exDesc || undefined,
+        },
       }).unwrap();
       toastOk('Exception added', '');
       setExDate(''); setExType('NON_WORKING_DAY'); setExDesc(''); setShowAddEx(false);
@@ -142,7 +188,7 @@ export const ProjectCalendarPage: React.FC = () => {
               disabled={!canManage}
               onClick={() => toggleDay(day)}
               className={`flex-1 py-2 font-mono text-[9px] uppercase tracking-[0.12em] border transition-colors ${
-                workingDays.includes(day)
+                (workingDays ?? []).includes(day)
                   ? 'bg-[var(--ink)] text-white border-[var(--ink)]'
                   : 'border-[var(--hairline-2)] text-[var(--muted)] hover:border-[var(--ink)] hover:text-[var(--ink)]'
               } disabled:cursor-not-allowed`}
@@ -234,26 +280,35 @@ export const ProjectCalendarPage: React.FC = () => {
           ) : (
             exceptions
               .slice()
-              .sort((a, b) => a.date.localeCompare(b.date))
-              .map((ex) => (
-                <div key={ex.id} className="grid grid-cols-[120px_140px_1fr_36px] gap-4 items-center px-4 py-3 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]">
-                  <p className="font-mono text-[10px]">{ex.date}</p>
-                  <span className={`inline-block font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 w-fit ${
-                    ex.exceptionType === 'NON_WORKING_DAY'
-                      ? 'border-[#fecaca] bg-[#fef2f2] text-[#991b1b]'
-                      : 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]'
-                  }`}>
-                    {ex.exceptionType === 'NON_WORKING_DAY' ? 'Holiday' : 'Working'}
-                  </span>
-                  <p className="text-sm text-[var(--muted)] truncate">{ex.description ?? '—'}</p>
-                  {canManage && (
-                    <button type="button" onClick={() => onRemoveException(ex.id)}
-                      className="p-1 text-[var(--muted)] hover:text-[#991b1b] transition-colors">
-                      <X className="h-3.5 w-3.5" strokeWidth={2} />
-                    </button>
-                  )}
-                </div>
-              ))
+              .sort((a, b) => {
+                const dateA = a.exceptionDate ?? a.date ?? '';
+                const dateB = b.exceptionDate ?? b.date ?? '';
+                return dateA.localeCompare(dateB);
+              })
+              .map((ex) => {
+                const dateStr = ex.exceptionDate ?? ex.date ?? '—';
+                const isHoliday = ex.isWorkingDay === false || ex.exceptionType === 'NON_WORKING_DAY';
+                const labelStr = ex.name ?? ex.description ?? '—';
+                return (
+                  <div key={ex.id} className="grid grid-cols-[120px_140px_1fr_36px] gap-4 items-center px-4 py-3 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]">
+                    <p className="font-mono text-[10px]">{dateStr}</p>
+                    <span className={`inline-block font-mono text-[9px] uppercase tracking-[0.12em] border px-1.5 py-0.5 w-fit ${
+                      isHoliday
+                        ? 'border-[#fecaca] bg-[#fef2f2] text-[#991b1b]'
+                        : 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]'
+                    }`}>
+                      {isHoliday ? 'Holiday' : 'Working'}
+                    </span>
+                    <p className="text-sm text-[var(--muted)] truncate">{labelStr}</p>
+                    {canManage && (
+                      <button type="button" onClick={() => onRemoveException(ex.id)}
+                        className="p-1 text-[var(--muted)] hover:text-[#991b1b] transition-colors">
+                        <X className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
           )}
         </div>
       </div>

@@ -177,6 +177,7 @@ export const commercialApi = baseApi.injectEndpoints({
         url: `/organizations/${orgId}/projects/${projectId}/change-orders/${changeOrderId}/effect`,
         method: 'POST',
         body: input,
+        headers: { 'idempotency-key': crypto.randomUUID() },
       }),
       transformResponse: (raw: { data: { changeOrder: ChangeOrderDTO } }) => raw.data.changeOrder,
       invalidatesTags: (_r, _e, { changeOrderId, projectId }) => [

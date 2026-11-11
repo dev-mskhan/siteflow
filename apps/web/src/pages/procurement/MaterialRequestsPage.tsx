@@ -56,17 +56,26 @@ export const MaterialRequestsPage: React.FC = () => {
   const [requiredByDate, setRequiredByDate] = useState('');
   const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL');
   const [deliveryLocation, setDeliveryLocation] = useState('');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [itemDescription, setItemDescription] = useState('');
 
   const { data, isLoading } = useListMaterialRequestsQuery({
     orgId: orgId!,
     projectId: projectId!,
   });
   const { data: materialsData } = useListMaterialsQuery({ orgId: orgId! });
+  const materials = materialsData?.data ?? [];
   const [createMR, { isLoading: creating, error: createErr }] = useCreateMaterialRequestMutation();
   const [submitMR, { isLoading: submitting }] = useSubmitMaterialRequestMutation();
   const [cancelMR] = useCancelMaterialRequestMutation();
 
   const onCreate = async () => {
+    const activeMaterial = materials.find((m) => m.id === (selectedMaterialId || materials[0]?.id));
+    if (!activeMaterial) {
+      toastErr('Material required', 'Please add a material to the organization catalog first.');
+      return;
+    }
     try {
       const result = await createMR({
         orgId: orgId!,
@@ -76,7 +85,14 @@ export const MaterialRequestsPage: React.FC = () => {
           requiredByDate: requiredByDate || undefined,
           deliveryLocation: deliveryLocation || undefined,
           notes: notes || undefined,
-          items: [],
+          items: [
+            {
+              materialId: activeMaterial.id,
+              quantity: quantity.trim() || '1',
+              unitCode: activeMaterial.defaultUnitCode.toUpperCase(),
+              description: itemDescription.trim() || undefined,
+            },
+          ],
         },
       }).unwrap();
       toastOk('Material request created', '');
@@ -85,7 +101,8 @@ export const MaterialRequestsPage: React.FC = () => {
       setRequiredByDate('');
       setDeliveryLocation('');
       setPriority('NORMAL');
-      navigate(`/org/${orgId}/projects/${projectId}/procurement/requests/${result.id}`);
+      setQuantity('1');
+      setItemDescription('');
     } catch (err) {
       if (isToastError(err as never)) toastErr('Create failed', toastErrorMessage(err as never));
     }
@@ -171,6 +188,46 @@ export const MaterialRequestsPage: React.FC = () => {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+          <div>
+            <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+              Delivery location
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Material *
+              </label>
+              {materials.length === 0 ? (
+                <p className="text-xs text-[var(--muted)] italic">No materials in catalog.</p>
+              ) : (
+                <select
+                  value={selectedMaterialId || materials[0]?.id}
+                  onChange={(e) => setSelectedMaterialId(e.target.value)}
+                  className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                >
+                  {materials.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.defaultUnitCode})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Quantity *
+              </label>
+              <input
+                type="number"
+                min="0.001"
+                step="any"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
             </div>
           </div>
           <div>

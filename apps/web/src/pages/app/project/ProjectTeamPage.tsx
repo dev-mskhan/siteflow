@@ -288,10 +288,13 @@ const AddMemberPanel: React.FC<{
 export const ProjectTeamPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
   const { membership } = useOrgContext();
-  const { data, isLoading } = useListProjectMembersQuery({
-    orgId: orgId!,
-    projectId: projectId!,
-  });
+  const { data, isLoading } = useListProjectMembersQuery(
+    {
+      orgId: orgId!,
+      projectId: projectId!,
+    },
+    { refetchOnMountOrArgChange: true },
+  );
 
   const [showAddPanel, setShowAddPanel] = useState(false);
 

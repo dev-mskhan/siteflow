@@ -13,6 +13,7 @@ import {
   useCancelPurchaseOrderMutation,
 } from '../../api/procurementApi';
 import { useListSuppliersQuery } from '../../features/supplier/supplierApi';
+import { useListMaterialsQuery } from '../../features/material/materialApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
@@ -52,9 +53,14 @@ export const PurchaseOrdersPage: React.FC = () => {
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]!);
   const [currencyCode, setCurrencyCode] = useState('PKR');
   const [notes, setNotes] = useState('');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [unitPrice, setUnitPrice] = useState('100.00');
 
   const { data, isLoading } = useListPurchaseOrdersQuery({ orgId: orgId!, projectId: projectId! });
   const { data: suppliersData } = useListSuppliersQuery({ orgId: orgId! });
+  const { data: materialsData } = useListMaterialsQuery({ orgId: orgId! });
+  const materials = materialsData?.data ?? [];
   const [createPO, { isLoading: creating, error: createErr }] = useCreatePurchaseOrderMutation();
   const [submitPO] = useSubmitPurchaseOrderMutation();
   const [approvePO] = useApprovePurchaseOrderMutation();
@@ -66,17 +72,37 @@ export const PurchaseOrdersPage: React.FC = () => {
       toastErr('Supplier required', 'Select a supplier.');
       return;
     }
+    const activeMaterial = materials.find((m) => m.id === (selectedMaterialId || materials[0]?.id));
+    if (!activeMaterial) {
+      toastErr('Material required', 'Please add a material to the organization catalog first.');
+      return;
+      return;
+    }
     try {
       const result = await createPO({
         orgId: orgId!,
         projectId: projectId!,
-        input: { supplierId, orderDate, currencyCode, notes: notes || undefined, items: [] },
+        input: {
+          supplierId,
+          orderDate,
+          currencyCode,
+          notes: notes || undefined,
+          items: [
+            {
+              materialId: activeMaterial.id,
+              quantity: quantity.trim() || '1',
+              unitCode: activeMaterial.defaultUnitCode.toUpperCase(),
+              unitPrice: unitPrice.trim() || '100.00',
+            },
+          ],
+        },
       }).unwrap();
       toastOk('Purchase order created', '');
       setShowCreate(false);
       setSupplierId('');
       setNotes('');
-      navigate(`/org/${orgId}/projects/${projectId}/procurement/orders/${result.id}`);
+      setQuantity('1');
+      setUnitPrice('100.00');
     } catch (err) {
       if (isToastError(err as never)) toastErr('Create failed', toastErrorMessage(err as never));
     }
@@ -186,6 +212,53 @@ export const PurchaseOrdersPage: React.FC = () => {
               maxLength={4000}
               className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm resize-none focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
             />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Material *
+              </label>
+              {materials.length === 0 ? (
+                <p className="text-xs text-[var(--muted)] italic">No materials in catalog.</p>
+              ) : (
+                <select
+                  value={selectedMaterialId || materials[0]?.id}
+                  onChange={(e) => setSelectedMaterialId(e.target.value)}
+                  className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                >
+                  {materials.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.defaultUnitCode})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Quantity *
+              </label>
+              <input
+                type="number"
+                min="0.001"
+                step="any"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
+            </div>
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Unit Price *
+              </label>
+              <input
+                type="text"
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
+                placeholder="100.00"
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-3 pt-2 border-t border-[var(--hairline-2)]">
             <button

@@ -27,14 +27,13 @@ test.describe('Documents: Upload & Management', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'E2E Documents Project',
-        projectCode: `DOC-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        currency: 'AED',
+        plannedStartDate: '2026-01-01',
       },
     });
 
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id ?? '');
     await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, { data: {} });
   });
 
@@ -204,14 +203,13 @@ test.describe('Documents: Versioning', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'E2E Doc Versions Project',
-        projectCode: `DOCV-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        currency: 'AED',
+        plannedStartDate: '2026-01-01',
       },
     });
 
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id ?? '');
     await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, { data: {} });
 
     // Create initial document
@@ -325,14 +323,13 @@ test.describe('Documents: Deletion', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'E2E Doc Delete Project',
-        projectCode: `DOCDEL-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        currency: 'AED',
+        plannedStartDate: '2026-01-01',
       },
     });
 
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id ?? '');
     await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, { data: {} });
   });
 
@@ -408,9 +405,8 @@ test.describe('Documents: API Smoke Tests', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'Smoke Docs Project',
-        projectCode: `SMKDOC-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        currency: 'AED',
+        plannedStartDate: '2026-01-01',
       },
     });
 
@@ -419,8 +415,8 @@ test.describe('Documents: API Smoke Tests', () => {
       return;
     }
 
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    const projectId = (projectBody.data.project?.id ?? projectBody.data.id);
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    const projectId = (projectBody.data.project?.id ?? projectBody.data.id ?? '');
     await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, { data: {} });
 
     // Verify all document endpoints are registered

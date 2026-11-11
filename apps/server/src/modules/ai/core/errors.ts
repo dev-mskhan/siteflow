@@ -31,6 +31,42 @@ export class BudgetExceededError extends AiError {
   }
 }
 
+// ── Usage Limits (Phase 11.1) ─────────────────────────────────────────────────
+
+/**
+ * Thrown when organization has reached monthly AI token limit.
+ * Q5 Decision: Hard stop (fail-closed, no surprise charges).
+ * Maps to HTTP 429 Too Many Requests.
+ */
+export class AiUsageLimitExceededError extends AiError {
+  readonly used: number;
+  readonly limit: number;
+  readonly resetDate: Date;
+
+  constructor(details: { used: number; limit: number; resetDate: Date }) {
+    super(
+      'AI_USAGE_LIMIT_EXCEEDED',
+      `Monthly AI token limit reached (${details.used.toLocaleString()}/${details.limit.toLocaleString()} tokens). ` +
+        `Resets on ${details.resetDate.toISOString().split('T')[0]}.`,
+      429,
+    );
+    this.name = 'AiUsageLimitExceededError';
+    this.used = details.used;
+    this.limit = details.limit;
+    this.resetDate = details.resetDate;
+  }
+}
+
+/**
+ * Thrown when organization has no active subscription or trial.
+ */
+export class NoActiveSubscriptionError extends AiError {
+  constructor(message = 'No active subscription or trial found. AI features require an active plan.') {
+    super('NO_ACTIVE_SUBSCRIPTION', message, 403);
+    this.name = 'NoActiveSubscriptionError';
+  }
+}
+
 // ── Run limits ────────────────────────────────────────────────────────────────
 
 export class MaxStepsExceededError extends AiError {

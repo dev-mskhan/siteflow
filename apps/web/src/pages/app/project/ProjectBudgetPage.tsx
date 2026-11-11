@@ -337,10 +337,8 @@ export const ProjectBudgetPage: React.FC = () => {
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4 pb-4 border-b border-[var(--hairline-2)]">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
-            Project budget
-          </p>
-          <h1 className="mt-1 text-2xl font-medium tracking-[-0.04em]">{activeProject.name}</h1>
+          <h2 className="text-lg font-medium tracking-[-0.03em]">Project budget</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted)]">{activeProject.name}</p>
           {budget && (
             <div className="flex items-center gap-2 mt-2">
               <span

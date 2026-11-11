@@ -279,7 +279,7 @@ export const listMembersSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { members: { type: 'array' } },
+          properties: { members: { type: 'array', items: { type: 'object', additionalProperties: true } } },
           required: ['members'],
         },
         meta: metaSchema,
@@ -313,7 +313,7 @@ export const addMemberSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { member: { type: 'object' } },
+          properties: { member: { type: 'object', additionalProperties: true } },
           required: ['member'],
         },
         meta: metaSchema,
@@ -346,7 +346,7 @@ export const updateMemberRoleSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { member: { type: 'object' } },
+          properties: { member: { type: 'object', additionalProperties: true } },
           required: ['member'],
         },
         meta: metaSchema,
@@ -382,7 +382,7 @@ export const getSettingsSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { settings: { type: 'object' } },
+          properties: { settings: { type: 'object', additionalProperties: true } },
           required: ['settings'],
         },
         meta: metaSchema,
@@ -416,7 +416,7 @@ export const updateSettingsSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { settings: { type: 'object' } },
+          properties: { settings: { type: 'object', additionalProperties: true } },
           required: ['settings'],
         },
         meta: metaSchema,
@@ -447,7 +447,7 @@ export const listPhasesSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { phases: { type: 'array' } },
+          properties: { phases: { type: 'array', items: { type: 'object', additionalProperties: true } } },
           required: ['phases'],
         },
         meta: metaSchema,
@@ -480,7 +480,7 @@ export const createPhaseSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { phase: { type: 'object' } },
+          properties: { phase: { type: 'object', additionalProperties: true } },
           required: ['phase'],
         },
         meta: metaSchema,
@@ -512,7 +512,7 @@ export const updatePhaseSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { phase: { type: 'object' } },
+          properties: { phase: { type: 'object', additionalProperties: true } },
           required: ['phase'],
         },
         meta: metaSchema,
@@ -553,7 +553,7 @@ export const reorderPhasesSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { phases: { type: 'array' } },
+          properties: { phases: { type: 'array', items: { type: 'object', additionalProperties: true } } },
           required: ['phases'],
         },
         meta: metaSchema,
@@ -584,7 +584,7 @@ export const listCostCodesSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { costCodes: { type: 'array' } },
+          properties: { costCodes: { type: 'array', items: { type: 'object', additionalProperties: true } } },
           required: ['costCodes'],
         },
         meta: metaSchema,
@@ -645,7 +645,7 @@ export const updateCostCodeSchemaDoc = {
         success: { type: 'boolean', enum: [true] },
         data: {
           type: 'object',
-          properties: { costCode: { type: 'object' } },
+          properties: { costCode: { type: 'object', additionalProperties: true } },
           required: ['costCode'],
         },
         meta: metaSchema,
@@ -694,7 +694,7 @@ export const listProjectAuditSchemaDoc = {
         data: {
           type: 'object',
           properties: {
-            auditLogs: { type: 'array' },
+            auditLogs: { type: 'array', items: { type: 'object', additionalProperties: true } },
             nextCursor: { type: ['string', 'null'] },
           },
           required: ['auditLogs', 'nextCursor'],

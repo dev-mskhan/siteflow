@@ -128,32 +128,59 @@ export interface CreateBaselineInput {
 
 // ── Calendar ──────────────────────────────────────────────────────────────────
 
+export interface WorkDaysConfig {
+  monday: boolean;
+  tuesday: boolean;
+  wednesday: boolean;
+  thursday: boolean;
+  friday: boolean;
+  saturday: boolean;
+  sunday: boolean;
+}
+
 export interface CalendarDTO {
   id: string;
+  organizationId?: string;
   projectId: string;
-  workingDays: number[];           // 0=Sun 1=Mon ... 6=Sat
-  workStartTime: string | null;    // HH:MM
-  workEndTime: string | null;
+  name?: string;
+  timezone?: string;
+  workDays?: WorkDaysConfig;
+  hoursPerDay?: number;
+  workingDays?: number[];           // 0=Sun 1=Mon ... 6=Sat (for backwards-compat)
+  workStartTime?: string | null;    // HH:MM
+  workEndTime?: string | null;
   exceptions: CalendarExceptionDTO[];
+  createdAt?: string;
   updatedAt: string;
 }
 
 export interface CalendarExceptionDTO {
   id: string;
-  date: string;                    // YYYY-MM-DD
-  exceptionType: 'WORKING_DAY' | 'NON_WORKING_DAY';
-  description: string | null;
+  calendarId?: string;
+  exceptionDate?: string;          // YYYY-MM-DD (backend contract)
+  date?: string;                   // YYYY-MM-DD (alias)
+  isWorkingDay?: boolean;          // (backend contract)
+  exceptionType?: 'WORKING_DAY' | 'NON_WORKING_DAY'; // (alias)
+  name?: string;                   // (backend contract)
+  description?: string | null;     // (alias)
 }
 
 export interface UpdateCalendarInput {
+  name?: string;
+  timezone?: string;
+  workDays?: WorkDaysConfig;
+  hoursPerDay?: number;
   workingDays?: number[];
   workStartTime?: string | null;
   workEndTime?: string | null;
 }
 
 export interface AddCalendarExceptionInput {
-  date: string;
-  exceptionType: 'WORKING_DAY' | 'NON_WORKING_DAY';
+  exceptionDate?: string;
+  isWorkingDay?: boolean;
+  name?: string;
+  date?: string;
+  exceptionType?: 'WORKING_DAY' | 'NON_WORKING_DAY';
   description?: string;
 }
 

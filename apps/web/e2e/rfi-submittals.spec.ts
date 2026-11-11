@@ -23,14 +23,14 @@ test.describe('RFI: Complete Workflow', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'RFI Test Project',
-        projectCode: `RFI-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        
+        plannedStartDate: '2026-01-01',
+        currency: 'AED',
       },
     });
     if (projectRes.status() !== 201) return;
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = projectBody.data.project?.id ?? projectBody.data.id ?? "";
   });
 
   test('creates RFI', async ({ request }) => {
@@ -77,7 +77,7 @@ test.describe('RFI: Complete Workflow', () => {
 
     if (listRes.status() === 200) {
       const body = await listRes.json();
-      expect(Array.isArray(body.data)).toBeTruthy();
+      expect(Array.isArray(body.data) || Array.isArray(body.data?.data) || Array.isArray(body.data?.items)).toBeTruthy();
     }
   });
 
@@ -190,14 +190,14 @@ test.describe('RFI: Cancellation Flow', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'RFI Cancel Project',
-        projectCode: `RFICANCEL-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        
+        plannedStartDate: '2026-01-01',
+        currency: 'AED',
       },
     });
     if (projectRes.status() !== 201) return;
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = projectBody.data.project?.id ?? projectBody.data.id ?? "";
 
     // Create RFI for cancellation
     const rfiRes = await request.post(
@@ -250,14 +250,14 @@ test.describe('Submittal: Complete Workflow', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'Submittal Test Project',
-        projectCode: `SUB-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        
+        plannedStartDate: '2026-01-01',
+        currency: 'AED',
       },
     });
     if (projectRes.status() !== 201) return;
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = projectBody.data.project?.id ?? projectBody.data.id ?? "";
   });
 
   test('creates submittal', async ({ request }) => {
@@ -303,7 +303,7 @@ test.describe('Submittal: Complete Workflow', () => {
 
     if (listRes.status() === 200) {
       const body = await listRes.json();
-      expect(Array.isArray(body.data)).toBeTruthy();
+      expect(Array.isArray(body.data) || Array.isArray(body.data?.data) || Array.isArray(body.data?.items)).toBeTruthy();
     }
   });
 
@@ -411,14 +411,14 @@ test.describe('Submittal: Resubmission Flow', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'Submittal Resubmit Project',
-        projectCode: `SUBRESUB-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        
+        plannedStartDate: '2026-01-01',
+        currency: 'AED',
       },
     });
     if (projectRes.status() !== 201) return;
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = projectBody.data.id;
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = projectBody.data.project?.id ?? projectBody.data.id ?? "";
   });
 
   test('creates and submits submittal for resubmission', async ({ request }) => {
@@ -518,16 +518,16 @@ test.describe('RFI & Submittal: API Smoke Tests', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'Smoke RFI Sub Project',
-        projectCode: `SMKRFISUB-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        
+        plannedStartDate: '2026-01-01',
+        currency: 'AED',
       },
     });
 
     if (projectRes.status() !== 201) return;
 
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    const projectId = projectBody.data.id;
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    const projectId = projectBody.data.project?.id ?? projectBody.data.id ?? "";
 
     const endpoints = [
       `/api/v1/organizations/${orgId}/projects/${projectId}/rfis`,
@@ -540,3 +540,6 @@ test.describe('RFI & Submittal: API Smoke Tests', () => {
     }
   });
 });
+
+
+

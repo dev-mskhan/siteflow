@@ -43,17 +43,19 @@ export const rfiApi = baseApi.injectEndpoints({
         const query = params.toString() ? `?${params.toString()}` : '';
         return `/organizations/${orgId}/projects/${projectId}/rfis${query}`;
       },
-      transformResponse: (raw: { data: RFIDTO[]; meta: { nextCursor: string | null } }) => ({
-        data: raw.data,
-        nextCursor: raw.meta.nextCursor,
-      }),
+      transformResponse: (raw: any) => {
+        const payload = raw?.data ?? raw;
+        const items = Array.isArray(payload) ? payload : (payload?.data ?? []);
+        const nextCursor = payload?.nextCursor ?? raw?.meta?.nextCursor ?? null;
+        return { data: items, nextCursor };
+      },
       providesTags: (_r, _e, { projectId }) => [{ type: 'RFI', id: projectId }],
     }),
 
     getRFI: build.query<RFIDTO, OrgProjectArgs & { rfiId: string }>({
       query: ({ orgId, projectId, rfiId }) =>
         `/organizations/${orgId}/projects/${projectId}/rfis/${rfiId}`,
-      transformResponse: (raw: { data: RFIDTO }) => raw.data,
+      transformResponse: (raw: any) => raw?.data?.rfi ?? raw?.data ?? raw,
       providesTags: (_r, _e, { rfiId }) => [{ type: 'RFI', id: rfiId }],
     }),
 
@@ -175,17 +177,19 @@ export const rfiApi = baseApi.injectEndpoints({
         const query = params.toString() ? `?${params.toString()}` : '';
         return `/organizations/${orgId}/projects/${projectId}/submittals${query}`;
       },
-      transformResponse: (raw: { data: SubmittalDTO[]; meta: { nextCursor: string | null } }) => ({
-        data: raw.data,
-        nextCursor: raw.meta.nextCursor,
-      }),
+      transformResponse: (raw: any) => {
+        const payload = raw?.data ?? raw;
+        const items = Array.isArray(payload) ? payload : (payload?.data ?? []);
+        const nextCursor = payload?.nextCursor ?? raw?.meta?.nextCursor ?? null;
+        return { data: items, nextCursor };
+      },
       providesTags: (_r, _e, { projectId }) => [{ type: 'Submittal', id: projectId }],
     }),
 
     getSubmittal: build.query<SubmittalDTO, OrgProjectArgs & { submittalId: string }>({
       query: ({ orgId, projectId, submittalId }) =>
         `/organizations/${orgId}/projects/${projectId}/submittals/${submittalId}`,
-      transformResponse: (raw: { data: SubmittalDTO }) => raw.data,
+      transformResponse: (raw: any) => raw?.data?.submittal ?? raw?.data ?? raw,
       providesTags: (_r, _e, { submittalId }) => [{ type: 'Submittal', id: submittalId }],
     }),
 

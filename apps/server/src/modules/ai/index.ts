@@ -16,6 +16,7 @@ export { agentRunRoutes } from './runs/agent-run.routes.js';
 export { approvalRoutes } from './approvals/approval.routes.js';
 export { conversationRoutes } from './conversations/conversation.routes.js';
 export { voiceRoutes } from './voice/voice.routes.js';
+export { aiUsageRoutes } from './usage/ai-usage.routes.js';
 export { registerAgentRunWorkers } from './workers/agent-run.worker.js';
 export { registerAiTranscribeWorker } from './voice/transcribe.worker.js';
 export { registerAiReaperWorker, runReaperSweep } from './workers/reaper.worker.js';

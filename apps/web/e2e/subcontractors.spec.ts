@@ -29,15 +29,14 @@ test.describe('Subcontractors: Project Assignment & Task Management', () => {
     const projectRes = await request.post(`/api/v1/organizations/${orgId}/projects`, {
       data: {
         name: 'E2E Test Construction Project',
-        projectCode: `PRJ-${Date.now()}`,
         description: 'Testing subcontractor integration',
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        plannedStartDate: '2026-01-01',
+        currency: 'AED',
       },
     });
     expect(projectRes.status()).toBe(201);
-    const projectBody = (await projectRes.json()) as { data: { id: string } };
-    projectId = (projectBody.data.project?.id ?? projectBody.data.id);
+    const projectBody = (await projectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    projectId = (projectBody.data.project?.id ?? projectBody.data.id ?? '');
 
     // Activate project
     await request.post(`/api/v1/organizations/${orgId}/projects/${projectId}/activate`, {
@@ -184,9 +183,8 @@ test.describe('Subcontractors: Smoke Test (Verify Integration Wiring)', () => {
     const testProjectRes = await request.post(`/api/v1/organizations/${testOrgId}/projects`, {
       data: {
         name: 'Smoke Project',
-        projectCode: `SMOKE-${Date.now()}`,
-        startDate: '2026-01-01',
-        currencyCode: 'AED',
+        plannedStartDate: '2026-01-01',
+        currency: 'AED',
       },
     });
 
@@ -201,8 +199,8 @@ test.describe('Subcontractors: Smoke Test (Verify Integration Wiring)', () => {
       return;
     }
 
-    const testProjectBody = (await testProjectRes.json()) as { data: { id: string } };
-    const testProjectId = test(projectBody.data.project?.id ?? projectBody.data.id);
+    const testProjectBody = (await testProjectRes.json()) as { data: { project?: { id: string }; id?: string } };
+    const testProjectId = testProjectBody.data.project?.id ?? testProjectBody.data.id;
 
     // Verify subcontractor list endpoint works
     const listRes = await request.get(

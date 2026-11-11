@@ -12,6 +12,7 @@ import {
   useRejectQuoteMutation,
 } from '../../api/procurementApi';
 import { useListSuppliersQuery } from '../../features/supplier/supplierApi';
+import { useListMaterialsQuery } from '../../features/material/materialApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
 import { useToast } from '../../components/ui/Toast';
@@ -45,15 +46,25 @@ export const QuotesPage: React.FC = () => {
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split('T')[0]!);
   const [validUntil, setValidUntil] = useState('');
   const [currencyCode, setCurrencyCode] = useState('PKR');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [unitPrice, setUnitPrice] = useState('100.00');
 
   const { data, isLoading } = useListQuotesQuery({ orgId: orgId!, projectId: projectId! });
   const { data: suppliersData } = useListSuppliersQuery({ orgId: orgId! });
+  const { data: materialsData } = useListMaterialsQuery({ orgId: orgId! });
+  const materials = materialsData?.data ?? [];
   const [createQuote, { isLoading: creating, error: createErr }] = useCreateQuoteMutation();
   const [submitQuote] = useSubmitQuoteMutation();
   const [acceptQuote] = useAcceptQuoteMutation();
   const [rejectQuote] = useRejectQuoteMutation();
 
   const onCreate = async () => {
+    const activeMaterial = materials.find((m) => m.id === (selectedMaterialId || materials[0]?.id));
+    if (!activeMaterial) {
+      toastErr('Material required', 'Please add a material to the organization catalog first.');
+      return;
+    }
     if (!supplierId) {
       toastErr('Supplier required', 'Select a supplier.');
       return;
@@ -67,12 +78,21 @@ export const QuotesPage: React.FC = () => {
           quoteDate,
           validUntil: validUntil || undefined,
           currencyCode,
-          items: [],
+          items: [
+            {
+              materialId: activeMaterial.id,
+              quantity: quantity.trim() || '1',
+              unitCode: activeMaterial.defaultUnitCode.toUpperCase(),
+              unitPrice: unitPrice.trim() || '100.00',
+            },
+          ],
         },
       }).unwrap();
       toastOk('Quote created', '');
       setShowCreate(false);
-      navigate(`/org/${orgId}/projects/${projectId}/procurement/quotes/${result.id}`);
+      setSupplierId('');
+      setQuantity('1');
+      setUnitPrice('100.00');
     } catch (err) {
       if (isToastError(err as never)) toastErr('Create failed', toastErrorMessage(err as never));
     }
@@ -166,6 +186,53 @@ export const QuotesPage: React.FC = () => {
                 type="date"
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Material *
+              </label>
+              {materials.length === 0 ? (
+                <p className="text-xs text-[var(--muted)] italic">No materials in catalog.</p>
+              ) : (
+                <select
+                  value={selectedMaterialId || materials[0]?.id}
+                  onChange={(e) => setSelectedMaterialId(e.target.value)}
+                  className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+                >
+                  {materials.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.defaultUnitCode})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Quantity *
+              </label>
+              <input
+                type="number"
+                min="0.001"
+                step="any"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
+              />
+            </div>
+            <div>
+              <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">
+                Unit Price *
+              </label>
+              <input
+                type="text"
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
+                placeholder="100.00"
                 className="w-full border border-[var(--hairline-2)] bg-[var(--paper)] px-3 py-2.5 text-sm focus:outline focus:outline-2 focus:outline-offset-[-1px] focus:outline-[var(--ink)]"
               />
             </div>

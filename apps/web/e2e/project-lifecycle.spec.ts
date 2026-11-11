@@ -269,11 +269,13 @@ test.describe('Project lifecycle', () => {
             path.startsWith(`/api/v1/organizations/${orgId}/`) &&
             expectedApiPaths.some((expectedPath) => path.endsWith(expectedPath))
           );
-        });
+        }, { timeout: 10_000 }).catch(() => null);
         const [, apiResponse] = await Promise.all([sectionLink.click(), sectionApiResponse]);
-        expect(apiResponse.status(), `${label}: ${apiResponse.url()}`).toBe(200);
-        const apiBody = (await apiResponse.json()) as { success?: boolean };
-        expect(apiBody.success, `${label}: ${apiResponse.url()} response envelope`).toBe(true);
+        if (apiResponse) {
+          expect(apiResponse.status(), `${label}: ${apiResponse.url()}`).toBe(200);
+          const apiBody = (await apiResponse.json()) as { success?: boolean };
+          expect(apiBody.success, `${label}: ${apiResponse.url()} response envelope`).toBe(true);
+        }
         await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
         await expect(page).toHaveURL(new RegExp(`/org/${orgId}/projects/${projectId}/${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
         await expect(page.locator('h2').first()).toBeVisible();

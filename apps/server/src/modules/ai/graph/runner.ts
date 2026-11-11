@@ -24,9 +24,14 @@ import {
   MaxStepsExceededError,
   RunTimeoutError,
   RunCancelledError,
+  AiUsageLimitExceededError,
+  NoActiveSubscriptionError,
 } from '../core/errors.js';
 import { AgentRunRepository } from '../runs/agent-run.repository.js';
 import { redactPII } from '../guardrails/output-guard.js';
+import { AiUsageService } from '../usage/ai-usage.service.js';
+import { AiUsageRepository } from '../usage/ai-usage.repository.js';
+import { EntitlementService } from '../../billing/entitlement.service.js';
 
 // ── Graph registry ────────────────────────────────────────────────────────────
 // Add new agents here — never import them directly in worker code.
@@ -125,6 +130,15 @@ export async function executeRun(ctx: RunContext, initialInput?: Record<string, 
   const repo = new AgentRunRepository();
 
   try {
+    // ── Phase 11.1: Check AI usage limit (pre-flight) ─────────────────────
+    // Q5 Decision: Hard stop when monthly limit reached.
+    // Throws AiUsageLimitExceededError (429) if limit exceeded.
+    const usageService = new AiUsageService(
+      new AiUsageRepository(),
+      new EntitlementService(),
+    );
+    await usageService.checkUsageAllowed(ctx.organizationId);
+
     // Initial budget check before any LLM call
     await budgetGuard.assertBudget();
 

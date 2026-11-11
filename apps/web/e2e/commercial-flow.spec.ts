@@ -26,19 +26,41 @@ test.beforeAll(async ({ request }) => {
 test.describe('Commercial: Change Orders', () => {
   test('creates change order', async ({ request }) => {
     if (!orgId || !projectId) return test.skip();
+    // Ensure cost code exists for line item
+    const ccRes = await request.post(
+      `/api/v1/organizations/${orgId}/projects/${projectId}/cost-codes`,
+      {
+        data: {
+          code: `CC-${Date.now()}`,
+          description: 'Structural Concrete',
+        },
+      },
+    );
+    let costCodeId = '';
+    if (ccRes.status() === 201) {
+      const ccBody = (await ccRes.json()) as { data: { costCode: { id: string } } };
+      costCodeId = ccBody.data.costCode.id;
+    }
+
     const res = await request.post(
       `/api/v1/organizations/${orgId}/projects/${projectId}/change-orders`,
       {
         data: {
           title: `E2E CO ${Date.now()}`,
-          description: 'Integration test change order',
-          type: 'OWNER',
-          amount: '15000',
+          reason: 'Site condition variation',
           currencyCode: 'AED',
+          lines: [
+            {
+              costCodeId,
+              description: 'Additional foundation support',
+              costDelta: '15000.00',
+              revenueDelta: '0.00',
+            },
+          ],
         },
       },
     );
-    expect([201, 403, 422]).toContain(res.status());
+    expect([201, 403]).toContain(res.status());
     if (res.status() === 201) {
       const body = (await res.json()) as { data: { id: string; status: string } };
       changeOrderId = body.data.id;

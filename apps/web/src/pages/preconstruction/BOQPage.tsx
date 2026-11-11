@@ -37,6 +37,7 @@ import {
   useReviseBoqMutation,
   useListBoqRevisionsQuery,
   usePreviewBoqImportMutation,
+  useCommitBoqImportMutation,
 } from '../../features/project/preconstructionApi';
 import { usePermission } from '../../hooks/usePermission';
 import { InlineAlert } from '../../components/ui/InlineAlert';
@@ -106,6 +107,7 @@ export const BOQPage: React.FC = () => {
   const [transitionBoq, { isLoading: transitioning }] = useTransitionBoqMutation();
   const [reviseBoq, { isLoading: revising }] = useReviseBoqMutation();
   const [previewImport, { isLoading: previewing }] = usePreviewBoqImportMutation();
+  const [commitImport, { isLoading: committing }] = useCommitBoqImportMutation();
 
   const onCreate = async () => {
     if (!title.trim()) { toastErr('Title required', ''); return; }
@@ -145,6 +147,28 @@ export const BOQPage: React.FC = () => {
       setImportPreview({ importId: result.importId, rowCount: result.rowCount, totalAmount: result.totalAmount });
       toastOk('Preview ready', `${result.rowCount} rows, ${result.sectionCount} sections`);
     } catch (err) { toastErr('Preview failed', toastErrorMessage(err as never)); }
+  };
+
+  const onCommitImport = async () => {
+    if (!importingId || !importPreview) return;
+    try {
+      await commitImport({
+        orgId: orgId!,
+        projectId: projectId!,
+        boqId: importingId.id,
+        input: {
+          importId: importPreview.importId,
+          csvText,
+          expectedVersion: importingId.version,
+        },
+      }).unwrap();
+      toastOk('BOQ imported successfully', `${importPreview.rowCount} rows committed`);
+      setImportingId(null);
+      setCsvText('');
+      setImportPreview(null);
+    } catch (err) {
+      toastErr('Import failed', toastErrorMessage(err as never));
+    }
   };
 
   const boqs = data?.items ?? [];
@@ -223,10 +247,17 @@ export const BOQPage: React.FC = () => {
             </div>
           )}
           <div className="flex items-center gap-3">
-            <button onClick={onPreviewImport} disabled={previewing || !csvText.trim()}
-              className="inline-flex items-center gap-2 border border-[var(--hairline-2)] px-4 py-2 text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-50">
-              {previewing ? 'Previewing…' : 'Preview'}
-            </button>
+            {!importPreview ? (
+              <button onClick={onPreviewImport} disabled={previewing || !csvText.trim()}
+                className="inline-flex items-center gap-2 border border-[var(--hairline-2)] px-4 py-2 text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-50">
+                {previewing ? 'Previewing…' : 'Preview'}
+              </button>
+            ) : (
+              <button onClick={onCommitImport} disabled={committing}
+                className="inline-flex items-center gap-2 bg-[var(--ink)] text-white px-4 py-2 text-sm font-medium hover:bg-black disabled:opacity-50">
+                {committing ? 'Importing…' : 'Commit Import'}
+              </button>
+            )}
             <button type="button" onClick={() => { setImportingId(null); setCsvText(''); setImportPreview(null); }}
               className="text-sm text-[var(--muted)] hover:text-[var(--ink)]">Cancel</button>
           </div>

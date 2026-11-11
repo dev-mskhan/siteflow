@@ -187,6 +187,9 @@ export const baseApi = createApi({
     'Notification',
     'NotificationPreference',
     'AgentRun', // For AI events via SSE
+    // AI Usage (Phase 11.3)
+    'AIUsage',
+    'AIUsageHistory',
   ],
   endpoints: () => ({}),
 });

@@ -15,11 +15,24 @@ import { createRequire } from 'node:module';
 
 const authFile = './e2e/.auth/user.json';
 
+function findRepoRoot(): string {
+  let cur = process.cwd();
+  for (let i = 0; i < 5; i++) {
+    if (fs.existsSync(path.join(cur, 'pnpm-workspace.yaml')) || fs.existsSync(path.join(cur, 'packages', 'database', 'package.json'))) {
+      return cur;
+    }
+    const parent = path.dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+  return path.resolve(process.cwd(), '..');
+}
+
 // Marks an E2E user's email as verified directly in the dev DB. Org creation
 // requires a verified email, and E2E has no inbox to click a verify link from.
 // `postgres` is resolved from packages/database, which owns that dependency.
 async function markEmailVerified(email: string): Promise<void> {
-  const repoRoot = path.resolve(process.cwd(), '../..');
+  const repoRoot = findRepoRoot();
   const envText = fs.readFileSync(path.join(repoRoot, '.env'), 'utf8');
   const match = envText.match(/^DATABASE_URL=(.+)$/m);
   if (!match) throw new Error('DATABASE_URL not found in root .env');

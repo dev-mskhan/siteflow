@@ -94,7 +94,7 @@ export const documentApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body: input,
       }),
-      transformResponse: (raw: { data: DocumentDTO }) => raw.data,
+      transformResponse: (raw: any) => raw?.data?.document ?? raw?.data ?? raw,
       invalidatesTags: (_r, _e, { documentId }) => [{ type: 'Document', id: documentId }],
     }),
 
