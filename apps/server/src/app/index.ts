@@ -35,6 +35,7 @@ import { lifecycleRoutes } from '../modules/billing/lifecycle.routes.js';
 import { webhookRoutes } from '../modules/billing/webhook.routes.js';
 import { platformRoutes } from '../modules/platform/platform.routes.js';
 import { agentRunRoutes, approvalRoutes, conversationRoutes, voiceRoutes, aiUsageRoutes } from '../modules/ai/index.js';
+import { contactRoutes } from '../modules/contact/contact.routes.js';
 
 /**
  * Creates and configures the Fastify application instance.
@@ -261,6 +262,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(aiUsageRoutes, { prefix: '/api/v1/organizations' });
   await app.register(conversationRoutes, { prefix: '/api/v1/organizations' });
   await app.register(voiceRoutes, { prefix: '/api/v1/organizations' });
+  await app.register(contactRoutes, { prefix: '/api/contact' });
 
   // ─── Realtime SSE Notifications ─────────────────────────────────────────────
   const { realtimePlugin } = await import('../modules/notification/realtime/realtime.plugin.js');

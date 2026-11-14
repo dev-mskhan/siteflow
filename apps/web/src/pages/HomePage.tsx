@@ -20,6 +20,8 @@ import { DemoModal } from '../components/ui/DemoModal';
 import { Seo } from '../components/seo/Seo';
 import { SEO_DATA } from '../content/seo';
 import { useSmartCta } from '../hooks/useSmartCta';
+import { ParticleBackground } from '../components/visualizations/ParticleBackground';
+import { Agent3DIcon } from '../components/visualizations/Agent3DIcon';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 22 },
@@ -100,7 +102,10 @@ export const HomePage: React.FC = () => {
       />
 
       {/* ── Hero ── */}
-      <section className="relative border-b border-[var(--hairline)]">
+      <section className="relative border-b border-[var(--hairline)] overflow-hidden">
+        {/* Particle background */}
+        <ParticleBackground variant="subtle" />
+
         {/*
           Gradient accent: a faint action-red radial glow anchored bottom-left of the hero,
           behind the headline. Stays well below the text so it's atmospheric not garish.
@@ -452,45 +457,37 @@ export const HomePage: React.FC = () => {
             <p className="mb-6 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
               Five specialised agents
             </p>
-            <div className="grid gap-px border border-[var(--hairline-2)] bg-[var(--hairline-2)] sm:grid-cols-2 lg:grid-cols-5">
-              {[
-                {
-                  icon: TrendingDown,
-                  name: 'Cost & Finance',
-                  desc: 'Budget, cost, billing, and cash flow',
-                },
-                {
-                  icon: Truck,
-                  name: 'Procurement',
-                  desc: 'Purchase orders, quotes, deliveries',
-                },
-                {
-                  icon: ShieldCheck,
-                  name: 'Safety & Compliance',
-                  desc: 'Inspections, incidents, permits',
-                },
-                {
-                  icon: Calculator,
-                  name: 'Estimating & BOQ',
-                  desc: 'Quantities, takeoffs, cost codes',
-                },
-                {
-                  icon: FileCheck2,
-                  name: 'Reports',
-                  desc: 'Executive summaries and exports',
-                },
-              ].map(({ icon: Icon, name, desc }) => (
-                <div
-                  key={name}
-                  className="group bg-[var(--paper)] p-5 transition-colors hover:bg-[var(--surface-2)]"
-                >
-                  <div className="mb-4 flex h-9 w-9 items-center justify-center border border-[var(--hairline-2)] bg-[var(--surface-2)] transition-colors group-hover:border-[var(--ink)] group-hover:bg-[var(--ink)] group-hover:text-white">
-                    <Icon className="h-4 w-4" strokeWidth={1.6} />
-                  </div>
-                  <h3 className="text-sm font-medium tracking-[-0.02em]">{name}</h3>
-                  <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{desc}</p>
-                </div>
-              ))}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <Agent3DIcon
+                Icon={TrendingDown}
+                name="Cost & Finance"
+                description="Budget, cost, billing, and cash flow"
+                delay={0}
+              />
+              <Agent3DIcon
+                Icon={Truck}
+                name="Procurement"
+                description="Purchase orders, quotes, deliveries"
+                delay={0.1}
+              />
+              <Agent3DIcon
+                Icon={ShieldCheck}
+                name="Safety & Compliance"
+                description="Inspections, incidents, permits"
+                delay={0.2}
+              />
+              <Agent3DIcon
+                Icon={Calculator}
+                name="Estimating & BOQ"
+                description="Quantities, takeoffs, cost codes"
+                delay={0.3}
+              />
+              <Agent3DIcon
+                Icon={FileCheck2}
+                name="Reports"
+                description="Executive summaries and exports"
+                delay={0.4}
+              />
             </div>
           </Reveal>
 

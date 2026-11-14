@@ -385,6 +385,9 @@ const FeaturesOverviewPage = lazy(() =>
 const FeaturePage = lazy(() =>
   import('../pages/FeaturePage').then((m) => ({ default: m.FeaturePage })),
 );
+const AIAssistantPage = lazy(() =>
+  import('../pages/AIAssistantPage').then((m) => ({ default: m.AIAssistantPage })),
+);
 const PersonaPage = lazy(() =>
   import('../pages/PersonaPage').then((m) => ({ default: m.PersonaPage })),
 );
@@ -659,6 +662,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'features', element: <FeaturesOverviewPage /> },
+      { path: 'features/ai-assistant', element: <AIAssistantPage /> },
       { path: 'features/:slug', element: <FeaturePage /> },
       { path: 'for/:personaSlug', element: <PersonaPage /> },
       { path: 'construction-software-pakistan', element: <CountryPage /> },

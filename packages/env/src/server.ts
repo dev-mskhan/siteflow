@@ -67,6 +67,7 @@ export const serverEnv = createEnv({
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().default('SiteFlow <noreply@siteflow.dev>'),
+    SALES_EMAIL: z.string().email().optional().default('sales@siteflow.dev'),
 
     // Google OAuth 2.0
     GOOGLE_CLIENT_ID: z.string().optional(),

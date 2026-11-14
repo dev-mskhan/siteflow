@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { CheckCircle2, ShieldCheck, AlertTriangle, ArrowUpRight, Zap } from 'lucide-react';
 import { Seo } from '../components/seo/Seo';
 import { SEO_DATA } from '../content/seo';
-import { mockDelay } from '../services/mock/mockDelay';
+import { submitContactRequest } from '../services/api/contact.api';
 import { CustomSelect, type SelectOption } from '../components/ui/CustomSelect';
 
 /* ─── Validation ──────────────────────────────────────────────────────────── */
@@ -109,12 +109,16 @@ export const ContactPage: React.FC = () => {
       return;
     }
     try {
-      await mockDelay(600, 900);
-      navigate(data.whatTheyWant === 'trial' ? '/thanks?intent=trial' : '/thanks');
-    } catch {
-      setSubmitError(
-        'We could not send your message right now. Check your connection and try again.',
-      );
+      const response = await submitContactRequest(result.data);
+      navigate(result.data.whatTheyWant === 'trial' ? '/thanks?intent=trial' : '/thanks');
+    } catch (error) {
+      if (error instanceof Error) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError(
+          'We could not send your message right now. Check your connection and try again.',
+        );
+      }
     }
   };
 
