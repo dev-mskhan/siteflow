@@ -19,23 +19,27 @@ type Tab = 'cost' | 'commitments' | 'billing' | 'cash' | 'audit';
 
 const SummaryRow: React.FC<{
   label: string;
-  value: string;
+  value?: string | number | null;
   highlight?: boolean;
   danger?: boolean;
-}> = ({ label, value, highlight, danger }) => (
-  <div className="flex items-center justify-between py-2.5 border-b border-[var(--hairline-2)] last:border-b-0">
-    <p className={cn('text-sm', highlight && 'font-medium')}>{label}</p>
-    <p
-      className={cn(
-        'font-mono text-[11px]',
-        highlight && 'font-medium',
-        danger && 'text-[#991b1b]',
-      )}
-    >
-      {parseFloat(value).toLocaleString()}
-    </p>
-  </div>
-);
+}> = ({ label, value, highlight, danger }) => {
+  const num = typeof value === 'number' ? value : parseFloat(value ?? '0');
+  const displayVal = Number.isNaN(num) ? (value ?? '—') : num.toLocaleString();
+  return (
+    <div className="flex items-center justify-between py-2.5 border-b border-[var(--hairline-2)] last:border-b-0">
+      <p className={cn('text-sm', highlight && 'font-medium')}>{label}</p>
+      <p
+        className={cn(
+          'font-mono text-[11px]',
+          highlight && 'font-medium',
+          danger && 'text-[#991b1b]',
+        )}
+      >
+        {displayVal}
+      </p>
+    </div>
+  );
+};
 
 export const FinancialSummaryPage: React.FC = () => {
   const { orgId, projectId } = useParams<{ orgId: string; projectId: string }>();
@@ -120,94 +124,122 @@ export const FinancialSummaryPage: React.FC = () => {
         <>
           {/* BILLING */}
           {activeTab === 'billing' &&
-            summary.billing.map((b) => (
-              <div
-                key={b.currencyCode}
-                className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5"
-              >
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
-                  {b.currencyCode} — Billing
-                </p>
-                <SummaryRow label="Contract amount" value={b.contractAmount} />
-                <SummaryRow label="Approved changes" value={b.approvedChanges} />
-                <SummaryRow label="Revised contract" value={b.revisedContractAmount} highlight />
-                <SummaryRow label="Total billed" value={b.totalBilled} />
-                <SummaryRow label="Total approved" value={b.totalApproved} />
-                <SummaryRow
-                  label="Outstanding"
-                  value={b.totalOutstanding}
-                  danger={parseFloat(b.totalOutstanding) > 0}
-                  highlight
-                />
-                <div className="mt-4 pt-4 border-t border-[var(--hairline-2)]">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)] mb-2">
-                    Retainage
-                  </p>
-                  <SummaryRow label="Held" value={b.retainageHeld} />
-                  <SummaryRow label="Released" value={b.retainageReleased} />
-                  <SummaryRow label="Net" value={b.netRetainage} highlight />
-                </div>
+            ((summary.billing ?? []).length === 0 ? (
+              <div className="py-16 text-center border border-[var(--hairline-2)] bg-[var(--paper)]">
+                <BarChart3 className="h-10 w-10 text-[var(--muted)] mx-auto mb-3" strokeWidth={1.5} />
+                <p className="text-sm text-[var(--muted)]">No billing data available.</p>
               </div>
+            ) : (
+              (summary.billing ?? []).map((b) => (
+                <div
+                  key={b.currencyCode}
+                  className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5 mb-4"
+                >
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
+                    {b.currencyCode} — Billing
+                  </p>
+                  <SummaryRow label="Contract amount" value={b.contractAmount} />
+                  <SummaryRow label="Approved changes" value={b.approvedChanges} />
+                  <SummaryRow label="Revised contract" value={b.revisedContractAmount} highlight />
+                  <SummaryRow label="Total billed" value={b.totalBilled} />
+                  <SummaryRow label="Total approved" value={b.totalApproved} />
+                  <SummaryRow
+                    label="Outstanding"
+                    value={b.totalOutstanding}
+                    danger={parseFloat(b.totalOutstanding ?? '0') > 0}
+                    highlight
+                  />
+                  <div className="mt-4 pt-4 border-t border-[var(--hairline-2)]">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)] mb-2">
+                      Retainage
+                    </p>
+                    <SummaryRow label="Held" value={b.retainageHeld} />
+                    <SummaryRow label="Released" value={b.retainageReleased} />
+                    <SummaryRow label="Net" value={b.netRetainage} highlight />
+                  </div>
+                </div>
+              ))
             ))}
 
           {/* COST */}
           {activeTab === 'cost' &&
-            summary.cost.map((c) => (
-              <div
-                key={c.currencyCode}
-                className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5"
-              >
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
-                  {c.currencyCode} — Cost
-                </p>
-                <SummaryRow label="Direct cost" value={c.directCost} />
-                <SummaryRow label="Overhead" value={c.overhead} />
-                <SummaryRow label="Contingency" value={c.contingency} />
-                <SummaryRow label="Total cost" value={c.totalCost} highlight />
-                {c.forecastCost && <SummaryRow label="Forecast cost" value={c.forecastCost} />}
-                <div className="mt-3 pt-3 border-t border-[var(--hairline-2)]">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">
-                    Forecast coverage: {c.documentedForecastCoverage.replace(/_/g, ' ')}
-                  </p>
-                </div>
+            ((summary.cost ?? []).length === 0 ? (
+              <div className="py-16 text-center border border-[var(--hairline-2)] bg-[var(--paper)]">
+                <BarChart3 className="h-10 w-10 text-[var(--muted)] mx-auto mb-3" strokeWidth={1.5} />
+                <p className="text-sm text-[var(--muted)]">No cost data available.</p>
               </div>
+            ) : (
+              (summary.cost ?? []).map((c) => (
+                <div
+                  key={c.currencyCode}
+                  className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5 mb-4"
+                >
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
+                    {c.currencyCode} — Cost
+                  </p>
+                  <SummaryRow label="Direct cost" value={c.directCost} />
+                  <SummaryRow label="Overhead" value={c.overhead} />
+                  <SummaryRow label="Contingency" value={c.contingency} />
+                  <SummaryRow label="Total cost" value={c.totalCost} highlight />
+                  {c.forecastCost && <SummaryRow label="Forecast cost" value={c.forecastCost} />}
+                  <div className="mt-3 pt-3 border-t border-[var(--hairline-2)]">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">
+                      Forecast coverage: {(c.documentedForecastCoverage ?? '').replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                </div>
+              ))
             ))}
 
           {/* COMMITMENTS */}
           {activeTab === 'commitments' &&
-            summary.commitments.map((c) => (
-              <div
-                key={c.currencyCode}
-                className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5"
-              >
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
-                  {c.currencyCode} — Commitments
-                </p>
-                <SummaryRow label="Approved PO total" value={c.approvedPOTotal} />
-                <SummaryRow label="Subcontract total" value={c.subcontractTotal} />
-                <SummaryRow label="Total committed" value={c.totalCommitted} highlight />
+            ((summary.commitments ?? []).length === 0 ? (
+              <div className="py-16 text-center border border-[var(--hairline-2)] bg-[var(--paper)]">
+                <BarChart3 className="h-10 w-10 text-[var(--muted)] mx-auto mb-3" strokeWidth={1.5} />
+                <p className="text-sm text-[var(--muted)]">No commitments data available.</p>
               </div>
+            ) : (
+              (summary.commitments ?? []).map((c) => (
+                <div
+                  key={c.currencyCode}
+                  className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5 mb-4"
+                >
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
+                    {c.currencyCode} — Commitments
+                  </p>
+                  <SummaryRow label="Approved PO total" value={c.approvedPOTotal} />
+                  <SummaryRow label="Subcontract total" value={c.subcontractTotal} />
+                  <SummaryRow label="Total committed" value={c.totalCommitted} highlight />
+                </div>
+              ))
             ))}
 
           {/* CASH */}
           {activeTab === 'cash' &&
-            summary.cash.map((c) => (
-              <div
-                key={c.currencyCode}
-                className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5"
-              >
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
-                  {c.currencyCode} — Cash
-                </p>
-                <SummaryRow label="Total received" value={c.totalReceived} />
-                <SummaryRow label="Total paid" value={c.totalPaid} />
-                <SummaryRow
-                  label="Net cash"
-                  value={c.netCash}
-                  highlight
-                  danger={parseFloat(c.netCash) < 0}
-                />
+            ((summary.cash ?? []).length === 0 ? (
+              <div className="py-16 text-center border border-[var(--hairline-2)] bg-[var(--paper)]">
+                <BarChart3 className="h-10 w-10 text-[var(--muted)] mx-auto mb-3" strokeWidth={1.5} />
+                <p className="text-sm text-[var(--muted)]">No cash data available.</p>
               </div>
+            ) : (
+              (summary.cash ?? []).map((c) => (
+                <div
+                  key={c.currencyCode}
+                  className="border border-[var(--hairline-2)] bg-[var(--paper)] p-5 mb-4"
+                >
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-4">
+                    {c.currencyCode} — Cash
+                  </p>
+                  <SummaryRow label="Total received" value={c.totalReceived} />
+                  <SummaryRow label="Total paid" value={c.totalPaid} />
+                  <SummaryRow
+                    label="Net cash"
+                    value={c.netCash}
+                    highlight
+                    danger={parseFloat(c.netCash ?? '0') < 0}
+                  />
+                </div>
+              ))
             ))}
 
           {/* AUDIT */}

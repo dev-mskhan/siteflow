@@ -747,7 +747,61 @@ export const commercialApi = baseApi.injectEndpoints({
 
     getFinancialSummary: build.query<FinancialSummaryDTO, OrgProjectArgs>({
       query: ({ orgId, projectId }) => `/organizations/${orgId}/projects/${projectId}/financial-summary`,
-      transformResponse: (raw: { data: FinancialSummaryDTO }) => raw.data,
+      transformResponse: (raw: { data: any }): FinancialSummaryDTO => {
+        const d = raw?.data;
+        if (!d) {
+          return { cost: [], commitments: [], billing: [], cash: [] };
+        }
+        if (Array.isArray(d.billing) && Array.isArray(d.cost)) {
+          return d as FinancialSummaryDTO;
+        }
+
+        const costRows: any[] = d.cost?.currencyBreakdown ?? [];
+        const cost: CostSummaryDTO[] = costRows.map((c) => ({
+          currencyCode: c.currencyCode ?? 'USD',
+          directCost: c.postedActual ?? '0.00',
+          overhead: '0.00',
+          contingency: '0.00',
+          totalCost: c.revisedBudget ?? c.originalBudget ?? '0.00',
+          forecastCost: c.forecast ?? null,
+          documentedForecastCoverage: d.cost?.forecastUnavailableReason ? 'none' : 'complete',
+        }));
+
+        const commRows: any[] = d.commitments?.currencyBreakdown ?? [];
+        const commitments: CommitmentSummaryDTO[] = commRows.map((c) => ({
+          currencyCode: c.currencyCode ?? 'USD',
+          approvedPOTotal: c.approvedPOCommitments ?? '0.00',
+          subcontractTotal: '0.00',
+          totalCommitted: c.approvedPOCommitments ?? '0.00',
+        }));
+
+        const bcRows: any[] = d.billingAndCash?.currencyBreakdown ?? [];
+        const billing: BillingSummaryDTO[] = bcRows.map((b) => {
+          const held = parseFloat(b.retainageHeld ?? '0');
+          const rel = parseFloat(b.retainageReleased ?? '0');
+          return {
+            currencyCode: b.currencyCode ?? 'USD',
+            contractAmount: b.approvedContractValue ?? '0.00',
+            approvedChanges: '0.00',
+            revisedContractAmount: b.approvedContractValue ?? '0.00',
+            totalBilled: b.billedReceivables ?? '0.00',
+            totalApproved: b.approvedReceivables ?? '0.00',
+            totalOutstanding: b.receivablesOutstanding ?? '0.00',
+            retainageHeld: b.retainageHeld ?? '0.00',
+            retainageReleased: b.retainageReleased ?? '0.00',
+            netRetainage: (held - rel).toFixed(2),
+          };
+        });
+
+        const cash: CashSummaryDTO[] = bcRows.map((b) => ({
+          currencyCode: b.currencyCode ?? 'USD',
+          totalReceived: b.cashReceived ?? '0.00',
+          totalPaid: b.cashPaid ?? '0.00',
+          netCash: b.netCash ?? '0.00',
+        }));
+
+        return { cost, commitments, billing, cash };
+      },
       providesTags: (_r, _e, { projectId }) => [{ type: 'FinancialSummary', id: projectId }],
     }),
 

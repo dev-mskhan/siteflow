@@ -208,7 +208,6 @@ export const ProjectSafetyPage: React.FC = () => {
         )}
         </div>
       </div>
-      </div>
 
       {/* Tab bar */}
       <div className="flex border-b border-[var(--hairline-2)] mb-6">

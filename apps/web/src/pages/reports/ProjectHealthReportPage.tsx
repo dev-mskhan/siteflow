@@ -20,7 +20,14 @@ export const ProjectHealthReportPage: React.FC = () => {
   const { data, isLoading, refetch, isFetching } = useGetHealthReportQuery({ orgId: orgId!, projectId: projectId! });
   if (isLoading) return <div className="p-8"><div className="h-40 animate-pulse bg-[var(--surface-2)]" /></div>;
   if (!data) return null;
-  const { taskStats: ts } = data;
+  const ts = data.taskStats ?? {
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    overdue: 0,
+    blocked: 0,
+    notStarted: 0,
+  };
   return (
     <div className="p-6 sm:p-8 max-w-4xl">
       <div className="flex items-center justify-between mb-6">

@@ -30,7 +30,37 @@ export const ProjectExecutiveReportPage: React.FC = () => {
       </div>
     );
   if (!data) return null;
-  const { health: h, schedule: s, cost: c, procurement: p } = data;
+  const h = data.health ?? {
+    scheduleHealth: 'GREEN',
+    budgetHealth: 'GREEN',
+    openIssues: 0,
+    openRFIs: 0,
+    criticalRFIs: 0,
+    openSafetyEvents: 0,
+    taskStats: { total: 0, completed: 0, inProgress: 0, overdue: 0 },
+  };
+  const s = data.schedule ?? {
+    schedulePerformanceIndex: 1.0,
+    taskStats: { total: 0, completed: 0, inProgress: 0, overdue: 0 },
+    baselineComparison: { endVarianceDays: null },
+    milestones: [],
+  };
+  const c = data.cost ?? {
+    currencyBreakdown: [],
+    costPerformanceIndex: 1.0,
+  };
+  const p = data.procurement ?? {
+    materialRequests: { total: 0 },
+    purchaseOrders: { total: 0, totalCommittedAmount: '0' },
+    deliveries: { total: 0 },
+    receipts: { total: 0 },
+    inventoryItemCount: 0,
+  };
+  const sTaskStats = s.taskStats ?? { total: 0, completed: 0, overdue: 0 };
+  const sBaselineComp = s.baselineComparison ?? { endVarianceDays: null };
+  const pMR = p.materialRequests ?? { total: 0 };
+  const pPO = p.purchaseOrders ?? { total: 0, totalCommittedAmount: '0' };
+  const pDel = p.deliveries ?? { total: 0 };
   return (
     <div className="p-6 sm:p-8 max-w-4xl print:p-0">
       <div className="flex items-center justify-between mb-6 print:hidden">
@@ -110,15 +140,15 @@ export const ProjectExecutiveReportPage: React.FC = () => {
                 Completed tasks
               </p>
               <p className="font-mono text-lg font-medium">
-                {s.taskStats.completed} / {s.taskStats.total}
+                {sTaskStats.completed} / {sTaskStats.total}
               </p>
             </div>
             <div>
               <p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-1">Overdue</p>
               <p
-                className={`font-mono text-lg font-medium ${s.taskStats.overdue > 0 ? 'text-[#991b1b]' : ''}`}
+                className={`font-mono text-lg font-medium ${sTaskStats.overdue > 0 ? 'text-[#991b1b]' : ''}`}
               >
-                {s.taskStats.overdue}
+                {sTaskStats.overdue}
               </p>
             </div>
             <div>
@@ -126,10 +156,10 @@ export const ProjectExecutiveReportPage: React.FC = () => {
                 End variance
               </p>
               <p
-                className={`font-mono text-lg font-medium ${(s.baselineComparison.endVarianceDays ?? 0) > 0 ? 'text-[#991b1b]' : 'text-[#166534]'}`}
+                className={`font-mono text-lg font-medium ${(sBaselineComp.endVarianceDays ?? 0) > 0 ? 'text-[#991b1b]' : 'text-[#166534]'}`}
               >
-                {s.baselineComparison.endVarianceDays != null
-                  ? `${s.baselineComparison.endVarianceDays > 0 ? '+' : ''}${s.baselineComparison.endVarianceDays}d`
+                {sBaselineComp.endVarianceDays != null
+                  ? `${sBaselineComp.endVarianceDays > 0 ? '+' : ''}${sBaselineComp.endVarianceDays}d`
                   : '—'}
               </p>
             </div>
@@ -141,14 +171,14 @@ export const ProjectExecutiveReportPage: React.FC = () => {
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] mb-3">
             Cost
           </p>
-          {c.currencyBreakdown.map((r) => (
+          {(c.currencyBreakdown ?? []).map((r) => (
             <div key={r.currencyCode} className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div>
                 <p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-1">
                   Original budget
                 </p>
                 <p className="font-mono text-sm font-medium">
-                  {r.currencyCode} {parseFloat(r.originalBudget).toLocaleString()}
+                  {r.currencyCode} {parseFloat(r.originalBudget ?? '0').toLocaleString()}
                 </p>
               </div>
               <div>
@@ -156,7 +186,7 @@ export const ProjectExecutiveReportPage: React.FC = () => {
                   Revised budget
                 </p>
                 <p className="font-mono text-sm font-medium">
-                  {parseFloat(r.revisedBudget).toLocaleString()}
+                  {parseFloat(r.revisedBudget ?? '0').toLocaleString()}
                 </p>
               </div>
               <div>
@@ -164,7 +194,7 @@ export const ProjectExecutiveReportPage: React.FC = () => {
                   Posted actual
                 </p>
                 <p className="font-mono text-sm font-medium">
-                  {parseFloat(r.postedActual).toLocaleString()}
+                  {parseFloat(r.postedActual ?? '0').toLocaleString()}
                 </p>
               </div>
               <div>
@@ -185,20 +215,20 @@ export const ProjectExecutiveReportPage: React.FC = () => {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
               <p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-1">MRs</p>
-              <p className="font-mono text-lg">{p.materialRequests.total}</p>
+              <p className="font-mono text-lg">{pMR.total}</p>
             </div>
             <div>
               <p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-1">POs</p>
-              <p className="font-mono text-lg">{p.purchaseOrders.total}</p>
+              <p className="font-mono text-lg">{pPO.total}</p>
             </div>
             <div>
               <p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-1">Deliveries</p>
-              <p className="font-mono text-lg">{p.deliveries.total}</p>
+              <p className="font-mono text-lg">{pDel.total}</p>
             </div>
             <div>
               <p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-1">Committed</p>
               <p className="font-mono text-sm font-medium">
-                PKR {parseFloat(p.purchaseOrders.totalCommittedAmount).toLocaleString()}
+                PKR {parseFloat(pPO.totalCommittedAmount ?? '0').toLocaleString()}
               </p>
             </div>
           </div>

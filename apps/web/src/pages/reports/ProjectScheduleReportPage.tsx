@@ -8,7 +8,23 @@ export const ProjectScheduleReportPage: React.FC = () => {
   const { data, isLoading, refetch, isFetching } = useGetScheduleReportQuery({ orgId: orgId!, projectId: projectId! });
   if (isLoading) return <div className="p-8"><div className="h-40 animate-pulse bg-[var(--surface-2)]" /></div>;
   if (!data) return null;
-  const { baselineComparison: bc, taskStats: ts } = data;
+  const bc = data.baselineComparison ?? {
+    baselineId: null,
+    baselineName: null,
+    plannedStartDate: null,
+    plannedEndDate: null,
+    currentStartDate: null,
+    currentEndDate: null,
+    startVarianceDays: null,
+    endVarianceDays: null,
+  };
+  const ts = data.taskStats ?? {
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    overdue: 0,
+  };
+  const milestones = data.milestones ?? [];
   return (
     <div className="p-6 sm:p-8 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
@@ -42,13 +58,13 @@ export const ProjectScheduleReportPage: React.FC = () => {
         </div>
       )}
       {/* Milestones */}
-      {data.milestones.length > 0 && (
+      {milestones.length > 0 && (
         <div className="border border-[var(--hairline-2)]">
           <div className="px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]"><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">Milestones</p></div>
           <div className="grid grid-cols-[2fr_100px_100px_90px_100px] gap-3 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]">
             {['Name', 'Planned', 'Current', 'Status', 'Variance'].map((h) => <p key={h} className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">{h}</p>)}
           </div>
-          {data.milestones.map((m) => (
+          {milestones.map((m) => (
             <div key={m.id} className="grid grid-cols-[2fr_100px_100px_90px_100px] gap-3 items-center px-4 py-3 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]">
               <p className="text-sm">{m.name}</p>
               <p className="font-mono text-[10px] text-[var(--muted)]">{m.plannedDate ?? '—'}</p>

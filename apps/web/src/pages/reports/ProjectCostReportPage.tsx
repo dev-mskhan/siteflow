@@ -24,16 +24,16 @@ export const ProjectCostReportPage: React.FC = () => {
         <div className="grid grid-cols-[80px_110px_120px_120px_110px_110px_110px_110px] gap-2 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]">
           {['CCY','Original budget','Approved changes','Revised budget','Committed','Posted actual','Forecast','Variance'].map((h) => <p key={h} className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">{h}</p>)}
         </div>
-        {data.currencyBreakdown.map((r) => {
+        {(data.currencyBreakdown ?? []).map((r) => {
           const variance = r.variance ? parseFloat(r.variance) : null;
           return (
             <div key={r.currencyCode} className="grid grid-cols-[80px_110px_120px_120px_110px_110px_110px_110px] gap-2 items-center px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]">
               <p className="font-mono text-[10px] font-medium">{r.currencyCode}</p>
-              <p className="font-mono text-[10px]">{parseFloat(r.originalBudget).toLocaleString()}</p>
-              <p className="font-mono text-[10px]">{parseFloat(r.approvedBudgetChanges).toLocaleString()}</p>
-              <p className="font-mono text-[10px] font-medium">{parseFloat(r.revisedBudget).toLocaleString()}</p>
-              <p className="font-mono text-[10px]">{parseFloat(r.committed).toLocaleString()}</p>
-              <p className="font-mono text-[10px]">{parseFloat(r.postedActual).toLocaleString()}</p>
+              <p className="font-mono text-[10px]">{parseFloat(r.originalBudget ?? '0').toLocaleString()}</p>
+              <p className="font-mono text-[10px]">{parseFloat(r.approvedBudgetChanges ?? '0').toLocaleString()}</p>
+              <p className="font-mono text-[10px] font-medium">{parseFloat(r.revisedBudget ?? '0').toLocaleString()}</p>
+              <p className="font-mono text-[10px]">{parseFloat(r.committed ?? '0').toLocaleString()}</p>
+              <p className="font-mono text-[10px]">{parseFloat(r.postedActual ?? '0').toLocaleString()}</p>
               <p className="font-mono text-[10px] text-[var(--muted)]">{r.forecast ? parseFloat(r.forecast).toLocaleString() : '—'}</p>
               <p className={`font-mono text-[10px] ${variance != null && variance < 0 ? 'text-[#991b1b] font-medium' : variance != null && variance > 0 ? 'text-[#166534]' : 'text-[var(--muted)]'}`}>{variance != null ? variance.toLocaleString() : '—'}</p>
             </div>

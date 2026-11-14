@@ -53,7 +53,7 @@ export const CommercialSummaryPage: React.FC = () => {
                 <p key={h} className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">{h}</p>
               ))}
             </div>
-            {summary.currencyBreakdown.map((row) => {
+            {(summary.currencyBreakdown ?? []).map((row) => {
               const variance = row.variance ? parseFloat(row.variance) : null;
               return (
                 <div key={row.currencyCode} className="grid grid-cols-[80px_110px_120px_120px_110px_110px_110px_110px] gap-2 items-center px-4 py-3.5 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]">
@@ -75,9 +75,14 @@ export const CommercialSummaryPage: React.FC = () => {
           {/* Metadata strip */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 mb-4">
             {[
-              { label: 'Commitment coverage', value: summary.commitmentCoverage.replace(/_/g, ' ') },
-              { label: 'Subcontract commitments', value: `PKR ${parseFloat(summary.subcontractCommitments).toLocaleString()}` },
-              { label: 'Invoice lifecycle', value: summary.invoiceLifecycleCoverage.replace(/_/g, ' ') },
+              { label: 'Commitment coverage', value: (summary.commitmentCoverage ?? '').replace(/_/g, ' ') },
+              {
+                label: 'Subcontract commitments',
+                value: !Number.isNaN(parseFloat(summary.subcontractCommitments ?? ''))
+                  ? `PKR ${parseFloat(summary.subcontractCommitments).toLocaleString()}`
+                  : (summary.subcontractCommitments ?? '—').replace(/_/g, ' '),
+              },
+              { label: 'Invoice lifecycle', value: (summary.invoiceLifecycleCoverage ?? '').replace(/_/g, ' ') },
             ].map(({ label, value }) => (
               <div key={label} className="border border-[var(--hairline-2)] bg-[var(--paper)] p-4">
                 <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1">{label}</p>

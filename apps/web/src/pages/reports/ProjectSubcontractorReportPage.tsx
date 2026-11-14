@@ -18,7 +18,7 @@ export const ProjectSubcontractorReportPage: React.FC = () => {
         <div className="grid grid-cols-[2fr_80px_80px_80px_80px_80px_120px] gap-3 px-4 py-2 bg-[var(--surface-2)] border-b border-[var(--hairline-2)]">
           {['Subcontractor','Tasks','Done','Late','Late del.','Rejections','On-time rate'].map((h) => <p key={h} className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--muted)]">{h}</p>)}
         </div>
-        {data.subcontractors.map((sc) => (
+        {(data.subcontractors ?? []).map((sc) => (
           <div key={sc.subcontractorId} className="grid grid-cols-[2fr_80px_80px_80px_80px_80px_120px] gap-3 items-center px-4 py-4 border-b border-[var(--hairline-2)] last:border-b-0 bg-[var(--paper)]">
             <div><p className="text-sm font-medium">{sc.displayName}</p>{sc.trade && <p className="font-mono text-[9px] text-[var(--muted)]">{sc.trade}</p>}</div>
             <p className="font-mono text-[10px]">{sc.assignedTaskCount}</p>

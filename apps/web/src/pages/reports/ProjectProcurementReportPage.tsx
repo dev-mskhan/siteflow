@@ -8,11 +8,15 @@ export const ProjectProcurementReportPage: React.FC = () => {
   const { data, isLoading, refetch, isFetching } = useGetProcurementReportQuery({ orgId: orgId!, projectId: projectId! });
   if (isLoading) return <div className="p-8"><div className="h-40 animate-pulse bg-[var(--surface-2)]" /></div>;
   if (!data) return null;
+  const mr = data.materialRequests ?? { total: 0, approved: 0, ordered: 0, fulfilled: 0, cancelled: 0 };
+  const po = data.purchaseOrders ?? { total: 0, approved: 0, sent: 0, received: 0, totalCommittedAmount: '0' };
+  const del = data.deliveries ?? { total: 0, scheduled: 0, delivered: 0, cancelled: 0 };
+  const rec = data.receipts ?? { total: 0, posted: 0, voided: 0 };
   const sections = [
-    { title: 'Material requests', stats: [['Total', data.materialRequests.total],['Approved', data.materialRequests.approved],['Ordered', data.materialRequests.ordered],['Fulfilled', data.materialRequests.fulfilled],['Cancelled', data.materialRequests.cancelled]] },
-    { title: 'Purchase orders', stats: [['Total', data.purchaseOrders.total],['Approved', data.purchaseOrders.approved],['Sent', data.purchaseOrders.sent],['Received', data.purchaseOrders.received],['Committed (PKR)', parseFloat(data.purchaseOrders.totalCommittedAmount).toLocaleString()]] },
-    { title: 'Deliveries', stats: [['Total', data.deliveries.total],['Scheduled', data.deliveries.scheduled],['Delivered', data.deliveries.delivered],['Cancelled', data.deliveries.cancelled]] },
-    { title: 'Receipts', stats: [['Total', data.receipts.total],['Posted', data.receipts.posted],['Voided', data.receipts.voided]] },
+    { title: 'Material requests', stats: [['Total', mr.total],['Approved', mr.approved],['Ordered', mr.ordered],['Fulfilled', mr.fulfilled],['Cancelled', mr.cancelled]] },
+    { title: 'Purchase orders', stats: [['Total', po.total],['Approved', po.approved],['Sent', po.sent],['Received', po.received],['Committed (PKR)', parseFloat(po.totalCommittedAmount ?? '0').toLocaleString()]] },
+    { title: 'Deliveries', stats: [['Total', del.total],['Scheduled', del.scheduled],['Delivered', del.delivered],['Cancelled', del.cancelled]] },
+    { title: 'Receipts', stats: [['Total', rec.total],['Posted', rec.posted],['Voided', rec.voided]] },
   ];
   return (
     <div className="p-6 sm:p-8 max-w-4xl">
