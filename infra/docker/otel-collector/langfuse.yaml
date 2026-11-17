@@ -1,0 +1,72 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OTEL Collector configuration for SiteFlow → Langfuse
+# Receives OTLP from the app, forwards traces to Langfuse OTLP endpoint.
+# Verified against: https://langfuse.com/docs/integrations/opentelemetry
+# ─────────────────────────────────────────────────────────────────────────────
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: '0.0.0.0:4317'
+      http:
+        endpoint: '0.0.0.0:4318'
+        cors:
+          allowed_origins:
+            - 'http://localhost:3000'
+            - 'http://localhost:3001'
+
+processors:
+  batch:
+    send_batch_size: 1000
+    send_batch_max_size: 1100
+    timeout: 10s
+
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 400
+    spike_limit_mib: 100
+
+extensions:
+  # Langfuse uses Basic Auth: base64(public_key:secret_key)
+  basicauth/langfuse:
+    client_auth:
+      username: ${LANGFUSE_PUBLIC_KEY}
+      password: ${LANGFUSE_SECRET_KEY}
+
+exporters:
+  # Langfuse OTLP endpoint: /api/public/otel (supports both /v1/traces suffix and without)
+  # Docs: https://langfuse.com/docs/integrations/opentelemetry#opentelemetry-endpoint
+  otlphttp/langfuse:
+    endpoint: ${LANGFUSE_BASE_URL}/api/public/otel
+    auth:
+      authenticator: basicauth/langfuse
+    headers:
+      # x-langfuse-ingestion-version: 4 enables real-time ingestion (otherwise up to 10min delay)
+      x-langfuse-ingestion-version: "4"
+    tls:
+      insecure: true  # local deployment uses http
+
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  extensions: [basicauth/langfuse]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/langfuse, debug]
+    
+    # Metrics and logs pipelines (not sent to Langfuse, debug only)
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+    
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]

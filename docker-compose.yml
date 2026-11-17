@@ -1,28 +1,24 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# SiteFlow — local development services
+# SiteFlow — local development services (Podman)
 #
-# Split into logical groups:
-#   1. app-infra     — Postgres, Redis, MinIO  (always on)
-#   2. app           — server (API) + workers  (activate: --profile app)
-#   3. observability — SigNoz + OTEL Collector + ClickHouse + Zookeeper
-#   4. ai            — Whisper (always on) + Langfuse v4 (activate: --profile langfuse)
+# Profiles:
+#   default     — Postgres, Redis, MinIO (base infra)
+#   app         — Server + workers (activate: --profile app)
+#   langfuse    — Langfuse v4 + OTEL collector (observability)
+#   ai          — Whisper STT (activate: --profile ai)
+#   pooling     — PgBouncer (optional, activate: --profile pooling)
 #
 # Usage:
-#   docker compose up -d                                    # app-infra (+ whisper)
-#   docker compose --profile app up -d                      # + server + workers
-#   docker compose --profile observability up -d            # + full SigNoz stack
-#   docker compose --profile langfuse up -d                 # + local Langfuse v4
-#   docker compose --profile pooling up -d                  # + PgBouncer
-#   docker compose --profile app --profile langfuse up -d   # app + LLM tracing
+#   podman-compose up -d                                    # base infra only
+#   podman-compose --profile app --profile langfuse up -d   # full stack (recommended)
+#   podman-compose --profile ai up -d                       # + Whisper
 #
-# Tip: avoid running 'observability' and 'langfuse' together on a small
-# machine. Both include a ClickHouse and both use a lot of RAM.
+# Setup:
+#   cp .env.example .env  # then edit .env with your values
 # ─────────────────────────────────────────────────────────────────────────────
 
 networks:
   siteflow-net:
-    driver: bridge
-  signoz-net:
     driver: bridge
   langfuse-net:
     driver: bridge
@@ -31,9 +27,6 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
-  signoz_data:
-  clickhouse_data:
-  zookeeper_data:
   whisper_cache:
   langfuse_postgres_data:
   langfuse_clickhouse_data:
@@ -45,15 +38,15 @@ volumes:
 # ─────────────────────────────────────────────────────────────────────────────
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: docker.io/pgvector/pgvector:pg17
     container_name: siteflow-postgres
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     environment:
-      POSTGRES_DB: siteflow
-      POSTGRES_USER: siteflow
-      POSTGRES_PASSWORD: siteflow
+      POSTGRES_DB: ${POSTGRES_DB:-siteflow}
+      POSTGRES_USER: ${POSTGRES_USER:-siteflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-siteflow}
     ports:
-      - '5434:5432'
+      - '127.0.0.1:5434:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
@@ -68,21 +61,20 @@ services:
     restart: unless-stopped
 
   pgbouncer:
-    # Optional connection pooler — activate with: --profile pooling
     profiles: ['pooling']
-    image: pgbouncer/pgbouncer:latest
+    image: docker.io/pgbouncer/pgbouncer:1.23.1
     container_name: siteflow-pgbouncer
     environment:
       DATABASES_HOST: postgres
       DATABASES_PORT: 5432
-      DATABASES_USER: siteflow
-      DATABASES_PASSWORD: siteflow
-      DATABASES_DBNAME: siteflow
+      DATABASES_USER: ${POSTGRES_USER:-siteflow}
+      DATABASES_PASSWORD: ${POSTGRES_PASSWORD:-siteflow}
+      DATABASES_DBNAME: ${POSTGRES_DB:-siteflow}
       PGBOUNCER_POOL_MODE: transaction
       PGBOUNCER_MAX_CLIENT_CONN: 200
       PGBOUNCER_DEFAULT_POOL_SIZE: 20
     ports:
-      - '6432:6432'
+      - '127.0.0.1:6432:6432'
     networks:
       - siteflow-net
     depends_on:
@@ -91,11 +83,11 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: docker.io/library/redis:alpine
     container_name: siteflow-redis
     command: redis-server /etc/redis/redis.conf
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
       - ./infra/docker/redis/redis.conf:/etc/redis/redis.conf:ro
@@ -109,14 +101,14 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: siteflow-minio
     ports:
-      - '9000:9000'
-      - '9001:9001' # MinIO console UI
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -130,7 +122,7 @@ services:
     restart: unless-stopped
 
   minio-create-buckets:
-    image: minio/mc:latest
+    image: cgr.dev/chainguard/minio-client:latest
     container_name: siteflow-minio-mc
     networks:
       - siteflow-net
@@ -148,17 +140,24 @@ services:
       "
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # 2. APPLICATION — server (API) + workers  (activate: --profile app)
-  #
-  #    All use the SAME image and codebase. Each worker just runs a different
-  #    entrypoint so pg-boss jobs don't compete with HTTP requests for the
-  #    Node.js event loop.
-  #
-  #    LANGFUSE_* variables: the values after ":-" are LOCAL defaults.
-  #    In production you set real values (Langfuse Cloud) in the environment
-  #    and this file does not change. Code only ever reads these 3 variables.
+  # Shared app environment (YAML anchor for DRY)
   # ─────────────────────────────────────────────────────────────────────────────
+  x-app-env: &app-env
+    NODE_ENV: development
+    DATABASE_URL: postgres://${POSTGRES_USER:-siteflow}:${POSTGRES_PASSWORD:-siteflow}@postgres:5432/${POSTGRES_DB:-siteflow}
+    REDIS_URL: redis://redis:6379
+    MINIO_ENDPOINT: minio
+    MINIO_PORT: 9000
+    MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+    MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-http://langfuse-web:3000}
+    LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
+    LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 2. APPLICATION — server (API) + workers  (activate: --profile app)
+  # ─────────────────────────────────────────────────────────────────────────────
   server:
     profiles: ['app']
     build:
@@ -166,23 +165,12 @@ services:
       dockerfile: apps/server/Dockerfile
     container_name: siteflow-server
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgres://siteflow:siteflow@postgres:5432/siteflow
-      REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      <<: *app-env
       OTEL_SERVICE_NAME: siteflow-server
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-http://langfuse-web:3000}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
     ports:
       - '3000:3000'
     networks:
       - siteflow-net
-      - signoz-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -200,24 +188,12 @@ services:
       context: .
       dockerfile: apps/server/Dockerfile
     container_name: siteflow-worker
-    # Same image, different entrypoint — runs only the pg-boss consumer.
     command: ['node', 'apps/server/dist/worker.js']
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgres://siteflow:siteflow@postgres:5432/siteflow
-      REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      <<: *app-env
       OTEL_SERVICE_NAME: siteflow-worker
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-http://langfuse-web:3000}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
     networks:
       - siteflow-net
-      - signoz-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -237,25 +213,14 @@ services:
     container_name: siteflow-document-worker
     command: ['node', 'apps/server/dist/document-worker.js']
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgres://siteflow:siteflow@postgres:5432/siteflow
-      REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      <<: *app-env
+      OTEL_SERVICE_NAME: siteflow-document-worker
       MINIO_BUCKET_DOCUMENTS: siteflow-documents
       STORAGE_PRESIGN_EXPIRY_SECONDS: 3600
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      OTEL_SERVICE_NAME: siteflow-document-worker
-      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-http://langfuse-web:3000}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
     cpus: 1.0
     mem_limit: 1g
     networks:
       - siteflow-net
-      - signoz-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -268,110 +233,40 @@ services:
     restart: unless-stopped
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # 3. OBSERVABILITY — SigNoz stack  (activate with: --profile observability)
-  #    ClickHouse (columnar DB for traces) + ZooKeeper (ClickHouse coordination)
+  # 3. OBSERVABILITY — OTEL Collector + Langfuse v4  (activate: --profile langfuse)
   # ─────────────────────────────────────────────────────────────────────────────
 
-  zookeeper:
-    profiles: ['observability']
-    image: zookeeper:3.9
-    container_name: siteflow-signoz-zookeeper
-    environment:
-      - ZOO_AUTOPURGE_PURGE_INTERVAL=1
-    volumes:
-      - zookeeper_data:/data
-    networks:
-      - signoz-net
-    restart: unless-stopped
-
-  clickhouse:
-    profiles: ['observability']
-    image: clickhouse/clickhouse-server:24.1.2-alpine
-    container_name: siteflow-signoz-clickhouse
-    environment:
-      - CLICKHOUSE_DB=signoz_traces
-      - CLICKHOUSE_USER=default
-      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - ./infra/docker/clickhouse/listen.xml:/etc/clickhouse-server/config.d/listen.xml:ro
-      - ./infra/docker/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
-    networks:
-      - signoz-net
-    depends_on:
-      - zookeeper
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:8123/ping']
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    restart: unless-stopped
-
-  signoz-telemetrystore-migrator:
-    profiles: ['observability']
-    image: signoz/signoz-schema-migrator:v0.129.0
-    container_name: siteflow-signoz-schema-migrator
-    command: ['sync', '--dsn=tcp://siteflow-signoz-clickhouse:9000']
-    networks:
-      - signoz-net
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-    restart: on-failure
-
   otel-collector:
-    profiles: ['observability']
-    image: signoz/signoz-otel-collector:v0.129.0
+    profiles: ['langfuse']
+    image: docker.io/otel/opentelemetry-collector-contrib:0.111.0
     container_name: siteflow-otel-collector
     command: ['--config=/etc/otel-collector-config.yaml']
     ports:
-      - '4317:4317' # OTLP gRPC
-      - '4318:4318' # OTLP HTTP  ← your app sends here
+      - '127.0.0.1:4317:4317' # OTLP gRPC
+      - '127.0.0.1:4318:4318' # OTLP HTTP
     volumes:
-      - ./infra/docker/otel-collector/config.yaml:/etc/otel-collector-config.yaml:ro
-    networks:
-      - siteflow-net # receives from app
-      - signoz-net # forwards to clickhouse / signoz
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-      signoz-telemetrystore-migrator:
-        condition: service_completed_successfully
-    restart: unless-stopped
-
-  signoz:
-    profiles: ['observability']
-    image: signoz/signoz:v0.96.1
-    container_name: siteflow-signoz
-    ports:
-      - '3301:8080' # SigNoz UI — http://localhost:3301
-    volumes:
-      - signoz_data:/var/lib/signoz
+      - ./infra/docker/otel-collector/langfuse.yaml:/etc/otel-collector-config.yaml:ro
     environment:
-      - SIGNOZ_SQLITEDB_PATH=/var/lib/signoz/signoz.db
-      - SIGNOZ_JWT_SECRET=signoz-jwt-secret-key-32chars
-      - SIGNOZ_TELEMETRYSTORE_PROVIDER=clickhouse
-      - SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN=tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
-      - CLICKHOUSE_DSN=tcp://siteflow-signoz-clickhouse:9000?database=signoz_traces&username=default&password=
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-http://langfuse-web:3000}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
     networks:
-      - signoz-net
+      - siteflow-net
     depends_on:
-      clickhouse:
-        condition: service_healthy
+      langfuse-web:
+        condition: service_started
     restart: unless-stopped
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # 4a. AI FOUNDATION — Whisper STT (unchanged, always on)
+  # 4. AI — Whisper STT  (activate: --profile ai)
   # ─────────────────────────────────────────────────────────────────────────────
 
   whisper:
-    # hwdsl2/whisper-server — ~190 MB image, OpenAI-compatible /v1/audio/transcriptions
-    # Model (tiny/base/small) downloads on first use and caches in the volume.
-    image: hwdsl2/whisper-server
+    profiles: ['ai']
+    image: docker.io/hwdsl2/whisper-server:latest
     container_name: siteflow-whisper
     ports:
-      - '3900:9000'
+      - '127.0.0.1:3900:9000'
     environment:
       - WHISPER_MODEL=base
     volumes:
@@ -381,23 +276,17 @@ services:
     restart: unless-stopped
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # 4b. LANGFUSE v4 (LOCAL STAND-IN FOR LANGFUSE CLOUD)  --profile langfuse
-  #
-  #     Needs its OWN Postgres / ClickHouse / Redis / MinIO (hence the
-  #     "langfuse-" prefix: Docker finds services by NAME, so reusing
-  #     "redis" or "clickhouse" would connect to the wrong container).
-  #     UI: http://localhost:3020  (login: see LANGFUSE_INIT_USER_* below)
-  #     NOT used in production. There you point LANGFUSE_* at Langfuse Cloud.
+  # 5. LANGFUSE v4 (LOCAL)  --profile langfuse
   # ─────────────────────────────────────────────────────────────────────────────
 
   langfuse-postgres:
     profiles: ['langfuse']
-    image: pgvector/pgvector:pg16
+    image: docker.io/pgvector/pgvector:pg17
     container_name: siteflow-langfuse-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${LANGFUSE_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${LANGFUSE_POSTGRES_DB:-postgres}
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
     networks:
@@ -411,14 +300,13 @@ services:
 
   langfuse-clickhouse:
     profiles: ['langfuse']
-    # Langfuse v4 needs ClickHouse 25.12 or newer
-    image: clickhouse/clickhouse-server:25.12
+    image: docker.io/clickhouse/clickhouse-server:latest
     container_name: siteflow-langfuse-clickhouse
     user: '101:101'
     environment:
       CLICKHOUSE_DB: default
-      CLICKHOUSE_USER: clickhouse
-      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-clickhouse}
     volumes:
       - langfuse_clickhouse_data:/var/lib/clickhouse
       - langfuse_clickhouse_logs:/var/log/clickhouse-server
@@ -435,15 +323,15 @@ services:
 
   langfuse-redis:
     profiles: ['langfuse']
-    image: redis:7-alpine
+    image: docker.io/library/redis:alpine
     container_name: siteflow-langfuse-redis
     command: >
-      --requirepass langfuse-redis-dev
+      --requirepass ${LANGFUSE_REDIS_PASSWORD:-langfuse-redis-dev}
       --maxmemory-policy noeviction
     networks:
       - langfuse-net
     healthcheck:
-      test: ['CMD-SHELL', 'redis-cli -a langfuse-redis-dev ping | grep PONG']
+      test: ['CMD-SHELL', 'redis-cli -a ${LANGFUSE_REDIS_PASSWORD:-langfuse-redis-dev} ping | grep PONG']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -451,16 +339,15 @@ services:
 
   langfuse-minio:
     profiles: ['langfuse']
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: siteflow-langfuse-minio
     entrypoint: sh
-    # creates the 'langfuse' bucket, then starts the server
     command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: langfuse-minio-dev
+      MINIO_ROOT_USER: ${LANGFUSE_MINIO_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${LANGFUSE_MINIO_PASSWORD:-langfuse-minio-dev}
     ports:
-      - '9090:9000' # host-reachable (media uploads); 9000 is taken by app MinIO
+      - '127.0.0.1:9090:9000'
     volumes:
       - langfuse_minio_data:/data
     networks:
@@ -477,30 +364,30 @@ services:
     image: docker.langfuse.com/langfuse/langfuse-worker:4
     container_name: siteflow-langfuse-worker
     environment: &langfuse-env
-      DATABASE_URL: postgresql://postgres:postgres@langfuse-postgres:5432/postgres
-      SALT: langfuse-dev-salt-change-me
-      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000' # local only
+      DATABASE_URL: postgresql://${LANGFUSE_POSTGRES_USER:-postgres}:${LANGFUSE_POSTGRES_PASSWORD:-postgres}@langfuse-postgres:5432/${LANGFUSE_POSTGRES_DB:-postgres}
+      SALT: ${LANGFUSE_SALT:-langfuse-dev-salt-change-me}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
       TELEMETRY_ENABLED: 'false'
       LANGFUSE_MIGRATION_V4_WRITE_MODE: dual
       CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
       CLICKHOUSE_URL: http://langfuse-clickhouse:8123
-      CLICKHOUSE_USER: clickhouse
-      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_USER: ${LANGFUSE_CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-clickhouse}
       CLICKHOUSE_CLUSTER_ENABLED: 'false'
       REDIS_HOST: langfuse-redis
       REDIS_PORT: 6379
-      REDIS_AUTH: langfuse-redis-dev
+      REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:-langfuse-redis-dev}
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
-      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
-      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: langfuse-minio-dev
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_USER:-minio}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_PASSWORD:-langfuse-minio-dev}
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
       LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
       LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
-      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
-      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: langfuse-minio-dev
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_MINIO_USER:-minio}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_MINIO_PASSWORD:-langfuse-minio-dev}
       LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://localhost:9090
       LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
       LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
@@ -522,23 +409,22 @@ services:
     image: docker.langfuse.com/langfuse/langfuse:4
     container_name: siteflow-langfuse-web
     ports:
-      - '3020:3000'
+      - '127.0.0.1:3020:3000'
     environment:
       <<: *langfuse-env
       NEXTAUTH_URL: http://localhost:3020
-      NEXTAUTH_SECRET: langfuse-dev-nextauth-secret-change-me
-      # First-boot only: creates org, project and fixed API keys
-      LANGFUSE_INIT_ORG_ID: siteflow-dev
-      LANGFUSE_INIT_ORG_NAME: SiteFlow Dev
-      LANGFUSE_INIT_PROJECT_ID: siteflow
-      LANGFUSE_INIT_PROJECT_NAME: siteflow
-      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-local-dev
-      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-local-dev
-      LANGFUSE_INIT_USER_EMAIL: dev@siteflow.local
-      LANGFUSE_INIT_USER_NAME: dev
-      LANGFUSE_INIT_USER_PASSWORD: change-me-123
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-langfuse-dev-nextauth-secret-change-me}
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-siteflow-dev}
+      LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-SiteFlow Dev}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-siteflow}
+      LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-siteflow}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-dev@siteflow.local}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-dev}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-change-me-123}
     depends_on: *langfuse-depends
     networks:
-      - langfuse-net # reaches its own database stack
-      - siteflow-net # lets server/worker call it at http://langfuse-web:3000
+      - langfuse-net
+      - siteflow-net
     restart: unless-stopped
