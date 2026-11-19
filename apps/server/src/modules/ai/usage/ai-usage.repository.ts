@@ -5,7 +5,11 @@
 import { eq, and, sql, gte, lte } from 'drizzle-orm';
 import { getDb } from '../../../lib/db/index.js';
 import { generateId } from '../../../lib/id.js';
-import { agentUsageDaily, type AgentUsageDaily, type NewAgentUsageDaily } from '@siteflow/database/schema';
+import {
+  aiUsageDaily as agentUsageDaily,
+  type AiUsageDaily as AgentUsageDaily,
+  type NewAiUsageDaily as NewAgentUsageDaily,
+} from '@siteflow/database/schema';
 import { createLogger } from '@siteflow/observability/server';
 import Decimal from 'decimal.js';
 

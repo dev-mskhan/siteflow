@@ -11,6 +11,8 @@ export const AI_QUEUES = {
   TRANSCRIBE: 'ai:transcribe',
   /** AI reaper sweeping stale runs and approvals */
   REAPER: 'ai:reaper',
+  /** Scheduled cleanup of expired AI memory keys */
+  MEMORY_CLEANUP: 'ai.memory.cleanup',
 } as const;
 
 export type AiQueueName = (typeof AI_QUEUES)[keyof typeof AI_QUEUES];

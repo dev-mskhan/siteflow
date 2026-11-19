@@ -17,6 +17,20 @@
 #   cp .env.example .env  # then edit .env with your values
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Shared app environment (YAML anchor for DRY)
+x-app-env: &app-env
+  NODE_ENV: development
+  DATABASE_URL: postgres://${POSTGRES_USER:-siteflow}:${POSTGRES_PASSWORD:-siteflow}@postgres:5432/${POSTGRES_DB:-siteflow}
+  REDIS_URL: redis://redis:6379
+  MINIO_ENDPOINT: minio
+  MINIO_PORT: 9000
+  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-http://langfuse-web:3000}
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
+
 networks:
   siteflow-net:
     driver: bridge
@@ -122,38 +136,24 @@ services:
     restart: unless-stopped
 
   minio-create-buckets:
-    image: cgr.dev/chainguard/minio-client:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: siteflow-minio-mc
     networks:
       - siteflow-net
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set myminio http://minio:9000 minioadmin minioadmin;
-      mc mb myminio/siteflow-documents --ignore-existing;
-      mc anonymous set none myminio/siteflow-documents;
-      mc mb myminio/siteflow-audio --ignore-existing;
-      mc anonymous set none myminio/siteflow-audio;
-      exit 0;
-      "
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Shared app environment (YAML anchor for DRY)
-  # ─────────────────────────────────────────────────────────────────────────────
-  x-app-env: &app-env
-    NODE_ENV: development
-    DATABASE_URL: postgres://${POSTGRES_USER:-siteflow}:${POSTGRES_PASSWORD:-siteflow}@postgres:5432/${POSTGRES_DB:-siteflow}
-    REDIS_URL: redis://redis:6379
-    MINIO_ENDPOINT: minio
-    MINIO_PORT: 9000
-    MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-    MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-    LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-http://langfuse-web:3000}
-    LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local-dev}
-    LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local-dev}
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        mc alias set myminio http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc mb myminio/siteflow-documents --ignore-existing &&
+        mc anonymous set none myminio/siteflow-documents &&
+        mc mb myminio/siteflow-audio --ignore-existing &&
+        mc anonymous set none myminio/siteflow-audio
 
   # ─────────────────────────────────────────────────────────────────────────────
   # 2. APPLICATION — server (API) + workers  (activate: --profile app)
@@ -341,8 +341,7 @@ services:
     profiles: ['langfuse']
     image: cgr.dev/chainguard/minio:latest
     container_name: siteflow-langfuse-minio
-    entrypoint: sh
-    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    command: server --address ":9000" --console-address ":9001" /data
     environment:
       MINIO_ROOT_USER: ${LANGFUSE_MINIO_USER:-minio}
       MINIO_ROOT_PASSWORD: ${LANGFUSE_MINIO_PASSWORD:-langfuse-minio-dev}

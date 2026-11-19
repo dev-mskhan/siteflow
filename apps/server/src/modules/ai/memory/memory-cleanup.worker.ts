@@ -7,10 +7,11 @@ import type PgBoss from 'pg-boss';
 import { getRedis } from '../../../lib/redis/redis.js';
 import { createLogger } from '@siteflow/observability/server';
 import { registerWorker } from '../../../lib/queue/worker-factory.js';
+import { AI_QUEUES } from '../ai.jobs.js';
 
 const logger = createLogger({ name: 'memory-cleanup-worker' });
 
-export const MEMORY_CLEANUP_JOB = 'ai.memory.cleanup';
+export const MEMORY_CLEANUP_JOB = AI_QUEUES.MEMORY_CLEANUP;
 
 export interface MemoryCleanupPayload {
   dryRun?: boolean;

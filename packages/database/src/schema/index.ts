@@ -34,7 +34,11 @@ export * from './saas-refund-history.schema.js';
 export * from './platform.schema.js';
 export * from './ai.schema.js';
 export * from './ai-chat.schema.js';
-export * from './ai-usage.schema.js';
+export {
+  agentUsageDaily as aiUsageDaily,
+  type AgentUsageDaily as AiUsageDaily,
+  type NewAgentUsageDaily as NewAiUsageDaily,
+} from './ai-usage.schema.js';
 export * from './okf.schema.js';
 export * from './tool-approvals.schema.js';
 export * from './contact.schema.js';

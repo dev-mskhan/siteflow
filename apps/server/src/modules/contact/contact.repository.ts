@@ -1,18 +1,22 @@
 import { eq } from 'drizzle-orm';
-import { db } from '../../lib/db/index.js';
+import { getDb } from '../../lib/db/index.js';
 import { contactRequests, type NewContactRequest, type ContactRequest } from '@siteflow/database';
 import { createLogger } from '@siteflow/observability/server';
 
 const logger = createLogger({ name: 'contact-repository' });
 
 export class ContactRepository {
+  private get db() {
+    return getDb();
+  }
+
   /**
    * Create a new contact request
    */
   async create(data: NewContactRequest): Promise<ContactRequest> {
     logger.info({ intent: data.intent, email: data.workEmail }, 'Creating contact request');
     
-    const [request] = await db.insert(contactRequests).values(data).returning();
+    const [request] = await this.db.insert(contactRequests).values(data).returning();
     
     if (!request) {
       throw new Error('Failed to create contact request');
@@ -26,7 +30,7 @@ export class ContactRepository {
    * Find contact request by ID
    */
   async findById(id: string): Promise<ContactRequest | undefined> {
-    const [request] = await db
+    const [request] = await this.db
       .select()
       .from(contactRequests)
       .where(eq(contactRequests.id, id))
@@ -56,7 +60,7 @@ export class ContactRepository {
       updateData.internalNotes = notes;
     }
 
-    const [updated] = await db
+    const [updated] = await this.db
       .update(contactRequests)
       .set(updateData)
       .where(eq(contactRequests.id, id))
@@ -76,7 +80,7 @@ export class ContactRepository {
   async hasRecentSubmission(email: string, minutes: number = 15): Promise<boolean> {
     const cutoff = new Date(Date.now() - minutes * 60 * 1000);
     
-    const [recent] = await db
+    const [recent] = await this.db
       .select({ id: contactRequests.id })
       .from(contactRequests)
       .where(eq(contactRequests.workEmail, email))
