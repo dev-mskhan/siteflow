@@ -1,7 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# OTEL Collector configuration for SiteFlow → Langfuse
-# Receives OTLP from the app, forwards traces to Langfuse OTLP endpoint.
-# Verified against: https://langfuse.com/docs/integrations/opentelemetry
+# OTEL Collector — SiteFlow → Langfuse v4
+#
+# Receives OTLP from app (port 4318 HTTP / 4317 gRPC, host-mapped)
+# Forwards traces to Langfuse via its /api/public/otel endpoint.
+#
+# Network layout:
+#   - Receives on siteflow-net (dev server hits localhost:4318 → this container)
+#   - Pushes to langfuse-net   (langfuse-web hostname resolves inside langfuse-net)
+#   - Container is attached to BOTH networks in docker-compose.yml
+#
+# Docs: https://langfuse.com/docs/integrations/opentelemetry
 # ─────────────────────────────────────────────────────────────────────────────
 
 receivers:
@@ -18,54 +26,75 @@ receivers:
 
 processors:
   batch:
-    send_batch_size: 1000
-    send_batch_max_size: 1100
-    timeout: 10s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+    timeout: 5s
 
   memory_limiter:
     check_interval: 5s
     limit_mib: 400
     spike_limit_mib: 100
 
+  # Enrich every span with deployment info
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: development
+        action: upsert
+
 extensions:
-  # Langfuse uses Basic Auth: base64(public_key:secret_key)
+  # Langfuse Basic Auth: base64(publicKey:secretKey)
   basicauth/langfuse:
     client_auth:
       username: ${LANGFUSE_PUBLIC_KEY}
       password: ${LANGFUSE_SECRET_KEY}
 
+  health_check:
+    endpoint: '0.0.0.0:13133'
+
 exporters:
-  # Langfuse OTLP endpoint: /api/public/otel (supports both /v1/traces suffix and without)
-  # Docs: https://langfuse.com/docs/integrations/opentelemetry#opentelemetry-endpoint
+  # Langfuse OTLP — internal container hostname (langfuse-net)
   otlphttp/langfuse:
     endpoint: ${LANGFUSE_BASE_URL}/api/public/otel
     auth:
       authenticator: basicauth/langfuse
     headers:
-      # x-langfuse-ingestion-version: 4 enables real-time ingestion (otherwise up to 10min delay)
       x-langfuse-ingestion-version: "4"
     tls:
-      insecure: true  # local deployment uses http
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 120s
+    sending_queue:
+      enabled: true
+      num_consumers: 10
+      queue_size: 5000
 
+  # Debug: logs every 200th span to stdout so you can verify data is flowing
   debug:
     verbosity: basic
     sampling_initial: 5
     sampling_thereafter: 200
 
 service:
-  extensions: [basicauth/langfuse]
+  extensions: [basicauth/langfuse, health_check]
+
   pipelines:
+    # Traces → Langfuse (AI runs, HTTP requests, DB queries)
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter, resource, batch]
       exporters: [otlphttp/langfuse, debug]
-    
-    # Metrics and logs pipelines (not sent to Langfuse, debug only)
+
+    # Metrics → debug only (Langfuse doesn't consume metrics)
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [debug]
-    
+
+    # Logs → debug only (Langfuse v4 traces carry log context via span events)
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
