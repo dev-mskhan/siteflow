@@ -7,6 +7,7 @@ import { generateId } from '../../lib/id.js';
 import { OrganizationRepository } from './organization.repository.js';
 import { OrganizationCacheService } from './organization.cache.service.js';
 import { auditService } from '../audit/audit.service.js';
+import { trialService } from '../billing/trial.service.js';
 import { SYSTEM_PERMISSIONS, DEFAULT_ORG_ROLES } from '../rbac/permissions.seed.js';
 import {
   permissions,
@@ -208,6 +209,44 @@ export class OrganizationService {
           status: 'ACTIVE',
           joinedAt: new Date(),
         });
+
+        // 4a. NEW: Auto-provision 14-day Professional trial
+        const { trial, isNew: trialIsNew } = await trialService.provisionTrial(
+          {
+            organizationId: org.id,
+            actorUserId: userId,
+            tier: 'Professional',
+            durationDays: 14,
+            ipAddress: null,
+            userAgent: null,
+          },
+          tx,
+        );
+
+        if (trialIsNew) {
+          span.addEvent('trial_auto_provisioned', {
+            'trial.id': trial.id,
+            'trial.tier': trial.tier as string,
+            'trial.duration_days': 14,
+          });
+
+          // NEW: Audit log for trial provisioning
+          await auditService.log(
+            {
+              organizationId: org.id,
+              actorUserId: userId,
+              action: 'billing.trial.auto_provisioned',
+              resourceType: 'SaaSTrial',
+              resourceId: trial.id,
+              metadata: {
+                tier: 'Professional',
+                durationDays: 14,
+                expiresAt: trial.expiresAt,
+              },
+            },
+            tx,
+          );
+        }
 
         // 5. Audit Log (same transaction)
         await auditService.log(

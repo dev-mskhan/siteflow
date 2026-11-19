@@ -7,7 +7,28 @@ import { auditService } from '../audit/audit.service.js';
 import type { TrialDTO } from '@siteflow/shared';
 import type { SaasTrial } from '@siteflow/database/schema';
 
-export function toTrialDTO(trial: SaasTrial): TrialDTO {
+export function toTrialDTO(trial: SaasTrial, includeMetadata = false): TrialDTO {
+  const now = new Date();
+  const daysRemaining = Math.max(0, Math.ceil(
+    (trial.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  ));
+  
+  let graceStatus: 'active' | 'grace-period' | 'expired' = 'active';
+  let gracePeriodRemainingDays = 0;
+  
+  if (trial.status === 'ACTIVE' && now > trial.expiresAt) {
+    // Grace period: 3 days after expiry
+    const gracePeriodEnd = new Date(trial.expiresAt.getTime() + 3 * 24 * 60 * 60 * 1000);
+    if (now < gracePeriodEnd) {
+      graceStatus = 'grace-period';
+      gracePeriodRemainingDays = Math.ceil(
+        (gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+    } else {
+      graceStatus = 'expired';
+    }
+  }
+
   return {
     id: trial.id,
     organizationId: trial.organizationId,
@@ -17,6 +38,13 @@ export function toTrialDTO(trial: SaasTrial): TrialDTO {
     expiresAt: trial.expiresAt.toISOString(),
     createdAt: trial.createdAt.toISOString(),
     updatedAt: trial.updatedAt.toISOString(),
+    // NEW FIELDS:
+    ...(includeMetadata && {
+      daysRemaining: daysRemaining as any,
+      graceStatus: graceStatus as any,
+      gracePeriodRemainingDays: graceStatus === 'grace-period' ? gracePeriodRemainingDays : undefined,
+      isUsable: ['active', 'grace-period'].includes(graceStatus),
+    }),
   };
 }
 
@@ -26,13 +54,20 @@ export class TrialService {
     private audit: AuditService = auditService,
   ) {}
 
-  async provisionTrial(params: {
-    organizationId: string;
-    actorUserId: string;
-    ipAddress?: string | null;
-    userAgent?: string | null;
-  }): Promise<{ trial: TrialDTO; isNew: boolean }> {
-    const db = getDb();
+  async provisionTrial(
+    params: {
+      organizationId: string;
+      actorUserId: string;
+      ipAddress?: string | null;
+      userAgent?: string | null;
+      tier?: string;
+      durationDays?: number;
+    },
+    tx?: any
+  ): Promise<{ trial: TrialDTO; isNew: boolean }> {
+    const db = tx ?? getDb();
+    const tier = params.tier ?? 'Professional';
+    const durationDays = params.durationDays ?? 14;
 
     try {
       return await db.transaction(async (tx) => {
@@ -42,9 +77,9 @@ export class TrialService {
           return { trial: toTrialDTO(existing), isNew: false };
         }
 
-        // 2. Provision new 14-day no-card trial
+        // 2. Provision new trial with configurable duration
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
         const created = await this.repo.create(
           {
@@ -68,7 +103,7 @@ export class TrialService {
             resourceId: created.id,
             metadata: {
               tier: created.tier,
-              durationDays: 14,
+              durationDays,
               expiresAt: created.expiresAt.toISOString(),
             },
             ipAddress: params.ipAddress ?? null,
@@ -91,7 +126,7 @@ export class TrialService {
     }
   }
 
-  async getTrial(organizationId: string): Promise<TrialDTO | null> {
+  async getTrial(organizationId: string, includeMetadata = true): Promise<TrialDTO | null> {
     const trial = await this.repo.findByOrganizationId(organizationId);
     if (!trial) {
       return null;
@@ -100,10 +135,10 @@ export class TrialService {
     // Auto-expire check
     if (trial.status === 'ACTIVE' && new Date() > trial.expiresAt) {
       const updated = await this.repo.updateStatus(trial.id, 'EXPIRED');
-      return toTrialDTO(updated);
+      return toTrialDTO(updated, includeMetadata);
     }
 
-    return toTrialDTO(trial);
+    return toTrialDTO(trial, includeMetadata);
   }
 }
 

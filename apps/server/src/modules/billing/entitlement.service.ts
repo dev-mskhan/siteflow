@@ -43,18 +43,20 @@ const NON_ACTIVE_PROJECT_STATUSES: ('COMPLETED' | 'CANCELLED' | 'ARCHIVED')[] = 
  * Maps to HTTP 403 with a LIMIT_EXCEEDED or ACCESS_RESTRICTED code (D-04, D-09).
  */
 export class EntitlementError extends ForbiddenError {
-  override readonly code: 'LIMIT_EXCEEDED' | 'ACCESS_RESTRICTED' | 'NO_ENTITLEMENT';
-  public readonly entitlementCode: 'LIMIT_EXCEEDED' | 'ACCESS_RESTRICTED' | 'NO_ENTITLEMENT';
+  override readonly code: 'LIMIT_EXCEEDED' | 'ACCESS_RESTRICTED' | 'NO_ENTITLEMENT' | 'TRIAL_EXPIRED';
+  public readonly entitlementCode: 'LIMIT_EXCEEDED' | 'ACCESS_RESTRICTED' | 'NO_ENTITLEMENT' | 'TRIAL_EXPIRED';
   public readonly dimension?: string;
   public readonly current?: number;
   public readonly limit?: number;
+  public readonly metadata?: Record<string, any>;
 
   constructor(params: {
     message: string;
-    entitlementCode: 'LIMIT_EXCEEDED' | 'ACCESS_RESTRICTED' | 'NO_ENTITLEMENT';
+    entitlementCode: 'LIMIT_EXCEEDED' | 'ACCESS_RESTRICTED' | 'NO_ENTITLEMENT' | 'TRIAL_EXPIRED';
     dimension?: string;
     current?: number;
     limit?: number;
+    metadata?: Record<string, any>;
   }) {
     super(params.message);
     this.name = 'EntitlementError';
@@ -63,6 +65,7 @@ export class EntitlementError extends ForbiddenError {
     this.dimension = params.dimension;
     this.current = params.current;
     this.limit = params.limit;
+    this.metadata = params.metadata;
   }
 }
 
@@ -150,13 +153,53 @@ export class EntitlementService {
       .where(eq(saasTrials.organizationId, organizationId))
       .limit(1);
 
-    if (trial[0] && trial[0].status === 'ACTIVE' && trial[0].expiresAt > new Date()) {
-      // Trial provides Professional-tier limits (D-01)
-      return {
-        limits: APPROVED_LIMITS.professional,
-        state: 'TRIALING',
-        graceStartsAt: null,
-      };
+    if (trial[0] && trial[0].status === 'ACTIVE') {
+      const now = new Date();
+      
+      if (trial[0].expiresAt > now) {
+        // Trial is still active
+        return {
+          limits: APPROVED_LIMITS.professional,
+          state: 'TRIALING' as SubscriptionState,
+          graceStartsAt: null,
+        };
+      }
+      
+      if (trial[0].expiresAt <= now) {
+        // Trial expired - check grace period (3 days)
+        const GRACE_PERIOD_DAYS = 3;
+        const gracePeriodEnd = new Date(
+          trial[0].expiresAt.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
+        );
+        
+        if (now < gracePeriodEnd) {
+          // Still in grace period
+          const graceRemaining = Math.ceil(
+            (gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          
+          logger.info(
+            { organizationId, graceRemaining, gracePeriodEnd },
+            'Organization in trial grace period'
+          );
+          
+          return {
+            limits: APPROVED_LIMITS.professional,
+            state: 'GRACE_PERIOD' as any,
+            graceStartsAt: trial[0].expiresAt,
+            graceRemaining,
+            isGracePeriod: true,
+          };
+        }
+        
+        // Grace period ended
+        logger.warn(
+          { organizationId, trialEndedAt: trial[0].expiresAt },
+          'Trial grace period ended'
+        );
+        
+        return { limits: null, state: 'EXPIRED' as any, graceStartsAt: null };
+      }
     }
 
     return { limits: null, state: 'NO_SUBSCRIPTION', graceStartsAt: null };
@@ -301,14 +344,59 @@ export class EntitlementService {
 
   private async assertCanUseMemberSeat(organizationId: string, tx: any): Promise<void> {
     await this.lockOrganizationUsage(organizationId, tx);
-    const { limits, state } = await this.resolveEffectiveLimits(organizationId, tx);
+    const { limits, state, graceRemaining } = await this.resolveEffectiveLimits(organizationId, tx);
 
     if (!limits) {
+      // NEW: Check if it's an expired trial
+      const trial = await tx
+        .select({
+          status: saasTrials.status,
+          expiresAt: saasTrials.expiresAt,
+        })
+        .from(saasTrials)
+        .where(eq(saasTrials.organizationId, organizationId))
+        .limit(1);
+
+      if (trial[0] && trial[0].status === 'ACTIVE' && trial[0].expiresAt <= new Date()) {
+        // Trial expired
+        const daysExpired = Math.ceil(
+          (new Date().getTime() - trial[0].expiresAt.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        
+        logger.warn(
+          { organizationId, trialExpiredDaysAgo: daysExpired },
+          'Member invite blocked: trial expired'
+        );
+        
+        throw new EntitlementError({
+          message: `Your trial ended ${daysExpired} days ago. Upgrade to Professional to continue inviting team members.`,
+          entitlementCode: 'TRIAL_EXPIRED',
+          metadata: {
+            upgradeUrl: `/organizations/${organizationId}/billing/checkout?planId=professional`,
+            trialEndedAt: trial[0].expiresAt.toISOString(),
+          },
+        });
+      }
+
+      // No trial at all
       logger.warn({ organizationId, state }, 'Member add blocked: no active subscription or trial');
       throw new EntitlementError({
         message: 'No active subscription or trial. Start a trial or subscribe to add team members.',
         entitlementCode: 'NO_ENTITLEMENT',
+        metadata: {
+          startTrialUrl: `/organizations/${organizationId}/billing/trial`,
+        },
       });
+    }
+
+    // Grace period check - allow operation but log it
+    if (state === 'GRACE_PERIOD') {
+      logger.info(
+        { organizationId, graceRemaining },
+        'Member invite during grace period - allowed but with warning'
+      );
+      // Still allow the operation
+      return;
     }
 
     // Restricted-state gate (D-09): member:invite is blocked post-grace
