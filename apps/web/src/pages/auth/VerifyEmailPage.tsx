@@ -27,6 +27,8 @@ export const VerifyEmailPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const token = searchParams.get('token');
+  // ?invite= in URL (direct link) OR persisted from RegisterPage before the email round-trip
+  const inviteToken = searchParams.get('invite') ?? sessionStorage.getItem('pendingInviteToken');
 
   const [verifyState, setVerifyState] = useState<VerifyState>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
@@ -52,7 +54,8 @@ export const VerifyEmailPage: React.FC = () => {
         }
         // Small delay so user can see the success state before being routed on
         setTimeout(() => {
-          navigate('/onboarding', { replace: true });
+          sessionStorage.removeItem('pendingInviteToken');
+          navigate(inviteToken ? `/invitations/${inviteToken}` : '/onboarding', { replace: true });
         }, 1800);
       } catch (err: unknown) {
         setVerifyState('error');

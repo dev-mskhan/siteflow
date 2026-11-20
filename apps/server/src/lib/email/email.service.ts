@@ -195,7 +195,7 @@ export class EmailService {
     to: string,
     options: { orgName: string; inviterName: string; token: string },
   ): Promise<void> {
-    const acceptUrl = `${this.getFrontendUrl()}/accept-invitation?token=${options.token}`;
+    const acceptUrl = `${this.getFrontendUrl()}/invitations/${options.token}`;
     const subject = `You've been invited to join ${options.orgName} on SiteFlow`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">

@@ -27,17 +27,22 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const planParam = searchParams.get('plan'); // carry plan intent through the entire auth funnel
+  const inviteToken = searchParams.get('invite'); // carry invite token through verification
   const dispatch = useAppDispatch();
   const { isAuthenticated } = useAuth();
   const { error: toastError } = useToast();
 
-  // If already authenticated, go to post-login routing (preserve plan param)
+  // If already authenticated, go to post-login routing (preserve plan/invite params)
   useEffect(() => {
     if (isAuthenticated) {
-      const dest = planParam ? `/onboarding?plan=${planParam}` : '/onboarding';
+      const dest = inviteToken
+        ? `/invitations/${inviteToken}`
+        : planParam
+          ? `/onboarding?plan=${planParam}`
+          : '/onboarding';
       navigate(dest, { replace: true });
     }
-  }, [isAuthenticated, navigate, planParam]);
+  }, [isAuthenticated, navigate, planParam, inviteToken]);
 
   const [registerUser, { isLoading, error }] = useRegisterMutation();
 
@@ -66,8 +71,14 @@ export const RegisterPage: React.FC = () => {
     try {
       const result = await registerUser(data).unwrap();
       dispatch(authUserLoaded(result.user));
-      // Registration always requires email verification; preserve plan intent
-      const dest = planParam ? `/verify-email/pending?plan=${planParam}` : '/verify-email/pending';
+      // Persist invite token so VerifyEmailPage can read it after the email link is clicked
+      if (inviteToken) sessionStorage.setItem('pendingInviteToken', inviteToken);
+      // Registration always requires email verification; preserve plan/invite intent
+      let dest = '/verify-email/pending';
+      const params = new URLSearchParams();
+      if (planParam) params.set('plan', planParam);
+      if (inviteToken) params.set('invite', inviteToken);
+      if (params.toString()) dest += `?${params.toString()}`;
       navigate(dest, { replace: true });
     } catch (requestError) {
       for (const [field, message] of Object.entries(getFieldValidationErrors(requestError as never))) {

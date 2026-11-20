@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight } from 'lucide-react';
@@ -26,12 +26,16 @@ import { useToast } from '../../components/ui/Toast';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite');
   const dispatch = useAppDispatch();
   const { isAuthenticated } = useAuth();
   const { error: toastError } = useToast();
 
   // Redirect away if already authenticated
-  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/dashboard';
+  const from = inviteToken
+    ? `/invitations/${inviteToken}`
+    : (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/dashboard';
   useEffect(() => {
     if (isAuthenticated) navigate(from, { replace: true });
   }, [isAuthenticated, navigate, from]);
