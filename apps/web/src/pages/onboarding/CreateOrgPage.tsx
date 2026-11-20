@@ -13,7 +13,7 @@
  *   429 / 500 → toast
  */
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -52,6 +52,8 @@ function deriveSlug(name: string): string {
 
 export const CreateOrgPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const planParam = searchParams.get('plan');
   const dispatch = useAppDispatch();
   const { user } = useAuth();
   const { error: toastErr } = useToast();
@@ -83,9 +85,12 @@ export const CreateOrgPage: React.FC = () => {
         name: data.name,
         slug: data.slug || undefined,
       }).unwrap();
-      // Clear any stale org context before entering the new org
       dispatch(orgContextCleared());
-      navigate(`/org/${result.organization.id}/dashboard`, { replace: true });
+      // If user came from /pricing with a plan, send them to billing pre-selecting that plan
+      const billingDest = planParam
+        ? `/org/${result.organization.id}/settings/billing?plan=${planParam}`
+        : `/org/${result.organization.id}/dashboard`;
+      navigate(billingDest, { replace: true });
     } catch {
       // Handled via error state
     }

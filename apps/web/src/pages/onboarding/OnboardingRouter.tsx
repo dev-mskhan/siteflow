@@ -1,18 +1,13 @@
-/**
- * OnboardingRouter — /onboarding
- * Reads GET /organizations and routes the verified user to the right next step.
- *
- *   orgs.length === 0   → /onboarding/create-org
- *   orgs.length === 1   → /org/:id/dashboard  (skip selection, go straight in)
- *   orgs.length >= 2    → /onboarding/select-org
- */
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useListOrgsQuery } from '../../features/org/orgApi';
 
 export const OnboardingRouter: React.FC = () => {
   const { data, isLoading, isError } = useListOrgsQuery();
+  const [searchParams] = useSearchParams();
+  const planParam = searchParams.get('plan');
+  const planSuffix = planParam ? `?plan=${planParam}` : '';
 
   if (isLoading) {
     return (
@@ -26,7 +21,7 @@ export const OnboardingRouter: React.FC = () => {
 
   const orgs = data.organizations;
 
-  if (orgs.length === 0) return <Navigate to="/onboarding/create-org" replace />;
-  if (orgs.length === 1) return <Navigate to={`/org/${orgs[0]!.id}/dashboard`} replace />;
-  return <Navigate to="/onboarding/select-org" replace />;
+  if (orgs.length === 0) return <Navigate to={`/onboarding/create-org${planSuffix}`} replace />;
+  if (orgs.length === 1) return <Navigate to={`/org/${orgs[0]!.id}/settings/billing${planSuffix}`} replace />;
+  return <Navigate to={`/onboarding/select-org${planSuffix}`} replace />;
 };

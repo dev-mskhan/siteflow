@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight } from 'lucide-react';
@@ -25,14 +25,19 @@ import { useToast } from '../../components/ui/Toast';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const planParam = searchParams.get('plan'); // carry plan intent through the entire auth funnel
   const dispatch = useAppDispatch();
   const { isAuthenticated } = useAuth();
   const { error: toastError } = useToast();
 
-  // If already authenticated, go to post-login routing
+  // If already authenticated, go to post-login routing (preserve plan param)
   useEffect(() => {
-    if (isAuthenticated) navigate('/dashboard', { replace: true });
-  }, [isAuthenticated, navigate]);
+    if (isAuthenticated) {
+      const dest = planParam ? `/onboarding?plan=${planParam}` : '/onboarding';
+      navigate(dest, { replace: true });
+    }
+  }, [isAuthenticated, navigate, planParam]);
 
   const [registerUser, { isLoading, error }] = useRegisterMutation();
 
@@ -61,8 +66,9 @@ export const RegisterPage: React.FC = () => {
     try {
       const result = await registerUser(data).unwrap();
       dispatch(authUserLoaded(result.user));
-      // Registration always requires email verification before org creation
-      navigate('/verify-email/pending', { replace: true });
+      // Registration always requires email verification; preserve plan intent
+      const dest = planParam ? `/verify-email/pending?plan=${planParam}` : '/verify-email/pending';
+      navigate(dest, { replace: true });
     } catch (requestError) {
       for (const [field, message] of Object.entries(getFieldValidationErrors(requestError as never))) {
         if (field === 'firstName' || field === 'lastName' || field === 'email' || field === 'password') {

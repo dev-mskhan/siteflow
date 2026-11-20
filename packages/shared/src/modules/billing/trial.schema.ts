@@ -15,6 +15,11 @@ export const TrialDTOSchema = z.object({
   expiresAt: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  // Computed fields — always returned by the API (never undefined)
+  daysRemaining: z.number().int().nonnegative(),
+  graceStatus: z.enum(['active', 'grace-period', 'expired']),
+  gracePeriodRemainingDays: z.number().int().nonnegative().optional(),
+  isUsable: z.boolean(),
 });
 export type TrialDTO = z.infer<typeof TrialDTOSchema>;
 

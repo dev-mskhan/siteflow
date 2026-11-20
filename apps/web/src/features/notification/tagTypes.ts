@@ -9,6 +9,7 @@ export interface NotificationTag {
     | 'RFI'
     | 'Submittal'
     | 'Trial'
+    | 'Subscription'
     | 'Invoice'
     | 'PlatformOrg'
     | 'Document'

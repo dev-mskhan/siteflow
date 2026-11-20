@@ -139,7 +139,7 @@ export const PricingPage: React.FC = () => {
                   </div>
 
                   <div className="pt-4 border-t border-[rgba(10,10,10,0.08)]">
-                    <Link to={plan.ctaLabel === 'Start free trial' ? '/register' : '/contact'}>
+                    <Link to={plan.ctaHref}>
                       <Button
                         variant={plan.isPopular ? 'primary' : 'secondary'}
                         className="w-full"

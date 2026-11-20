@@ -7,17 +7,16 @@ import { auditService } from '../audit/audit.service.js';
 import type { TrialDTO } from '@siteflow/shared';
 import type { SaasTrial } from '@siteflow/database/schema';
 
-export function toTrialDTO(trial: SaasTrial, includeMetadata = false): TrialDTO {
+export function toTrialDTO(trial: SaasTrial): TrialDTO {
   const now = new Date();
   const daysRemaining = Math.max(0, Math.ceil(
     (trial.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   ));
-  
+
   let graceStatus: 'active' | 'grace-period' | 'expired' = 'active';
-  let gracePeriodRemainingDays = 0;
-  
+  let gracePeriodRemainingDays: number | undefined;
+
   if (trial.status === 'ACTIVE' && now > trial.expiresAt) {
-    // Grace period: 3 days after expiry
     const gracePeriodEnd = new Date(trial.expiresAt.getTime() + 3 * 24 * 60 * 60 * 1000);
     if (now < gracePeriodEnd) {
       graceStatus = 'grace-period';
@@ -29,6 +28,8 @@ export function toTrialDTO(trial: SaasTrial, includeMetadata = false): TrialDTO 
     }
   }
 
+  const isUsable = graceStatus === 'active' || graceStatus === 'grace-period';
+
   return {
     id: trial.id,
     organizationId: trial.organizationId,
@@ -38,13 +39,10 @@ export function toTrialDTO(trial: SaasTrial, includeMetadata = false): TrialDTO 
     expiresAt: trial.expiresAt.toISOString(),
     createdAt: trial.createdAt.toISOString(),
     updatedAt: trial.updatedAt.toISOString(),
-    // NEW FIELDS:
-    ...(includeMetadata && {
-      daysRemaining: daysRemaining as any,
-      graceStatus: graceStatus as any,
-      gracePeriodRemainingDays: graceStatus === 'grace-period' ? gracePeriodRemainingDays : undefined,
-      isUsable: ['active', 'grace-period'].includes(graceStatus),
-    }),
+    daysRemaining,
+    graceStatus,
+    gracePeriodRemainingDays,
+    isUsable,
   };
 }
 
@@ -126,19 +124,23 @@ export class TrialService {
     }
   }
 
-  async getTrial(organizationId: string, includeMetadata = true): Promise<TrialDTO | null> {
+  async getTrial(organizationId: string): Promise<TrialDTO | null> {
     const trial = await this.repo.findByOrganizationId(organizationId);
     if (!trial) {
       return null;
     }
 
-    // Auto-expire check
+    // Auto-expire check — if the DB still shows ACTIVE but time has passed, mark EXPIRED
     if (trial.status === 'ACTIVE' && new Date() > trial.expiresAt) {
-      const updated = await this.repo.updateStatus(trial.id, 'EXPIRED');
-      return toTrialDTO(updated, includeMetadata);
+      // We only mark EXPIRED when grace period has also ended
+      const gracePeriodEnd = new Date(trial.expiresAt.getTime() + 3 * 24 * 60 * 60 * 1000);
+      if (new Date() > gracePeriodEnd) {
+        const updated = await this.repo.updateStatus(trial.id, 'EXPIRED');
+        return toTrialDTO(updated);
+      }
     }
 
-    return toTrialDTO(trial, includeMetadata);
+    return toTrialDTO(trial);
   }
 }
 

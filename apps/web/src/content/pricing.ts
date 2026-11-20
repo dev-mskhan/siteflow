@@ -1,22 +1,40 @@
 /**
  * Pricing Plans & Feature Matrix
- * Rules:
- * - Read plan names, features, and prices directly.
- * - Where a price is not finalized, display "Contact us" (never an invented number).
- * - Undecided pricing notes are documented at the bottom of this file.
+ *
+ * Prices are read from VITE_ environment variables so they can be changed
+ * in .env without touching source code. The VITE_ prefix is required for
+ * Vite to expose them to the browser bundle.
+ *
+ * To update prices: edit .env, then restart the dev server or rebuild.
  */
 
+// Pull from env with numeric defaults matching catalog.schema.ts APPROVED_PRICING_V1
+const env = import.meta.env;
+
+const PRICES = {
+  starter:      { usd: Number(env.VITE_PLAN_STARTER_PRICE_USD      ?? 199),  pkr: Number(env.VITE_PLAN_STARTER_PRICE_PKR      ?? 49700) },
+  professional: { usd: Number(env.VITE_PLAN_PROFESSIONAL_PRICE_USD ?? 499),  pkr: Number(env.VITE_PLAN_PROFESSIONAL_PRICE_PKR ?? 124700) },
+  enterprise:   { usd: Number(env.VITE_PLAN_ENTERPRISE_PRICE_USD   ?? 999),  pkr: Number(env.VITE_PLAN_ENTERPRISE_PRICE_PKR   ?? 249700) },
+};
+
+function fmt(n: number, currency: 'USD' | 'PKR'): string {
+  if (currency === 'USD') return `$${n.toLocaleString()}`;
+  return `PKR ${n.toLocaleString()}`;
+}
+
 export interface PricingPlan {
-  id: string;
+  id: 'starter' | 'professional' | 'enterprise';
   name: string;
   badge?: string;
   target: string;
-  priceMonthlyPKR: string; // e.g., "PKR 45,000" or "Contact us"
-  priceMonthlyUSD: string; // e.g., "$180" or "Contact us"
+  priceMonthlyPKR: string;
+  priceMonthlyUSD: string;
   billingInterval: string;
   features: string[];
   ctaLabel: string;
+  ctaHref: string;    // NEW: explicit href so pricing page CTA carries plan intent
   isPopular?: boolean;
+  isContact?: boolean;
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -24,8 +42,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: 'starter',
     name: 'Starter',
     target: 'Essential construction management for smaller teams and specialized contractors.',
-    priceMonthlyPKR: 'PKR 49,700',
-    priceMonthlyUSD: '$199',
+    priceMonthlyPKR: fmt(PRICES.starter.pkr, 'PKR'),
+    priceMonthlyUSD: fmt(PRICES.starter.usd, 'USD'),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
       'Up to 3 active construction projects',
@@ -40,6 +58,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Email & WhatsApp customer support',
     ],
     ctaLabel: 'Start free trial',
+    ctaHref: '/register?plan=starter',
     isPopular: false,
   },
   {
@@ -47,8 +66,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Professional',
     badge: 'Most Popular',
     target: 'Comprehensive operations and multi-project coordination for growing contractors.',
-    priceMonthlyPKR: 'PKR 124,700',
-    priceMonthlyUSD: '$499',
+    priceMonthlyPKR: fmt(PRICES.professional.pkr, 'PKR'),
+    priceMonthlyUSD: fmt(PRICES.professional.usd, 'USD'),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
       'Up to 15 active construction projects',
@@ -66,14 +85,15 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Priority onboarding & telephone support',
     ],
     ctaLabel: 'Start free trial',
+    ctaHref: '/register?plan=professional',
     isPopular: true,
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
     target: 'Full-scale enterprise coordination, custom integrations, and portfolio visibility.',
-    priceMonthlyPKR: 'PKR 249,700',
-    priceMonthlyUSD: '$999',
+    priceMonthlyPKR: fmt(PRICES.enterprise.pkr, 'PKR'),
+    priceMonthlyUSD: fmt(PRICES.enterprise.usd, 'USD'),
     billingInterval: 'per company / month (custom annual agreements available)',
     features: [
       'Up to 100 active construction projects',
@@ -91,7 +111,9 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Priority 24/7 support with 2-hour response SLA',
     ],
     ctaLabel: 'Contact sales',
+    ctaHref: '/contact?plan=enterprise',
     isPopular: false,
+    isContact: true,
   },
 ];
 
@@ -121,12 +143,3 @@ export const PRICING_FAQ = [
     a: 'All plans include AI-powered document analysis and BOQ extraction. Professional adds conversational AI chat and specialized agents for cost, schedule, and risk analysis. Enterprise includes custom AI training, advanced automation, and predictive analytics.',
   },
 ];
-
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * NOTE FOR FOUNDER / PRODUCT OWNER (Prices still to be decided):
- * ─────────────────────────────────────────────────────────────────────────────
- * 1. Enterprise Prime plan pricing (custom tier) needs final annual rate schedule.
- * 2. High-volume project add-ons (if a contractor needs 15+ projects on Builder Pro).
- * 3. Dedicated offline field server pricing for large mega-infrastructure sites.
- */

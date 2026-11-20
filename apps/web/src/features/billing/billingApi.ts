@@ -1,19 +1,29 @@
 /**
  * billingApi — Live integration for SaaS billing and subscription management.
- * LIVE INTEGRATION: Connected to real backend via baseApi.injectEndpoints.
- *
- * Modules: Trial provisioning, Stripe Checkout, Customer Portal, Invoice history
  */
 import { baseApi } from '../../services/baseApi';
+import type { TrialDTO } from '@siteflow/shared';
 
-export interface TrialDTO {
-  id: string;
-  organizationId: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'CONVERTED';
-  planTier: string;
-  startedAt: string;
-  expiresAt: string;
-  daysRemaining: number;
+export type { TrialDTO };
+
+export interface BillingStatusResponse {
+  billingState: 'trial' | 'trial_grace' | 'trial_expired' | 'active' | 'past_due' | 'canceled' | 'none';
+  trial: TrialDTO | null;
+  subscription: {
+    id: string;
+    planId: string;
+    planName: string;
+    interval: 'month' | 'year';
+    status: string;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  } | null;
+  limits: {
+    activeProjects: number;
+    teamMembers: number;
+    storageGb: number;
+    aiTokensMonthly: number;
+  } | null;
 }
 
 export interface CheckoutSessionResponse {
@@ -38,33 +48,41 @@ export interface SaaSInvoiceDTO {
   createdAt: string;
 }
 
-interface OrgArgs {
-  orgId: string;
-}
+interface OrgArgs { orgId: string; }
 
 export const billingApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
 
-    // ── Trial Management ───────────────────────────────────────────────────
+    // ── Full billing status (trial + subscription in one call) ─────────────
+    getBillingStatus: build.query<BillingStatusResponse, OrgArgs>({
+      query: ({ orgId }) => `/organizations/${orgId}/billing/status`,
+      transformResponse: (raw: { data: BillingStatusResponse }) => raw.data,
+      providesTags: (_r, _e, { orgId }) => [
+        { type: 'Trial', id: orgId },
+        { type: 'Subscription', id: orgId },
+      ],
+    }),
 
+    // ── Trial (kept for components that only need trial) ───────────────────
     getTrial: build.query<TrialDTO, OrgArgs>({
       query: ({ orgId }) => `/organizations/${orgId}/billing/trial`,
       transformResponse: (raw: { data: TrialDTO }) => raw.data,
       providesTags: (_r, _e, { orgId }) => [{ type: 'Trial', id: orgId }],
     }),
 
-    provisionTrial: build.mutation<TrialDTO, OrgArgs & { planTier?: string }>({
-      query: ({ orgId, planTier }) => ({
+    provisionTrial: build.mutation<TrialDTO, OrgArgs>({
+      query: ({ orgId }) => ({
         url: `/organizations/${orgId}/billing/trial`,
         method: 'POST',
-        body: { planTier },
       }),
       transformResponse: (raw: { data: TrialDTO }) => raw.data,
-      invalidatesTags: (_r, _e, { orgId }) => [{ type: 'Trial', id: orgId }],
+      invalidatesTags: (_r, _e, { orgId }) => [
+        { type: 'Trial', id: orgId },
+        { type: 'Subscription', id: orgId },
+      ],
     }),
 
-    // ── Stripe Checkout & Portal ───────────────────────────────────────────
-
+    // ── Stripe Checkout ────────────────────────────────────────────────────
     createCheckoutSession: build.mutation<
       CheckoutSessionResponse,
       OrgArgs & { planId: 'starter' | 'professional' | 'enterprise'; interval: 'month' | 'year' }
@@ -78,6 +96,7 @@ export const billingApi = baseApi.injectEndpoints({
       transformResponse: (raw: { data: CheckoutSessionResponse }) => raw.data,
     }),
 
+    // ── Customer Portal ────────────────────────────────────────────────────
     createPortalSession: build.mutation<PortalSessionResponse, OrgArgs>({
       query: ({ orgId }) => ({
         url: `/organizations/${orgId}/billing/portal`,
@@ -87,7 +106,6 @@ export const billingApi = baseApi.injectEndpoints({
     }),
 
     // ── Invoice History ────────────────────────────────────────────────────
-
     listInvoices: build.query<{ invoices: SaaSInvoiceDTO[] }, OrgArgs>({
       query: ({ orgId }) => `/organizations/${orgId}/billing/invoices`,
       transformResponse: (raw: { data: { invoices: SaaSInvoiceDTO[] } }) => raw.data,
@@ -99,6 +117,7 @@ export const billingApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetBillingStatusQuery,
   useGetTrialQuery,
   useProvisionTrialMutation,
   useCreateCheckoutSessionMutation,

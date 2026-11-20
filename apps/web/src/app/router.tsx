@@ -377,6 +377,12 @@ const PlatformSupportGrantsPage = lazy(() =>
   })),
 );
 
+const CheckoutSuccessPage = lazy(() =>
+  import('../pages/billing/CheckoutSuccessPage').then((m) => ({ default: m.CheckoutSuccessPage })),
+);
+const CheckoutCancelPage = lazy(() =>
+  import('../pages/billing/CheckoutCancelPage').then((m) => ({ default: m.CheckoutCancelPage })),
+);
 // ── Marketing pages ───────────────────────────────────────────────────────────
 const HomePage = lazy(() => import('../pages/HomePage').then((m) => ({ default: m.HomePage })));
 const FeaturesOverviewPage = lazy(() =>
@@ -467,6 +473,23 @@ export const router = createBrowserRouter([
     ),
   },
 
+  // ── Billing redirect targets (Stripe returns here after checkout) ─────────
+  {
+    path: '/billing/checkout/success',
+    element: (
+      <RequireAuth>
+        <CheckoutSuccessPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/billing/checkout/cancel',
+    element: (
+      <RequireAuth>
+        <CheckoutCancelPage />
+      </RequireAuth>
+    ),
+  },
   // ── Onboarding (no org shell) ──────────────────────────────────────────────
   {
     path: '/onboarding',

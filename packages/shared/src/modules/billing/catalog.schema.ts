@@ -133,16 +133,40 @@ export interface ApprovedPricingItem {
 
 export const APPROVED_PRICING_V1: Record<PlanId, Record<BillingInterval, ApprovedPricingItem>> = {
   starter: {
-    month: { unitAmountCents: 19900, unitAmountUsd: 199, stripePriceId: 'price_starter_month_v1' },
-    year: { unitAmountCents: 202900, unitAmountUsd: 2029, stripePriceId: 'price_starter_year_v1' },
+    month: {
+      unitAmountCents: 19900,
+      unitAmountUsd: 199,
+      stripePriceId: process.env['STRIPE_PRICE_STARTER_MONTH'] ?? 'price_starter_month_v1',
+    },
+    year: {
+      unitAmountCents: 202900,
+      unitAmountUsd: 2029,
+      stripePriceId: process.env['STRIPE_PRICE_STARTER_YEAR'] ?? 'price_starter_year_v1',
+    },
   },
   professional: {
-    month: { unitAmountCents: 49900, unitAmountUsd: 499, stripePriceId: 'price_pro_month_v1' },
-    year: { unitAmountCents: 508900, unitAmountUsd: 5089, stripePriceId: 'price_pro_year_v1' },
+    month: {
+      unitAmountCents: 49900,
+      unitAmountUsd: 499,
+      stripePriceId: process.env['STRIPE_PRICE_PRO_MONTH'] ?? 'price_pro_month_v1',
+    },
+    year: {
+      unitAmountCents: 508900,
+      unitAmountUsd: 5089,
+      stripePriceId: process.env['STRIPE_PRICE_PRO_YEAR'] ?? 'price_pro_year_v1',
+    },
   },
   enterprise: {
-    month: { unitAmountCents: 99900, unitAmountUsd: 999, stripePriceId: 'price_ent_month_v1' },
-    year: { unitAmountCents: 1018900, unitAmountUsd: 10189, stripePriceId: 'price_ent_year_v1' },
+    month: {
+      unitAmountCents: 99900,
+      unitAmountUsd: 999,
+      stripePriceId: process.env['STRIPE_PRICE_ENT_MONTH'] ?? 'price_ent_month_v1',
+    },
+    year: {
+      unitAmountCents: 1018900,
+      unitAmountUsd: 10189,
+      stripePriceId: process.env['STRIPE_PRICE_ENT_YEAR'] ?? 'price_ent_year_v1',
+    },
   },
 };
 

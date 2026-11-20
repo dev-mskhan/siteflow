@@ -172,6 +172,7 @@ export const baseApi = createApi({
     // Billing & Platform
     'Billing',
     'Trial',
+    'Subscription',
     'MR',
     'PO',
     'Platform',
