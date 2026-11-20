@@ -81,6 +81,16 @@ export const invitationApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, { orgId }) => [{ type: 'Invitation', id: orgId }],
     }),
 
+    resendInvitation: b.mutation<SingleInvitationResponse, { orgId: string; id: string; orgName?: string; inviterName?: string }>({
+      query: ({ orgId, id, orgName, inviterName }) => ({
+        url: `/organizations/${orgId}/invitations/${id}/resend`,
+        method: 'POST',
+        body: { orgName, inviterName },
+      }),
+      transformResponse: (r: { data: SingleInvitationResponse }) => r.data,
+      invalidatesTags: (_r, _e, { orgId }) => [{ type: 'Invitation', id: orgId }],
+    }),
+
     acceptInvitation: b.mutation<MessageResponse, string>({
       // token is in the URL param — no request body
       query: (token) => ({
@@ -100,5 +110,6 @@ export const {
   useCreateInvitationMutation,
   useListInvitationsQuery,
   useCancelInvitationMutation,
+  useResendInvitationMutation,
   useAcceptInvitationMutation,
 } = invitationApi;

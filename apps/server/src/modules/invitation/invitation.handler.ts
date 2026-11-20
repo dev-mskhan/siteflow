@@ -43,6 +43,20 @@ export async function handleCancelInvitation(request: FastifyRequest, reply: Fas
   return reply.send(createSuccessResponse({ message: 'Invitation cancelled successfully' }));
 }
 
+export async function handleResendInvitation(request: FastifyRequest, reply: FastifyReply) {
+  const { organizationId, id } = request.params as { organizationId: string; id: string };
+  const body = (request.body ?? {}) as { orgName?: string; inviterName?: string };
+
+  const invitation = await invitationService.resendInvitation(
+    organizationId,
+    id,
+    request.orgContext!,
+    { orgName: body.orgName, inviterName: body.inviterName },
+  );
+
+  return reply.send(createSuccessResponse({ invitation }));
+}
+
 export async function handleAcceptInvitation(request: FastifyRequest, reply: FastifyReply) {
   const { token } = request.params as { token: string };
   const userId = request.user!.sub;

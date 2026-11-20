@@ -155,6 +155,47 @@ export const cancelInvitationSchemaDoc = {
   },
 };
 
+export const resendInvitationSchemaDoc = {
+  tags: ['invitations'],
+  summary: 'Resend a pending invitation',
+  description:
+    'Rotates the invitation token (invalidating the old link) and re-queues the invitation email. Only works on PENDING invitations. Requires member:invite permission.',
+  params: {
+    type: 'object',
+    required: ['organizationId', 'id'],
+    properties: {
+      organizationId: { type: 'string', example: '01J9Z0F8QPXKMPQ1VRFP1D5K3A' },
+      id: { type: 'string', example: 'inv_01J9Z0F8QPXKMPQ1VRFP1D5K3E' },
+    },
+  },
+  body: {
+    type: 'object',
+    properties: {
+      orgName: { type: 'string', example: 'Acme Construction' },
+      inviterName: { type: 'string', example: 'Jane Doe' },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', enum: [true], example: true },
+        data: {
+          type: 'object',
+          properties: { invitation: invitationSchema },
+          required: ['invitation'],
+        },
+      },
+      required: ['success', 'data'],
+    },
+    401: responses[401],
+    403: responses[403],
+    404: responses[404],
+    422: responses[422],
+    500: responses[500],
+  },
+};
+
 export const acceptInvitationSchemaDoc = {
   tags: ['invitations'],
   summary: 'Accept organization invitation',

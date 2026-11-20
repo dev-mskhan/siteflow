@@ -6,12 +6,14 @@ import {
   handleCreateInvitation,
   handleListInvitations,
   handleCancelInvitation,
+  handleResendInvitation,
   handleAcceptInvitation,
 } from './invitation.handler.js';
 import {
   createInvitationSchemaDoc,
   listInvitationsSchemaDoc,
   cancelInvitationSchemaDoc,
+  resendInvitationSchemaDoc,
   acceptInvitationSchemaDoc,
 } from './docs/invitation.schemas.js';
 
@@ -19,7 +21,21 @@ export const invitationRoutes: FastifyPluginAsync = async (fastify) => {
   // Public/authenticated acceptance endpoint — token as URL path parameter
   fastify.post(
     '/invitations/:token/accept',
-    { schema: acceptInvitationSchemaDoc, preHandler: [authenticate] },
+    {
+      schema: acceptInvitationSchemaDoc,
+      preHandler: [authenticate],
+      config: {
+        // Tight rate limit: 10 attempts per 15 min per IP.
+        // Tokens are unguessable but leaked links deserve limited attempts.
+        rateLimit: { max: 10, timeWindow: '15 minutes' },
+      },
+      onSend: (_request, reply, _payload, done) => {
+        // Prevent the invitation page from sending the token as a Referer to any
+        // resource loaded after the redirect.
+        reply.header('Referrer-Policy', 'no-referrer');
+        done();
+      },
+    },
     handleAcceptInvitation,
   );
 
@@ -42,6 +58,11 @@ export const invitationRoutes: FastifyPluginAsync = async (fastify) => {
       '/organizations/:organizationId/invitations/:id',
       { schema: cancelInvitationSchemaDoc, preHandler: [requirePermission('invitation:cancel')] },
       handleCancelInvitation,
+    );
+    scopedRoutes.post(
+      '/organizations/:organizationId/invitations/:id/resend',
+      { schema: resendInvitationSchemaDoc, preHandler: [requirePermission('member:invite')] },
+      handleResendInvitation,
     );
   });
 };

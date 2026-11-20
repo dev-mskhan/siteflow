@@ -49,8 +49,21 @@ export async function buildApp(): Promise<FastifyInstance> {
           'req.headers.authorization',
           'req.headers.cookie',
           'req.headers.stripe-signature',
+          // Invitation tokens are raw 64-char hex secrets — redact the URL segment
+          // so they never appear in access logs or structured log sinks.
+          'req.url',
+          'req.routeOptions.url',
         ],
-        censor: '[REDACTED]',
+        censor: (value: unknown, path: string[]) => {
+          if (typeof value === 'string' && path.includes('url')) {
+            // Replace the token segment in /invitations/<token>/accept
+            return value.replace(
+              /\/invitations\/[0-9a-f]{64}(\/accept)?/gi,
+              '/invitations/[REDACTED]$1',
+            );
+          }
+          return '[REDACTED]';
+        },
       },
       transport:
         serverEnv.NODE_ENV === 'development'

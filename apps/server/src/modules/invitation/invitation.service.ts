@@ -209,6 +209,85 @@ export class InvitationService {
     });
   }
 
+  async resendInvitation(
+    orgId: string,
+    invitationId: string,
+    actorCtx: OrganizationContext,
+    opts: { orgName?: string; inviterName?: string } = {},
+  ): Promise<InvitationDTO> {
+    return withSpan(tracer, 'invitation.resendInvitation', async (span) => {
+      span.setAttribute('organization.id', orgId);
+      span.setAttribute('invitation.id', invitationId);
+      span.setAttribute('user.id', actorCtx.userId);
+
+      const existing = await this.repo.findById(invitationId);
+      if (!existing || existing.organizationId !== orgId) {
+        throw new NotFoundError('Invitation not found');
+      }
+      if (existing.status !== 'PENDING') {
+        throw new ValidationError('Only pending invitations can be resent');
+      }
+
+      // Verify the role still exists
+      const targetRole = await this.db
+        .select({ id: roles.id, name: roles.name })
+        .from(roles)
+        .where(and(eq(roles.id, existing.roleId), eq(roles.organizationId, orgId)))
+        .limit(1);
+      if (!targetRole[0]) {
+        throw new ValidationError('The role assigned to this invitation no longer exists');
+      }
+
+      // Generate a fresh token — old hash becomes unreachable immediately
+      const { raw: rawToken, hash: tokenHash } = generateOneTimeToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      const updated = await this.db.transaction(async (tx) => {
+        // Rotate token and reset expiry in-place — no new row needed
+        const [result] = await tx
+          .update(invitations)
+          .set({ tokenHash, expiresAt, updatedAt: new Date() })
+          .where(
+            and(
+              eq(invitations.id, invitationId),
+              eq(invitations.organizationId, orgId),
+              eq(invitations.status, 'PENDING'),
+            ),
+          )
+          .returning();
+
+        if (!result) {
+          throw new ValidationError('Invitation is no longer pending');
+        }
+
+        await writeOutboxEvent(tx, ORG_QUEUES.SEND_INVITATION_EMAIL, {
+          invitationId: result.id,
+          organizationId: orgId,
+          email: result.email,
+          orgName: opts.orgName ?? orgId,
+          inviterName: opts.inviterName ?? 'Organization Admin',
+          token: rawToken,
+        });
+
+        await auditService.log(
+          {
+            organizationId: orgId,
+            actorUserId: actorCtx.userId,
+            action: 'invitation.resent',
+            resourceType: 'Invitation',
+            resourceId: invitationId,
+            metadata: { email: result.email, roleId: result.roleId },
+          },
+          tx,
+        );
+
+        return result;
+      });
+
+      return toInvitationDTO({ ...updated, roleName: targetRole[0]!.name });
+    });
+  }
+
   async acceptInvitation(rawToken: string, userId: string): Promise<void> {
     return withSpan(tracer, 'invitation.acceptInvitation', async (span) => {
       span.setAttribute('user.id', userId);
@@ -238,8 +317,29 @@ export class InvitationService {
         throw new ValidationError('Invitation has expired');
       }
 
-      if (invite.email.toLowerCase() !== acceptingUser[0].email.toLowerCase()) {
-        throw new ValidationError('This invitation was sent to a different email address');
+      // Email must match — show a partially masked hint so the user knows
+      // which account to switch to without fully exposing the address.
+      const normalizedInviteEmail = invite.email.toLowerCase();
+      const normalizedUserEmail = acceptingUser[0].email.toLowerCase();
+      if (normalizedInviteEmail !== normalizedUserEmail) {
+        const [local, domain] = normalizedInviteEmail.split('@');
+        const masked = `${local![0]}***@${domain}`;
+        throw new ValidationError(
+          `This invitation was sent to ${masked}. Sign in with that account to accept it.`,
+        );
+      }
+
+      // Verify the invited role still exists and belongs to this org at accept time.
+      // The role could have been deleted between send and accept.
+      const invitedRole = await this.db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(and(eq(roles.id, invite.roleId), eq(roles.organizationId, invite.organizationId)))
+        .limit(1);
+      if (!invitedRole[0]) {
+        throw new ValidationError(
+          'The role assigned to this invitation no longer exists. Ask your administrator to send a new invitation.',
+        );
       }
 
       // Check if user is already a member of this org
