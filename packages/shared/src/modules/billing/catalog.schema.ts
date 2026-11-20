@@ -131,41 +131,50 @@ export interface ApprovedPricingItem {
   stripePriceId: string;
 }
 
+// Safe server-only env read — never called in browser bundles
+// (Stripe price IDs are only used by checkout.routes.ts on the server)
+function serverEnv(key: string): string | undefined {
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key];
+  }
+  return undefined;
+}
+
 export const APPROVED_PRICING_V1: Record<PlanId, Record<BillingInterval, ApprovedPricingItem>> = {
   starter: {
     month: {
       unitAmountCents: 19900,
       unitAmountUsd: 199,
-      stripePriceId: process.env['STRIPE_PRICE_STARTER_MONTH'] ?? 'price_starter_month_v1',
+      stripePriceId: serverEnv('STRIPE_PRICE_STARTER_MONTH') ?? 'price_starter_month_v1',
     },
     year: {
       unitAmountCents: 202900,
       unitAmountUsd: 2029,
-      stripePriceId: process.env['STRIPE_PRICE_STARTER_YEAR'] ?? 'price_starter_year_v1',
+      stripePriceId: serverEnv('STRIPE_PRICE_STARTER_YEAR') ?? 'price_starter_year_v1',
     },
   },
   professional: {
     month: {
       unitAmountCents: 49900,
       unitAmountUsd: 499,
-      stripePriceId: process.env['STRIPE_PRICE_PRO_MONTH'] ?? 'price_pro_month_v1',
+      stripePriceId: serverEnv('STRIPE_PRICE_PRO_MONTH') ?? 'price_pro_month_v1',
     },
     year: {
       unitAmountCents: 508900,
       unitAmountUsd: 5089,
-      stripePriceId: process.env['STRIPE_PRICE_PRO_YEAR'] ?? 'price_pro_year_v1',
+      stripePriceId: serverEnv('STRIPE_PRICE_PRO_YEAR') ?? 'price_pro_year_v1',
     },
   },
   enterprise: {
     month: {
       unitAmountCents: 99900,
       unitAmountUsd: 999,
-      stripePriceId: process.env['STRIPE_PRICE_ENT_MONTH'] ?? 'price_ent_month_v1',
+      stripePriceId: serverEnv('STRIPE_PRICE_ENT_MONTH') ?? 'price_ent_month_v1',
     },
     year: {
       unitAmountCents: 1018900,
       unitAmountUsd: 10189,
-      stripePriceId: process.env['STRIPE_PRICE_ENT_YEAR'] ?? 'price_ent_year_v1',
+      stripePriceId: serverEnv('STRIPE_PRICE_ENT_YEAR') ?? 'price_ent_year_v1',
     },
   },
 };
