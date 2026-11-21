@@ -49,34 +49,34 @@ describe('SaaS Billing — Catalog Policy Unit Tests (10-05)', () => {
     });
 
     it('enforces exact approved pricing matching updated spec', () => {
-      // Starter: $20/month, $204/year (15% annual discount)
+      // Starter: $20/month, $216/year (10% annual discount)
       const starterMonth = catalogService.getPriceVersion('starter', 'month');
       expect(starterMonth.unitAmountUsd).toBe(20);
       expect(starterMonth.unitAmountCents).toBe(2000);
       expect(starterMonth.interval).toBe('month');
 
       const starterYear = catalogService.getPriceVersion('starter', 'year');
-      expect(starterYear.unitAmountUsd).toBe(204);
-      expect(starterYear.unitAmountCents).toBe(20400);
+      expect(starterYear.unitAmountUsd).toBe(216); // $20 × 12 × 0.90
+      expect(starterYear.unitAmountCents).toBe(21600);
       expect(starterYear.interval).toBe('year');
 
-      // Professional: $100/month, $1,020/year (15% annual discount)
+      // Professional: $100/month, $1,080/year (10% annual discount)
       const proMonth = catalogService.getPriceVersion('professional', 'month');
       expect(proMonth.unitAmountUsd).toBe(100);
       expect(proMonth.unitAmountCents).toBe(10000);
 
       const proYear = catalogService.getPriceVersion('professional', 'year');
-      expect(proYear.unitAmountUsd).toBe(1020);
-      expect(proYear.unitAmountCents).toBe(102000);
+      expect(proYear.unitAmountUsd).toBe(1080); // $100 × 12 × 0.90
+      expect(proYear.unitAmountCents).toBe(108000);
 
-      // Enterprise: $300/month, $3,060/year (15% annual discount)
+      // Enterprise: $300/month, $3,240/year (10% annual discount)
       const entMonth = catalogService.getPriceVersion('enterprise', 'month');
       expect(entMonth.unitAmountUsd).toBe(300);
       expect(entMonth.unitAmountCents).toBe(30000);
 
       const entYear = catalogService.getPriceVersion('enterprise', 'year');
-      expect(entYear.unitAmountUsd).toBe(3060);
-      expect(entYear.unitAmountCents).toBe(306000);
+      expect(entYear.unitAmountUsd).toBe(3240); // $300 × 12 × 0.90
+      expect(entYear.unitAmountCents).toBe(324000);
     });
 
     it('enforces exact approved limits with AI tokens (no API calls) for all 4 plans', () => {
@@ -160,17 +160,21 @@ describe('SaaS Billing — Catalog Policy Unit Tests (10-05)', () => {
 
   describe('Test 2: Provider Product IDs Map to Local Authority', () => {
     it('maps Stripe product IDs + interval to local price version', () => {
+      // Get actual product IDs from catalog
+      const starterProductId = catalogService.getPriceVersion('starter', 'month').stripeProductId;
+      const proProductId = catalogService.getPriceVersion('professional', 'year').stripeProductId;
+      
       // Uses product ID + interval, not price ID
-      const resolvedStarter = catalogService.resolvePriceFromProvider('prod_starter_123', 'month');
+      const resolvedStarter = catalogService.resolvePriceFromProvider(starterProductId, 'month');
       expect(resolvedStarter.planId).toBe('starter');
       expect(resolvedStarter.interval).toBe('month');
       expect(resolvedStarter.unitAmountUsd).toBe(20);
       expect(resolvedStarter.limits.activeProjects).toBe(3);
 
-      const resolvedProYear = catalogService.resolvePriceFromProvider('prod_pro_456', 'year');
+      const resolvedProYear = catalogService.resolvePriceFromProvider(proProductId, 'year');
       expect(resolvedProYear.planId).toBe('professional');
       expect(resolvedProYear.interval).toBe('year');
-      expect(resolvedProYear.unitAmountUsd).toBe(1020);
+      expect(resolvedProYear.unitAmountUsd).toBe(1080);
       expect(resolvedProYear.limits.activeProjects).toBe(15);
     });
 

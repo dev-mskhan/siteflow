@@ -396,5 +396,6 @@ export function findPriceByProviderProduct(
  * Returns all approved plans in the local catalog.
  */
 export function getApprovedCatalog(): PlanDefinition[] {
-  return Object.values(APPROVED_PLANS);
+  // Return only billable plans — exclude trial (free, time-limited)
+  return Object.values(APPROVED_PLANS).filter(p => p.id !== 'trial');
 }
