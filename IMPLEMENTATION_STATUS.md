@@ -3,10 +3,15 @@
 ## 📋 Quick Summary
 
 **✅ Done:**
-- Stripe product-ID setup, trial plan infrastructure, feature gates, **all 31 routes wired**
+- Stripe product-ID setup, trial plan infrastructure, feature gates, **all 31 routes wired**, **storage gate enforced**
 
 **🚧 Remaining:**
-- Storage upload gate, frontend pricing, tests
+- Frontend pricing content rewrite (pricing.ts + PricingPage.tsx)
+- Tests (catalog, entitlement, route gates)
+
+**Ready for:**
+- Manual Stripe checkout testing
+- Webhook reconciliation verification
 
 ---
 
@@ -109,10 +114,20 @@ preHandler: [
 
 **All routes tested with typecheck — passes successfully.**
 
-### B. Storage Gate (currently unenforced)
-- ⏳ Add `storageGb` upload gate in `project/documents/document.service.ts` → `completeUpload()` method
-- Check current org storage usage (sum of completed document sizes)
-- Throw `EntitlementError` with `LIMIT_EXCEEDED` if over limit
+### B. Storage Gate ✅ DONE
+
+Storage upload enforcement has been added to `document.service.ts`:
+
+- Added `getTotalStorageUsed(organizationId)` to `DocumentRepository` — sums `fileSize` of all ACTIVE documents
+- In `completeUpload()`: check org storage before marking document ACTIVE
+- Throws `EntitlementError` with code `LIMIT_EXCEEDED` if upload would exceed plan's `storageGb` limit
+- Error includes current usage (GB), attempted upload size, max limit, and upgrade URL
+- Check runs BEFORE transaction, preventing over-limit documents from being persisted
+
+**Test scenario:**
+1. Org on Starter plan (50GB limit)
+2. Current storage: 49.8GB
+3. Upload 1GB document → blocked with clear error message
 
 ### C. Frontend Pricing Content
 - ⏳ Rewrite `apps/web/src/content/pricing.ts`:
