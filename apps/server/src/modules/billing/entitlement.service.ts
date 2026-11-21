@@ -90,6 +90,8 @@ export class EntitlementService {
     limits: PlanLimits | null;
     state: SubscriptionState;
     graceStartsAt: Date | null;
+    graceRemaining?: number;
+    isGracePeriod?: boolean;
   }> {
     const db = tx ?? getDb();
 
@@ -344,41 +346,23 @@ export class EntitlementService {
 
   private async assertCanUseMemberSeat(organizationId: string, tx: any): Promise<void> {
     await this.lockOrganizationUsage(organizationId, tx);
-    const { limits, state, graceRemaining } = await this.resolveEffectiveLimits(organizationId, tx);
+    const { limits, state } = await this.resolveEffectiveLimits(organizationId, tx);
 
     if (!limits) {
-      // NEW: Check if it's an expired trial
-      const trial = await tx
-        .select({
-          status: saasTrials.status,
-          expiresAt: saasTrials.expiresAt,
-        })
-        .from(saasTrials)
-        .where(eq(saasTrials.organizationId, organizationId))
-        .limit(1);
-
-      if (trial[0] && trial[0].status === 'ACTIVE' && trial[0].expiresAt <= new Date()) {
-        // Trial expired
-        const daysExpired = Math.ceil(
-          (new Date().getTime() - trial[0].expiresAt.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        
+      if ((state as string) === 'EXPIRED') {
         logger.warn(
-          { organizationId, trialExpiredDaysAgo: daysExpired },
-          'Member invite blocked: trial expired'
+          { organizationId },
+          'Member invite blocked: trial expired',
         );
-        
         throw new EntitlementError({
-          message: `Your trial ended ${daysExpired} days ago. Upgrade to Professional to continue inviting team members.`,
+          message: 'Your trial has ended. Upgrade to Professional to continue inviting team members.',
           entitlementCode: 'TRIAL_EXPIRED',
           metadata: {
             upgradeUrl: `/organizations/${organizationId}/billing/checkout?planId=professional`,
-            trialEndedAt: trial[0].expiresAt.toISOString(),
           },
         });
       }
 
-      // No trial at all
       logger.warn({ organizationId, state }, 'Member add blocked: no active subscription or trial');
       throw new EntitlementError({
         message: 'No active subscription or trial. Start a trial or subscribe to add team members.',
@@ -390,12 +374,11 @@ export class EntitlementService {
     }
 
     // Grace period check - allow operation but log it
-    if (state === 'GRACE_PERIOD') {
+    if ((state as string) === 'GRACE_PERIOD') {
       logger.info(
-        { organizationId, graceRemaining },
-        'Member invite during grace period - allowed but with warning'
+        { organizationId },
+        'Member invite during trial grace period - allowed',
       );
-      // Still allow the operation
       return;
     }
 
