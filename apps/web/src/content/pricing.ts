@@ -1,26 +1,27 @@
 /**
  * Pricing Plans & Feature Matrix
  *
- * Prices are read from VITE_ environment variables so they can be changed
- * in .env without touching source code. The VITE_ prefix is required for
- * Vite to expose them to the browser bundle.
- *
- * To update prices: edit .env, then restart the dev server or rebuild.
+ * Prices come from the shared catalog (APPROVED_PRICING_V1) which is the
+ * single source of truth for both the server entitlement checks and the
+ * frontend display. No VITE_ env vars needed for pricing amounts.
  */
 
-// Pull from env with numeric defaults matching catalog.schema.ts APPROVED_PRICING_V1
-const env = import.meta.env;
+import { APPROVED_PRICING_V1 } from '@siteflow/shared';
 
-const PRICES = {
-  starter:      { usd: Number(env.VITE_PLAN_STARTER_PRICE_USD      ?? 199),  pkr: Number(env.VITE_PLAN_STARTER_PRICE_PKR      ?? 49700) },
-  professional: { usd: Number(env.VITE_PLAN_PROFESSIONAL_PRICE_USD ?? 499),  pkr: Number(env.VITE_PLAN_PROFESSIONAL_PRICE_PKR ?? 124700) },
-  enterprise:   { usd: Number(env.VITE_PLAN_ENTERPRISE_PRICE_USD   ?? 999),  pkr: Number(env.VITE_PLAN_ENTERPRISE_PRICE_PKR   ?? 249700) },
-};
+function fmtUsd(n: number): string {
+  return `$${n.toLocaleString()}`;
+}
 
-function fmt(n: number, currency: 'USD' | 'PKR'): string {
-  if (currency === 'USD') return `$${n.toLocaleString()}`;
+function fmtPkr(n: number): string {
   return `PKR ${n.toLocaleString()}`;
 }
+
+// Convenience: monthly prices from the catalog
+const P = {
+  starter:      APPROVED_PRICING_V1.starter.month,
+  professional: APPROVED_PRICING_V1.professional.month,
+  enterprise:   APPROVED_PRICING_V1.enterprise.month,
+};
 
 export interface PricingPlan {
   id: 'starter' | 'professional' | 'enterprise';
@@ -42,8 +43,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: 'starter',
     name: 'Starter',
     target: 'Essential construction management for smaller teams and specialized contractors.',
-    priceMonthlyPKR: fmt(PRICES.starter.pkr, 'PKR'),
-    priceMonthlyUSD: fmt(PRICES.starter.usd, 'USD'),
+    priceMonthlyPKR: fmtPkr(P.starter.unitAmountPkr),
+    priceMonthlyUSD: fmtUsd(P.starter.unitAmountUsd),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
       'Up to 3 active construction projects',
@@ -66,8 +67,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Professional',
     badge: 'Most Popular',
     target: 'Comprehensive operations and multi-project coordination for growing contractors.',
-    priceMonthlyPKR: fmt(PRICES.professional.pkr, 'PKR'),
-    priceMonthlyUSD: fmt(PRICES.professional.usd, 'USD'),
+    priceMonthlyPKR: fmtPkr(P.professional.unitAmountPkr),
+    priceMonthlyUSD: fmtUsd(P.professional.unitAmountUsd),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
       'Up to 15 active construction projects',
@@ -92,8 +93,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: 'enterprise',
     name: 'Enterprise',
     target: 'Full-scale enterprise coordination, custom integrations, and portfolio visibility.',
-    priceMonthlyPKR: fmt(PRICES.enterprise.pkr, 'PKR'),
-    priceMonthlyUSD: fmt(PRICES.enterprise.usd, 'USD'),
+    priceMonthlyPKR: fmtPkr(P.enterprise.unitAmountPkr),
+    priceMonthlyUSD: fmtUsd(P.enterprise.unitAmountUsd),
     billingInterval: 'per company / month (custom annual agreements available)',
     features: [
       'Up to 100 active construction projects',

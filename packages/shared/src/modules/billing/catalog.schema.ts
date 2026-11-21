@@ -40,6 +40,7 @@ export const PriceVersionSchema = z.object({
   currency: z.literal('usd'),
   unitAmountCents: z.number().int().positive(),
   unitAmountUsd: z.number().positive(),
+  unitAmountPkr: z.number().int().positive(),   // PKR amount (zero-decimal, e.g. 49700)
   stripePriceId: z.string().optional(),
   stripeProductId: z.string().optional(),
   limits: PlanLimitsSchema,
@@ -126,8 +127,9 @@ export const APPROVED_LIMITS: Record<PlanId, PlanLimits> = {
 };
 
 export interface ApprovedPricingItem {
-  unitAmountCents: number;
-  unitAmountUsd: number;
+  unitAmountCents: number;   // USD cents (e.g. 2000 = $20.00)
+  unitAmountUsd: number;     // USD whole dollars (e.g. 20)
+  unitAmountPkr: number;     // PKR whole rupees (e.g. 49700)
   stripePriceId: string;
 }
 
@@ -140,40 +142,49 @@ function serverEnv(key: string): string | undefined {
   return undefined;
 }
 
+// Annual prices apply a 10% discount off the monthly rate × 12.
+// PKR monthly: Starter 49,700 / Professional 124,700 / Enterprise 249,700
+// USD monthly: Starter $20    / Professional $100     / Enterprise $300
 export const APPROVED_PRICING_V1: Record<PlanId, Record<BillingInterval, ApprovedPricingItem>> = {
   starter: {
     month: {
-      unitAmountCents: 19900,
-      unitAmountUsd: 199,
+      unitAmountCents: 2000,          // $20.00
+      unitAmountUsd: 20,
+      unitAmountPkr: 49_700,
       stripePriceId: serverEnv('STRIPE_PRICE_STARTER_MONTH') ?? 'price_starter_month_v1',
     },
     year: {
-      unitAmountCents: 202900,
-      unitAmountUsd: 2029,
+      unitAmountCents: 21_600,        // $20 × 12 × 0.90 = $216.00
+      unitAmountUsd: 216,
+      unitAmountPkr: 537_000,         // 49,700 × 12 × 0.90 ≈ 537,000
       stripePriceId: serverEnv('STRIPE_PRICE_STARTER_YEAR') ?? 'price_starter_year_v1',
     },
   },
   professional: {
     month: {
-      unitAmountCents: 49900,
-      unitAmountUsd: 499,
+      unitAmountCents: 10_000,        // $100.00
+      unitAmountUsd: 100,
+      unitAmountPkr: 124_700,
       stripePriceId: serverEnv('STRIPE_PRICE_PRO_MONTH') ?? 'price_pro_month_v1',
     },
     year: {
-      unitAmountCents: 508900,
-      unitAmountUsd: 5089,
+      unitAmountCents: 108_000,       // $100 × 12 × 0.90 = $1,080.00
+      unitAmountUsd: 1_080,
+      unitAmountPkr: 1_346_760,       // 124,700 × 12 × 0.90 ≈ 1,346,760
       stripePriceId: serverEnv('STRIPE_PRICE_PRO_YEAR') ?? 'price_pro_year_v1',
     },
   },
   enterprise: {
     month: {
-      unitAmountCents: 99900,
-      unitAmountUsd: 999,
+      unitAmountCents: 30_000,        // $300.00
+      unitAmountUsd: 300,
+      unitAmountPkr: 249_700,
       stripePriceId: serverEnv('STRIPE_PRICE_ENT_MONTH') ?? 'price_ent_month_v1',
     },
     year: {
-      unitAmountCents: 1018900,
-      unitAmountUsd: 10189,
+      unitAmountCents: 324_000,       // $300 × 12 × 0.90 = $3,240.00
+      unitAmountUsd: 3_240,
+      unitAmountPkr: 2_696_760,       // 249,700 × 12 × 0.90 ≈ 2,696,760
       stripePriceId: serverEnv('STRIPE_PRICE_ENT_YEAR') ?? 'price_ent_year_v1',
     },
   },
@@ -196,6 +207,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.starter.month.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.starter.month.unitAmountUsd,
+        unitAmountPkr: APPROVED_PRICING_V1.starter.month.unitAmountPkr,
         stripePriceId: APPROVED_PRICING_V1.starter.month.stripePriceId,
         limits: APPROVED_LIMITS.starter,
         isActive: true,
@@ -208,6 +220,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.starter.year.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.starter.year.unitAmountUsd,
+        unitAmountPkr: APPROVED_PRICING_V1.starter.year.unitAmountPkr,
         stripePriceId: APPROVED_PRICING_V1.starter.year.stripePriceId,
         limits: APPROVED_LIMITS.starter,
         isActive: true,
@@ -230,6 +243,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.professional.month.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.professional.month.unitAmountUsd,
+        unitAmountPkr: APPROVED_PRICING_V1.professional.month.unitAmountPkr,
         stripePriceId: APPROVED_PRICING_V1.professional.month.stripePriceId,
         limits: APPROVED_LIMITS.professional,
         isActive: true,
@@ -242,6 +256,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.professional.year.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.professional.year.unitAmountUsd,
+        unitAmountPkr: APPROVED_PRICING_V1.professional.year.unitAmountPkr,
         stripePriceId: APPROVED_PRICING_V1.professional.year.stripePriceId,
         limits: APPROVED_LIMITS.professional,
         isActive: true,
@@ -264,6 +279,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.enterprise.month.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.enterprise.month.unitAmountUsd,
+        unitAmountPkr: APPROVED_PRICING_V1.enterprise.month.unitAmountPkr,
         stripePriceId: APPROVED_PRICING_V1.enterprise.month.stripePriceId,
         limits: APPROVED_LIMITS.enterprise,
         isActive: true,
@@ -276,6 +292,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.enterprise.year.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.enterprise.year.unitAmountUsd,
+        unitAmountPkr: APPROVED_PRICING_V1.enterprise.year.unitAmountPkr,
         stripePriceId: APPROVED_PRICING_V1.enterprise.year.stripePriceId,
         limits: APPROVED_LIMITS.enterprise,
         isActive: true,
