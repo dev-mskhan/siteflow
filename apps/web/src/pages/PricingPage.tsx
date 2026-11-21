@@ -48,96 +48,116 @@ export const PricingPage: React.FC = () => {
 
       {/* Pricing Cards */}
       <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8 bg-surface border-b border-border">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
-          {PRICING_PLANS.map((plan) => {
-            const price = plan.priceMonthlyUSD;
-            const isContact = price === 'Contact us';
+        <div className="max-w-7xl mx-auto">
+          {/* 4-card grid: stacks on mobile, 2×2 on tablet, 4 columns on desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-6 items-stretch">
+            {PRICING_PLANS.map((plan) => {
+              const price = plan.priceMonthlyUSD;
+              const isContact = plan.isContact;
+              const isFree = plan.isFree;
 
-            return (
-              /* overflow-visible so the badge positioned above the card is not clipped.
-                 Popular tier uses a stronger hairline border instead of shadow (DESIGN.md §6). */
-              <div
-                key={plan.id}
-                className={`relative flex flex-col bg-white border ${
-                  plan.isPopular ? 'border-[rgba(10,10,10,0.28)]' : 'border-[rgba(10,10,10,0.10)]'
-                }`}
-              >
-                {plan.badge && (
-                  /* Badge sits above the card — overflow-visible on parent allows this */
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
-                    <span className="inline-block px-3 py-1 bg-[#0a0a0a] text-white text-[10px] font-mono font-semibold uppercase tracking-widest">
-                      {plan.badge}
-                    </span>
-                  </div>
-                )}
-
+              return (
+                /* overflow-visible so the badge positioned above the card is not clipped.
+                   Popular tier uses a stronger hairline border instead of shadow (DESIGN.md §6). */
                 <div
-                  className={`p-6 sm:p-8 flex flex-col h-full space-y-6 ${plan.badge ? 'pt-8' : ''}`}
+                  key={plan.id}
+                  className={`relative flex flex-col bg-white border ${
+                    plan.isPopular
+                      ? 'border-[rgba(10,10,10,0.28)]'
+                      : isFree
+                        ? 'border-accent/30'
+                        : 'border-[rgba(10,10,10,0.10)]'
+                  }`}
                 >
-                  <div>
-                    <h2 className="font-heading text-xl font-bold text-text mb-1">{plan.name}</h2>
-                    <p className="text-xs text-text-muted min-h-[36px] leading-relaxed mb-6">
-                      {plan.target}
-                    </p>
-
-                    {/* Price display */}
-                    <div className="mb-6 pb-6 border-b border-[rgba(10,10,10,0.08)]">
-                      <div className="flex items-baseline gap-1.5 flex-wrap">
-                        <span className="font-mono text-2xl font-bold text-[#0a0a0a] break-all">
-                          {price}
-                        </span>
-                        {!isContact && (
-                          <span className="text-xs text-[#6b6b6b] font-normal shrink-0">
-                            / month
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-[#9b9b9b] block mt-1">
-                        {plan.billingInterval}
+                  {plan.badge && (
+                    /* Badge sits above the card — overflow-visible on parent allows this */
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
+                      <span
+                        className={`inline-block px-3 py-1 ${
+                          isFree
+                            ? 'bg-accent text-white'
+                            : 'bg-[#0a0a0a] text-white'
+                        } text-[10px] font-mono font-semibold uppercase tracking-widest`}
+                      >
+                        {plan.badge}
                       </span>
                     </div>
+                  )}
 
-                    {/* Feature list */}
-                    <div className="space-y-3">
-                      <div className="text-[11px] font-heading font-bold uppercase tracking-wider text-text-subtle">
-                        What is included:
+                  <div
+                    className={`p-6 flex flex-col h-full space-y-6 ${plan.badge ? 'pt-8' : ''}`}
+                  >
+                    <div>
+                      <h2 className="font-heading text-xl font-bold text-text mb-1">{plan.name}</h2>
+                      <p className="text-xs text-text-muted min-h-[36px] leading-relaxed mb-6">
+                        {plan.target}
+                      </p>
+
+                      {/* Price display */}
+                      <div className="mb-6 pb-6 border-b border-[rgba(10,10,10,0.08)]">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <span
+                            className={`font-mono ${
+                              isFree ? 'text-3xl' : 'text-2xl'
+                            } font-bold text-[#0a0a0a] break-all`}
+                          >
+                            {price}
+                          </span>
+                          {!isContact && !isFree && (
+                            <span className="text-xs text-[#6b6b6b] font-normal shrink-0">
+                              / month
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-[#9b9b9b] block mt-1">
+                          {plan.billingInterval}
+                        </span>
                       </div>
-                      <ul className="space-y-2.5 text-xs text-text-muted">
-                        {plan.features.map((feat) => (
-                          <li key={feat} className="flex items-start gap-2">
-                            <Check className="w-3.5 h-3.5 text-status-ontrack shrink-0 mt-0.5" />
-                            <span className="leading-tight">{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
+
+                      {/* Feature list */}
+                      <div className="space-y-3">
+                        <div className="text-[11px] font-heading font-bold uppercase tracking-wider text-text-subtle">
+                          What is included:
+                        </div>
+                        <ul className="space-y-2.5 text-xs text-text-muted">
+                          {plan.features.map((feat, idx) => (
+                            <li key={`${plan.id}-${idx}`} className="flex items-start gap-2">
+                              <Check className="w-3.5 h-3.5 text-status-ontrack shrink-0 mt-0.5" />
+                              <span className="leading-tight">{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-[rgba(10,10,10,0.08)] mt-auto">
+                      <Link to={plan.ctaHref}>
+                        <Button
+                          variant={plan.isPopular || plan.isFree ? 'primary' : 'secondary'}
+                          className="w-full"
+                          rightIcon={<ArrowRight className="w-4 h-4" />}
+                        >
+                          {plan.ctaLabel}
+                        </Button>
+                      </Link>
                     </div>
                   </div>
-
-                  <div className="pt-4 border-t border-[rgba(10,10,10,0.08)]">
-                    <Link to={plan.ctaHref}>
-                      <Button
-                        variant={plan.isPopular ? 'primary' : 'secondary'}
-                        className="w-full"
-                        rightIcon={<ArrowRight className="w-4 h-4" />}
-                      >
-                        {plan.ctaLabel}
-                      </Button>
-                    </Link>
-                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        {/* Note on undecided prices */}
-        <div className="max-w-4xl mx-auto mt-12 p-4 rounded-md border border-border bg-bg text-xs text-text-muted">
-          <div className="font-heading font-bold text-text mb-1">Product Owner Pricing Notes:</div>
-          <p className="leading-relaxed">
-            Where a tier price is listed as <strong>Contact us</strong> (e.g. Enterprise Prime),
-            custom pricing terms will be finalized directly based on organization site count and ERP
-            integration needs. Subcontractor seats are completely free across all plans.
-          </p>
+          {/* Note on plans */}
+          <div className="max-w-4xl mx-auto mt-12 p-4 rounded-md border border-border bg-bg text-xs text-text-muted">
+            <div className="font-heading font-bold text-text mb-1">Plan Comparison:</div>
+            <p className="leading-relaxed">
+              <strong>Trial:</strong> Full Professional features with lower limits (2 projects, 5 members).
+              <strong className="ml-2">Starter:</strong> Core execution features only — no procurement chain, subcontractors, payment apps, cost control, or AI chat.
+              <strong className="ml-2">Professional:</strong> All features unlocked.
+              <strong className="ml-2">Enterprise:</strong> Professional features at scale (100 projects, 500 members).
+              Subcontractor seats are free across all plans.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -153,9 +173,9 @@ export const PricingPage: React.FC = () => {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {PRICING_FAQ.map((faq) => (
-              <div key={faq.q} className="p-5 rounded-md border border-border bg-surface">
+          <div className="space-y-6">
+            {PRICING_FAQ.map((faq, idx) => (
+              <div key={`faq-${idx}`} className="p-5 rounded-md border border-border bg-surface">
                 <h3 className="font-heading text-sm font-bold text-text mb-2">{faq.q}</h3>
                 <p className="text-xs text-text-muted leading-relaxed">{faq.a}</p>
               </div>

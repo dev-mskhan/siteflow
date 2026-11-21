@@ -20,7 +20,7 @@ const P = {
 };
 
 export interface PricingPlan {
-  id: 'starter' | 'professional' | 'enterprise';
+  id: 'trial' | 'starter' | 'professional' | 'enterprise';
   name: string;
   badge?: string;
   target: string;
@@ -31,23 +31,54 @@ export interface PricingPlan {
   ctaHref: string;    // explicit href so pricing page CTA carries plan intent
   isPopular?: boolean;
   isContact?: boolean;
+  isFree?: boolean;
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
   {
+    id: 'trial',
+    name: 'Free Trial',
+    badge: '14 Days',
+    target: 'Experience Professional features risk-free before you commit.',
+    priceMonthlyUSD: '$0',
+    billingInterval: 'free for 14 days — no credit card required',
+    features: [
+      '2 active projects to test workflows',
+      '5 team members with role-based access',
+      'Full Professional feature set',
+      'Complete procurement chain (MR → PO → receipt)',
+      'Subcontractor management & retainage',
+      'Change order approval workflow',
+      'AIA payment applications',
+      'Full cost control & financial summaries',
+      'Conversational AI chat + specialized agents',
+      'AI Assistant: 100,000 tokens',
+      '5GB secure cloud storage',
+      'Portfolio & executive summary reports',
+      'CSV export',
+    ],
+    ctaLabel: 'Start free trial',
+    ctaHref: '/register',
+    isFree: true,
+  },
+  {
     id: 'starter',
     name: 'Starter',
-    target: 'Essential construction management for smaller teams and specialized contractors.',
+    target: 'Essential project execution for smaller teams and specialized contractors.',
     priceMonthlyUSD: fmtUsd(P.starter.unitAmountUsd),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
-      'Up to 3 active construction projects',
-      'Up to 10 team members with role-based access',
-      'Unlimited Bill of Quantities (BOQ) line items',
+      '3 active construction projects',
+      '10 team members with role-based access',
+      'Project execution, estimating & BOQ',
+      'Schedule tracking, tasks & baselines',
       'Daily mobile site logs & photo journal',
-      'Material delivery verification at gate',
-      'AI Assistant: 100,000 tokens/month',
+      'Submittals, RFIs, quality & safety',
+      'Material delivery verification',
+      'Suppliers & materials directories',
+      'Basic project reports (health, schedule, cost)',
       'AI-powered document analysis & BOQ extraction',
+      'AI Assistant: 100,000 tokens/month',
       '50GB secure cloud storage',
       'Email & chat customer support',
     ],
@@ -63,18 +94,21 @@ export const PRICING_PLANS: PricingPlan[] = [
     priceMonthlyUSD: fmtUsd(P.professional.unitAmountUsd),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
-      'Up to 15 active construction projects',
-      'Up to 50 team members with advanced permissions',
-      'Full Budget vs Committed vs Actual cost engine',
-      'Purchase Orders tied directly to cost codes',
-      'Subcontractor portal & retainage management',
+      '15 active construction projects',
+      '50 team members with advanced permissions',
+      'All Starter features, plus:',
+      '✦ Full procurement chain (MR → quote → approval → PO → receipt → inventory)',
+      '✦ Subcontractor portal & retainage management',
+      '✦ Change order approval workflow with photo audit',
+      '✦ AIA G702/G703 payment applications with certified retainage',
+      '✦ Full cost control: budget vs committed vs actual',
+      '✦ Commercial & financial summary dashboards',
+      '✦ Conversational AI chat for project insights',
+      '✦ AI agents for cost analysis, schedule optimization & risk detection',
+      '✦ Portfolio & executive summary reports',
+      '✦ CSV export for all reports',
       'AI Assistant: 500,000 tokens/month',
-      'AI agents for cost analysis, schedule optimization & risk detection',
-      'Conversational AI chat for project insights',
-      'AIA G702/G703 payment applications with certified retainage',
-      'Change order approval workflow with photo audit',
       '250GB secure cloud storage',
-      'Export to Excel & print-ready branded PDF reports',
       'Priority onboarding & telephone support',
     ],
     ctaLabel: 'Start free trial',
@@ -84,23 +118,20 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    target: 'Full-scale enterprise coordination, custom integrations, and portfolio visibility.',
+    target: 'Full-scale enterprise coordination with priority support and higher limits.',
     priceMonthlyUSD: fmtUsd(P.enterprise.unitAmountUsd),
     billingInterval: 'per company / month (custom annual agreements available)',
     features: [
-      'Up to 100 active construction projects',
-      'Up to 500 team members with enterprise-grade permissions',
+      '100 active construction projects',
+      '500 team members with enterprise-grade permissions',
+      'All Professional features at scale',
+      'Same feature set as Professional tier',
       'AI Assistant: 2,000,000 tokens/month',
-      'Custom AI agent training on your project data',
-      'Advanced AI workflow automation & approval routing',
-      'AI-powered predictive analytics & forecasting',
-      'Custom division cost code mapping (CSI MasterFormat)',
-      'Multi-tenant branch management & consolidated reports',
       '1TB secure cloud storage',
       'Dedicated account manager & on-site staff training',
-      'Custom database backup schedules & SLA guarantee',
-      'Custom ERP & accounting integration assistance',
+      'Custom database backup schedules',
       'Priority 24/7 support with 2-hour response SLA',
+      'Custom annual agreements available',
     ],
     ctaLabel: 'Contact sales',
     ctaHref: '/contact?plan=enterprise',
@@ -110,6 +141,14 @@ export const PRICING_PLANS: PricingPlan[] = [
 ];
 
 export const PRICING_FAQ = [
+  {
+    q: 'What happens after my free trial ends?',
+    a: 'After 14 days, you can choose to subscribe to Starter, Professional, or Enterprise. If you don\'t subscribe, you\'ll have 3 days of grace period to export your data before access is restricted.',
+  },
+  {
+    q: 'What features are restricted on Starter?',
+    a: 'Starter excludes: full procurement chain (MR→PO→receipt), subcontractor management, change orders, payment applications, cost control summaries, conversational AI chat, and portfolio/executive reports. All other features (estimating, BOQ, site logs, RFIs, quality/safety, document analysis) are fully available.',
+  },
   {
     q: 'How does AI token usage work?',
     a: 'AI tokens measure the amount of text processed by AI features (document analysis, chat, agents). Each plan includes a monthly token allowance. If you reach your limit, AI features pause until the next billing cycle. You can upgrade anytime for higher limits.',
@@ -124,10 +163,10 @@ export const PRICING_FAQ = [
   },
   {
     q: 'Can we upgrade our plan midway through a project?',
-    a: 'Yes. You can upgrade your plan at any time as your project volume grows, with immediate prorated adjustment.',
+    a: 'Yes. You can upgrade your plan at any time as your project volume grows, with immediate prorated adjustment. Downgrading is also possible but may restrict access to features that exceed lower-tier limits.',
   },
   {
-    q: 'What AI features are included in each plan?',
-    a: 'All plans include AI-powered document analysis and BOQ extraction. Professional adds conversational AI chat and specialized agents for cost, schedule, and risk analysis. Enterprise includes custom AI training, advanced automation, and predictive analytics.',
+    q: 'Is Enterprise just a bigger Professional plan?',
+    a: 'Yes. Enterprise provides the same feature set as Professional but with significantly higher limits (100 projects, 500 members, 1TB storage, 2M AI tokens) plus dedicated support, SLA guarantees, and custom agreements.',
   },
 ];
