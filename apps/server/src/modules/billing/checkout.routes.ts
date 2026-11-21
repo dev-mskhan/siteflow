@@ -108,9 +108,15 @@ export const checkoutRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const price = catalogService.getPriceVersion(planId, interval);
-      if (!price.stripePriceId) {
-        throw new Error(`Approved price version ${price.id} has no Stripe price mapping`);
+      if (!price.stripeProductId) {
+        throw new Error(`Approved price version ${price.id} has no Stripe product mapping`);
       }
+
+      // Resolve the active Stripe price ID for this product and interval at runtime
+      const stripePriceId = await stripeAdapter.resolveActivePriceId(
+        price.stripeProductId,
+        interval,
+      );
 
       if (!serverEnv.FRONTEND_URL && serverEnv.NODE_ENV === 'production') {
         throw new Error('FRONTEND_URL must be configured before paid Checkout can be enabled');
@@ -153,7 +159,7 @@ export const checkoutRoutes: FastifyPluginAsync = async (app) => {
       const session = await stripeAdapter.createCheckoutSession(
         {
           mode: 'subscription',
-          line_items: [{ price: price.stripePriceId, quantity: 1 }],
+          line_items: [{ price: stripePriceId, quantity: 1 }],
           customer: customer.stripeCustomerId,
           client_reference_id: organizationId,
           success_url: successUrl,

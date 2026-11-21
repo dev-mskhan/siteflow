@@ -64,7 +64,7 @@ export class TrialService {
     tx?: any
   ): Promise<{ trial: TrialDTO; isNew: boolean }> {
     const db = tx ?? getDb();
-    const tier = params.tier ?? 'Professional';
+    const tier = 'Trial'; // Trial plan tier
     const durationDays = params.durationDays ?? 14;
 
     try {
@@ -83,7 +83,7 @@ export class TrialService {
           {
             id: crypto.randomUUID(),
             organizationId: params.organizationId,
-            tier: 'Professional',
+            tier: 'Trial',
             status: 'ACTIVE',
             startedAt: now,
             expiresAt,

@@ -305,7 +305,11 @@ export class StripeAdapter {
     subscriptionId: string,
   ): Promise<StripeSubscriptionSnapshot> {
     const { client } = this.getConfiguredClient();
-    return this.providerRequest(() => client.subscriptions.retrieve(subscriptionId));
+    return this.providerRequest(() =>
+      client.subscriptions.retrieve(subscriptionId, {
+        expand: ['items.data.price.product'],
+      }),
+    );
   }
 
   async updateSubscription(
@@ -334,6 +338,50 @@ export class StripeAdapter {
     return this.providerRequest(() =>
       client.tax.calculations.create(params, { idempotencyKey }),
     );
+  }
+
+  /**
+   * Resolves the active recurring price ID for a given product and billing interval.
+   * Caches results in memory to avoid repeated Stripe API calls.
+   * Returns the price ID needed for checkout session line_items.
+   */
+  private priceCache = new Map<string, string>();
+
+  async resolveActivePriceId(
+    stripeProductId: string,
+    interval: 'month' | 'year',
+  ): Promise<string> {
+    const cacheKey = `${stripeProductId}:${interval}`;
+    const cached = this.priceCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const { client } = this.getConfiguredClient();
+    const prices = await this.providerRequest(() =>
+      client.prices.list({
+        product: stripeProductId,
+        active: true,
+        type: 'recurring',
+        limit: 100,
+      }),
+    );
+
+    const matchedPrice = prices.data.find(
+      (price) =>
+        price.recurring?.interval === interval &&
+        price.active &&
+        price.type === 'recurring',
+    );
+
+    if (!matchedPrice) {
+      throw new Error(
+        `No active recurring price found for product ${stripeProductId} with interval ${interval}`,
+      );
+    }
+
+    this.priceCache.set(cacheKey, matchedPrice.id);
+    return matchedPrice.id;
   }
 
   verifyWebhook(

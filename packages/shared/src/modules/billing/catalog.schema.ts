@@ -7,7 +7,7 @@ import { z } from 'zod';
 export const PlanTierSchema = z.enum(['Starter', 'Professional', 'Enterprise']);
 export type PlanTier = z.infer<typeof PlanTierSchema>;
 
-export const PlanIdSchema = z.enum(['starter', 'professional', 'enterprise']);
+export const PlanIdSchema = z.enum(['trial', 'starter', 'professional', 'enterprise']);
 export type PlanId = z.infer<typeof PlanIdSchema>;
 
 export const BillingIntervalSchema = z.enum(['month', 'year']);
@@ -27,8 +27,17 @@ export const PlanLimitsSchema = z.object({
   activeProjects: z.number().int().nonnegative(),
   teamMembers: z.number().int().nonnegative(),
   storageGb: z.number().int().nonnegative(),
-  apiCallsMonthly: z.number().int().nonnegative(),
   aiTokensMonthly: z.number().int().nonnegative(), // AI assistant token budget per billing cycle
+  // Feature flags — which capabilities are available on this plan
+  features: z.object({
+    procurementChain: z.boolean(),       // Full procurement (MR→quote→approval→PO→committed→delivery→receipt→inventory)
+    subcontractorMgmt: z.boolean(),      // Subcontractor management + retainage
+    changeOrders: z.boolean(),           // Change order approval workflow
+    aiaPaymentApps: z.boolean(),         // AIA G702/G703 payment apps + certified retainage
+    costControl: z.boolean(),            // Committed costs + commercial/financial summary + cost transactions
+    conversationalAi: z.boolean(),       // AI chat + specialized agents + approvals + voice + memory
+    advancedReporting: z.boolean(),      // Portfolio/executive-summary reports + CSV export
+  }),
 });
 export type PlanLimits = z.infer<typeof PlanLimitsSchema>;
 
@@ -40,8 +49,7 @@ export const PriceVersionSchema = z.object({
   currency: z.literal('usd'),
   unitAmountCents: z.number().int().positive(),
   unitAmountUsd: z.number().positive(),
-  stripePriceId: z.string().optional(),
-  stripeProductId: z.string().optional(),
+  stripeProductId: z.string().optional(), // Stripe product ID (prices resolved at runtime)
   limits: PlanLimitsSchema,
   isActive: z.boolean(),
   effectiveFrom: z.string().optional(),
@@ -102,37 +110,76 @@ export type SubscriptionHistoryDTO = z.infer<typeof SubscriptionHistoryDTOSchema
 // ── Approved Policy Catalog (10-POLICY-DECISIONS.md) ──────────────────────────
 
 export const APPROVED_LIMITS: Record<PlanId, PlanLimits> = {
+  trial: {
+    activeProjects: 2,
+    teamMembers: 5,
+    storageGb: 5,
+    aiTokensMonthly: 100_000,
+    features: {
+      procurementChain: true,
+      subcontractorMgmt: true,
+      changeOrders: true,
+      aiaPaymentApps: true,
+      costControl: true,
+      conversationalAi: true,
+      advancedReporting: true,
+    },
+  },
   starter: {
     activeProjects: 3,
     teamMembers: 10,
     storageGb: 50,
-    apiCallsMonthly: 5000,
-    aiTokensMonthly: 100_000, // ~$0.20/day at GPT-4o rates
+    aiTokensMonthly: 100_000,
+    features: {
+      procurementChain: false,
+      subcontractorMgmt: false,
+      changeOrders: false,
+      aiaPaymentApps: false,
+      costControl: false,
+      conversationalAi: false,
+      advancedReporting: false,
+    },
   },
   professional: {
     activeProjects: 15,
     teamMembers: 50,
     storageGb: 250,
-    apiCallsMonthly: 25000,
-    aiTokensMonthly: 500_000, // ~$1/day
+    aiTokensMonthly: 500_000,
+    features: {
+      procurementChain: true,
+      subcontractorMgmt: true,
+      changeOrders: true,
+      aiaPaymentApps: true,
+      costControl: true,
+      conversationalAi: true,
+      advancedReporting: true,
+    },
   },
   enterprise: {
     activeProjects: 100,
     teamMembers: 500,
     storageGb: 1000,
-    apiCallsMonthly: 100000,
-    aiTokensMonthly: 2_000_000, // ~$4/day
+    aiTokensMonthly: 2_000_000,
+    features: {
+      procurementChain: true,
+      subcontractorMgmt: true,
+      changeOrders: true,
+      aiaPaymentApps: true,
+      costControl: true,
+      conversationalAi: true,
+      advancedReporting: true,
+    },
   },
 };
 
 export interface ApprovedPricingItem {
   unitAmountCents: number;   // USD cents (e.g. 2000 = $20.00)
   unitAmountUsd: number;     // USD whole dollars (e.g. 20)
-  stripePriceId: string;
+  stripeProductId: string;   // Stripe product ID (prices resolved at runtime)
 }
 
 // Safe server-only env read — never called in browser bundles
-// (Stripe price IDs are only used by checkout.routes.ts on the server)
+// (Stripe product IDs are only used by checkout.routes.ts on the server)
 function serverEnv(key: string): string | undefined {
   if (typeof process !== 'undefined' && process.env) {
     return process.env[key];
@@ -142,46 +189,55 @@ function serverEnv(key: string): string | undefined {
 
 // Annual prices apply a 10% discount off the monthly rate × 12.
 // USD monthly: Starter $20    / Professional $100     / Enterprise $300
-export const APPROVED_PRICING_V1: Record<PlanId, Record<BillingInterval, ApprovedPricingItem>> = {
+export const APPROVED_PRICING_V1: Record<Exclude<PlanId, 'trial'>, Record<BillingInterval, ApprovedPricingItem>> = {
   starter: {
     month: {
       unitAmountCents: 2000,          // $20.00
       unitAmountUsd: 20,
-      stripePriceId: serverEnv('STRIPE_PRICE_STARTER_MONTH') ?? 'price_starter_month_v1',
+      stripeProductId: serverEnv('STRIPE_PRODUCT_STARTER') ?? 'prod_starter_placeholder',
     },
     year: {
       unitAmountCents: 21_600,        // $20 × 12 × 0.90 = $216.00
       unitAmountUsd: 216,
-      stripePriceId: serverEnv('STRIPE_PRICE_STARTER_YEAR') ?? 'price_starter_year_v1',
+      stripeProductId: serverEnv('STRIPE_PRODUCT_STARTER') ?? 'prod_starter_placeholder',
     },
   },
   professional: {
     month: {
       unitAmountCents: 10_000,        // $100.00
       unitAmountUsd: 100,
-      stripePriceId: serverEnv('STRIPE_PRICE_PRO_MONTH') ?? 'price_pro_month_v1',
+      stripeProductId: serverEnv('STRIPE_PRODUCT_PRO') ?? 'prod_pro_placeholder',
     },
     year: {
       unitAmountCents: 108_000,       // $100 × 12 × 0.90 = $1,080.00
       unitAmountUsd: 1_080,
-      stripePriceId: serverEnv('STRIPE_PRICE_PRO_YEAR') ?? 'price_pro_year_v1',
+      stripeProductId: serverEnv('STRIPE_PRODUCT_PRO') ?? 'prod_pro_placeholder',
     },
   },
   enterprise: {
     month: {
       unitAmountCents: 30_000,        // $300.00
       unitAmountUsd: 300,
-      stripePriceId: serverEnv('STRIPE_PRICE_ENT_MONTH') ?? 'price_ent_month_v1',
+      stripeProductId: serverEnv('STRIPE_PRODUCT_ENT') ?? 'prod_ent_placeholder',
     },
     year: {
       unitAmountCents: 324_000,       // $300 × 12 × 0.90 = $3,240.00
       unitAmountUsd: 3_240,
-      stripePriceId: serverEnv('STRIPE_PRICE_ENT_YEAR') ?? 'price_ent_year_v1',
+      stripeProductId: serverEnv('STRIPE_PRODUCT_ENT') ?? 'prod_ent_placeholder',
     },
   },
 };
 
 export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
+  trial: {
+    id: 'trial',
+    name: 'Starter',
+    tier: 'Starter',
+    description: 'Free 14-day trial with full Professional features and lower caps.',
+    limits: APPROVED_LIMITS.trial,
+    isActive: true,
+    prices: [], // Trial has no Stripe prices — free and time-limited
+  },
   starter: {
     id: 'starter',
     name: 'Starter',
@@ -198,7 +254,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.starter.month.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.starter.month.unitAmountUsd,
-        stripePriceId: APPROVED_PRICING_V1.starter.month.stripePriceId,
+        stripeProductId: APPROVED_PRICING_V1.starter.month.stripeProductId,
         limits: APPROVED_LIMITS.starter,
         isActive: true,
       },
@@ -210,7 +266,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.starter.year.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.starter.year.unitAmountUsd,
-        stripePriceId: APPROVED_PRICING_V1.starter.year.stripePriceId,
+        stripeProductId: APPROVED_PRICING_V1.starter.year.stripeProductId,
         limits: APPROVED_LIMITS.starter,
         isActive: true,
       },
@@ -232,7 +288,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.professional.month.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.professional.month.unitAmountUsd,
-        stripePriceId: APPROVED_PRICING_V1.professional.month.stripePriceId,
+        stripeProductId: APPROVED_PRICING_V1.professional.month.stripeProductId,
         limits: APPROVED_LIMITS.professional,
         isActive: true,
       },
@@ -244,7 +300,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.professional.year.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.professional.year.unitAmountUsd,
-        stripePriceId: APPROVED_PRICING_V1.professional.year.stripePriceId,
+        stripeProductId: APPROVED_PRICING_V1.professional.year.stripeProductId,
         limits: APPROVED_LIMITS.professional,
         isActive: true,
       },
@@ -266,7 +322,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.enterprise.month.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.enterprise.month.unitAmountUsd,
-        stripePriceId: APPROVED_PRICING_V1.enterprise.month.stripePriceId,
+        stripeProductId: APPROVED_PRICING_V1.enterprise.month.stripeProductId,
         limits: APPROVED_LIMITS.enterprise,
         isActive: true,
       },
@@ -278,7 +334,7 @@ export const APPROVED_PLANS: Record<PlanId, PlanDefinition> = {
         currency: 'usd',
         unitAmountCents: APPROVED_PRICING_V1.enterprise.year.unitAmountCents,
         unitAmountUsd: APPROVED_PRICING_V1.enterprise.year.unitAmountUsd,
-        stripePriceId: APPROVED_PRICING_V1.enterprise.year.stripePriceId,
+        stripeProductId: APPROVED_PRICING_V1.enterprise.year.stripeProductId,
         limits: APPROVED_LIMITS.enterprise,
         isActive: true,
       },
@@ -319,13 +375,16 @@ export function getApprovedPrice(
 }
 
 /**
- * Maps a provider price identifier to the corresponding local approved price version.
+ * Maps a provider product identifier and interval to the corresponding local approved price version.
  * Provider IDs remain references; local price and limit definitions are strictly authoritative.
  */
-export function findPriceByProviderPriceId(stripePriceId: string): PriceVersion | null {
+export function findPriceByProviderProduct(
+  stripeProductId: string,
+  interval: BillingInterval,
+): PriceVersion | null {
   for (const plan of Object.values(APPROVED_PLANS)) {
     for (const price of plan.prices) {
-      if (price.stripePriceId === stripePriceId) {
+      if (price.stripeProductId === stripeProductId && price.interval === interval) {
         return price;
       }
     }

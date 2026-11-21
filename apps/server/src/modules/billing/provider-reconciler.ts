@@ -210,14 +210,19 @@ export async function reconcileStripeWebhookEvent(
     throw new StripeWebhookQuarantineError('CUSTOMER_ASSOCIATION_NOT_FOUND');
   }
 
-  const priceId = facts.subscription.items.data[0]?.price;
-  const stripePriceId = typeof priceId === 'string' ? priceId : priceId?.id;
-  if (!stripePriceId) {
-    throw new StripeWebhookQuarantineError('SUBSCRIPTION_PRICE_NOT_FOUND');
+  const priceObj = facts.subscription.items.data[0]?.price;
+  if (!priceObj || typeof priceObj === 'string') {
+    throw new StripeWebhookQuarantineError('SUBSCRIPTION_PRICE_NOT_EXPANDED');
   }
+  const stripeProductId = typeof priceObj.product === 'string' ? priceObj.product : priceObj.product?.id;
+  const interval = priceObj.recurring?.interval;
+  if (!stripeProductId || !interval || (interval !== 'month' && interval !== 'year')) {
+    throw new StripeWebhookQuarantineError('SUBSCRIPTION_PRICE_MISSING_PRODUCT_OR_INTERVAL');
+  }
+
   let price;
   try {
-    price = catalogService.resolvePriceFromProvider(stripePriceId);
+    price = catalogService.resolvePriceFromProvider(stripeProductId, interval);
   } catch {
     throw new StripeWebhookQuarantineError('SUBSCRIPTION_PRICE_NOT_MAPPED');
   }
@@ -232,7 +237,7 @@ export async function reconcileStripeWebhookEvent(
     cancelAtPeriodEnd: facts.subscription.cancel_at_period_end,
     stripeCustomerId: facts.customerId,
     stripeSubscriptionId: facts.subscription.id,
-    stripePriceId,
+    stripePriceId: priceObj.id,
   };
   const receivedEventDate = eventDate(event.eventCreatedAt);
 

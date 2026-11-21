@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireProjectPermission } from '../core/project.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleApproveChangeOrder,
   handleClientApproveChangeOrder,
@@ -33,7 +34,10 @@ const response = { type: 'object', additionalProperties: true } as const;
 export const changeOrderRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(base, {
     schema: { tags: ['commercial'], summary: 'Create a draft change order', params, response: { 201: response } },
-    preHandler: [requireProjectPermission('project.change_order.create')],
+    preHandler: [
+      requirePlanFeature('changeOrders'),
+      requireProjectPermission('project.change_order.create'),
+    ],
   }, handleCreateChangeOrder);
   fastify.get(base, {
     schema: { tags: ['commercial'], summary: 'List project change orders', params, response: { 200: response } },

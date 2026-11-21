@@ -10,7 +10,7 @@ import { catalogRepository } from './catalog.repository.js';
 import {
   getApprovedPlan,
   getApprovedPrice,
-  findPriceByProviderPriceId,
+  findPriceByProviderProduct,
   getApprovedCatalog,
   type PlanDefinition,
   type PriceVersion,
@@ -92,15 +92,15 @@ export class CatalogService {
   }
 
   /**
-   * Resolves a provider price identifier to the corresponding local approved price version.
-   * Throws ValidationError if the provider price is unmapped or unknown.
+   * Resolves a provider product identifier and interval to the corresponding local approved price version.
+   * Throws ValidationError if the provider product is unmapped or unknown.
    * Client-supplied prices or provider overrides are NEVER accepted as authority.
    */
-  resolvePriceFromProvider(stripePriceId: string): PriceVersion {
-    const matched = findPriceByProviderPriceId(stripePriceId);
+  resolvePriceFromProvider(stripeProductId: string, interval: BillingInterval): PriceVersion {
+    const matched = findPriceByProviderProduct(stripeProductId, interval);
     if (!matched) {
       throw new ValidationError(
-        `Provider price '${stripePriceId}' is not mapped to any approved local price version`,
+        `Provider product '${stripeProductId}' (${interval}) is not mapped to any approved local price version`,
       );
     }
     return matched;
@@ -164,13 +164,6 @@ export class CatalogService {
     // Use the full PK id of the price version row (e.g. 'starter_month_v1'), not the version string ('v1')
     const resolvedPriceVersionId = priceVersion.id;
 
-    // If a provider price ID is provided, verify it maps to the resolved price version
-    if (stripePriceId && priceVersion.stripePriceId && stripePriceId !== priceVersion.stripePriceId) {
-      throw new ValidationError(
-        `Provider price ID '${stripePriceId}' does not match approved local price version for ${planId} (${interval})`,
-      );
-    }
-
     const runInTx = async (dbTx: any) => {
       // Deactivate any existing current subscription for this organization
       await this.repo.clearCurrentSubscription(organizationId, dbTx);
@@ -197,7 +190,7 @@ export class CatalogService {
         cancelAtPeriodEnd: false,
         stripeCustomerId: stripeCustomerId ?? null,
         stripeSubscriptionId: stripeSubscriptionId ?? null,
-        stripePriceId: priceVersion.stripePriceId ?? stripePriceId ?? null,
+        stripePriceId: stripePriceId ?? null,
       };
 
       const created = await this.repo.createSubscription(newSubData, dbTx);
@@ -319,7 +312,7 @@ export class CatalogService {
         cancelAtPeriodEnd: false,
         stripeCustomerId: current.stripeCustomerId,
         stripeSubscriptionId: current.stripeSubscriptionId,
-        stripePriceId: newPriceVersion.stripePriceId ?? null,
+        stripePriceId: current.stripePriceId,
       };
 
       const created = await this.repo.createSubscription(newSubData, dbTx);

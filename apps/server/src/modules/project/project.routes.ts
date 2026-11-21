@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../rbac/permission.middleware.js';
 import { projectContext, requireProjectPermission } from './core/project.middleware.js';
+import { requirePlanFeature } from '../billing/feature-gate.middleware.js';
 import {
   handleCreateProject,
   handleListProjects,
@@ -917,7 +918,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/material-requests',
       {
         schema: createMaterialRequestSchemaDoc,
-        preHandler: [requireProjectPermission('project.material_request.create')],
+        preHandler: [
+          requirePlanFeature('procurementChain'),
+          requireProjectPermission('project.material_request.create'),
+        ],
       },
       handleCreateMaterialRequest,
     );
@@ -964,7 +968,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/quotes',
       {
         schema: createQuoteSchemaDoc,
-        preHandler: [requireProjectPermission('project.quote.create')],
+        preHandler: [
+          requirePlanFeature('procurementChain'),
+          requireProjectPermission('project.quote.create'),
+        ],
       },
       handleCreateQuote,
     );
@@ -1069,7 +1076,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/purchase-orders',
       {
         schema: createPurchaseOrderSchemaDoc,
-        preHandler: [requireProjectPermission('project.purchase_order.create')],
+        preHandler: [
+          requirePlanFeature('procurementChain'),
+          requireProjectPermission('project.purchase_order.create'),
+        ],
       },
       handleCreatePurchaseOrder,
     );

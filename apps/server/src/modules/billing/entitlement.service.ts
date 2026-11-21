@@ -159,9 +159,9 @@ export class EntitlementService {
       const now = new Date();
       
       if (trial[0].expiresAt > now) {
-        // Trial is still active
+        // Trial is still active — return trial limits, not Professional
         return {
-          limits: APPROVED_LIMITS.professional,
+          limits: APPROVED_LIMITS.trial,
           state: 'TRIALING' as SubscriptionState,
           graceStartsAt: null,
         };
@@ -186,7 +186,7 @@ export class EntitlementService {
           );
           
           return {
-            limits: APPROVED_LIMITS.professional,
+            limits: APPROVED_LIMITS.trial,
             state: 'GRACE_PERIOD' as any,
             graceStartsAt: trial[0].expiresAt,
             graceRemaining,
@@ -249,6 +249,51 @@ export class EntitlementService {
     await tx.execute(
       sql`SELECT pg_advisory_xact_lock(hashtextextended(${`siteflow-entitlement:${organizationId}`}, 0))`,
     );
+  }
+
+  // ── Feature gates ─────────────────────────────────────────────────────────
+
+  /**
+   * Asserts that the organization's current plan includes the specified feature.
+   * Throws FEATURE_RESTRICTED (HTTP 403) if the feature is disabled for the plan.
+   * Must be called inside a PostgreSQL transaction when combined with other gates.
+   */
+  async assertPlanFeature(
+    organizationId: string,
+    feature: keyof PlanLimits['features'],
+    tx?: any,
+  ): Promise<void> {
+    const db = tx ?? getDb();
+    const { limits } = await this.resolveEffectiveLimits(organizationId, db);
+
+    if (!limits) {
+      logger.warn({ organizationId, feature }, 'Feature access blocked: no active subscription or trial');
+      throw new EntitlementError({
+        message: 'No active subscription or trial. Start a trial or subscribe to access this feature.',
+        entitlementCode: 'NO_ENTITLEMENT',
+        metadata: {
+          feature,
+          startTrialUrl: `/organizations/${organizationId}/billing/trial`,
+        },
+      });
+    }
+
+    if (!limits.features[feature]) {
+      logger.info(
+        { organizationId, feature, plan: limits },
+        'Feature access blocked: not included in current plan',
+      );
+      throw new EntitlementError({
+        message: `This feature is not available on your current plan. Upgrade to access ${feature}.`,
+        entitlementCode: 'FEATURE_RESTRICTED',
+        metadata: {
+          feature,
+          upgradeUrl: `/organizations/${organizationId}/billing/checkout?planId=professional`,
+        },
+      });
+    }
+
+    logger.debug({ organizationId, feature }, 'Feature access granted');
   }
 
   // ── Admission gates ───────────────────────────────────────────────────────
