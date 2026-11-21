@@ -23,7 +23,7 @@ import { useToast } from '../../../components/ui/Toast';
 import { toastErrorMessage } from '../../../lib/authErrors';
 import { cn } from '../../../lib/cn';
 
-const PLAN_ICONS = { starter: Zap, professional: Crown, enterprise: Building2 } as const;
+const PLAN_ICONS = { trial: CheckCircle, starter: Zap, professional: Crown, enterprise: Building2 } as const;
 
 const STATE_BANNER: Record<string, { bg: string; border: string; icon: React.ElementType; text: string }> = {
   trial:         { bg: 'bg-[#f0fdf4]', border: 'border-[#bbf7d0]', icon: CheckCircle, text: 'text-[#166534]' },
@@ -48,11 +48,15 @@ export const BillingPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { success: toastOk, error: toastErr } = useToast();
 
-  // Pre-select plan from query param (set when user clicks "Start free trial" on /pricing)
-  const initialPlan = (['starter', 'professional', 'enterprise'] as const)
-    .find(p => p === searchParams.get('plan')) ?? 'professional';
+  // Flow detection from URL params
+  const flow = searchParams.get('flow'); // 'trial' | 'checkout' | null
+  const urlPlan = searchParams.get('plan'); // 'starter' | 'professional' | 'enterprise' | null
 
-  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'professional' | 'enterprise'>(initialPlan);
+  // Pre-select plan from query param (set when user clicks CTA on /pricing)
+  const initialPlan = (['starter', 'professional', 'enterprise'] as const)
+    .find(p => p === urlPlan) ?? 'professional';
+
+  const [selectedPlan, setSelectedPlan] = useState<'trial' | 'starter' | 'professional' | 'enterprise'>(initialPlan);
   const [interval, setInterval] = useState<'month' | 'year'>('month');
 
   const { data: billing, isLoading } = useGetBillingStatusQuery({ orgId: orgId! });
@@ -62,6 +66,11 @@ export const BillingPage: React.FC = () => {
   const [createPortal, { isLoading: portaling }] = useCreatePortalSessionMutation();
 
   const onCheckout = async () => {
+    // Ensure we never try to checkout with 'trial' - shouldn't happen with UI flow, but TypeScript guard
+    if (selectedPlan === 'trial') {
+      toastErr('Invalid plan', 'Trial cannot be purchased. Please select a paid plan.');
+      return;
+    }
     try {
       const { checkoutUrl } = await createCheckout({ orgId: orgId!, planId: selectedPlan, interval }).unwrap();
       window.location.href = checkoutUrl; // full redirect so Stripe can set cookies
@@ -136,7 +145,8 @@ export const BillingPage: React.FC = () => {
               </div>
             </div>
 
-            {state === 'none' && (
+            {/* Trial CTA: Show when user has no billing and flow=trial OR state=none */}
+            {(flow === 'trial' || state === 'none') && (
               <button
                 onClick={onProvision}
                 disabled={provisioning}
@@ -149,15 +159,76 @@ export const BillingPage: React.FC = () => {
         )}
       </section>
 
-      {/* ── Plan Selection ── */}
-      {state !== 'active' && (
+      {/* ── Checkout Flow CTA (for direct purchase intent) ── */}
+      {flow === 'checkout' && state === 'none' && !billing?.subscription && (
+        <section className="space-y-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] border-b border-[var(--hairline-2)] pb-2">
+            Complete your purchase
+          </p>
+          
+          <div className="border border-[var(--hairline-2)] bg-[var(--paper)] p-6 space-y-4">
+            <div>
+              <h3 className="text-lg font-medium">
+                {PRICING_PLANS.find(p => p.id === selectedPlan)?.name ?? 'Professional'} Plan
+              </h3>
+              <p className="text-sm text-[var(--muted)] mt-1">
+                {PRICING_PLANS.find(p => p.id === selectedPlan)?.target}
+              </p>
+            </div>
+
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-medium">
+                {PRICING_PLANS.find(p => p.id === selectedPlan)?.priceMonthlyUSD ?? '$100'}
+              </span>
+              <span className="text-sm text-[var(--muted)]">
+                per month (billed {interval === 'year' ? 'annually' : 'monthly'})
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex border border-[var(--hairline-2)]">
+                <button
+                  type="button"
+                  onClick={() => setInterval('month')}
+                  className={cn('px-3 py-1.5 text-sm transition-colors', interval === 'month' ? 'bg-[var(--ink)] text-white' : 'text-[var(--muted)] hover:bg-[var(--surface-2)]')}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInterval('year')}
+                  className={cn('px-3 py-1.5 text-sm transition-colors', interval === 'year' ? 'bg-[var(--ink)] text-white' : 'text-[var(--muted)] hover:bg-[var(--surface-2)]')}
+                >
+                  Yearly <span className="font-mono text-[10px]">−20%</span>
+                </button>
+              </div>
+
+              <button
+                onClick={onCheckout}
+                disabled={checkingOut}
+                className="inline-flex items-center gap-2 min-h-9 bg-[var(--ink)] px-5 text-sm font-medium text-white disabled:opacity-50"
+              >
+                <CreditCard className="h-4 w-4" strokeWidth={1.75} />
+                {checkingOut ? 'Redirecting…' : 'Continue to payment'}
+              </button>
+            </div>
+
+            <p className="text-xs text-[var(--muted)]">
+              Want to try first? <a href={`/org/${orgId}/settings/billing?flow=trial`} className="underline hover:text-[var(--ink)]">Start a free 14-day trial</a>
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ── Plan Selection (existing subscriptions or upgrade flow) ── */}
+      {state !== 'active' && flow !== 'checkout' && (
         <section className="space-y-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted)] border-b border-[var(--hairline-2)] pb-2">
             Choose a plan
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {PRICING_PLANS.map((plan) => {
+            {PRICING_PLANS.filter(p => p.id !== 'trial').map((plan) => {
               const Icon = PLAN_ICONS[plan.id];
               const price = `$${plan.priceMonthlyUSD.replace('$', '')}`;
               return (
@@ -165,7 +236,7 @@ export const BillingPage: React.FC = () => {
                   key={plan.id}
                   type="button"
                   disabled={plan.isContact}
-                  onClick={() => !plan.isContact && setSelectedPlan(plan.id)}
+                  onClick={() => !plan.isContact && plan.id !== 'trial' && setSelectedPlan(plan.id as 'starter' | 'professional' | 'enterprise')}
                   className={cn(
                     'relative border p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                     selectedPlan === plan.id

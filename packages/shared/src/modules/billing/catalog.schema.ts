@@ -136,7 +136,7 @@ export const APPROVED_LIMITS: Record<PlanId, PlanLimits> = {
       changeOrders: false,
       aiaPaymentApps: false,
       costControl: false,
-      conversationalAi: false,
+      conversationalAi: true,        // ✅ ENABLED: Starter gets AI chat with 100K token limit
       advancedReporting: false,
     },
   },

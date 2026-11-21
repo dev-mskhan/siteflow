@@ -7,7 +7,6 @@ export const OnboardingRouter: React.FC = () => {
   const { data, isLoading, isError } = useListOrgsQuery();
   const [searchParams] = useSearchParams();
   const planParam = searchParams.get('plan');
-  const planSuffix = planParam ? `?plan=${planParam}` : '';
 
   if (isLoading) {
     return (
@@ -21,7 +20,36 @@ export const OnboardingRouter: React.FC = () => {
 
   const orgs = data.organizations;
 
-  if (orgs.length === 0) return <Navigate to={`/onboarding/create-org${planSuffix}`} replace />;
-  if (orgs.length === 1) return <Navigate to={`/org/${orgs[0]!.id}/settings/billing${planSuffix}`} replace />;
+  // Determine billing route based on plan choice
+  const getBillingRoute = (orgId: string): string => {
+    if (!planParam) {
+      // No plan specified → show trial CTA
+      return `/org/${orgId}/settings/billing?flow=trial`;
+    }
+    
+    if (planParam === 'trial') {
+      // Explicit trial choice → show trial CTA
+      return `/org/${orgId}/settings/billing?flow=trial`;
+    }
+    
+    if (['starter', 'professional', 'enterprise'].includes(planParam)) {
+      // Paid plan choice → show checkout flow
+      return `/org/${orgId}/settings/billing?flow=checkout&plan=${planParam}`;
+    }
+    
+    // Fallback: show trial
+    return `/org/${orgId}/settings/billing?flow=trial`;
+  };
+
+  if (orgs.length === 0) {
+    const planSuffix = planParam ? `?plan=${planParam}` : '';
+    return <Navigate to={`/onboarding/create-org${planSuffix}`} replace />;
+  }
+  
+  if (orgs.length === 1) {
+    return <Navigate to={getBillingRoute(orgs[0]!.id)} replace />;
+  }
+  
+  const planSuffix = planParam ? `?plan=${planParam}` : '';
   return <Navigate to={`/onboarding/select-org${planSuffix}`} replace />;
 };

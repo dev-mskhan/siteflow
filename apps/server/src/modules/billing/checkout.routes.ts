@@ -98,6 +98,8 @@ export const checkoutRoutes: FastifyPluginAsync = async (app) => {
         throw new NotFoundError('Organization not found');
       }
 
+      // Check for existing PAID subscription (block duplicate checkout)
+      // Trial users are allowed to checkout — paid subscription will supersede trial
       const currentSubscription = await catalogRepository.findCurrentSubscription(organizationId);
       if (
         currentSubscription &&
@@ -106,6 +108,7 @@ export const checkoutRoutes: FastifyPluginAsync = async (app) => {
       ) {
         throw new ConflictError('Organization already has a paid subscription for this period');
       }
+      // Trial existence is OK — entitlement service will prioritize paid subscription over trial
 
       const price = catalogService.getPriceVersion(planId, interval);
       if (!price.stripeProductId) {

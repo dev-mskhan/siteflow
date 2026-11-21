@@ -210,43 +210,8 @@ export class OrganizationService {
           joinedAt: new Date(),
         });
 
-        // 4a. NEW: Auto-provision 14-day Professional trial
-        const { trial, isNew: trialIsNew } = await trialService.provisionTrial(
-          {
-            organizationId: org.id,
-            actorUserId: userId,
-            tier: 'Professional',
-            durationDays: 14,
-            ipAddress: null,
-            userAgent: null,
-          },
-          tx,
-        );
-
-        if (trialIsNew) {
-          span.addEvent('trial_auto_provisioned', {
-            'trial.id': trial.id,
-            'trial.tier': trial.tier as string,
-            'trial.duration_days': 14,
-          });
-
-          // NEW: Audit log for trial provisioning
-          await auditService.log(
-            {
-              organizationId: org.id,
-              actorUserId: userId,
-              action: 'billing.trial.auto_provisioned',
-              resourceType: 'SaaSTrial',
-              resourceId: trial.id,
-              metadata: {
-                tier: 'Professional',
-                durationDays: 14,
-                expiresAt: trial.expiresAt,
-              },
-            },
-            tx,
-          );
-        }
+        // Trial provisioning removed — users explicitly start trial via POST /billing/trial
+        // or proceed directly to paid checkout via POST /billing/checkout
 
         // 5. Audit Log (same transaction)
         await auditService.log(
