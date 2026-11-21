@@ -120,13 +120,13 @@ export const organizationSettings = appSchema.table(
     organizationId: text('organization_id')
       .primaryKey()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    timezone: text('timezone').default('UTC').notNull(),
+    timezone: text('timezone').default('America/New_York').notNull(),
     currency: text('currency').default('USD').notNull(),
     locale: text('locale').default('en-US').notNull(),
-    dateFormat: dateFormatEnum('date_format').default('YYYY_MM_DD').notNull(),
-    timeFormat: timeFormatEnum('time_format').default('H24').notNull(),
-    unitSystem: unitSystemEnum('unit_system').default('METRIC').notNull(),
-    weekStartsOn: integer('week_starts_on').default(1).notNull(), // 0=Sunday, 1=Monday
+    dateFormat: dateFormatEnum('date_format').default('MM_DD_YYYY').notNull(),
+    timeFormat: timeFormatEnum('time_format').default('H12').notNull(),
+    unitSystem: unitSystemEnum('unit_system').default('IMPERIAL').notNull(),
+    weekStartsOn: integer('week_starts_on').default(0).notNull(), // 0=Sunday, 1=Monday
     fiscalYearStartMonth: integer('fiscal_year_start_month').default(1).notNull(), // 1–12
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true })

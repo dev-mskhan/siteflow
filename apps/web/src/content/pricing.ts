@@ -12,10 +12,6 @@ function fmtUsd(n: number): string {
   return `$${n.toLocaleString()}`;
 }
 
-function fmtPkr(n: number): string {
-  return `PKR ${n.toLocaleString()}`;
-}
-
 // Convenience: monthly prices from the catalog
 const P = {
   starter:      APPROVED_PRICING_V1.starter.month,
@@ -28,12 +24,11 @@ export interface PricingPlan {
   name: string;
   badge?: string;
   target: string;
-  priceMonthlyPKR: string;
   priceMonthlyUSD: string;
   billingInterval: string;
   features: string[];
   ctaLabel: string;
-  ctaHref: string;    // NEW: explicit href so pricing page CTA carries plan intent
+  ctaHref: string;    // explicit href so pricing page CTA carries plan intent
   isPopular?: boolean;
   isContact?: boolean;
 }
@@ -43,7 +38,6 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: 'starter',
     name: 'Starter',
     target: 'Essential construction management for smaller teams and specialized contractors.',
-    priceMonthlyPKR: fmtPkr(P.starter.unitAmountPkr),
     priceMonthlyUSD: fmtUsd(P.starter.unitAmountUsd),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
@@ -54,9 +48,8 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Material delivery verification at gate',
       'AI Assistant: 100,000 tokens/month',
       'AI-powered document analysis & BOQ extraction',
-      'Dual currency support (PKR or USD)',
       '50GB secure cloud storage',
-      'Email & WhatsApp customer support',
+      'Email & chat customer support',
     ],
     ctaLabel: 'Start free trial',
     ctaHref: '/register?plan=starter',
@@ -67,7 +60,6 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Professional',
     badge: 'Most Popular',
     target: 'Comprehensive operations and multi-project coordination for growing contractors.',
-    priceMonthlyPKR: fmtPkr(P.professional.unitAmountPkr),
     priceMonthlyUSD: fmtUsd(P.professional.unitAmountUsd),
     billingInterval: 'per company / month (billed annually or monthly)',
     features: [
@@ -79,7 +71,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'AI Assistant: 500,000 tokens/month',
       'AI agents for cost analysis, schedule optimization & risk detection',
       'Conversational AI chat for project insights',
-      'Interim payment certificates & WHT deductions',
+      'AIA G702/G703 payment applications with certified retainage',
       'Change order approval workflow with photo audit',
       '250GB secure cloud storage',
       'Export to Excel & print-ready branded PDF reports',
@@ -93,7 +85,6 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: 'enterprise',
     name: 'Enterprise',
     target: 'Full-scale enterprise coordination, custom integrations, and portfolio visibility.',
-    priceMonthlyPKR: fmtPkr(P.enterprise.unitAmountPkr),
     priceMonthlyUSD: fmtUsd(P.enterprise.unitAmountUsd),
     billingInterval: 'per company / month (custom annual agreements available)',
     features: [
@@ -126,10 +117,6 @@ export const PRICING_FAQ = [
   {
     q: 'Can our subcontractors use SiteFlow without extra charges?',
     a: 'Yes. Subcontractors invited to submit work claims and view awarded line items do not count against your paid team seat limit.',
-  },
-  {
-    q: 'Can we switch between PKR and USD payment methods?',
-    a: 'Yes. Pakistani companies can pay via local bank wire (IBAN) or credit card in PKR. International companies are billed in USD.',
   },
   {
     q: 'What counts as an active project?',

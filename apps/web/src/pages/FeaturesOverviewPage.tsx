@@ -133,7 +133,7 @@ export const FeaturesOverviewPage: React.FC = () => {
               All 10 modules live on your active job.
             </h2>
             <p className="mt-5 max-w-lg text-base leading-7 text-white/60">
-              Start a free 14-day trial — or let our specialists configure a sample project in PKR
+              Start a free 14-day trial — or let our specialists configure a sample project in USD
               or USD before the call.
             </p>
           </div>

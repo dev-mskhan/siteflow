@@ -30,7 +30,7 @@ import {
 import type { EffectiveProjectSettings } from '../../../features/project/projectTypes';
 
 const DATE_OPTIONS = [
-  { value: 'DD_MM_YYYY', label: 'DD/MM/YYYY', meta: 'Pakistan, UK' },
+  { value: 'DD_MM_YYYY', label: 'DD/MM/YYYY', meta: 'UK, Europe' },
   { value: 'MM_DD_YYYY', label: 'MM/DD/YYYY', meta: 'US' },
   { value: 'YYYY_MM_DD', label: 'YYYY-MM-DD', meta: 'ISO 8601' },
 ];
@@ -250,7 +250,7 @@ export const ProjectSettingsPage: React.FC = () => {
                 <input
                   id={id}
                   type="text"
-                  placeholder="Asia/Karachi"
+                  placeholder="America/New_York"
                   aria-invalid={!!settingErrors.timezone}
                   aria-describedby={settingErrors.timezone ? errorId : undefined}
                   className={inputCls(!!settingErrors.timezone)}
@@ -263,7 +263,7 @@ export const ProjectSettingsPage: React.FC = () => {
                 <input
                   id={id}
                   type="text"
-                  placeholder="en-PK"
+                  placeholder="en-US"
                   aria-invalid={!!settingErrors.locale}
                   aria-describedby={settingErrors.locale ? errorId : undefined}
                   className={inputCls(!!settingErrors.locale)}

@@ -248,14 +248,14 @@ export const ProjectSubcontractorsPage: React.FC = () => {
   const [selSubId, setSelSubId]     = useState('');
   const [scope, setScope]           = useState('');
   const [contractValue, setContractValue] = useState('');
-  const [currencyCode, setCurrencyCode]   = useState('PKR');
+  const [currencyCode, setCurrencyCode]   = useState('USD');
   const [startDate, setStartDate]   = useState('');
   const [endDate, setEndDate]       = useState('');
 
   // Edit form state
   const [eScope, setEScope]             = useState('');
   const [eContractValue, setEContractValue] = useState('');
-  const [eCurrency, setECurrency]       = useState('PKR');
+  const [eCurrency, setECurrency]       = useState('USD');
   const [eStart, setEStart]             = useState('');
   const [eEnd, setEEnd]                 = useState('');
   const [eStatus, setEStatus]           = useState<ProjectSubcontractorStatus>('ACTIVE');
@@ -285,7 +285,7 @@ export const ProjectSubcontractorsPage: React.FC = () => {
       }).unwrap();
       toastOk('Subcontractor assigned', '');
       setShowAssign(false);
-      setSelSubId(''); setScope(''); setContractValue(''); setCurrencyCode('PKR'); setStartDate(''); setEndDate('');
+      setSelSubId(''); setScope(''); setContractValue(''); setCurrencyCode('USD'); setStartDate(''); setEndDate('');
     } catch (err) {
       if (isToastError(err as never)) toastErr('Assign failed', toastErrorMessage(err as never));
     }
@@ -294,7 +294,7 @@ export const ProjectSubcontractorsPage: React.FC = () => {
   const startEditPS = (ps: typeof projectSubs[0]) => {
     setEScope(ps.scopeDescription ?? '');
     setEContractValue(ps.contractValue ?? '');
-    setECurrency(ps.currencyCode ?? 'PKR');
+    setECurrency(ps.currencyCode ?? 'USD');
     setEStart(ps.startDate ?? '');
     setEEnd(ps.endDate ?? '');
     setEStatus(ps.status);

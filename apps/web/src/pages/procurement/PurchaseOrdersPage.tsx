@@ -51,7 +51,7 @@ export const PurchaseOrdersPage: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [supplierId, setSupplierId] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]!);
-  const [currencyCode, setCurrencyCode] = useState('PKR');
+  const [currencyCode, setCurrencyCode] = useState('USD');
   const [notes, setNotes] = useState('');
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [quantity, setQuantity] = useState('1');

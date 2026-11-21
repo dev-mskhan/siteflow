@@ -58,7 +58,7 @@ export interface ProjectSubcontractorDTO {
   status: ProjectSubcontractorStatus;
   scopeDescription: string | null;
   contractValue: string | null;         // decimal string e.g. "150000.00"
-  currencyCode: string | null;          // 3-char ISO e.g. "PKR"
+  currencyCode: string | null;          // 3-char ISO e.g. "USD"
   startDate: string | null;             // YYYY-MM-DD
   endDate: string | null;
   subcontractor: SubcontractorDTO;

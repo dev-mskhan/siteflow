@@ -45,7 +45,7 @@ export const QuotesPage: React.FC = () => {
   const [supplierId, setSupplierId] = useState('');
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split('T')[0]!);
   const [validUntil, setValidUntil] = useState('');
-  const [currencyCode, setCurrencyCode] = useState('PKR');
+  const [currencyCode, setCurrencyCode] = useState('USD');
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [unitPrice, setUnitPrice] = useState('100.00');

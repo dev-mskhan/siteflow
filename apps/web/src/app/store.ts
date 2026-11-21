@@ -18,9 +18,9 @@ const devPreloadedState = bypass
       auth: {
         user: {
           id: 'usr_01',
-          email: 'tariq@company.com',
-          firstName: 'Tariq',
-          lastName: 'Mehmood',
+          email: 'james.carter@company.com',
+          firstName: 'James',
+          lastName: 'Carter',
           status: 'ACTIVE' as const,
           emailVerified: true,
           lastLoginAt: new Date().toISOString(),
@@ -34,8 +34,8 @@ const devPreloadedState = bypass
       org: {
         activeOrg: {
           id: 'org_01',
-          name: 'Mehmood Civil Construction',
-          slug: 'mehmood-civil',
+          name: 'Carter Construction LLC',
+          slug: 'carter-construction',
           status: 'ACTIVE' as const,
           createdBy: 'usr_01',
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -47,9 +47,9 @@ const devPreloadedState = bypass
           userId: 'usr_01',
           roleId: 'role_admin_01',
           roleName: 'Organization Admin',
-          userEmail: 'tariq@company.com',
-          userFirstName: 'Tariq',
-          userLastName: 'Mehmood',
+          userEmail: 'james.carter@company.com',
+          userFirstName: 'James',
+          userLastName: 'Carter',
           status: 'ACTIVE' as const,
           joinedAt: '2024-01-01T00:00:00.000Z',
           createdAt: '2024-01-01T00:00:00.000Z',

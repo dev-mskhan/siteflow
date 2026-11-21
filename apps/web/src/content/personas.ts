@@ -59,7 +59,7 @@ export const PERSONAS_DATA: Record<string, PersonaContent> = {
       },
       {
         question: 'Does SiteFlow support multiple currencies across different projects?',
-        answer: 'Yes. You can manage local projects in PKR with Marla/Kanal units, and international projects in USD with standard CSI divisions simultaneously.',
+        answer: 'Yes. SiteFlow is built for US general contractors, with CSI MasterFormat cost codes, AIA-style payment applications, and standard retainage workflows.',
       },
     ],
     relatedLinks: [

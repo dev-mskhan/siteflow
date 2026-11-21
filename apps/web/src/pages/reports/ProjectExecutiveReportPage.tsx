@@ -228,7 +228,7 @@ export const ProjectExecutiveReportPage: React.FC = () => {
             <div>
               <p className="font-mono text-[9px] uppercase text-[var(--muted)] mb-1">Committed</p>
               <p className="font-mono text-sm font-medium">
-                PKR {parseFloat(pPO.totalCommittedAmount ?? '0').toLocaleString()}
+                ${parseFloat(pPO.totalCommittedAmount ?? '0').toLocaleString()}
               </p>
             </div>
           </div>

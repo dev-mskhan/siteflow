@@ -49,8 +49,8 @@ const faqs = [
     a: 'No. Trade users see only their assigned work, certified amounts, retainage, and payment history.',
   },
   {
-    q: 'Does it support Pakistani Rupees and US Dollars?',
-    a: 'Yes. SiteFlow supports PKR projects with Marla and Kanal units, and USD projects with CSI divisions and AIA-style retainage.',
+    q: 'Is it built for US construction projects?',
+    a: 'Yes. SiteFlow is built for US contractors with CSI MasterFormat cost codes, AIA-style payment applications, and standard retainage workflows.',
   },
 ];
 
@@ -199,7 +199,7 @@ export const HomePage: React.FC = () => {
                 <div className="border-r border-[var(--hairline-2)] p-4 text-[var(--muted)]">
                   Live project record
                 </div>
-                <div className="p-4 text-right text-[var(--ink)]">PKR / USD ready</div>
+                <div className="p-4 text-right text-[var(--ink)]">USD ready</div>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-px border border-[var(--hairline)] bg-[var(--hairline)]">
@@ -229,7 +229,7 @@ export const HomePage: React.FC = () => {
             'Procurement',
             'Payment certification',
             'Audit trail',
-            'PKR / USD',
+            'CSI MasterFormat',
           ].map((item) => (
             <span key={item}>{item}</span>
           ))}
@@ -239,7 +239,7 @@ export const HomePage: React.FC = () => {
             'Procurement',
             'Payment certification',
             'Audit trail',
-            'PKR / USD',
+            'CSI MasterFormat',
           ].map((item) => (
             <span key={`${item}-repeat`}>{item}</span>
           ))}
@@ -428,13 +428,13 @@ export const HomePage: React.FC = () => {
                         <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
                           Budget
                         </p>
-                        <p className="mt-1 text-sm font-medium">PKR 78.5M</p>
+                        <p className="mt-1 text-sm font-medium">$280,400</p>
                       </div>
                       <div className="bg-[var(--paper)] p-3">
                         <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">
                           Committed
                         </p>
-                        <p className="mt-1 text-sm font-medium">PKR 64.2M</p>
+                        <p className="mt-1 text-sm font-medium">$229,300</p>
                       </div>
                       <div className="bg-[var(--paper)] p-3">
                         <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">

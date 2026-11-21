@@ -68,23 +68,23 @@ export const contactApiSpec = {
                   type: 'string',
                   minLength: 2,
                   maxLength: 100,
-                  example: 'Tariq Mehmood',
+                  example: 'John Smith',
                 },
                 workEmail: {
                   type: 'string',
                   format: 'email',
-                  example: 'tariq@contractors.com',
+                  example: 'john@contractors.com',
                 },
                 phone: {
                   type: 'string',
                   maxLength: 50,
-                  example: '+92 300 1234567',
+                  example: '+1 512 555 0123',
                 },
                 companyName: {
                   type: 'string',
                   minLength: 2,
                   maxLength: 255,
-                  example: 'Mehmood Civil Construction',
+                  example: 'Smith Construction LLC',
                 },
                 companySize: {
                   type: 'string',
@@ -93,7 +93,7 @@ export const contactApiSpec = {
                 },
                 country: {
                   type: 'string',
-                  example: 'Pakistan',
+                  example: 'United States',
                 },
                 intent: {
                   type: 'string',
@@ -104,7 +104,7 @@ export const contactApiSpec = {
                   type: 'string',
                   minLength: 10,
                   maxLength: 2000,
-                  example: 'We have 2 commercial plazas and 3 villas under construction. Looking to replace Excel for BOQs and daily field logs.',
+                  example: 'We have 2 commercial buildings and 3 custom homes under construction. Looking to replace Excel for BOQs and daily field logs.',
                 },
                 honeyPot: {
                   type: 'string',

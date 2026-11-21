@@ -164,7 +164,7 @@ export const SuppliersPage: React.FC = () => {
               { label: 'Email', key: 'email', placeholder: 'sales@supplier.com', type: 'email' },
               { label: 'Phone', key: 'phone', placeholder: '+92-300-0000000', type: 'text' },
               { label: 'Payment terms', key: 'paymentTerms', placeholder: 'Net 30', type: 'text' },
-              { label: 'Currency', key: 'currencyCode', placeholder: 'PKR', type: 'text' },
+              { label: 'Currency', key: 'currencyCode', placeholder: 'USD', type: 'text' },
               { label: 'Website', key: 'website', placeholder: 'https://...', type: 'url' },
             ].map(({ label, key, placeholder, type }) => (
               <div key={key}>

@@ -63,7 +63,7 @@ export const ChangeOrdersPage: React.FC = () => {
 
   // Create form
   const [title, setTitle]       = useState('');
-  const [currency, setCurrency] = useState('PKR');
+  const [currency, setCurrency] = useState('USD');
   const [reason, setReason]     = useState('');
   const [description, setDescription] = useState('');
   const [selectedCostCodeId, setSelectedCostCodeId] = useState('');
@@ -101,7 +101,7 @@ export const ChangeOrdersPage: React.FC = () => {
         },
       }).unwrap();
       toastOk('Change order created', '');
-      setShowCreate(false); setTitle(''); setCurrency('PKR'); setReason(''); setDescription(''); setCostDelta('0.00');
+      setShowCreate(false); setTitle(''); setCurrency('USD'); setReason(''); setDescription(''); setCostDelta('0.00');
     } catch (err) { toastErr('Create failed', toastErrorMessage(err as never)); }
   };
 

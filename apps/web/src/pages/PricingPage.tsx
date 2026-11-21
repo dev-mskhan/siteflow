@@ -1,16 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ArrowRight, HelpCircle } from 'lucide-react';
+import { Check, ArrowRight } from 'lucide-react';
 import { SmartCtaLink } from '../components/ui/SmartCtaLink';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
 import { Seo } from '../components/seo/Seo';
 import { SEO_DATA } from '../content/seo';
 import { PRICING_PLANS, PRICING_FAQ } from '../content/pricing';
 
 export const PricingPage: React.FC = () => {
-  const [currency, setCurrency] = useState<'PKR' | 'USD'>('PKR');
 
   return (
     <div className="bg-bg text-text">
@@ -46,28 +43,6 @@ export const PricingPage: React.FC = () => {
             </Link>
             . No credit card required.
           </p>
-
-          {/* Currency Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 border border-[rgba(10,10,10,0.12)] bg-white text-xs font-mono font-semibold">
-            <button
-              type="button"
-              onClick={() => setCurrency('PKR')}
-              className={`px-3 py-1.5 transition-colors duration-[120ms] ${
-                currency === 'PKR' ? 'bg-[#0a0a0a] text-white' : 'text-[#6b6b6b] hover:bg-[#f3f3f3]'
-              }`}
-            >
-              PKR
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrency('USD')}
-              className={`px-3 py-1.5 transition-colors duration-[120ms] ${
-                currency === 'USD' ? 'bg-[#0a0a0a] text-white' : 'text-[#6b6b6b] hover:bg-[#f3f3f3]'
-              }`}
-            >
-              USD
-            </button>
-          </div>
         </div>
       </section>
 
@@ -75,7 +50,7 @@ export const PricingPage: React.FC = () => {
       <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8 bg-surface border-b border-border">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
           {PRICING_PLANS.map((plan) => {
-            const price = currency === 'PKR' ? plan.priceMonthlyPKR : plan.priceMonthlyUSD;
+            const price = plan.priceMonthlyUSD;
             const isContact = price === 'Contact us';
 
             return (

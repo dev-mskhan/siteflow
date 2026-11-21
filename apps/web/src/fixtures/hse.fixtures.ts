@@ -29,8 +29,8 @@ export const MOCK_CORRECTIVE_ACTIONS: Record<string, CorrectiveActionDTO[]> = {
 
 export const MOCK_PERMITS: Record<string, PermitDTO[]> = {
   proj_01: [
-    { id: 'perm_01', organizationId: 'org_01', projectId: 'proj_01', permitType: 'Building Construction Permit', status: 'ACTIVE', referenceNumber: 'BCP-2024-041', issuingAuthority: 'Karachi Development Authority', responsibleMemberId: 'usr_01', issueDate: '2024-01-15', effectiveDate: '2024-01-20', expiryDate: '2025-01-19', notes: 'Permit covers all above-ground works up to 8 floors.', createdBy: 'usr_01', createdAt: '2024-01-10T09:00:00.000Z', updatedAt: '2024-01-20T10:00:00.000Z' },
-    { id: 'perm_02', organizationId: 'org_01', projectId: 'proj_01', permitType: 'Environmental NOC', status: 'ISSUED', referenceNumber: 'ENV-2024-017', issuingAuthority: 'Sindh EPA', responsibleMemberId: 'usr_01', issueDate: '2024-02-01', effectiveDate: null, expiryDate: '2025-01-31', notes: null, createdBy: 'usr_01', createdAt: '2024-01-25T09:00:00.000Z', updatedAt: '2024-02-01T10:00:00.000Z' },
+    { id: 'perm_01', organizationId: 'org_01', projectId: 'proj_01', permitType: 'Building Construction Permit', status: 'ACTIVE', referenceNumber: 'BCP-2024-041', issuingAuthority: 'City of Austin Building Department', responsibleMemberId: 'usr_01', issueDate: '2024-01-15', effectiveDate: '2024-01-20', expiryDate: '2025-01-19', notes: 'Permit covers all above-ground works up to 8 floors.', createdBy: 'usr_01', createdAt: '2024-01-10T09:00:00.000Z', updatedAt: '2024-01-20T10:00:00.000Z' },
+    { id: 'perm_02', organizationId: 'org_01', projectId: 'proj_01', permitType: 'Environmental NOC', status: 'ISSUED', referenceNumber: 'ENV-2024-017', issuingAuthority: 'Texas Commission on Environmental Quality', responsibleMemberId: 'usr_01', issueDate: '2024-02-01', effectiveDate: null, expiryDate: '2025-01-31', notes: null, createdBy: 'usr_01', createdAt: '2024-01-25T09:00:00.000Z', updatedAt: '2024-02-01T10:00:00.000Z' },
   ],
 };
 

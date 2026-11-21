@@ -18,7 +18,6 @@ import type { ProjectTransition } from '../../../features/project/projectTypes';
 
 function formatMoney(val: string, currency: string): string {
   const n = parseFloat(val);
-  if (currency === 'PKR') return `PKR ${new Intl.NumberFormat('en-PK').format(n)}`;
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
 }
 

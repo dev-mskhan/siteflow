@@ -79,7 +79,7 @@ export const SOVPage: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [title, setTitle]     = useState('');
-  const [currency, setCurrency] = useState('PKR');
+  const [currency, setCurrency] = useState('USD');
   const [description, setDescription] = useState('');
 
   const { data, isLoading } = useListSOVsQuery({ orgId: orgId!, projectId: projectId! });
@@ -94,7 +94,7 @@ export const SOVPage: React.FC = () => {
         input: { title: title.trim(), currencyCode: currency.toUpperCase(), description: description.trim() || undefined },
       }).unwrap();
       toastOk('SOV created', '');
-      setShowCreate(false); setTitle(''); setCurrency('PKR'); setDescription('');
+      setShowCreate(false); setTitle(''); setCurrency('USD'); setDescription('');
     } catch (err) { toastErr('Create failed', toastErrorMessage(err as never)); }
   };
 

@@ -119,12 +119,6 @@ const personaLinks = [
 
 const countryLinks = [
   {
-    title: 'Pakistan Edition',
-    href: '/construction-software-pakistan',
-    flag: 'PK',
-    desc: 'Marla/Kanal & WHT',
-  },
-  {
     title: 'United States',
     href: '/construction-software-us',
     flag: 'US',

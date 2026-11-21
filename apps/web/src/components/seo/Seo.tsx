@@ -34,7 +34,7 @@ export const Seo: React.FC<SeoProps> = ({
       url: 'https://siteflow.app',
       logo: 'https://siteflow.app/vite.svg',
       description:
-        'Construction operations platform for small and mid-sized contractors. Budgeting, BOQ, field tracking, procurement, and payment applications in PKR and USD.',
+        'Construction operations platform for small and mid-sized contractors. Budgeting, BOQ, field tracking, procurement, and payment applications in USD.',
       sameAs: [],
     });
   }

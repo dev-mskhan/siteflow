@@ -14,7 +14,7 @@ export const ProjectProcurementReportPage: React.FC = () => {
   const rec = data.receipts ?? { total: 0, posted: 0, voided: 0 };
   const sections = [
     { title: 'Material requests', stats: [['Total', mr.total],['Approved', mr.approved],['Ordered', mr.ordered],['Fulfilled', mr.fulfilled],['Cancelled', mr.cancelled]] },
-    { title: 'Purchase orders', stats: [['Total', po.total],['Approved', po.approved],['Sent', po.sent],['Received', po.received],['Committed (PKR)', parseFloat(po.totalCommittedAmount ?? '0').toLocaleString()]] },
+    { title: 'Purchase orders', stats: [['Total', po.total],['Approved', po.approved],['Sent', po.sent],['Received', po.received],['Committed (USD)', parseFloat(po.totalCommittedAmount ?? '0').toLocaleString()]] },
     { title: 'Deliveries', stats: [['Total', del.total],['Scheduled', del.scheduled],['Delivered', del.delivered],['Cancelled', del.cancelled]] },
     { title: 'Receipts', stats: [['Total', rec.total],['Posted', rec.posted],['Voided', rec.voided]] },
   ];

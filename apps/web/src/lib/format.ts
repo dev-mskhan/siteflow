@@ -1,52 +1,34 @@
 /**
  * Formatting helpers for Money, Dates, and Units
- * Plain, predictable formatting for construction managers in Pakistan and US.
+ * Plain, predictable formatting for construction managers in the United States.
  */
 
-export type CurrencyCode = 'PKR' | 'USD';
+export type CurrencyCode = 'USD';
 
 /**
- * Format currency with proper locale convention:
- * PKR: "PKR 148,500,000" or short "PKR 14.85 Cr" / "PKR 98.2M"
- * USD: "$2,850,000.00" or short "$2.85M"
+ * Format currency in USD:
+ * "$2,850,000.00" or short "$2.85M"
  */
 export function formatMoney(
   amount: number,
-  currency: CurrencyCode = 'PKR',
+  currency: CurrencyCode = 'USD',
   options?: { compact?: boolean; hideDecimals?: boolean }
 ): string {
   if (isNaN(amount) || amount === null || amount === undefined) {
-    return currency === 'PKR' ? 'PKR 0' : '$0';
+    return '$0';
   }
 
   if (options?.compact) {
-    if (currency === 'PKR') {
-      if (Math.abs(amount) >= 10000000) {
-        return `PKR ${(amount / 10000000).toFixed(2)} Cr`;
-      }
-      if (Math.abs(amount) >= 100000) {
-        return `PKR ${(amount / 100000).toFixed(2)} Lakh`;
-      }
-      return `PKR ${amount.toLocaleString('en-PK')}`;
-    } else {
-      if (Math.abs(amount) >= 1000000) {
-        return `$${(amount / 1000000).toFixed(2)}M`;
-      }
-      if (Math.abs(amount) >= 1000) {
-        return `$${(amount / 1000).toFixed(1)}k`;
-      }
-      return `$${amount.toLocaleString('en-US')}`;
+    if (Math.abs(amount) >= 1000000) {
+      return `$${(amount / 1000000).toFixed(2)}M`;
     }
+    if (Math.abs(amount) >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}k`;
+    }
+    return `$${amount.toLocaleString('en-US')}`;
   }
 
   const fractionDigits = options?.hideDecimals || amount % 1 === 0 ? 0 : 2;
-
-  if (currency === 'PKR') {
-    return `PKR ${amount.toLocaleString('en-PK', {
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
-    })}`;
-  }
 
   return amount.toLocaleString('en-US', {
     style: 'currency',

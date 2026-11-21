@@ -10,56 +10,13 @@ export interface CountryContent {
   headline: string;
   supportingSentence: string;
   problem: string;
-  currencyCode: 'PKR' | 'USD';
+  currencyCode: 'USD';
   units: string[];
   localStandards: CountryFeatureItem[];
   faqs: { question: string; answer: string }[];
 }
 
 export const COUNTRIES_DATA: Record<string, CountryContent> = {
-  'construction-software-pakistan': {
-    slug: 'construction-software-pakistan',
-    title: 'Construction Software for Pakistan',
-    badge: 'Pakistan Edition (PKR)',
-    headline: 'Run construction projects with native PKR, Marla units, and WHT compliance',
-    supportingSentence: 'Purpose-built for contractors in Lahore, Karachi, Islamabad, and across Pakistan. Manage Bill of Quantities, site labor, and subcontractor payments without formula errors.',
-    problem: 'Pakistani contractors struggle with foreign construction tools that force US Dollars, square feet, and irrelevant Western accounting codes. Most local teams fall back to chaotic WhatsApp groups and manual Excel sheets where Lakhs and Crores get miscalculated.',
-    currencyCode: 'PKR',
-    units: ['Marla & Kanal', 'Running Feet (Rft)', 'Square Feet (Sft)', 'Cubic Feet (Cft)', 'Bags & Tons'],
-    localStandards: [
-      {
-        title: 'Native PKR formatting with Lakhs & Crores',
-        description: 'Display all project budgets, interim payment certificates, and purchase orders in Pakistani Rupees with standard South Asian numerical grouping (e.g., PKR 14.85 Crore).',
-      },
-      {
-        title: 'Local area & material measurement units',
-        description: 'Track residential and commercial plots using Marla and Kanal conventions alongside standard Sft, Rft, Cft, and Ton metrics for rebar and cement.',
-      },
-      {
-        title: 'PRA & FBR Withholding Tax (WHT) calculations',
-        description: 'Automatically deduct provincial (PRA, SRB, KPRA) and federal (FBR) withholding taxes from subcontractor claims and vendor payments.',
-      },
-      {
-        title: 'ASTM & British Standard material specs',
-        description: 'Preconfigured templates for Deformed Rebar Fe 500D / Grade 60 steel, Ordinary Portland Cement (OPC), Sulphate Resistant Cement (SRC), and Class-A red clay brick masonry.',
-      },
-    ],
-    faqs: [
-      {
-        question: 'Does SiteFlow support offline logging for remote Pakistan sites?',
-        answer: 'Yes. Supervisors can record daily manpower, truck deliveries, and concrete pours offline. Data syncs automatically once a cellular data connection is available.',
-      },
-      {
-        question: 'Can we pay for SiteFlow subscription via local Pakistani bank transfer?',
-        answer: 'Yes. We support local bank wire transfers via IBAN in Pakistani Rupees, as well as company credit and debit cards.',
-      },
-      {
-        question: 'Is training available in Urdu for site supervisors?',
-        answer: 'Yes. The mobile supervisor interface features simple, visual workflows with concise Urdu and English video walkthroughs.',
-      },
-    ],
-  },
-
   'construction-software-us': {
     slug: 'construction-software-us',
     title: 'Commercial Construction Software US',

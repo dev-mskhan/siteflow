@@ -136,7 +136,7 @@ export const CreateOrgPage: React.FC = () => {
                 id={id}
                 type="text"
                 autoComplete="organization"
-                placeholder="Mehmood Civil Construction"
+                placeholder="Carter Construction LLC"
                 className={inputCls(!!errors.name)}
                 {...register('name')}
               />

@@ -63,7 +63,7 @@ export const PaymentApplicationsPage: React.FC = () => {
   // Create form
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd]     = useState('');
-  const [currency, setCurrency]       = useState('PKR');
+  const [currency, setCurrency]       = useState('USD');
   const [workCompleted, setWorkCompleted] = useState('');
 
   const { data, isLoading } = useListPaymentApplicationsQuery({ orgId: orgId!, projectId: projectId! });

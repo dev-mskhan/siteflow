@@ -24,7 +24,6 @@ const groups = [
     links: [
       ['About', '/about'],
       ['Contact', '/contact'],
-      ['Pakistan edition', '/construction-software-pakistan'],
       ['United States', '/construction-software-us'],
     ],
   },
@@ -87,7 +86,7 @@ export const Footer: React.FC = () => (
           ))}
         </div>
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">
-          PKR / USD ready
+          USD ready
         </span>
       </div>
     </div>

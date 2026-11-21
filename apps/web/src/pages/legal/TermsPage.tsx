@@ -16,7 +16,7 @@ const sections = [
   {
     id: 'subscription-fees',
     heading: '3. Subscription Fees and Invoicing',
-    body: 'Services are billed on a recurring monthly or annual basis as specified in your selected tier (in Pakistani Rupees or US Dollars). Subscriptions renew automatically unless cancelled prior to the end of the current billing cycle.',
+    body: 'Services are billed on a recurring monthly or annual basis as specified in your selected tier (in US Dollars). Subscriptions renew automatically unless cancelled prior to the end of the current billing cycle.',
   },
   {
     id: 'disclaimer',

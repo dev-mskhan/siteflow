@@ -28,7 +28,7 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
     title: 'Estimating & BOQ',
     badge: 'Scope & Quantity Control',
     headline: 'Build airtight estimates without broken spreadsheet formulas',
-    supportingSentence: 'Structure Bill of Quantities items with live unit rates in PKR and USD, lock contract baselines, and prevent unbilled site work.',
+    supportingSentence: 'Structure Bill of Quantities items with live unit rates in USD, lock contract baselines, and prevent unbilled site work.',
     problem: 'Contractors lose thousands when estimates are compiled across five disconnected Excel sheets. Quantities get typed twice, unit rate increases are missed, and revisions override original contractual commitments without a paper trail.',
     benefits: [
       {
@@ -40,8 +40,8 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
         description: 'Once a contract is signed, lock the baseline estimate. Any scope change requires an approved change order, preserving original target margins.',
       },
       {
-        title: 'Dual currency calculations',
-        description: 'Quote and budget in Pakistani Rupees (PKR) or US Dollars (USD) with local area units (Marla, Kanal, SqFt, Cubic Yards).',
+        title: 'CSI MasterFormat cost coding',
+        description: 'Structure your Bill of Quantities and job cost codes using standard CSI MasterFormat divisions — from Division 03 Concrete to Division 16 Electrical.',
       },
       {
         title: 'Ask the AI',
@@ -50,9 +50,9 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
     ],
     appPreviewDescription: 'Live Bill of Quantities grid linking quantities directly to material purchase orders and field inspection logs.',
     sampleItems: [
-      { code: '03.14.02', title: 'Deformed Steel Rebar Fe 500D (32mm)', meta: '45.0 Ton @ PKR 265,000 / Ton', status: 'ontrack' },
-      { code: '03.20.01', title: 'Ready-Mix Concrete C35/45 Pumping Mix', meta: '320.0 m³ @ PKR 37,800 / m³', status: 'ontrack' },
-      { code: '04.10.05', title: 'Class-A Red Clay Brick Masonry', meta: '18,500 Pcs @ PKR 18.5 / Pc', status: 'atrisk' },
+      { code: '03.14.02', title: 'Deformed Steel Rebar Grade 60 (1-1/4")', meta: '45.0 Ton @ $920 / Ton', status: 'ontrack' },
+      { code: '03.20.01', title: 'Ready-Mix Concrete 4,000 psi Pumping Mix', meta: '320.0 CY @ $145 / CY', status: 'ontrack' },
+      { code: '04.10.05', title: 'CMU Block 8" Lightweight Masonry', meta: '18,500 Pcs @ $2.80 / Pc', status: 'atrisk' },
     ],
     faqs: [
       {
@@ -230,9 +230,9 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
     ],
     appPreviewDescription: 'Trade contractor directory tracking active subcontract agreements, certified work completion, and withheld retainage.',
     sampleItems: [
-      { code: 'SC-STEEL-01', title: 'Al-Madina Steel Fixing Services', meta: 'Contract: PKR 14.5M • Certified: 68% • Retainage: 10%', status: 'ontrack' },
-      { code: 'SC-CONC-04', title: 'Metro Pumping & Concrete Pouring', meta: 'Contract: PKR 28.0M • Certified: 52% • Retainage: 10%', status: 'ontrack' },
-      { code: 'SC-MEP-02', title: 'Apex Electrical & Conduit Installers', meta: 'Contract: PKR 8.2M • Mobilization delayed by rain', status: 'atrisk' },
+      { code: 'SC-STEEL-01', title: 'Apex Steel Fixing Services', meta: 'Contract: $51,800 • Certified: 68% • Retainage: 10%', status: 'ontrack' },
+      { code: 'SC-CONC-04', title: 'Metro Pumping & Concrete Pouring', meta: 'Contract: $100,000 • Certified: 52% • Retainage: 10%', status: 'ontrack' },
+      { code: 'SC-MEP-02', title: 'Keller Electrical & Conduit Installers', meta: 'Contract: $29,300 • Mobilization delayed by rain', status: 'atrisk' },
     ],
     faqs: [
       {
@@ -274,9 +274,9 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
     ],
     appPreviewDescription: 'Variation log tracking proposed scope adjustments, cost impacts, client approvals, and schedule adjustments.',
     sampleItems: [
-      { code: 'CO-001', title: 'Additional Foundation Raft Piling Depth (+2.5m)', meta: 'Approved • Value: PKR 3,850,000 • +4 Days', status: 'ontrack' },
-      { code: 'CO-002', title: '4th Floor Slab Layout Redesign for HVAC Ducts', meta: 'Pending Client Approval • Value: PKR 1,240,000', status: 'atrisk' },
-      { code: 'CO-003', title: 'Upgraded Porcelain Tile Finishes in Lobby', meta: 'Drafting Specification • Value: PKR 890,000', status: 'ontrack' },
+      { code: 'CO-001', title: 'Additional Foundation Raft Piling Depth (+2.5m)', meta: 'Approved • Value: $13,750 • +4 Days', status: 'ontrack' },
+      { code: 'CO-002', title: '4th Floor Slab Layout Redesign for HVAC Ducts', meta: 'Pending Client Approval • Value: $4,430', status: 'atrisk' },
+      { code: 'CO-003', title: 'Upgraded Porcelain Tile Finishes in Lobby', meta: 'Drafting Specification • Value: $3,180', status: 'ontrack' },
     ],
     faqs: [
       {
@@ -322,9 +322,9 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
     ],
     appPreviewDescription: 'Cost dashboard showing real-time budget utilization, committed obligations, and projected completion margins.',
     sampleItems: [
-      { code: 'DIV-03', title: 'Concrete & Steel Structural Works', meta: 'Budget: PKR 78.5M • Committed: 64.2M • Variance: +2.1%', status: 'ontrack' },
-      { code: 'DIV-04', title: 'Masonry & Partition Walls', meta: 'Budget: PKR 24.0M • Committed: 23.8M • Variance: -1.4%', status: 'atrisk' },
-      { code: 'DIV-09', title: 'Finishes, Plaster & Floor Screed', meta: 'Budget: PKR 32.0M • Committed: 10.2M • On Track', status: 'ontrack' },
+      { code: 'DIV-03', title: 'Concrete & Steel Structural Works', meta: 'Budget: $280,400 • Committed: $229,300 • Variance: +2.1%', status: 'ontrack' },
+      { code: 'DIV-04', title: 'Masonry & Partition Walls', meta: 'Budget: $85,700 • Committed: $84,500 • Variance: -1.4%', status: 'atrisk' },
+      { code: 'DIV-09', title: 'Finishes, Plaster & Floor Screed', meta: 'Budget: $114,300 • Committed: $36,400 • On Track', status: 'ontrack' },
     ],
     faqs: [
       {
@@ -357,7 +357,7 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
       },
       {
         title: 'Built-in retainage & tax deduction logic',
-        description: 'Deduct contract retainage (5% or 10%) and local withholding taxes (PRA / FBR in Pakistan, state taxes in US) without manual calculations.',
+        description: 'Deduct contract retainage (5% or 10%) and applicable state taxes without manual calculations.',
       },
       {
         title: 'Print-ready PDF certificates',
@@ -366,18 +366,14 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
     ],
     appPreviewDescription: 'Billing application generator tracking gross work completed, statutory tax deductions, retainage, and net payable amounts.',
     sampleItems: [
-      { code: 'IPC-04', title: 'Interim Payment Certificate #04 (Tower B)', meta: 'Gross: PKR 18,450,000 • Net Approved: PKR 15,682,500', status: 'ontrack' },
-      { code: 'IPC-03', title: 'Interim Payment Certificate #03', meta: 'Cleared Bank Wire • Reference: HBL-981042', status: 'ontrack' },
-      { code: 'RET-01', title: 'Accumulated Retainage Withholding Pool', meta: 'Total Withheld: PKR 7,425,000 • Release at Handover', status: 'ontrack' },
+      { code: 'IPC-04', title: 'Interim Payment Certificate #04 (Tower B)', meta: 'Gross: $65,900 • Net Approved: $56,015', status: 'ontrack' },
+      { code: 'IPC-03', title: 'Interim Payment Certificate #03', meta: 'Cleared Wire Transfer • Reference: BNK-981042', status: 'ontrack' },
+      { code: 'RET-01', title: 'Accumulated Retainage Withholding Pool', meta: 'Total Withheld: $26,500 • Release at Handover', status: 'ontrack' },
     ],
     faqs: [
       {
         question: 'Does this generate AIA-style G702/G703 payment forms?',
         answer: 'Yes. For US projects, billing certificates follow the standard AIA format showing contract sum, retainage, and continuation sheet line items.',
-      },
-      {
-        question: 'Does it calculate Pakistani tax withholding (WHT)?',
-        answer: 'Yes. For Pakistan projects, SiteFlow automatically applies the configured PRA/FBR withholding tax rates on services and goods invoices.',
       },
       {
         question: 'Can finance mark payments as settled?',
@@ -449,7 +445,7 @@ export const FEATURES_DATA: Record<string, FeatureContent> = {
       {
         title: 'Every number is real',
         description:
-          'The AI only uses numbers from your actual project data. If it says "PKR 78.5M committed," that figure came from a real budget query — not the AI guessing.',
+          'The AI only uses numbers from your actual project data. If it says "$78.5K committed," that figure came from a real budget query — not the AI guessing.',
       },
       {
         title: 'AI cannot act without your approval',

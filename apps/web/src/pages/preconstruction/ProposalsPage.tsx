@@ -80,7 +80,7 @@ export const ProposalsPage: React.FC = () => {
 
   // Create form
   const [title, setTitle]       = useState('');
-  const [currency, setCurrency] = useState('PKR');
+  const [currency, setCurrency] = useState('USD');
   const [clientName, setClientName] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [description, setDescription] = useState('');
@@ -105,7 +105,7 @@ export const ProposalsPage: React.FC = () => {
       }).unwrap();
       toastOk('Proposal created', '');
       setShowCreate(false);
-      setTitle(''); setCurrency('PKR'); setClientName(''); setValidUntil(''); setDescription('');
+      setTitle(''); setCurrency('USD'); setClientName(''); setValidUntil(''); setDescription('');
       navigate(`/org/${orgId}/projects/${projectId}/preconstruction/proposals/${result.id}`);
     } catch (err) {
       if (isToastError(err as never)) toastErr('Create failed', toastErrorMessage(err as never));

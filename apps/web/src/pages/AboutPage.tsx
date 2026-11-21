@@ -41,7 +41,7 @@ export const AboutPage: React.FC = () => {
             <div className="space-y-4 text-xs sm:text-sm text-[#6b6b6b] leading-relaxed">
               <p>
                 In construction, profit does not disappear in large catastrophes. It leaks away in
-                hundred-dollar drips and thousand-rupee errors: an unbilled design modification,
+                hundred-dollar drips and costly errors: an unbilled design modification,
                 three missed rebar deliveries, an unverified subcontractor invoice, or an outdated
                 spreadsheet formula that undercounted concrete by 8%.
               </p>
@@ -69,11 +69,10 @@ export const AboutPage: React.FC = () => {
                 <CardContent className="p-5 space-y-1.5">
                   <div className="flex items-center gap-2 font-heading font-bold text-sm text-[#0a0a0a]">
                     <Coins className="w-4 h-4 text-[#0a0a0a]" />
-                    <span>Dual Currency Architecture</span>
+                    <span>US Market Architecture</span>
                   </div>
                   <p className="text-xs text-[#6b6b6b] leading-relaxed">
-                    Native support for Pakistani Rupees (PKR) with Marla and Kanal measurement
-                    conventions, and US Dollars (USD) with standard CSI MasterFormat divisions.
+                    Built for US builders, with CSI MasterFormat cost codes, AIA-style payment applications, and standard retainage workflows.
                   </p>
                 </CardContent>
               </Card>

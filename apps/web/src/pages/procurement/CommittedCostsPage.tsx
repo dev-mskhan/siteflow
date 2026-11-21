@@ -53,7 +53,7 @@ export const CommittedCostsPage: React.FC = () => {
           <div className="border border-[var(--hairline-2)] bg-[var(--paper)] px-5 py-3 text-right">
             <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)]">Total active commitment</p>
             <p className="text-xl font-medium tracking-[-0.03em] mt-0.5">
-              PKR {totalActive.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ${totalActive.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </div>
         )}

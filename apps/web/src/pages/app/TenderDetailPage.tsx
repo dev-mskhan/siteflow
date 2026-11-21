@@ -93,7 +93,7 @@ export const TenderDetailPage: React.FC = () => {
     setEditTz(tender.submissionTimezone);
     setEditReqs(tender.requirements ?? '');
     setEditEstValue(tender.estimatedValue ?? '');
-    setEditCurrency(tender.currencyCode ?? 'PKR');
+    setEditCurrency(tender.currencyCode ?? 'USD');
     setEditNotes(tender.notes ?? '');
     setEditing(true);
   };

@@ -110,7 +110,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onWatchDemo }) => {
             >
               <li className="flex items-start gap-2">
                 <span className="mt-[5px] w-3.5 h-px bg-accent shrink-0" />
-                Runs in PKR and USD with local tax and unit conventions
+                CSI MasterFormat cost codes and AIA-style billing
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-[5px] w-3.5 h-px bg-accent shrink-0" />

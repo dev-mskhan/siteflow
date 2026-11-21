@@ -238,7 +238,7 @@ export const MaterialsPage: React.FC = () => {
               { label: 'Unit code *', key: 'defaultUnitCode', hint: 'e.g. MT, BAG, M3 (uppercase)' },
               { label: 'Category', key: 'category', hint: 'Optional, max 200' },
               { label: 'Default tax code', key: 'defaultTaxCode', hint: 'e.g. GST17' },
-              { label: 'Default currency', key: 'defaultCurrencyCode', hint: '3-char, e.g. PKR' },
+              { label: 'Default currency', key: 'defaultCurrencyCode', hint: '3-char, e.g. USD' },
             ].map(({ label, key, hint }) => (
               <div key={key}>
                 <label className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1.5">{label}</label>

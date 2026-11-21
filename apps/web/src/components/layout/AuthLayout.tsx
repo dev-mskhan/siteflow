@@ -26,7 +26,7 @@ interface AuthLayoutProps {
 const DEFAULT_BULLETS = [
   'Estimate to payment — one connected record',
   'BOQ, procurement, field logs, certifications',
-  'PKR and USD — multi-currency out of the box',
+  'CSI MasterFormat cost codes — standard out of the box',
   'Role-based access for every team member',
 ];
 
@@ -89,7 +89,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         {/* Footer note */}
         <p className="relative z-10 font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">
-          © 2026 SiteFlow · PKR / USD ready
+          © 2026 SiteFlow · Built for US builders
         </p>
       </div>
     )}

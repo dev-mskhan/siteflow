@@ -60,7 +60,7 @@ export const CreateProjectModal: React.FC<{ orgId: string; onClose: () => void }
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', description: '', currency: 'PKR', contractValue: '', projectType: undefined, plannedStartDate: '', plannedEndDate: '' },
+    defaultValues: { name: '', description: '', currency: 'USD', contractValue: '', projectType: undefined, plannedStartDate: '', plannedEndDate: '' },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -115,7 +115,7 @@ export const CreateProjectModal: React.FC<{ orgId: string; onClose: () => void }
 
             <FormField label="Project name" error={errors.name?.message} required>
               {(id) => (
-                <input id={id} type="text" placeholder="Gulberg Commercial Plaza" className={inputCls(!!errors.name)} {...register('name')} />
+                <input id={id} type="text" placeholder="Downtown Mixed-Use Plaza" className={inputCls(!!errors.name)} {...register('name')} />
               )}
             </FormField>
 
@@ -135,7 +135,7 @@ export const CreateProjectModal: React.FC<{ orgId: string; onClose: () => void }
               </FormField>
               <FormField label="Currency" error={errors.currency?.message} required>
                 {(id) => (
-                  <input id={id} type="text" placeholder="PKR" maxLength={3} className={inputCls(!!errors.currency)} {...register('currency')} />
+                  <input id={id} type="text" placeholder="USD" maxLength={3} className={inputCls(!!errors.currency)} {...register('currency')} />
                 )}
               </FormField>
             </div>

@@ -30,7 +30,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const DATE_FORMAT_OPTIONS = [
-  { value: 'DD_MM_YYYY',  label: 'DD/MM/YYYY',  meta: 'Day first (Pakistan, UK)' },
+  { value: 'DD_MM_YYYY',  label: 'DD/MM/YYYY',  meta: 'Day first (UK, Europe)' },
   { value: 'MM_DD_YYYY',  label: 'MM/DD/YYYY',  meta: 'Month first (US)' },
   { value: 'YYYY_MM_DD',  label: 'YYYY-MM-DD',  meta: 'ISO 8601' },
 ];
@@ -53,19 +53,15 @@ const MONTH_OPTIONS = [
 ].map((m, i) => ({ value: String(i + 1), label: m }));
 
 const CURRENCY_SUGGESTIONS = [
-  { value: 'PKR', label: 'Pakistani rupee' },
   { value: 'USD', label: 'US dollar' },
 ];
 
 const LOCALE_SUGGESTIONS = [
-  { value: 'en-PK', label: 'English (Pakistan)' },
-  { value: 'ur-PK', label: 'Urdu (Pakistan)' },
   { value: 'en-US', label: 'English (United States)' },
   { value: 'es-US', label: 'Spanish (United States)' },
 ];
 
 const TIMEZONE_SUGGESTIONS = [
-  { value: 'Asia/Karachi', label: 'Pakistan Standard Time (UTC+05:00)' },
   { value: 'America/New_York', label: 'US Eastern Time' },
   { value: 'America/Chicago', label: 'US Central Time' },
   { value: 'America/Denver', label: 'US Mountain Time' },
@@ -114,7 +110,7 @@ export const GeneralSettingsPage: React.FC = () => {
         <FormField
           label="Currency"
           error={errors.currency?.message}
-          hint="Pakistan: PKR · United States: USD. Enter another 3-letter code if needed."
+          hint="Enter a 3-letter ISO currency code, e.g. USD."
           required
         >
           {(id, _errorId, hintId) => (
@@ -166,7 +162,7 @@ export const GeneralSettingsPage: React.FC = () => {
       <FormField
         label="Timezone"
         error={errors.timezone?.message}
-        hint="Pakistan: Asia/Karachi. US choices include Eastern, Central, Mountain, and Pacific. Other IANA timezones are accepted."
+        hint="US timezones: America/New_York, America/Chicago, America/Denver, America/Los_Angeles. Any IANA timezone is accepted."
         required
       >
         {(id, _errorId, hintId) => (

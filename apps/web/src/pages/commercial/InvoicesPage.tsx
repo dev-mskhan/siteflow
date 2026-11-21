@@ -76,7 +76,7 @@ export const InvoicesPage: React.FC = () => {
   const [invoiceType, setInvoiceType] = useState<InvoiceType>('PROGRESS');
   const [issueDate, setIssueDate]     = useState(new Date().toISOString().split('T')[0]!);
   const [dueDate, setDueDate]         = useState('');
-  const [currency, setCurrency]       = useState('PKR');
+  const [currency, setCurrency]       = useState('USD');
   const [lineDesc, setLineDesc]       = useState('');
   const [lineAmount, setLineAmount]   = useState('');
   const [lineTax, setLineTax]         = useState('17');

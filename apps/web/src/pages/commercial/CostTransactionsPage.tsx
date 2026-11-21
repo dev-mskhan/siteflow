@@ -49,7 +49,7 @@ export const CostTransactionsPage: React.FC = () => {
   const [costCodeId, setCostCodeId]       = useState('cc_structural');
   const [txnDate, setTxnDate]             = useState(new Date().toISOString().split('T')[0]!);
   const [description, setDescription]     = useState('');
-  const [currency, setCurrency]           = useState('PKR');
+  const [currency, setCurrency]           = useState('USD');
   const [quantity, setQuantity]           = useState('');
   const [unit, setUnit]                   = useState('');
   const [unitCost, setUnitCost]           = useState('');

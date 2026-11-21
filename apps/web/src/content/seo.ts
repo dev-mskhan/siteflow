@@ -14,7 +14,7 @@ export interface SeoMetadata {
 export const SEO_DATA: Record<string, SeoMetadata> = {
   home: {
     title: 'SiteFlow | Construction Operations for Contractors',
-    description: 'Construction operations platform for small and mid-sized contractors. Budgeting, BOQ, field tracking, procurement, and payment applications in PKR and USD.',
+    description: 'Construction operations platform for small and mid-sized US contractors. Budgeting, BOQ, field tracking, procurement, and AIA-style payment applications.',
     canonical: 'https://siteflow.app/',
     schemaType: 'Organization',
   },
@@ -26,7 +26,7 @@ export const SEO_DATA: Record<string, SeoMetadata> = {
   },
   pricing: {
     title: 'Pricing Plans for General Contractors | SiteFlow',
-    description: 'Transparent construction software pricing in PKR and USD. Scalable plans for growing builders and established general contractors without hidden fees.',
+    description: 'Transparent construction software pricing in USD. Scalable plans for growing builders and established general contractors without hidden fees.',
     canonical: 'https://siteflow.app/pricing',
     schemaType: 'SoftwareApplication',
   },
@@ -47,12 +47,6 @@ export const SEO_DATA: Record<string, SeoMetadata> = {
     description: 'Learn how SiteFlow protects contractor data with strict multi-tenant isolation, role-based access control, project barriers, and immutable audit logs.',
     canonical: 'https://siteflow.app/security',
     schemaType: 'WebPage',
-  },
-  pakistan: {
-    title: 'Construction Software in Pakistan | PKR & BOQ | SiteFlow',
-    description: 'Construction operations for Pakistani contractors. Native PKR support, Marla and Kanal units, PRA/FBR withholding tax, and local material specifications.',
-    canonical: 'https://siteflow.app/construction-software-pakistan',
-    schemaType: 'SoftwareApplication',
   },
   us: {
     title: 'Commercial Construction Management US | SiteFlow',

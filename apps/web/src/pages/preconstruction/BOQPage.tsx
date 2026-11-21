@@ -99,7 +99,7 @@ export const BOQPage: React.FC = () => {
 
   // Create form
   const [title, setTitle]     = useState('');
-  const [currency, setCurrency] = useState('PKR');
+  const [currency, setCurrency] = useState('USD');
   const [description, setDescription] = useState('');
 
   const { data, isLoading } = useListBoqsQuery({ orgId: orgId!, projectId: projectId! });
@@ -117,7 +117,7 @@ export const BOQPage: React.FC = () => {
         input: { title: title.trim(), currencyCode: currency.toUpperCase(), description: description.trim() || undefined },
       }).unwrap();
       toastOk('BOQ created', '');
-      setShowCreate(false); setTitle(''); setCurrency('PKR'); setDescription('');
+      setShowCreate(false); setTitle(''); setCurrency('USD'); setDescription('');
     } catch (err) {
       if (isToastError(err as never)) toastErr('Create failed', toastErrorMessage(err as never));
     }

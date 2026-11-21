@@ -51,9 +51,9 @@ export const TendersPage: React.FC = () => {
   const [title, setTitle]       = useState('');
   const [clientName, setClientName] = useState('');
   const [deadline, setDeadline] = useState('');
-  const [tz, setTz]             = useState('Asia/Karachi');
+  const [tz, setTz]             = useState('America/New_York');
   const [estValue, setEstValue] = useState('');
-  const [currency, setCurrency] = useState('PKR');
+  const [currency, setCurrency] = useState('USD');
   const [description, setDescription] = useState('');
 
   const { data, isLoading } = useListTendersQuery({

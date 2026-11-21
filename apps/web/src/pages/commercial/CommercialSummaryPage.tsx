@@ -79,7 +79,7 @@ export const CommercialSummaryPage: React.FC = () => {
               {
                 label: 'Subcontract commitments',
                 value: !Number.isNaN(parseFloat(summary.subcontractCommitments ?? ''))
-                  ? `PKR ${parseFloat(summary.subcontractCommitments).toLocaleString()}`
+                  ? `$${parseFloat(summary.subcontractCommitments).toLocaleString()}`
                   : (summary.subcontractCommitments ?? '—').replace(/_/g, ' '),
               },
               { label: 'Invoice lifecycle', value: (summary.invoiceLifecycleCoverage ?? '').replace(/_/g, ' ') },

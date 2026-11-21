@@ -37,7 +37,7 @@ export const contactRequests = appSchema.table('contact_requests', {
   // Company information
   companyName: text('company_name').notNull(),
   companySize: text('company_size').notNull(), // e.g., '1-10', '11-50', '51-200', '200+'
-  country: text('country').notNull(), // e.g., 'Pakistan', 'United States'
+  country: text('country').notNull(), // e.g., 'United States', 'Canada'
   
   // Request details
   intent: contactRequestIntentEnum('intent').notNull(),

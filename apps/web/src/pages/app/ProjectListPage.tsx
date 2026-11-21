@@ -24,7 +24,6 @@ const STATUS_FILTERS: { label: string; value: ProjectStatus | '' }[] = [
 function formatCurrency(value: string | null, currency: string): string {
   if (!value) return '—';
   const num = parseFloat(value);
-  if (currency === 'PKR') return `PKR ${new Intl.NumberFormat('en-PK').format(num)}`;
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(num);
 }
 

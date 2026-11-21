@@ -158,7 +158,7 @@ export const RetainagePage: React.FC = () => {
           ].map(({ label, value }) => (
             <div key={label} className="border border-[var(--hairline-2)] bg-[var(--paper)] p-4">
               <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--muted)] mb-1">{label}</p>
-              <p className="font-mono text-base font-medium">PKR {value}</p>
+              <p className="font-mono text-base font-medium">${value}</p>
             </div>
           ))}
         </div>

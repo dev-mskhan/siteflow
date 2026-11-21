@@ -61,7 +61,7 @@ export const PricingPage: React.FC = () => {
 
   // Create form
   const [unitPrice, setUnitPrice] = useState('');
-  const [currencyCode, setCurrencyCode] = useState('PKR');
+  const [currencyCode, setCurrencyCode] = useState('USD');
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]!);
   const [effectiveTo, setEffectiveTo] = useState('');
   const [scope, setScope] = useState<'PROJECT' | 'ORGANIZATION'>('PROJECT');

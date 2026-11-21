@@ -295,7 +295,7 @@ export const MOCK_CALENDARS: Record<string, CalendarDTO> = {
         id: 'exc_01',
         date: '2026-11-05',
         exceptionType: 'NON_WORKING_DAY',
-        description: 'Pakistan Defence Day observance',
+        description: 'Labor Day observance',
       },
       {
         id: 'exc_02',

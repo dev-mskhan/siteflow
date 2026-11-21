@@ -222,7 +222,7 @@ export const ProjectBudgetPage: React.FC = () => {
         orgId: orgId!,
         projectId: projectId!,
         body: {
-          currencyCode: activeProject?.currency ?? 'PKR',
+          currencyCode: activeProject?.currency ?? 'USD',
           lines: draftLines.map((l) => ({
             costCodeId: l.costCodeId,
             phaseId: l.phaseId ?? undefined,
@@ -315,7 +315,7 @@ export const ProjectBudgetPage: React.FC = () => {
   const isSubmitter = budget?.submittedBy === user?.id;
 
   const isLoading = listLoading || (!!activeBudgetId && budgetLoading);
-  const currency = activeProject?.currency ?? 'PKR';
+  const currency = activeProject?.currency ?? 'USD';
 
   // ── render ───────────────────────────────────────────────────────────────────
 

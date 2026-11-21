@@ -34,7 +34,6 @@ const companySizeOptions: SelectOption[] = [
 ];
 
 const countryOptions: SelectOption[] = [
-  { value: 'Pakistan', label: 'Pakistan', meta: 'PKR · Marla/Kanal · WHT' },
   { value: 'United States', label: 'United States', meta: 'USD · AIA · CSI Divisions' },
   { value: 'Other', label: 'Other region', meta: 'International' },
 ];
@@ -92,7 +91,7 @@ export const ContactPage: React.FC = () => {
       phone: '',
       companyName: '',
       companySize: '11-50',
-      country: 'Pakistan',
+      country: 'United States',
       whatTheyWant: isTrial ? 'trial' : 'demo',
       message: '',
       honeyPot: '',
@@ -223,8 +222,8 @@ export const ContactPage: React.FC = () => {
                         body: 'We will reach out by email or phone with a concrete next step based on what you told us.',
                       },
                       {
-                        title: 'Tailored to your currency',
-                        body: 'Whether you run in PKR or USD, we configure the demo or trial around your actual job types.',
+                        title: 'Tailored to your workflow',
+                        body: 'We configure the demo or trial around your actual job types and project workflow.',
                       },
                     ]
                 ).map(({ title, body }) => (
@@ -297,7 +296,7 @@ export const ContactPage: React.FC = () => {
                   <Field label="Your full name" error={errors.name?.message}>
                     <input
                       className={`${inputBase} ${errors.name ? inputError : ''}`}
-                      placeholder="Tariq Mehmood"
+                      placeholder="John Smith"
                       {...register('name')}
                     />
                   </Field>
@@ -305,7 +304,7 @@ export const ContactPage: React.FC = () => {
                     <input
                       type="email"
                       className={`${inputBase} ${errors.workEmail ? inputError : ''}`}
-                      placeholder="tariq@contractors.com"
+                      placeholder="john@contractors.com"
                       {...register('workEmail')}
                     />
                   </Field>
@@ -316,14 +315,14 @@ export const ContactPage: React.FC = () => {
                   <Field label="Phone (optional)" error={errors.phone?.message}>
                     <input
                       className={`${inputBase} ${errors.phone ? inputError : ''}`}
-                      placeholder="+92 300 1234567"
+                      placeholder="+1 (555) 123-4567"
                       {...register('phone')}
                     />
                   </Field>
                   <Field label="Company or firm name" error={errors.companyName?.message}>
                     <input
                       className={`${inputBase} ${errors.companyName ? inputError : ''}`}
-                      placeholder="Mehmood Civil Construction"
+                      placeholder="Smith Construction LLC"
                       {...register('companyName')}
                     />
                   </Field>

@@ -131,7 +131,7 @@ export const ProfileSettingsPage: React.FC = () => {
         </FormField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {text('registrationNumber',      'Registration number', 'REG-123456')}
-          {text('taxIdentificationNumber', 'Tax ID (NTN / EIN)',  '1234567-8')}
+          {text('taxIdentificationNumber', 'Tax ID (EIN)',  '1234567-8')}
         </div>
       </section>
 
@@ -152,10 +152,10 @@ export const ProfileSettingsPage: React.FC = () => {
         {text('addressLine1',  'Address line 1', '123 Main Street')}
         {text('addressLine2',  'Address line 2', 'Suite 4B (optional)')}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {text('city',          'City',           'Lahore')}
-          {text('stateProvince', 'State / Province','Punjab')}
-          {text('postalCode',    'Postal code',    '54000')}
-          {text('country',       'Country (ISO)',  'PK')}
+          {text('city',          'City',           'Austin')}
+          {text('stateProvince', 'State / Province','TX')}
+          {text('postalCode',    'Postal code',    '78745')}
+          {text('country',       'Country (ISO)',  'US')}
         </div>
       </section>
 

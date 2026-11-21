@@ -137,7 +137,7 @@ export const RegisterPage: React.FC = () => {
                   id={id}
                   type="text"
                   autoComplete="given-name"
-                  placeholder="Tariq"
+                  placeholder="John"
                   aria-invalid={!!errors.firstName}
                   aria-describedby={errors.firstName ? errorId : undefined}
                   className={inputCls(!!errors.firstName)}
@@ -152,7 +152,7 @@ export const RegisterPage: React.FC = () => {
                   id={id}
                   type="text"
                   autoComplete="family-name"
-                  placeholder="Mehmood"
+                  placeholder="Smith"
                   aria-invalid={!!errors.lastName}
                   aria-describedby={errors.lastName ? errorId : undefined}
                   className={inputCls(!!errors.lastName)}

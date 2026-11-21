@@ -688,7 +688,6 @@ export const router = createBrowserRouter([
       { path: 'features/ai-assistant', element: <AIAssistantPage /> },
       { path: 'features/:slug', element: <FeaturePage /> },
       { path: 'for/:personaSlug', element: <PersonaPage /> },
-      { path: 'construction-software-pakistan', element: <CountryPage /> },
       { path: 'construction-software-us', element: <CountryPage /> },
       { path: 'pricing', element: <MarketingPricingPage /> },
       { path: 'contact', element: <ContactPage /> },
