@@ -624,4 +624,207 @@ describe('SaaS Billing — Entitlement Enforcement Integration (10-11)', () => {
       });
     });
   });
+
+  // ── Test 5: Feature flag enforcement across all 7 features × 4 plans ────────────────────────
+
+  describe('Test 5: Feature gate enforcement (requirePlanFeature middleware)', () => {
+    it('allows Trial plan to access all gated features', async () => {
+      const { token: adminToken } = await createVerifiedUser();
+      const { orgId } = await createOrgWithAdmin(app, adminToken);
+
+      // Start trial
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/organizations/${orgId}/billing/trial`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      // Create a project first
+      const projectRes = await app.inject({
+        method: 'POST',
+        url: `/api/v1/organizations/${orgId}/projects`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { name: 'Trial Test Project', currency: 'USD' },
+      });
+      const projectId = projectRes.json().data.id;
+
+      // Test all gated features — should all succeed
+      const tests = [
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/projects/${projectId}/material-requests`, feature: 'procurementChain' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/subcontractors`, feature: 'subcontractorMgmt' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/projects/${projectId}/change-orders`, feature: 'changeOrders' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/projects/${projectId}/payment-applications`, feature: 'aiaPaymentApps' },
+        { method: 'GET', url: `/api/v1/organizations/${orgId}/projects/${projectId}/commercial-summary`, feature: 'costControl' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/ai/conversations`, feature: 'conversationalAi' },
+        { method: 'GET', url: `/api/v1/organizations/${orgId}/reports/portfolio`, feature: 'advancedReporting' },
+      ];
+
+      for (const test of tests) {
+        const res = await app.inject({
+          method: test.method,
+          url: test.url,
+          headers: { authorization: `Bearer ${adminToken}` },
+          payload: test.method === 'POST' ? { /* minimal payload */ } : undefined,
+        });
+        // Should not be blocked by feature gate (may fail for other reasons like validation, but not 403 FEATURE_RESTRICTED)
+        if (res.statusCode === 403) {
+          const error = res.json().error;
+          expect(error.code).not.toBe('FEATURE_RESTRICTED');
+        }
+      }
+    });
+
+    it('blocks Starter plan from accessing all 7 gated features', async () => {
+      const { token: adminToken } = await createVerifiedUser();
+      const { orgId } = await createOrgWithAdmin(app, adminToken);
+
+      await catalogService.createSubscription({
+        organizationId: orgId,
+        planId: 'starter',
+        interval: 'month',
+        actorId: (await createVerifiedUser()).user.id,
+      });
+
+      // Create a project first
+      const projectRes = await app.inject({
+        method: 'POST',
+        url: `/api/v1/organizations/${orgId}/projects`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { name: 'Starter Test Project', currency: 'USD' },
+      });
+      const projectId = projectRes.json().data.id;
+
+      // Test all gated features — should all be blocked with FEATURE_RESTRICTED
+      const tests = [
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/projects/${projectId}/material-requests`, feature: 'procurementChain' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/subcontractors`, feature: 'subcontractorMgmt' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/projects/${projectId}/change-orders`, feature: 'changeOrders' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/projects/${projectId}/payment-applications`, feature: 'aiaPaymentApps' },
+        { method: 'GET', url: `/api/v1/organizations/${orgId}/projects/${projectId}/commercial-summary`, feature: 'costControl' },
+        { method: 'POST', url: `/api/v1/organizations/${orgId}/ai/conversations`, feature: 'conversationalAi' },
+        { method: 'GET', url: `/api/v1/organizations/${orgId}/reports/portfolio`, feature: 'advancedReporting' },
+      ];
+
+      for (const test of tests) {
+        const res = await app.inject({
+          method: test.method,
+          url: test.url,
+          headers: { authorization: `Bearer ${adminToken}` },
+          payload: test.method === 'POST' ? { /* minimal payload */ } : undefined,
+        });
+        expect(res.statusCode).toBe(403);
+        const error = res.json().error;
+        expect(error.code).toBe('FEATURE_RESTRICTED');
+        expect(error.metadata.feature).toBe(test.feature);
+      }
+    });
+
+    it('allows Professional and Enterprise plans to access all gated features', async () => {
+      for (const planId of ['professional', 'enterprise'] as const) {
+        const { token: adminToken } = await createVerifiedUser();
+        const { orgId } = await createOrgWithAdmin(app, adminToken);
+
+        await catalogService.createSubscription({
+          organizationId: orgId,
+          planId,
+          interval: 'month',
+          actorId: (await createVerifiedUser()).user.id,
+        });
+
+        // Create a project first
+        const projectRes = await app.inject({
+          method: 'POST',
+          url: `/api/v1/organizations/${orgId}/projects`,
+          headers: { authorization: `Bearer ${adminToken}` },
+          payload: { name: `${planId} Test Project`, currency: 'USD' },
+        });
+        const projectId = projectRes.json().data.id;
+
+        // Test a subset of gated features — should all succeed (not blocked by feature gate)
+        const tests = [
+          { method: 'POST', url: `/api/v1/organizations/${orgId}/projects/${projectId}/material-requests` },
+          { method: 'POST', url: `/api/v1/organizations/${orgId}/subcontractors` },
+          { method: 'GET', url: `/api/v1/organizations/${orgId}/projects/${projectId}/commercial-summary` },
+          { method: 'POST', url: `/api/v1/organizations/${orgId}/ai/conversations` },
+        ];
+
+        for (const test of tests) {
+          const res = await app.inject({
+            method: test.method,
+            url: test.url,
+            headers: { authorization: `Bearer ${adminToken}` },
+            payload: test.method === 'POST' ? { /* minimal payload */ } : undefined,
+          });
+          // Should not be blocked by feature gate (may fail for other reasons, but not 403 FEATURE_RESTRICTED)
+          if (res.statusCode === 403) {
+            const error = res.json().error;
+            expect(error.code).not.toBe('FEATURE_RESTRICTED');
+          }
+        }
+      }
+    });
+  });
+
+  // ── Test 6: Trial limits vs Professional limits ─────────────────────────────────────────────
+
+  describe('Test 6: Trial plan returns trial limits, not Professional limits', () => {
+    it('returns trial limits (2 projects, 5 members) during active trial', async () => {
+      const { token: adminToken } = await createVerifiedUser();
+      const { orgId } = await createOrgWithAdmin(app, adminToken);
+
+      // Start trial
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/organizations/${orgId}/billing/trial`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      // Fetch entitlement info via API
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/organizations/${orgId}/billing/entitlements`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const data = res.json().data;
+      expect(data.limits.activeProjects).toBe(2); // Trial limit, not Professional's 15
+      expect(data.limits.teamMembers).toBe(5); // Trial limit, not Professional's 50
+      expect(data.limits.storageGb).toBe(5); // Trial limit, not Professional's 250
+      expect(data.limits.aiTokensMonthly).toBe(100000); // Trial limit, not Professional's 500k
+      expect(data.state).toBe('TRIALING');
+    });
+
+    it('blocks 3rd project creation on Trial (limit: 2)', async () => {
+      const { token: adminToken } = await createVerifiedUser();
+      const { orgId } = await createOrgWithAdmin(app, adminToken);
+
+      await app.inject({
+        method: 'POST',
+        url: `/api/v1/organizations/${orgId}/billing/trial`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      // Create 2 projects — should succeed
+      for (let i = 1; i <= 2; i++) {
+        const res = await app.inject({
+          method: 'POST',
+          url: `/api/v1/organizations/${orgId}/projects`,
+          headers: { authorization: `Bearer ${adminToken}` },
+          payload: { name: `Trial Project ${i}`, currency: 'USD' },
+        });
+        expect(res.statusCode).toBe(201);
+      }
+
+      // 3rd project should be blocked
+      const blocked = await app.inject({
+        method: 'POST',
+        url: `/api/v1/organizations/${orgId}/projects`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { name: 'Trial Project 3 (should fail)', currency: 'USD' },
+      });
+      expect(blocked.statusCode).toBe(403);
+      expect(blocked.json().error.code).toBe('LIMIT_EXCEEDED');
+    });
+  });
 });
