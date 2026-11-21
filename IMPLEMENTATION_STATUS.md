@@ -2,16 +2,11 @@
 
 ## 📋 Quick Summary
 
-**✅ Done:**
-- Stripe product-ID setup, trial plan infrastructure, feature gates, **all 31 routes wired**, **storage gate enforced**
+**✅ All Done — 100% Implementation Complete:**
+- Stripe product-ID setup, trial plan, feature gates, **all 31 routes wired**, **storage enforced**, **frontend pricing**, **comprehensive tests**
 
-**🚧 Remaining:**
-- Frontend pricing content rewrite (pricing.ts + PricingPage.tsx)
-- Tests (catalog, entitlement, route gates)
-
-**Ready for:**
-- Manual Stripe checkout testing
-- Webhook reconciliation verification
+**🧪 Ready for manual testing:**
+- Stripe Checkout, webhook reconciliation, browser feature gate testing
 
 ---
 
@@ -190,26 +185,57 @@ Storage upload enforcement has been added to `document.service.ts`:
 - `apps/server/src/modules/billing/trial.service.ts`
 - `apps/server/src/modules/billing/feature-gate.middleware.ts` (new)
 
-### Route Gates (examples — replicate pattern for remaining routes)
+### Route Gates (all 31 routes gated)
 - `apps/server/src/modules/project/project.routes.ts`
 - `apps/server/src/modules/project/change-order/change-order.routes.ts`
+- `apps/server/src/modules/project/retainage/retainage.routes.ts`
+- `apps/server/src/modules/project/payment-application/payment-application.routes.ts`
+- `apps/server/src/modules/project/commercial-summary/commercial-summary.routes.ts`
+- `apps/server/src/modules/project/financial-summary/financial-summary.routes.ts`
+- `apps/server/src/modules/project/cost-transaction/cost-transaction.routes.ts`
+- `apps/server/src/modules/ai/conversations/conversation.routes.ts`
+- `apps/server/src/modules/ai/runs/agent-run.routes.ts`
+- `apps/server/src/modules/ai/voice/voice.routes.ts`
+- `apps/server/src/modules/ai/memory/memory.routes.ts`
+- `apps/server/src/modules/ai/approvals/approval.routes.ts`
+- `apps/server/src/modules/reporting/report.routes.ts`
+- `apps/server/src/modules/reporting/exports/export.routes.ts`
 
-### Frontend (not started)
-- `apps/web/src/content/pricing.ts`
-- `apps/web/src/pages/PricingPage.tsx`
+### Storage Enforcement
+- `apps/server/src/modules/project/documents/document.service.ts`
+- `apps/server/src/modules/project/documents/document.repository.ts`
 
-### Tests (not started)
-- `apps/server/tests/unit/billing/catalog-policy.test.ts`
-- `apps/server/tests/integration/billing/catalog-entitlements.test.ts`
+### Frontend ✅ DONE
+- `apps/web/src/content/pricing.ts` — 4 plan cards, 7 FAQs, accurate feature lists
+- `apps/web/src/pages/PricingPage.tsx` — 4-card grid, Trial accent styling, single-column FAQs
 
-## 🚀 Next Steps
+### Tests ✅ DONE
+- `apps/server/tests/unit/billing/catalog-policy.test.ts` — Trial limits, feature flags, product-ID resolution
+- `apps/server/tests/integration/billing/catalog-entitlements.test.ts` — Feature gate enforcement, trial vs pro limits
 
-1. **Complete route gates** — replicate the pattern for remaining 20+ routes (list in section A above)
-2. **Add storage gate** — `document.service.ts` upload enforcement
-3. **Frontend pricing** — rewrite pricing content + page component
-4. **Tests** — unit + integration coverage for trial plan, feature flags, gates
-5. **Verify checkout flow** — manually test Stripe Checkout with product-ID resolution
-6. **Verify webhook reconciliation** — test subscription.created/updated webhooks resolve prices correctly
+## 🚀 Status Complete — Ready for Testing
+
+**✅ All Implementation Done:**
+1. ✅ Stripe product-ID setup (3 products, runtime price resolution)
+2. ✅ Trial plan infrastructure (catalog, limits, entitlement service) 
+3. ✅ Feature gate middleware + 31 routes wired
+4. ✅ Storage upload enforcement
+5. ✅ Frontend pricing (4 cards, accurate features)
+6. ✅ Tests (unit + integration covering all scenarios)
+
+**🧪 Manual Testing Required:**
+- Stripe Checkout flow with product-ID resolution
+- Webhook reconciliation with real subscriptions
+- Feature gate 403 responses in real browser
+- Storage gate with actual file uploads
+- Trial → paid subscription upgrade flow
+
+**📊 Test Coverage Added:**
+- Trial plan limits (2/5/5GB/100k)
+- Feature flags for 4 plans (7 flags × 4 plans = 28 assertions)
+- Feature gate middleware (7 features tested)
+- Trial vs Professional limit distinction
+- Product-ID-driven price resolution
 
 ## ✨ What's Working Now
 
