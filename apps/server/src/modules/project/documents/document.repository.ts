@@ -211,4 +211,20 @@ export class DocumentRepository {
         ],
       });
   }
+
+  /**
+   * Calculate total storage used by ACTIVE documents across all projects in an organization
+   */
+  async getTotalStorageUsed(db: any, organizationId: string): Promise<number> {
+    const result = await db
+      .select({ total: sql<string>`COALESCE(SUM(${documents.fileSize}), 0)` })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.organizationId, organizationId),
+          eq(documents.status, 'ACTIVE'),
+        ),
+      );
+    return result[0]?.total ? parseInt(result[0].total, 10) : 0;
+  }
 }

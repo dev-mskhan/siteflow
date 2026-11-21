@@ -10,6 +10,7 @@ import { getStorageService } from '../../../lib/storage/index.js';
 import { calculateObjectSha256 } from '../../../lib/storage/storage.service.js';
 import { DocumentRepository } from './document.repository.js';
 import { realtimeDeliveryManager } from '../../notification/realtime/realtime.delivery.js';
+import { entitlementService, EntitlementError } from '../../billing/entitlement.service.js';
 import {
   DocumentAccessDeniedError,
   DocumentInvalidCursorError,
@@ -250,6 +251,34 @@ export class DocumentService {
       || object.contentType.toLowerCase() !== existing.contentType.toLowerCase()
     ) {
       throw new DocumentUploadIncompleteError();
+    }
+
+    // Check storage limit before completing upload
+    const entitlement = await entitlementService.resolveEffectiveLimits(organizationId);
+    if (!entitlement.limits) {
+      throw new EntitlementError(
+        'NO_ACTIVE_SUBSCRIPTION',
+        'No active subscription or trial found',
+        { upgradeUrl: '/billing/plans' },
+      );
+    }
+    const limits = entitlement.limits;
+    const currentUsageBytes = await this.repo.getTotalStorageUsed(this.db, organizationId);
+    const newUsageBytes = currentUsageBytes + existing.fileSize;
+    const limitBytes = limits.storageGb * 1024 * 1024 * 1024;
+
+    if (newUsageBytes > limitBytes) {
+      throw new EntitlementError(
+        'LIMIT_EXCEEDED',
+        `Storage limit of ${limits.storageGb}GB exceeded. Current usage: ${(currentUsageBytes / (1024 * 1024 * 1024)).toFixed(2)}GB, attempted upload: ${(existing.fileSize / (1024 * 1024 * 1024)).toFixed(2)}GB`,
+        {
+          limit: 'storageGb',
+          current: currentUsageBytes,
+          attempted: newUsageBytes,
+          max: limitBytes,
+          upgradeUrl: '/billing/plans',
+        },
+      );
     }
 
     return this.db.transaction(async (tx) => {

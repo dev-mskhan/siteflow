@@ -1,5 +1,15 @@
 # 4-Plan Feature Gating — Implementation Status
 
+## 📋 Quick Summary
+
+**✅ Done:**
+- Stripe product-ID setup, trial plan infrastructure, feature gates, **all 31 routes wired**
+
+**🚧 Remaining:**
+- Storage upload gate, frontend pricing, tests
+
+---
+
 ## ✅ Completed
 
 ### 1. Stripe Product-ID-Driven Setup
@@ -42,9 +52,9 @@
 
 ## 🚧 Remaining Work
 
-### A. Complete Feature Gates (replicate the pattern shown above)
+### A. Complete Feature Gates ✅ DONE
 
-**Pattern:**
+All feature gates have been wired following this pattern:
 ```ts
 // 1. Add import at top of route file:
 import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
@@ -56,41 +66,48 @@ preHandler: [
 ],
 ```
 
-**Routes to gate:**
+**Routes gated:**
 
 #### `procurementChain` gates:
-- ✅ material-request create (done)
-- ✅ quote create (done)
-- ✅ purchase-order create (done)
-- ⏳ procurement-approval create (`project.routes.ts` or separate `procurement-approval.routes.ts`)
-- ⏳ delivery create (if gated — currently allowed for Starter; check business logic)
-- ⏳ receipt create (if gated — currently allowed for Starter; check business logic)
+- ✅ material-request create (project.routes.ts)
+- ✅ quote create (project.routes.ts)
+- ✅ purchase-order create (project.routes.ts)
+- ✅ procurement-approval create (project.routes.ts)
+- ✅ delivery create (project.routes.ts)
+- ✅ receipt create (project.routes.ts)
 
 #### `subcontractorMgmt` gates:
-- ⏳ subcontractor create (org-level: `/:organizationId/subcontractors` in `project.routes.ts`)
-- ⏳ subcontractor create (project-level: `/:organizationId/projects/:projectId/subcontractors`)
-- ⏳ retainage routes (`retainage.routes.ts` — all POST routes)
+- ✅ subcontractor create org-level (project.routes.ts)
+- ✅ subcontractor create project-level (project.routes.ts)
+- ✅ retainage hold (retainage.routes.ts)
+- ✅ retainage release (retainage.routes.ts)
 
 #### `aiaPaymentApps` gates:
-- ⏳ payment-application create (`payment-application.routes.ts`)
-- ⏳ payment-application submit/approve routes
+- ✅ payment-application create (payment-application.routes.ts)
+- ✅ payment-application submit (payment-application.routes.ts)
+- ✅ payment-application approve (payment-application.routes.ts)
 
 #### `costControl` gates:
-- ⏳ commercial-summary routes (`commercial-summary.routes.ts` GET routes)
-- ⏳ financial-summary routes (`financial-summary.routes.ts` GET routes)
-- ⏳ cost-transaction create routes (if separate from budget)
+- ✅ commercial-summary project GET (commercial-summary.routes.ts)
+- ✅ commercial-summary cost-code GET (commercial-summary.routes.ts)
+- ✅ financial-summary GET (financial-summary.routes.ts)
+- ✅ cost/commitment/billing/cash summary GETs (financial-summary.routes.ts)
+- ✅ cost-transaction create (cost-transaction.routes.ts)
 
 #### `conversationalAi` gates:
-- ⏳ conversation create (`ai/conversations/conversation.routes.ts` POST routes)
-- ⏳ agent run create (`ai/runs/agent-run.routes.ts` POST routes)
-- ⏳ voice message create (`ai/voice/voice.routes.ts`)
-- ⏳ memory set routes (`ai/memory/memory.routes.ts`)
-- ⏳ approval create routes (`ai/approvals/approval.routes.ts`)
+- ✅ conversation create (conversation.routes.ts)
+- ✅ message send (conversation.routes.ts)
+- ✅ agent run start (agent-run.routes.ts)
+- ✅ voice message create (voice.routes.ts)
+- ✅ memory set (memory.routes.ts)
+- ✅ approval approve/reject (approval.routes.ts)
 
 #### `advancedReporting` gates:
-- ⏳ portfolio report (`reporting/report.routes.ts` — `/reports/portfolio`)
-- ⏳ executive-summary report (`reporting/report.routes.ts` — `/reports/executive-summary`)
-- ⏳ export create (`reporting/exports/export.routes.ts` POST route)
+- ✅ portfolio report GET (report.routes.ts)
+- ✅ executive-summary report GET (report.routes.ts)
+- ✅ export create (export.routes.ts — all routes via preHandler hook)
+
+**All routes tested with typecheck — passes successfully.**
 
 ### B. Storage Gate (currently unenforced)
 - ⏳ Add `storageGb` upload gate in `project/documents/document.service.ts` → `completeUpload()` method
