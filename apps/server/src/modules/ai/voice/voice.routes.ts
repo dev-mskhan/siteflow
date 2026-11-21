@@ -4,6 +4,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../../rbac/permission.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import { handleVoiceMessage } from './voice.handler.js';
 import { voiceMessageSchemaDoc } from '../docs/ai.api.schemas.js';
 
@@ -23,7 +24,10 @@ export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/ai/conversations/:conversationId/voice',
     {
       schema: voiceMessageSchemaDoc,
-      preHandler: [requirePermission('ai.runs.create')],
+      preHandler: [
+        requirePlanFeature('conversationalAi'),
+        requirePermission('ai.runs.create'),
+      ],
     },
     handleVoiceMessage,
   );

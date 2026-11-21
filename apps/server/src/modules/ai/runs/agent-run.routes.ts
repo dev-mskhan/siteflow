@@ -2,6 +2,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../../rbac/permission.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleStartRun,
   handleGetRun,
@@ -34,7 +35,10 @@ export const agentRunRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/ai/runs',
     {
       schema: startRunSchemaDoc,
-      preHandler: [requirePermission('ai.runs.create')],
+      preHandler: [
+        requirePlanFeature('conversationalAi'),
+        requirePermission('ai.runs.create'),
+      ],
     },
     handleStartRun,
   );

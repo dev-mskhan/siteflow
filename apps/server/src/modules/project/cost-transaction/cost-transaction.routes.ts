@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireProjectPermission } from '../core/project.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleCreateCostTransaction,
   handleGetCostTransaction,
@@ -14,7 +15,10 @@ const base = '/:organizationId/projects/:projectId/cost-transactions';
 export const costTransactionRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(base, {
     schema: costTransactionRouteDocs.create,
-    preHandler: [requireProjectPermission('project.cost_transaction.create')],
+    preHandler: [
+      requirePlanFeature('costControl'),
+      requireProjectPermission('project.cost_transaction.create'),
+    ],
   }, handleCreateCostTransaction);
   fastify.get(base, {
     schema: costTransactionRouteDocs.list,

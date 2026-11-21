@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireProjectPermission } from '../core/project.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleGetCostCodeCommercialSummary,
   handleGetProjectCommercialSummary,
@@ -91,7 +92,10 @@ export const commercialSummaryRoutes: FastifyPluginAsync = async (fastify) => {
       },
       response: { 200: responseSchema },
     },
-    preHandler: [requireProjectPermission('project.budget.read')],
+    preHandler: [
+      requirePlanFeature('costControl'),
+      requireProjectPermission('project.budget.read'),
+    ],
   }, handleGetProjectCommercialSummary);
 
   fastify.get(`${base}/cost-codes/:costCodeId/commercial-summary`, {
@@ -110,6 +114,9 @@ export const commercialSummaryRoutes: FastifyPluginAsync = async (fastify) => {
       },
       response: { 200: responseSchema },
     },
-    preHandler: [requireProjectPermission('project.budget.read')],
+    preHandler: [
+      requirePlanFeature('costControl'),
+      requireProjectPermission('project.budget.read'),
+    ],
   }, handleGetCostCodeCommercialSummary);
 };

@@ -4,6 +4,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../rbac/permission.middleware.js';
+import { requirePlanFeature } from '../billing/feature-gate.middleware.js';
 import {
   projectContext,
   requireProjectPermission,
@@ -43,7 +44,12 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/reports/portfolio',
     {
       schema: getPortfolioReportSchemaDoc,
-      preHandler: [authenticate, organizationContext, requirePermission('project:read')],
+      preHandler: [
+        authenticate,
+        organizationContext,
+        requirePlanFeature('advancedReporting'),
+        requirePermission('project:read'),
+      ],
     },
     getPortfolioReportHandler,
   );
@@ -122,18 +128,21 @@ export const reportRoutes: FastifyPluginAsync = async (app) => {
     '/:organizationId/projects/:projectId/reports/executive-summary',
     {
       schema: getExecutiveSummaryReportSchemaDoc,
-      preHandler: projectReportReadHandlers(
-        'project.task.read',
-        'project.issue.read',
-        'project.rfi.read',
-        'project.baseline.read',
-        'project.financial_summary.read',
-        'project.material_request.read',
-        'project.purchase_order.read',
-        'project.delivery.read',
-        'project.receipt.read',
-        'project.inventory.read',
-      ),
+      preHandler: [
+        ...projectReportReadHandlers(
+          'project.task.read',
+          'project.issue.read',
+          'project.rfi.read',
+          'project.baseline.read',
+          'project.financial_summary.read',
+          'project.material_request.read',
+          'project.purchase_order.read',
+          'project.delivery.read',
+          'project.receipt.read',
+          'project.inventory.read',
+        ),
+        requirePlanFeature('advancedReporting'),
+      ],
     },
     getExecutiveSummaryReportHandler,
   );

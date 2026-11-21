@@ -5,6 +5,7 @@ import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../../rbac/permission.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import { exportService } from './export.service.js';
 import { createSuccessResponse } from '../../../shared/response.js';
 import type { PortfolioActor } from '../report.service.js';
@@ -40,6 +41,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
   // All export routes require authentication, organization context, and project:read permission
   app.addHook('preHandler', authenticate);
   app.addHook('preHandler', organizationContext);
+  app.addHook('preHandler', requirePlanFeature('advancedReporting'));
   app.addHook('preHandler', requirePermission('project:read'));
 
   // 1. Request export

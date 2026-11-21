@@ -332,7 +332,12 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     '/:organizationId/subcontractors',
-    { preHandler: [requirePermission('subcontractor:create')] },
+    {
+      preHandler: [
+        requirePlanFeature('subcontractorMgmt'),
+        requirePermission('subcontractor:create'),
+      ],
+    },
     handleCreateSubcontractor,
   );
 
@@ -838,7 +843,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/subcontractors',
       {
         schema: assignSubcontractorSchemaDoc,
-        preHandler: [requireProjectPermission('project.subcontractor.create')],
+        preHandler: [
+          requirePlanFeature('subcontractorMgmt'),
+          requireProjectPermission('project.subcontractor.create'),
+        ],
       },
       handleAssignSubcontractorToProject,
     );
@@ -1026,7 +1034,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/procurement-approvals',
       {
         schema: createApprovalSchemaDoc,
-        preHandler: [requireProjectPermission('project.procurement_approval.create')],
+        preHandler: [
+          requirePlanFeature('procurementChain'),
+          requireProjectPermission('project.procurement_approval.create'),
+        ],
       },
       handleCreateApproval,
     );
@@ -1163,7 +1174,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/deliveries',
       {
         schema: createDeliverySchemaDoc,
-        preHandler: [requireProjectPermission('project.delivery.create')],
+        preHandler: [
+          requirePlanFeature('procurementChain'),
+          requireProjectPermission('project.delivery.create'),
+        ],
       },
       handleCreateDelivery,
     );
@@ -1197,7 +1211,10 @@ export const projectRoutes: FastifyPluginAsync = async (fastify) => {
       '/:organizationId/projects/:projectId/receipts',
       {
         schema: createReceiptSchemaDoc,
-        preHandler: [requireProjectPermission('project.receipt.create')],
+        preHandler: [
+          requirePlanFeature('procurementChain'),
+          requireProjectPermission('project.receipt.create'),
+        ],
       },
       handleCreateReceipt,
     );

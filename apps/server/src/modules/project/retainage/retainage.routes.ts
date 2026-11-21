@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireProjectPermission } from '../core/project.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleHoldRetainage,
   handleListRetainage,
@@ -58,7 +59,10 @@ export const retainageRoutes: FastifyPluginAsync = async (fastify) => {
         headers: idempotencyHeader,
         response: { 201: response },
       },
-      preHandler: [requireProjectPermission('project.retainage.hold')],
+      preHandler: [
+        requirePlanFeature('subcontractorMgmt'),
+        requireProjectPermission('project.retainage.hold'),
+      ],
     },
     handleHoldRetainage,
   );
@@ -86,7 +90,10 @@ export const retainageRoutes: FastifyPluginAsync = async (fastify) => {
         body: releaseBody,
         response: { 200: response },
       },
-      preHandler: [requireProjectPermission('project.retainage.release')],
+      preHandler: [
+        requirePlanFeature('subcontractorMgmt'),
+        requireProjectPermission('project.retainage.release'),
+      ],
     },
     handleReleaseRetainage,
   );

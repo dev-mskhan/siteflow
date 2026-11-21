@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireProjectPermission } from '../core/project.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleGetBillingSummary,
   handleGetCashSummary,
@@ -39,7 +40,10 @@ export const financialSummaryRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ bearerAuth: [] }],
         params: paramsSchema,
       },
-      preHandler: [requireProjectPermission('project.financial_summary.read')],
+      preHandler: [
+        requirePlanFeature('costControl'),
+        requireProjectPermission('project.financial_summary.read'),
+      ],
     },
     handleGetFinancialSummary,
   );
@@ -72,7 +76,10 @@ export const financialSummaryRoutes: FastifyPluginAsync = async (fastify) => {
           security: [{ bearerAuth: [] }],
           params: paramsSchema,
         },
-        preHandler: [requireProjectPermission('project.financial_summary.read')],
+        preHandler: [
+          requirePlanFeature('costControl'),
+          requireProjectPermission('project.financial_summary.read'),
+        ],
       },
       handler,
     );

@@ -2,6 +2,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../../rbac/permission.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import { handleGetApproval, handleApprove, handleReject } from './approval.handler.js';
 import {
   getApprovalSchemaDoc,
@@ -26,7 +27,10 @@ export const approvalRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/ai/approvals/:approvalId/approve',
     {
       schema: approveApprovalSchemaDoc,
-      preHandler: [requirePermission('ai.approvals.decide')],
+      preHandler: [
+        requirePlanFeature('conversationalAi'),
+        requirePermission('ai.approvals.decide'),
+      ],
     },
     handleApprove,
   );
@@ -35,7 +39,10 @@ export const approvalRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/ai/approvals/:approvalId/reject',
     {
       schema: rejectApprovalSchemaDoc,
-      preHandler: [requirePermission('ai.approvals.decide')],
+      preHandler: [
+        requirePlanFeature('conversationalAi'),
+        requirePermission('ai.approvals.decide'),
+      ],
     },
     handleReject,
   );

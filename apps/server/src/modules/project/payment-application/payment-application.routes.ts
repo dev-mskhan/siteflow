@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireProjectPermission } from '../core/project.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleApprovePaymentApplication,
   handleCreatePaymentApplication,
@@ -39,7 +40,10 @@ export const paymentApplicationRoutes: FastifyPluginAsync = async (fastify) => {
         params,
         response: { 201: response },
       },
-      preHandler: [requireProjectPermission('project.payment_application.create')],
+      preHandler: [
+        requirePlanFeature('aiaPaymentApps'),
+        requireProjectPermission('project.payment_application.create'),
+      ],
     },
     handleCreatePaymentApplication,
   );
@@ -92,7 +96,10 @@ export const paymentApplicationRoutes: FastifyPluginAsync = async (fastify) => {
         body: transitionBody,
         response: { 200: response },
       },
-      preHandler: [requireProjectPermission('project.payment_application.submit')],
+      preHandler: [
+        requirePlanFeature('aiaPaymentApps'),
+        requireProjectPermission('project.payment_application.submit'),
+      ],
     },
     handleSubmitPaymentApplication,
   );
@@ -119,7 +126,10 @@ export const paymentApplicationRoutes: FastifyPluginAsync = async (fastify) => {
         params,
         response: { 200: response },
       },
-      preHandler: [requireProjectPermission('project.payment_application.approve')],
+      preHandler: [
+        requirePlanFeature('aiaPaymentApps'),
+        requireProjectPermission('project.payment_application.approve'),
+      ],
     },
     handleApprovePaymentApplication,
   );

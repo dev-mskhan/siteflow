@@ -2,6 +2,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../../rbac/permission.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleCreateConversation,
   handleListConversations,
@@ -28,7 +29,10 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/ai/conversations',
     {
       schema: createConversationSchemaDoc,
-      preHandler: [requirePermission('ai.runs.create')],
+      preHandler: [
+        requirePlanFeature('conversationalAi'),
+        requirePermission('ai.runs.create'),
+      ],
     },
     handleCreateConversation,
   );
@@ -65,7 +69,10 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/ai/conversations/:conversationId/messages',
     {
       schema: sendMessageSchemaDoc,
-      preHandler: [requirePermission('ai.runs.create')],
+      preHandler: [
+        requirePlanFeature('conversationalAi'),
+        requirePermission('ai.runs.create'),
+      ],
     },
     handleSendMessage,
   );

@@ -2,6 +2,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { authenticate } from '../../auth/auth.middleware.js';
 import { organizationContext, requirePermission } from '../../rbac/permission.middleware.js';
+import { requirePlanFeature } from '../../billing/feature-gate.middleware.js';
 import {
   handleListMemory,
   handleGetMemory,
@@ -42,7 +43,10 @@ export const memoryRoutes: FastifyPluginAsync = async (fastify) => {
     '/:organizationId/ai/memory/:key',
     {
       schema: setMemorySchemaDoc,
-      preHandler: [requirePermission('ai.memory.manage')],
+      preHandler: [
+        requirePlanFeature('conversationalAi'),
+        requirePermission('ai.memory.manage'),
+      ],
     },
     handleSetMemory,
   );
